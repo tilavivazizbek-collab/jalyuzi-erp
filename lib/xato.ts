@@ -30,6 +30,14 @@ export const XATO_BAND = {
   FORMULA_XATO: 'TZ 4.5',
   FORMULA_NOMALUM_OZGARUVCHI: 'TZ 4.5',
   MUHIT_NOTOGRI: 'QISM 1 §18',
+
+  // ── Kirish — QISM 1 §8 ─────────────────────────────────────────────────
+  PAROL_QISQA: 'QISM 1 §8',
+  KIRISH_NOTOGRI: 'QISM 1 §8',
+  HISOB_BLOKLANGAN: 'QISM 1 §8',
+  USTA_SAYTGA_KIRMAYDI: 'Q-04',
+  SESSIYA_TUGAGAN: 'QISM 1 §8',
+  RUXSAT_YOQ: 'TZ 14.6',
 } as const;
 
 export type XatoKod = keyof typeof XATO_BAND;

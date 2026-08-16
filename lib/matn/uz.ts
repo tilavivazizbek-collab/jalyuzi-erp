@@ -23,6 +23,13 @@ export const XATO_MATNI: Record<XatoKod, string> = {
   FORMULA_XATO: "Formulada xato bor",
   FORMULA_NOMALUM_OZGARUVCHI: "Formulada noma'lum o'zgaruvchi ishlatilgan",
   MUHIT_NOTOGRI: "Muhit o'zgaruvchilari to'liq emas",
+
+  PAROL_QISQA: "Parol juda qisqa",
+  KIRISH_NOTOGRI: "Telefon raqami yoki parol noto'g'ri",
+  HISOB_BLOKLANGAN: "Hisob vaqtincha bloklangan",
+  USTA_SAYTGA_KIRMAYDI: "Usta saytga kirmaydi — Telegram botdan foydalaning",
+  SESSIYA_TUGAGAN: "Sessiya muddati tugagan, qayta kiring",
+  RUXSAT_YOQ: "Bu amalga ruxsatingiz yo'q",
 };
 
 export const BIRLIK_MATNI = {

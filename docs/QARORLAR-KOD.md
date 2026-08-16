@@ -17,6 +17,9 @@ ko'chiriladi. Tasdiqlanmagani `⏳` bilan belgilanadi.
 | P-06 | Audit jurnali baza darajasida o'zgarmas | ⏳ tasdiq kutilmoqda |
 | P-07 | `yaratdi_id` tashqi kalitlari `DEFERRABLE` | ⏳ tasdiq kutilmoqda |
 | P-08 | `rol.kod` — tizimli rollarning barqaror belgisi | ⏳ tasdiq kutilmoqda |
+| P-09 | Auth.js ishlatilmaydi — kirish qo'lda yoziladi | ⏳ tasdiq kutilmoqda |
+| P-10 | Parol eng kami 8 belgi | ⏳ tasdiq kutilmoqda |
+| P-11 | Sessiya muddati soatiga bir marta suriladi | ⏳ tasdiq kutilmoqda |
 
 ---
 
@@ -318,3 +321,78 @@ Admin `nom` ni xohlaganicha o'zgartiradi, `kod` esa hech qachon o'zgarmaydi.
 ### Hujjatga o'zgartirish
 
 QISM 3 §1.3 dagi `rol` jadvaliga `kod` qo'shiladi.
+
+---
+
+## P-09 · Auth.js ishlatilmaydi
+
+**Bosqich:** 1 · **Tegadi:** QISM 1 §1 (stek) · §8
+
+### Ziddiyat
+
+Stekda «Auth.js (NextAuth) v5» yozilgan. §8 esa quyidagilarni talab qiladi:
+
+| Talab | Auth.js nima beradi |
+|---|---|
+| Telefon + parol | Credentials provider — bor, lekin bo'sh qobiq |
+| `argon2id` | yo'q, o'zimiz yozamiz |
+| «JWT emas — bazadagi sessiya jadvali» | Auth.js ning asosiy yo'li JWT |
+| 30 kun, har so'rovda uzayadi | o'zimiz yozamiz |
+| 5 urinish → 15 daqiqa blok | yo'q |
+| Darhol bekor qilish | o'z jadvalimiz kerak |
+
+Ya'ni §8 ning har bandi baribir qo'lda yoziladi. Auth.js faqat ustiga
+qatlam qo'shadi va uni o'z jadvalimizga majburlash uchun adapter yozish
+kerak bo'ladi.
+
+### Qaror
+
+Auth.js ishlatilmaydi. Kirish §8 aynan yozilganidek quriladi:
+
+```
+lib/kirish/parol.ts    argon2id (@node-rs/argon2)
+lib/kirish/sessiya.ts  256 bit token, bazada SHA-256 hash
+lib/kirish/blok.ts     5 urinish / 15 daqiqa
+```
+
+Yangi kutubxona bittagina: `@node-rs/argon2` — u §8 da nomma-nom talab
+qilingan algoritm.
+
+### Hujjatga o'zgartirish
+
+QISM 1 §1 stek jadvalidan «Auth.js (NextAuth) v5» qatori olib tashlanadi.
+
+---
+
+## P-10 · Parol eng kami 8 belgi
+
+**Bosqich:** 1 · **Tegadi:** QISM 1 §8
+
+§8 parolni talab qiladi, lekin **uzunligini belgilamagan**. Chegara qo'yilmasa
+bir belgili parol ham qabul qilinadi.
+
+**Qaror:** eng kami 8, eng ko'pi 128 belgi.
+
+Sabab: 8 dan kamini taxmin qilib topsa bo'ladi; ko'pini talab qilsa xodimlar
+parolni monitorga yopishtirib qo'yadi va himoya yomonlashadi. Murakkablik
+talabi (katta harf, raqam, belgi) **qo'yilmagan** — u parolni kuchaytirmaydi,
+faqat unutilishini oshiradi.
+
+`parol_hash` NULL bo'lishi mumkin — usta saytga kirmaydi (Q-04).
+
+---
+
+## P-11 · Sessiya muddati soatiga bir marta suriladi
+
+**Bosqich:** 1 · **Tegadi:** QISM 1 §8
+
+§8: «Sessiya muddati 30 kun, **har so'rovda uzayadi**.»
+
+So'zma-so'z bajarilsa har sahifa ochilishida bazaga `UPDATE` ketadi. Kuniga
+20 foydalanuvchi × yuzlab so'rov — hech qanday foyda bermaydigan yozuv.
+
+**Qaror:** muddat surilishi kerak bo'lsa ham, u **soatiga bir martadan
+ko'p qayta yozilmaydi**.
+
+Natija foydalanuvchi uchun bir xil: ishlab turgan odamning sessiyasi hech
+qachon tugamaydi, ishlamay qo'ygandan 30 kun keyin tugaydi.
