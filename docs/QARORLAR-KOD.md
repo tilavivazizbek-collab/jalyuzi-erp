@@ -16,6 +16,7 @@ ko'chiriladi. Tasdiqlanmagani `⏳` bilan belgilanadi.
 | P-05 | `xodim_rol` jadvali — xodimda bir nechta rol | ⏳ tasdiq kutilmoqda |
 | P-06 | Audit jurnali baza darajasida o'zgarmas | ⏳ tasdiq kutilmoqda |
 | P-07 | `yaratdi_id` tashqi kalitlari `DEFERRABLE` | ⏳ tasdiq kutilmoqda |
+| P-08 | `rol.kod` — tizimli rollarning barqaror belgisi | ⏳ tasdiq kutilmoqda |
 
 ---
 
@@ -278,3 +279,42 @@ Urug' birinchi filial va birinchi adminni **bitta tranzaksiyada** yozadi.
 Qolgan jadvallarda oddiy tashqi kalit — ularda halqa yo'q.
 
 `ON DELETE CASCADE` hech qayerda yo'q (§6.3).
+
+---
+
+## P-08 · `rol.kod` — tizimli rollarning barqaror belgisi
+
+**Bosqich:** 1 · **Tegadi:** QISM 3 §1.3 · Q-04 · TZ 20.12.1
+
+### Muammo
+
+Q-04 va 20.12.1 to'rtta qattiq qoidani **kodda** talab qiladi:
+
+1. Usta roli saytga kira olmaydi
+2. Sotuvchi boshqa sotuvchi kassasini ko'rmaydi
+3. Admin `sozlama.ozgartir` ni o'zidan olib qo'ya olmaydi
+4. Filial xodimi boshqa filial kassasini ko'rmaydi
+
+Birinchi va to'rtinchi qoida uchun kod «usta» va «admin» rolini **tanishi**
+kerak. Modelda (§1.3) esa faqat `nom TEXT UNIQUE` bor.
+
+`nom` ni admin sozlamalardan o'zgartira oladi. «Usta» ni «Tikuvchi» deb
+nomlasa — qoida jimgina ishlamay qoladi va usta saytga kira boshlaydi.
+Hech kim sezmaydi.
+
+### Qaror
+
+`rol` jadvaliga `kod TEXT UNIQUE` ustuni. Faqat tizimli rollarda to'ladi:
+
+```
+ADMIN · SOTUVCHI · OMBORCHI · USTA
+```
+
+`CHECK` bilan bog'landi: `tizimli = true` bo'lsa `kod` majburiy,
+`tizimli = false` bo'lsa `kod` NULL.
+
+Admin `nom` ni xohlaganicha o'zgartiradi, `kod` esa hech qachon o'zgarmaydi.
+
+### Hujjatga o'zgartirish
+
+QISM 3 §1.3 dagi `rol` jadvaliga `kod` qo'shiladi.

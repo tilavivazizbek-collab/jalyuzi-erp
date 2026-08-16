@@ -16,7 +16,8 @@ export default defineConfig({
     },
     coverage: {
       provider: 'v8',
-      include: ['lib/domain/**/*.ts'],
+      // §14.2 — sof mantiq qatlamlari. `lib/ruxsat/` ham bazaga tegmaydi.
+      include: ['lib/domain/**/*.ts', 'lib/ruxsat/**/*.ts'],
       reporter: ['text', 'html'],
       // QISM 1 §14.2 — sof mantiq qatlami 90% dan past bo'lmaydi
       thresholds: {

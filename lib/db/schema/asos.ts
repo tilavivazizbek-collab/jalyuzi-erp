@@ -72,17 +72,32 @@ export const filial = pgTable(
 
 // ─── 1.3 · rol · ruxsat · rol_ruxsat — TZ 14.6, 20.12 ─────────────────────
 
+/**
+ * Tizimli rol kodlari — Q-04 va 20.12.1 dagi qattiq qoidalar shularga tayanadi.
+ * `nom` ni admin o'zgartirishi mumkin, `kod` esa hech qachon o'zgarmaydi
+ * (QARORLAR-KOD P-08).
+ */
+export const TIZIMLI_ROLLAR = ['ADMIN', 'SOTUVCHI', 'OMBORCHI', 'USTA'] as const;
+export type TizimliRol = (typeof TIZIMLI_ROLLAR)[number];
+
 export const rol = pgTable(
   'rol',
   {
     id: id(),
+    /** Faqat tizimli rollarda to'ladi. Admin qo'shgan rolda NULL. */
+    kod: text('kod').unique(),
     nom: text('nom').notNull().unique(),
     /** Tizimli rolni o'chirib bo'lmaydi (admin, usta) */
     tizimli: boolean('tizimli').notNull().default(false),
     ...ochirilmaydi,
     ...izlar,
   },
-  () => [],
+  (t) => [
+    check(
+      'rol_tizimli_kod',
+      sql`(${t.tizimli} = false AND ${t.kod} IS NULL) OR (${t.tizimli} = true AND ${t.kod} IS NOT NULL)`,
+    ),
+  ],
 );
 
 /**
