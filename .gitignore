@@ -1,0 +1,21 @@
+node_modules/
+.next/
+out/
+build/
+coverage/
+*.tsbuildinfo
+
+# Sirlar — hech qachon git ga tushmaydi (QISM 1 §16)
+.env
+.env.local
+.env.*.local
+
+# Yuklangan fayllar (QISM 1 §20) va zaxira nusxalar (§17)
+/uploads/
+*.sql.gz
+
+.DS_Store
+Thumbs.db
+*.log
+.vscode/
+.idea/

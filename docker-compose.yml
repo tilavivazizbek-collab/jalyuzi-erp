@@ -1,0 +1,51 @@
+# QISM 1 §2.3 — «loyiha loqal kompyuterda `docker compose up` bilan to'liq
+# ishlashi shart. Ishlamasa — platformaga bog'langan.»
+#
+#   docker compose up -d baza          faqat baza (kundalik ishlab chiqish)
+#   docker compose --profile toliq up  baza + dastur (§2.3 tekshiruvi)
+
+services:
+  baza:
+    image: postgres:16-alpine
+    container_name: jalyuzi-baza
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: jalyuzi
+      POSTGRES_PASSWORD: jalyuzi
+      POSTGRES_DB: jalyuzi
+      TZ: Asia/Tashkent
+      PGTZ: Asia/Tashkent
+    ports:
+      - '5432:5432'
+    volumes:
+      - baza-malumot:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U jalyuzi -d jalyuzi']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  dastur:
+    profiles: ['toliq']
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: jalyuzi-dastur
+    restart: unless-stopped
+    depends_on:
+      baza:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://jalyuzi:jalyuzi@baza:5432/jalyuzi
+      AUTH_SECRET: ${AUTH_SECRET:-loqal_ishlab_chiqish_uchun_kalit_32_belgidan_uzun}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-loqal-bot-tokeni-hali-ulanmagan}
+      TELEGRAM_ADMIN_CHAT_ID: ${TELEGRAM_ADMIN_CHAT_ID:-0}
+      BACKUP_CHANNEL_ID: ${BACKUP_CHANNEL_ID:-0}
+      CRON_SECRET: ${CRON_SECRET:-loqal_cron_kaliti_16_dan_uzun}
+      TZ: Asia/Tashkent
+      NODE_ENV: production
+    ports:
+      - '3000:3000'
+
+volumes:
+  baza-malumot:
