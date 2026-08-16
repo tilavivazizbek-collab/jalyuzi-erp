@@ -47,6 +47,7 @@ export const XATO_BAND = {
   NARX_NOTOGRI: 'TZ 5.4',
   KOEFFITSIENT_NOTOGRI: 'TZ 5.3',
   BIRLIK_OZGARMAYDI: 'TZ 5.3',
+  KONSTRUKTOR_XATO: 'TZ 4.5',
 } as const;
 
 export type XatoKod = keyof typeof XATO_BAND;
