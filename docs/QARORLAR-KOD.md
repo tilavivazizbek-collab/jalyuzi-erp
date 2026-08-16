@@ -13,6 +13,9 @@ ko'chiriladi. Tasdiqlanmagani `⏳` bilan belgilanadi.
 | P-02 | `filial_id` boshidanoq qo'yiladi | ⏳ tasdiq kutilmoqda |
 | P-03 | Kanonik testlar bosqichma-bosqich yoziladi | ⏳ tasdiq kutilmoqda |
 | P-04 | Node 22 majburiy emas, tavsiya | ⏳ tasdiq kutilmoqda |
+| P-05 | `xodim_rol` jadvali — xodimda bir nechta rol | ⏳ tasdiq kutilmoqda |
+| P-06 | Audit jurnali baza darajasida o'zgarmas | ⏳ tasdiq kutilmoqda |
+| P-07 | `yaratdi_id` tashqi kalitlari `DEFERRABLE` | ⏳ tasdiq kutilmoqda |
 
 ---
 
@@ -166,3 +169,112 @@ Dockerfile da `node:22-alpine`.
 
 Ya'ni **ishlab chiqarish 22 da**, loqal ishlab chiqish 24 da ham ishlaydi.
 Node 22 ni o'rnatish tavsiya qilinadi, lekin ishni to'xtatmaydi.
+
+---
+
+## P-05 · `xodim_rol` — xodimda bir nechta rol
+
+**Bosqich:** 1 · **Tegadi:** QISM 3 §1.2 · TZ 10.3, 13, 14.6, 14.10, EC-XOD-10
+
+### Ziddiyat
+
+Funksional TZ **besh joyda** ko'p rol deydi:
+
+| Band | Nima yozilgan |
+|---|---|
+| 10.3 | «Xodimga bir vaqtning o'zida bir nechta rol berilishi mumkin. Ruxsatlar yig'indi» |
+| 13 (bot) | «Bir nechta rol bo'lsa — panellar orasida almashish tugmasi chiqadi» |
+| 14.6 | «Xodimda bir nechta rol bo'lsa (10.3) — ruxsatlar yig'indi bo'ladi» |
+| 14.10 | Qarorlar jadvali: «Bir nechta rol → Ruxsatlar yig'indi» |
+| EC-XOD-10 | «Bitta odam admin ham, omborchi ham» — **KELISHILDI** |
+
+Ma'lumotlar modeli (QISM 3 §1.2) esa:
+
+```sql
+rol_id  BIGINT NOT NULL REFERENCES rol(id)   -- bitta rol
+```
+
+Audit bu ziddiyatni ushlamagan.
+
+### Qaror
+
+Funksional TZ ustun (14.10 buni **qaror** sifatida qayd etgan, EC-XOD-10
+kelishilgan). `xodim.rol_id` olib tashlanadi, o'rniga `xodim_rol` bog'lovchi
+jadvali:
+
+```sql
+xodim_rol (xodim_id, rol_id)  PRIMARY KEY (xodim_id, rol_id)
+```
+
+Ruxsat tekshiruvi barcha rollarning ruxsatlari **yig'indisi** bo'yicha ishlaydi.
+
+Jadvallar soni: 44 → **45**.
+
+### Nega bu muhim
+
+10.3 ning o'z izohi: «Kichik korxonada adminning o'zi omborchi ham bo'ladi.
+Bitta rol majburlansa, u ikkinchi hisob ochishga majbur bo'ladi va audit
+jurnalida ikki xil odam ko'rinadi.» Ya'ni bitta rol modeli audit jurnalini
+ishonchsiz qiladi.
+
+### Hujjatga o'zgartirish
+
+QISM 3 §1.2 dan `rol_id` olib tashlanadi, §1.2.1 qo'shiladi. §13 jadvallar
+ro'yxati va bosh sahifadagi «44 jadval» raqami yangilanadi.
+
+---
+
+## P-06 · Audit jurnali baza darajasida o'zgarmas
+
+**Bosqich:** 1 · **Tegadi:** QISM 1 §6.5, §10, §16 · TZ 2.4
+
+### Muammo
+
+§16: «Pul amallari — har biri audit jurnalida». Bu kafolat jurnal
+o'zgartirilishi mumkin bo'lsa hech narsani anglatmaydi.
+
+Hujjat §6.5 da `UPDATE`/`DELETE` taqiqini beshta harakat jadvaliga qo'ygan,
+lekin `audit_jurnal` ro'yxatga kirmagan — u shu beshtasini nazorat qiladigan
+jadval bo'lsa ham.
+
+### Qaror
+
+`audit_jurnal` ga `BEFORE UPDATE OR DELETE` trigger qo'yiladi
+(`0002_audit_himoya.sql`). Bir xil `faqat_qoshiladi()` funksiyasi keyin
+§6.5 dagi beshta jadvalga ham ishlatiladi.
+
+Dastur kodidagi tekshiruv yetarli emas: bazaga to'g'ridan-to'g'ri ulangan
+odam uni chetlab o'tadi.
+
+---
+
+## P-07 · `yaratdi_id` tashqi kalitlari `DEFERRABLE`
+
+**Bosqich:** 1 · **Tegadi:** QISM 3 §0.1
+
+### Muammo
+
+§0.1: `yaratdi_id BIGINT NOT NULL REFERENCES xodim(id)` — har jadvalda.
+Lekin bu halqa hosil qiladi:
+
+```
+filial.yaratdi_id  →  xodim.id
+xodim.filial_id    →  filial.id      ← halqa
+xodim.yaratdi_id   →  xodim.id       ← o'ziga o'zi
+```
+
+Birinchi filial va birinchi xodim bir-birisiz mavjud bo'la olmaydi. Oddiy
+tashqi kalit bilan urug' (seed) hech qachon yozilmaydi.
+
+### Qaror
+
+`filial`, `xodim`, `rol`, `xodim_rol` jadvallarining `yaratdi_id` /
+`ozgartirdi_id` / `filial_id` kalitlari **`DEFERRABLE INITIALLY DEFERRED`**
+(`0001_izlar_fk.sql`). Tekshiruv har qatordan keyin emas, tranzaksiya
+oxirida bajariladi.
+
+Urug' birinchi filial va birinchi adminni **bitta tranzaksiyada** yozadi.
+
+Qolgan jadvallarda oddiy tashqi kalit — ularda halqa yo'q.
+
+`ON DELETE CASCADE` hech qayerda yo'q (§6.3).
