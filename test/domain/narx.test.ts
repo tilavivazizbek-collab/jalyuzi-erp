@@ -22,7 +22,9 @@ import { dollar, kurs, pulMatn, som } from '@/lib/domain/pul';
 import { dona, kvM, sm } from '@/lib/domain/birlik';
 import { BiznesXato } from '@/lib/xato';
 
-const KURS = kurs(12_650, new Date('2026-08-16'), 'SNAPSHOT');
+/** 6.3 — offset uchun sozlamadagi JORIY kurs ishlatiladi */
+const KURS = kurs(12_650, new Date('2026-08-16'), 'JORIY');
+const SNAPSHOT_KURS = kurs(12_650, new Date('2026-08-01'), 'SNAPSHOT');
 
 // ─── 20.9 · Filial narxi ──────────────────────────────────────────────────
 
@@ -65,6 +67,13 @@ describe("6.3 — mijoz offsetining uch turi", () => {
   it('dollarli offsetda kurs MAJBURIY (§3.2)', () => {
     const o: Offset = { turi: 'DOLLAR', summa: dollar(-1) };
     expect(() => offsetQolla(baza, o, null)).toThrow(BiznesXato);
+  });
+
+  it("SNAPSHOT kurs rad etiladi — buyurtma kursi bilan yashirin chegirma bo'lmasin", () => {
+    // TZ 6.3: buyurtmadagi kurs olinsa, sotuvchi kursni ko'tarib mijozga
+    // bilvosita chegirma bera oladi va u chegirma limitida (3.11) ko'rinmaydi
+    const o: Offset = { turi: 'DOLLAR', summa: dollar(-1) };
+    expect(() => offsetQolla(baza, o, SNAPSHOT_KURS)).toThrow(BiznesXato);
   });
 
   it("noto'g'ri foiz rad etiladi", () => {

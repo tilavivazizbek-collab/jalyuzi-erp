@@ -69,11 +69,18 @@ export function offsetQolla(baza: Som, offset: Offset | null, kurs: Kurs | null)
       // −3 → × 0.97
       return kopaytir(baza, 1 + offset.foiz / 100);
 
-    case 'DOLLAR':
+    case 'DOLLAR': {
       if (kurs === null) {
         throw new BiznesXato('KURS_NOTOGRI', "dollarli offset uchun kurs kerak");
       }
+      // TZ 6.3 — «Dollar offsetida sozlamadagi JORIY kurs ishlatiladi,
+      // buyurtmadagi kurs emas.» Aks holda sotuvchi kursni ko'tarib mijozga
+      // bilvosita chegirma bera oladi va bu chegirma limitida (3.11) ko'rinmaydi.
+      if (kurs.manba !== 'JORIY') {
+        throw new BiznesXato('KURS_NOTOGRI', 'offset uchun joriy kurs kerak, snapshot emas');
+      }
       return qosh(baza, ogir(offset.summa, kurs));
+    }
   }
 }
 
