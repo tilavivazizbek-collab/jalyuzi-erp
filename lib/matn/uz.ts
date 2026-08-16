@@ -30,6 +30,9 @@ export const XATO_MATNI: Record<XatoKod, string> = {
   USTA_SAYTGA_KIRMAYDI: "Usta saytga kirmaydi — Telegram botdan foydalaning",
   SESSIYA_TUGAGAN: "Sessiya muddati tugagan, qayta kiring",
   RUXSAT_YOQ: "Bu amalga ruxsatingiz yo'q",
+
+  FILIAL_TIKMAYDI: "Bu filialda ishlab chiqarish yo'q",
+  FILIAL_NOFAOL: "Filial nofaol",
 };
 
 export const BIRLIK_MATNI = {

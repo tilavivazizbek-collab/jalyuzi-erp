@@ -38,6 +38,10 @@ export const XATO_BAND = {
   USTA_SAYTGA_KIRMAYDI: 'Q-04',
   SESSIYA_TUGAGAN: 'QISM 1 §8',
   RUXSAT_YOQ: 'TZ 14.6',
+
+  // ── Filial — TZ 20.2, 20.4 ─────────────────────────────────────────────
+  FILIAL_TIKMAYDI: 'TZ 20.4.1',
+  FILIAL_NOFAOL: 'TZ 20.2',
 } as const;
 
 export type XatoKod = keyof typeof XATO_BAND;
