@@ -234,6 +234,48 @@ export function ogir(summa: Dollar, k: Kurs): Som {
   return som(natija.toFixed(PUL_KASR_XONASI));
 }
 
+// ─── Kurs farqi — TZ 9.6 ──────────────────────────────────────────────────
+
+/**
+ * TZ 9.6 — «Kurs tushsa bu DAROMAD bo'ladi. U alohida moddaga yoziladi,
+ * xarajat moddasiga musbat qiymat qo'yilmaydi.»
+ *
+ * Ikkitasi ataylab ajratilgan: bitta moddaga yig'ilsa bir-birini yeb qo'yadi
+ * va yil davomida qancha yo'qotilgani ko'rinmay qoladi.
+ */
+export type KursFarqiTuri = 'XARAJAT' | 'DAROMAD' | 'YOQ';
+
+export interface KursFarqi {
+  readonly turi: KursFarqiTuri;
+  /** Har doim musbat. Yo'nalishni `turi` bildiradi. */
+  readonly summa: Som;
+  /** Kirim kunidagi kursda qotgan tannarx — o'zgarmaydi (2.3-invariant) */
+  readonly qotganTannarx: Som;
+  /** To'lov kunida kassadan chiqqan summa */
+  readonly tolovSummasi: Som;
+}
+
+/**
+ * Dollardagi qarz to'langanda kurs farqini hisoblaydi.
+ *
+ * Tannarxga TEGMAYDI: mahsulot allaqachon o'sha narxda sotilgan, o'tgan
+ * oyning hisoboti o'zgarmasligi kerak (2.3-invariant).
+ */
+export function kursFarqi(qarz: Dollar, kirimKursi: Kurs, tolovKursi: Kurs): KursFarqi {
+  const qotganTannarx = ogir(qarz, kirimKursi);
+  const tolovSummasi = ogir(qarz, tolovKursi);
+  const farq = ayir(tolovSummasi, qotganTannarx);
+
+  if (nolmi(farq)) {
+    return { turi: 'YOQ', summa: nolSom(), qotganTannarx, tolovSummasi };
+  }
+
+  // Kurs ko'tarilgan → ko'proq to'landi → xarajat
+  return musbatmi(farq)
+    ? { turi: 'XARAJAT', summa: farq, qotganTannarx, tolovSummasi }
+    : { turi: 'DAROMAD', summa: manfiy(farq), qotganTannarx, tolovSummasi };
+}
+
 // ─── Chiqarish ────────────────────────────────────────────────────────────
 
 export const valyutasi = (p: Pul): Valyuta => p[BREND];

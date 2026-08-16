@@ -6,10 +6,20 @@
  * shu yerga qo'shiladi.
  */
 import { describe, expect, it } from 'vitest';
-import { K01, K02, KANONIK } from './kanonik';
-import { kvM, kvMYigindi, sm, smToM, type KvadratMetr } from '@/lib/domain/birlik';
+import { K01, K02, K03, K07, KANONIK } from './kanonik';
+import {
+  dona,
+  kvM,
+  kvMYigindi,
+  kvSmToKvM,
+  maydonKvSm,
+  sm,
+  smToM,
+  type KvadratMetr,
+} from '@/lib/domain/birlik';
 import { sarflashHisobla, standartQiymatlar } from '@/lib/domain/formula';
-import { kopaytir, pulKorsat, pulMatn, som } from '@/lib/domain/pul';
+import { pozitsiyaNarxi, qatorSummasi, type Qator } from '@/lib/domain/narx';
+import { dollar, kopaytir, kurs, kursFarqi, pulKorsat, pulMatn, som } from '@/lib/domain/pul';
 
 describe('K-01: karniz narxi — Q-01', () => {
   it("210 sm eni → 420 sm sarf → 4.20 m → 147 000 so'm", () => {
@@ -54,15 +64,70 @@ describe('K-02: slot formulalari — TZ 3.5', () => {
   });
 });
 
+describe('K-03: kanonik buyurtma — TZ 3.8', () => {
+  it("Rollo 210 × 140 → 678 400 so'm", () => {
+    // Maydon Q-05 bo'yicha eni × bo'yi dan hisoblanadi, kiritilmaydi
+    const maydon = kvSmToKvM(maydonKvSm(sm(K03.eni), sm(K03.boyi)));
+    expect(maydon).toBe(K03.maydonKvM);
+
+    const qatorlar: Qator[] = [
+      { nom: 'old mato', sarflashBirligi: 'KV_M', miqdor: maydon, narx: som('120000') },
+      { nom: 'orqa mato', sarflashBirligi: 'KV_M', miqdor: maydon, narx: som('90000') },
+      { nom: 'mexanizm', sarflashBirligi: 'DONA', miqdor: dona(1), narx: som('45000') },
+      { nom: 'kronshteyn', sarflashBirligi: 'DONA', miqdor: dona(2), narx: som('5000') },
+      { nom: 'brelok', sarflashBirligi: 'DONA', miqdor: dona(2), narx: som('3000') },
+    ];
+
+    // Har qator TZ 3.8 jadvalidagi raqamga mos kelishi kerak
+    expect(qatorlar.map((q) => pulMatn(qatorSummasi(q)))).toEqual(
+      K03.qatorlar.map((q) => q.jami),
+    );
+
+    expect(pulMatn(pozitsiyaNarxi(qatorlar, null))).toBe(K03.jami);
+    expect(pulKorsat(pozitsiyaNarxi(qatorlar, null))).toBe('678 400');
+  });
+});
+
+describe('K-07: kurs farqi — TZ 9.6', () => {
+  const qarz = dollar(K07.qarzDollar);
+  const kirim = kurs(K07.kirimKursi, new Date('2026-08-01'), 'SNAPSHOT');
+  const tolov = kurs(K07.tolovKursi, new Date('2026-09-01'), 'JORIY');
+
+  it("3 000 $: 39 600 000 − 37 950 000 = 1 650 000 xarajat", () => {
+    const f = kursFarqi(qarz, kirim, tolov);
+    expect(pulMatn(f.qotganTannarx)).toBe(K07.qotganTannarx);
+    expect(pulMatn(f.tolovSummasi)).toBe(K07.tolovSummasi);
+    expect(pulMatn(f.summa)).toBe(K07.farq);
+    expect(f.turi).toBe('XARAJAT');
+  });
+
+  it('kurs tushsa — DAROMAD, alohida modda (xarajatga manfiy yozilmaydi)', () => {
+    const tushgan = kurs('12100', new Date('2026-09-01'), 'JORIY');
+    const f = kursFarqi(qarz, kirim, tushgan);
+    expect(f.turi).toBe('DAROMAD');
+    expect(pulMatn(f.summa)).toBe('1650000.00');
+  });
+
+  it("kurs o'zgarmasa farq yo'q", () => {
+    expect(kursFarqi(qarz, kirim, kirim).turi).toBe('YOQ');
+  });
+
+  it('tannarx kirim kursida QOTADI — to\'lov kursi unga tegmaydi (2.3)', () => {
+    const a = kursFarqi(qarz, kirim, tolov);
+    const b = kursFarqi(qarz, kirim, kurs('20000', new Date('2026-10-01'), 'JORIY'));
+    expect(pulMatn(a.qotganTannarx)).toBe(pulMatn(b.qotganTannarx));
+  });
+});
+
 describe('kanonik ro\'yxat butunligi', () => {
   it('TZ da 11 ta kanonik raqam bor', () => {
     expect(KANONIK).toHaveLength(11);
   });
 
-  it('0-bosqichga tegishlilarining hammasi TAYYOR', () => {
-    const nolinchi = KANONIK.filter((k) => k.bosqich === 0);
-    expect(nolinchi).toHaveLength(2);
-    expect(nolinchi.every((k) => k.holat === 'TAYYOR')).toBe(true);
+  it('qurilgan bosqichlarning raqamlari TAYYOR', () => {
+    const qurilgan = KANONIK.filter((k) => k.bosqich <= 2);
+    expect(qurilgan).toHaveLength(4);
+    expect(qurilgan.every((k) => k.holat === 'TAYYOR')).toBe(true);
   });
 
   it('kodlar takrorlanmaydi', () => {

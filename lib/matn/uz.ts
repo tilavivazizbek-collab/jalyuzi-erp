@@ -33,6 +33,10 @@ export const XATO_MATNI: Record<XatoKod, string> = {
 
   FILIAL_TIKMAYDI: "Bu filialda ishlab chiqarish yo'q",
   FILIAL_NOFAOL: "Filial nofaol",
+
+  NARX_NOTOGRI: "Narx qiymati noto'g'ri",
+  KOEFFITSIENT_NOTOGRI: "Konversiya koeffitsienti noto'g'ri",
+  BIRLIK_OZGARMAYDI: "Qoldiq bor ekan, birlikni o'zgartirib bo'lmaydi",
 };
 
 export const BIRLIK_MATNI = {

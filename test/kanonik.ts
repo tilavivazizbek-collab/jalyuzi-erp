@@ -45,8 +45,8 @@ export const KANONIK: readonly Kanonik[] = [
     nom: 'Kanonik buyurtma — Rollo 210 × 140',
     band: 'TZ 3.8',
     kutilgan: '678 400',
-    bosqich: 4,
-    holat: 'KUTILMOQDA',
+    bosqich: 2,
+    holat: 'TAYYOR',
   },
   {
     kod: 'K-04',
@@ -78,7 +78,7 @@ export const KANONIK: readonly Kanonik[] = [
     band: 'TZ 9.6',
     kutilgan: '39 600 000 − 37 950 000 = 1 650 000',
     bosqich: 2,
-    holat: 'KUTILMOQDA',
+    holat: 'TAYYOR',
   },
   {
     kod: 'K-08',
@@ -152,4 +152,14 @@ export const K03 = {
     { nom: 'brelok', narx: '3000', miqdor: '2', jami: '6000.00' },
   ],
   jami: '678400.00',
+} as const;
+
+/** K-07 · TZ 9.6 — 3 000 $ qarz, kirim kursi 12 650, to'lov kursi 13 200 */
+export const K07 = {
+  qarzDollar: 3000,
+  kirimKursi: '12650',
+  tolovKursi: '13200',
+  qotganTannarx: '37950000.00',
+  tolovSummasi: '39600000.00',
+  farq: '1650000.00',
 } as const;
