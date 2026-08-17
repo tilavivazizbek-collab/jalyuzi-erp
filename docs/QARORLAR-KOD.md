@@ -20,6 +20,52 @@ ko'chiriladi. Tasdiqlanmagani `⏳` bilan belgilanadi.
 | P-09 | Auth.js ishlatilmaydi — kirish qo'lda yoziladi | ⏳ tasdiq kutilmoqda |
 | P-10 | Parol eng kami 8 belgi | ⏳ tasdiq kutilmoqda |
 | P-11 | Sessiya muddati soatiga bir marta suriladi | ⏳ tasdiq kutilmoqda |
+| P-12 | Vaqtincha boshqariladigan Postgres (Neon), faqat `postgres://` orqali | ⏳ tasdiq kutilmoqda |
+| P-13 | `BIGINT` ulanish darajasida songa o'giriladi | ⏳ tasdiq kutilmoqda |
+
+---
+
+## P-12 · Vaqtincha boshqariladigan Postgres
+
+**Bosqich:** 1 · **Tegadi:** QISM 1 §2.3
+
+### Vaziyat
+
+Egasining kompyuterida Docker yo'q: administrator huquqi ham, WSL2 ham
+yo'q, ikkalasi ham UAC oynasini ochadi. Ko'chma Postgres fayllarini
+yuklab olish tarmoq uzilishi tufayli ikki marta yiqildi.
+
+Bazasiz 4 migratsiya va butun kirish oqimi **sinalmagan** qolib turardi.
+
+### §2.3 buzilyaptimi
+
+Yo'q. Taqiq ro'yxati aynan shunday yozilgan:
+
+| Taqiqlanadi | O'rniga |
+|---|---|
+| Neon serverless **driver**, branching | oddiy `postgres` (postgres.js) kutubxonasi |
+
+Taqiq **drayverga**, bazaning qayerda turishiga emas. Loyiha `postgres.js`
+orqali oddiy `postgres://` manzilga ulanadi — ya'ni «o'rniga» ustunidagi
+yechim ishlatilyapti.
+
+### Qaror
+
+Ishlab chiqish davrida baza boshqariladigan Postgres'da turadi.
+
+Qat'iy shart — faqat ulanish manzili ishlatiladi:
+`@neondatabase/*` va `@vercel/*` importlari **linterda bloklangan**
+(`eslint.config.mjs`), shuning uchun bu qoidani unutib qo'yish mumkin emas.
+
+`docker-compose.yml` joyida qoladi va §2.3 tekshiruvi Docker paydo
+bo'lganda bajariladi. Haqiqiy ma'lumot 10-bosqichda egasining serveriga
+ko'chadi — `DATABASE_URL` ning bitta qatori.
+
+### Kuzatilgan farq
+
+Boshqariladigan xizmat PostgreSQL **18.4** berdi, `docker-compose.yml` da
+**16** turibdi. Hujjat «16+» deydi, ya'ni ikkalasi ham mos. Migratsiyalar
+oddiy DDL — 16 va 18 da bir xil ishlaydi.
 
 ---
 
@@ -396,3 +442,58 @@ ko'p qayta yozilmaydi**.
 
 Natija foydalanuvchi uchun bir xil: ishlab turgan odamning sessiyasi hech
 qachon tugamaydi, ishlamay qo'ygandan 30 kun keyin tugaydi.
+
+---
+
+## P-13 · `BIGINT` ulanish darajasida songa o'giriladi
+
+**Bosqich:** 1 · **Tegadi:** QISM 1 §1.3, §6.2 · TZ 2.4
+
+### Qanday topilgan
+
+Kirish oqimi haqiqiy bazada sinalganda hisoblagich shunday o'sdi:
+
+```
+xato #1: hisoblagich = 1
+xato #2: hisoblagich = 11     ← 2 emas
+```
+
+Xodim ikkinchi urinishdayoq bloklandi. §8 esa beshinchisida deydi.
+
+### Sabab
+
+`xato_urinish` ustuni `BIGINT` edi. postgres.js `BIGINT` ni **matn** qilib
+qaytaradi — 64 bitli son JavaScript `number` ga sig'masligi mumkin.
+
+Natijada `holat.xatoUrinish` matn bo'lib chiqdi:
+
+```js
+"1" + 1   →   "11"      // qo'shish emas, birlashtirish
+```
+
+Sof mantiq testlari buni ushlay olmagan: ular `BlokHolati` ni **son** bilan
+yasagan. Xato faqat baza bilan kod uchrashgan joyda tug'ilgan.
+
+### Ikki tomonlama tuzatish
+
+**1. Model to'g'rilandi.** 0..5 oralig'idagi hisoblagichga 64 bit keraksiz:
+
+```
+xato_urinish  BIGINT  →  INTEGER
+```
+
+**2. Ulanish bir joydan yasaladigan bo'ldi** — `lib/db/ulanish.ts`.
+Har skript o'zicha `postgres(url)` chaqirganda tur sozlamalari har xil
+bo'lib qolardi. Endi `int8` ulanish darajasida `number` ga o'giriladi va
+**xavfsiz chegaradan oshsa xato otiladi** — jimgina aniqlik yo'qotilmaydi.
+
+### Pulga tegishli emas
+
+Pul `NUMERIC` da saqlanadi va **matn** bo'lib kelaveradi — §1.3 aynan
+shuni talab qiladi. Uni `lib/domain/pul.ts` qabul qiladi va `Decimal` ga
+o'giradi. Bu qaror faqat `int8` ga tegishli.
+
+### Dars
+
+Sof mantiq 100% qoplangan bo'lsa ham, **baza bilan kod chegarasi alohida
+sinalishi kerak**. Shu sabab `test/amal/` integratsiya testlari qo'shildi.

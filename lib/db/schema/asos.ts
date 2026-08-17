@@ -15,6 +15,7 @@ import {
   boolean,
   check,
   index,
+  integer,
   pgTable,
   primaryKey,
   text,
@@ -154,8 +155,14 @@ export const xodim = pgTable(
     ishgaKirdi: timestamp('ishga_kirdi', { withTimezone: false, mode: 'string' }),
     ishdanChiqdi: timestamp('ishdan_chiqdi', { withTimezone: false, mode: 'string' }),
 
-    /** §8 — 5 muvaffaqiyatsiz urinishdan keyin 15 daqiqa blok */
-    xatoUrinish: bigint('xato_urinish', { mode: 'number' }).notNull().default(0),
+    /**
+     * §8 — 5 muvaffaqiyatsiz urinishdan keyin 15 daqiqa blok.
+     *
+     * ATAYLAB `INTEGER`, `BIGINT` emas: 0..5 oralig'idagi hisoblagichga
+     * 64 bit keraksiz, ustiga postgres.js `BIGINT` ni matn qilib qaytaradi
+     * va `"1" + 1 = "11"` bo'lib ketadi (QARORLAR-KOD P-13).
+     */
+    xatoUrinish: integer('xato_urinish').notNull().default(0),
     bloklangan: timestamp('bloklangan', { withTimezone: true }),
 
     ...ochirilmaydi,

@@ -10,7 +10,8 @@
  */
 
 import { drizzle } from 'drizzle-orm/postgres-js';
-import postgres from 'postgres';
+import type postgres from 'postgres';
+import { ulanishYarat } from '@/lib/db/ulanish';
 import { muhitOqi } from '@/lib/muhit';
 
 type Ulanish = ReturnType<typeof postgres>;
@@ -24,12 +25,7 @@ const global_ = globalThis as typeof globalThis & {
 
 export function ulanishOl(): Ulanish {
   if (global_.__jalyuziUlanish === undefined) {
-    global_.__jalyuziUlanish = postgres(muhitOqi().DATABASE_URL, {
-      max: 10,
-      idle_timeout: 20,
-      // NUMERIC matn bo'lib qaytadi — pul aniqligi uchun to'g'ri xatti-harakat (§1.3).
-      // Bu postgres.js ning standart holati; o'zgartirilmaydi.
-    });
+    global_.__jalyuziUlanish = ulanishYarat(muhitOqi().DATABASE_URL);
   }
   return global_.__jalyuziUlanish;
 }

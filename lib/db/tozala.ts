@@ -7,7 +7,7 @@
  * majburiy. QISM 1 §17: ishlab chiqarish bazasiga zaxirasiz tegilmaydi.
  */
 
-import postgres from 'postgres';
+import { ulanishYarat } from '@/lib/db/ulanish';
 
 const url = process.env['DATABASE_URL'];
 const ruxsat = process.env['URUG_TOZALASHGA_RUXSAT'];
@@ -23,7 +23,7 @@ if (ruxsat !== 'ha') {
   process.exit(1);
 }
 
-const ulanish = postgres(url, { max: 1 });
+const ulanish = ulanishYarat(url, { max: 1 });
 
 try {
   await ulanish.unsafe(`

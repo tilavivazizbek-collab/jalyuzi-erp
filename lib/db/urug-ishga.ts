@@ -5,7 +5,7 @@
  * saqlanmaydi (QISM 1 §16 — parol logga tushmaydi).
  */
 
-import postgres from 'postgres';
+import { ulanishYarat } from '@/lib/db/ulanish';
 import { urugEk } from '@/lib/db/urug';
 
 const url = process.env['DATABASE_URL'];
@@ -14,7 +14,7 @@ if (url === undefined || url === '') {
   process.exit(1);
 }
 
-const ulanish = postgres(url, { max: 1 });
+const ulanish = ulanishYarat(url, { max: 1 });
 
 try {
   const natija = await urugEk(ulanish, {

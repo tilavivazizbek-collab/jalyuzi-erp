@@ -1,0 +1,1 @@
+ALTER TABLE "xodim" ALTER COLUMN "xato_urinish" SET DATA TYPE integer;
