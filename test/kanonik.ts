@@ -54,7 +54,7 @@ export const KANONIK: readonly Kanonik[] = [
     band: 'TZ 7.9',
     kutilgan: '1 504 000 + 238 000 + 258 000 = 2 000 000',
     bosqich: 3,
-    holat: 'KUTILMOQDA',
+    holat: 'TAYYOR',
   },
   {
     kod: 'K-05',
@@ -62,7 +62,7 @@ export const KANONIK: readonly Kanonik[] = [
     band: 'TZ 7.9',
     kutilgan: '660 000 / 10 = 66 000',
     bosqich: 3,
-    holat: 'KUTILMOQDA',
+    holat: 'TAYYOR',
   },
   {
     kod: 'K-06',
@@ -70,7 +70,7 @@ export const KANONIK: readonly Kanonik[] = [
     band: 'TZ 7.6',
     kutilgan: '3.60 = 1.20 + 2.40 + 0',
     bosqich: 3,
-    holat: 'KUTILMOQDA',
+    holat: 'TAYYOR',
   },
   {
     kod: 'K-07',
@@ -162,4 +162,42 @@ export const K07 = {
   qotganTannarx: '37950000.00',
   tolovSummasi: '39600000.00',
   farq: '1650000.00',
+} as const;
+
+/** K-04 · TZ 7.9 — transport taqsimoti. Qatorlar summa ulushiga proporsional. */
+export const K04 = {
+  qatorlar: [
+    { nom: 'Mato', qiymat: '3744000' },
+    { nom: 'Karniz', qiymat: '594000' },
+    { nom: 'Kronshteyn', qiymat: '640000' },
+  ],
+  jamiQiymat: 4_978_000,
+  xarajat: '2000000',
+  /** TZ misoli yaxlitlangan foizdan chiqarilgan — QARORLAR-KOD P-16 */
+  tzMisoli: [1_504_000, 238_000, 258_000],
+  aniqUlushlar: ['1504218.56', '238650.06', '257131.38'],
+  jami: 2_000_000,
+} as const;
+
+/** K-05 · TZ 7.9 — brak tannarx bo'luvchisiga kirmaydi (QARORLAR-KOD P-17). */
+export const K05 = {
+  miqdor: 10,
+  narxBirlik: '66000',
+  jamiQiymat: '660000',
+  defekt: 1,
+  birlikTannarx: '66000.00',
+  defektZarari: '66000.00',
+  /** Model formulasi shuni berardi — ishlatilmaydi */
+  notogriTannarx: 73_333,
+} as const;
+
+/** K-06 · TZ 7.6 — kesim uch qatori. */
+export const K06 = {
+  manba: { eniM: 1.8, boyiM: 2.0 },
+  kerak: { eniM: 1.2, boyiM: 2.0 },
+  qoldiq: { eniM: 0.6, boyiM: 2.0 },
+  chiqdi: 3.6,
+  ostatka: 1.2,
+  chiqindi: 0,
+  mahsulotga: 2.4,
 } as const;

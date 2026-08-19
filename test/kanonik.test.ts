@@ -6,7 +6,7 @@
  * shu yerga qo'shiladi.
  */
 import { describe, expect, it } from 'vitest';
-import { K01, K02, K03, K07, KANONIK } from './kanonik';
+import { K01, K02, K03, K04, K05, K06, K07, KANONIK } from './kanonik';
 import {
   dona,
   kvM,
@@ -19,7 +19,9 @@ import {
 } from '@/lib/domain/birlik';
 import { sarflashHisobla, standartQiymatlar } from '@/lib/domain/formula';
 import { pozitsiyaNarxi, qatorSummasi, type Qator } from '@/lib/domain/narx';
-import { dollar, kopaytir, kurs, kursFarqi, pulKorsat, pulMatn, som } from '@/lib/domain/pul';
+import { dollar, kopaytir, kurs, kursFarqi, nolSom, pulKorsat, pulMatn, som } from '@/lib/domain/pul';
+import { birlikTannarxi, xarajatniTaqsimla } from '@/lib/domain/tannarx';
+import { bolakTanla, kesimBalansi, kesimQatorlari } from '@/lib/domain/kesish';
 
 describe('K-01: karniz narxi — Q-01', () => {
   it("210 sm eni → 420 sm sarf → 4.20 m → 147 000 so'm", () => {
@@ -125,12 +127,84 @@ describe('kanonik ro\'yxat butunligi', () => {
   });
 
   it('qurilgan bosqichlarning raqamlari TAYYOR', () => {
-    const qurilgan = KANONIK.filter((k) => k.bosqich <= 2);
-    expect(qurilgan).toHaveLength(4);
+    const qurilgan = KANONIK.filter((k) => k.bosqich <= 3);
+    expect(qurilgan).toHaveLength(7);
     expect(qurilgan.every((k) => k.holat === 'TAYYOR')).toBe(true);
   });
 
   it('kodlar takrorlanmaydi', () => {
     expect(new Set(KANONIK.map((k) => k.kod)).size).toBe(KANONIK.length);
+  });
+});
+
+describe('K-04: transport taqsimoti — TZ 7.9', () => {
+  const qatorlar = K04.qatorlar.map((q, i) => ({
+    id: i + 1,
+    miqdor: 1,
+    narxBirlik: som(q.qiymat),
+    defektMiqdor: 0,
+  }));
+
+  it("ulushlar yig'indisi 2 000 000 — pul yo'qolmaydi va paydo bo'lmaydi", () => {
+    const ulushlar = xarajatniTaqsimla(qatorlar, som(K04.xarajat));
+    const jami = ulushlar.reduce((y, u) => y + Number(pulMatn(u.ulush)), 0);
+    expect(jami).toBe(K04.jami);
+    expect(jami).toBe(K04.tzMisoli.reduce((a, b) => a + b, 0));
+  });
+
+  it('aniq nisbat bo\'yicha ulushlar (P-16)', () => {
+    const ulushlar = xarajatniTaqsimla(qatorlar, som(K04.xarajat));
+    expect(ulushlar.map((u) => pulMatn(u.ulush))).toEqual(K04.aniqUlushlar);
+  });
+});
+
+describe('K-05: brak tannarxga taqsimlanmaydi — TZ 7.9', () => {
+  const qator = {
+    id: 1,
+    miqdor: K05.miqdor,
+    narxBirlik: som(K05.narxBirlik),
+    defektMiqdor: K05.defekt,
+  };
+
+  it("660 000 / 10 = 66 000, 73 333 EMAS (P-17)", () => {
+    const n = birlikTannarxi(qator, nolSom(), 'HISOBDAN_CHIQADI');
+    expect(pulMatn(n.birlikTannarx)).toBe(K05.birlikTannarx);
+    expect(Number(pulMatn(n.birlikTannarx))).not.toBe(K05.notogriTannarx);
+  });
+
+  it("brak alohida zarar bo'lib chiqadi — yetkazib beruvchi ko'rinadi", () => {
+    const n = birlikTannarxi(qator, nolSom(), 'HISOBDAN_CHIQADI');
+    expect(pulMatn(n.defektZarari)).toBe(K05.defektZarari);
+  });
+});
+
+describe('K-06: kesim uch qatori — TZ 7.6', () => {
+  const manba = {
+    id: 1,
+    kod: 'O-207',
+    turi: 'OSTATKA' as const,
+    eniM: K06.manba.eniM,
+    boyiM: K06.manba.boyiM,
+    qismanOchilgan: false,
+  };
+  const qoldiq = { ...K06.qoldiq, saqlansinmi: true };
+  const chegaralar = { yaroqsizM: null, kamIshlatiladiganM: null };
+
+  it('3.60 = 1.20 + 2.40 + 0', () => {
+    const n = kesimQatorlari(manba, qoldiq, chegaralar);
+    expect(n.qatorlar[0]?.kvM).toBeCloseTo(K06.chiqdi, 4);
+    expect(n.qatorlar[1]?.kvM).toBeCloseTo(K06.ostatka, 4);
+    expect(n.qatorlar[2]?.kvM).toBeCloseTo(K06.chiqindi, 4);
+    expect(n.mahsulotgaKvM).toBeCloseTo(K06.mahsulotga, 4);
+  });
+
+  it("QISM 3 §12 invarianti — chiqqan = ostatka + chiqindi + mahsulotga", () => {
+    expect(kesimBalansi(kesimQatorlari(manba, qoldiq, chegaralar))).toBe(true);
+  });
+
+  it("tanlov aynan shu bo'lakni topadi (7.6 algoritmi)", () => {
+    const n = bolakTanla([manba], K06.kerak);
+    expect(n?.bolak.kod).toBe('O-207');
+    expect(n?.manba).toBe('OSTATKA');
   });
 });
