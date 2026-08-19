@@ -48,6 +48,7 @@ export const XATO_MATNI: Record<XatoKod, string> = {
   MAHSULOT_TOPILMADI: "Mahsulot turi topilmadi",
   YETKAZIB_SAQLANMADI: "Yetkazib beruvchini saqlab bo'lmadi",
   YETKAZIB_TOPILMADI: "Yetkazib beruvchi topilmadi",
+  TANNARX_NOTOGRI: "Tannarx hisobida noto'g'ri qiymat",
 };
 
 export const BIRLIK_MATNI = {

@@ -24,6 +24,8 @@ ko'chiriladi. Tasdiqlanmagani `⏳` bilan belgilanadi.
 | P-13 | `BIGINT` ulanish darajasida songa o'giriladi | ⏳ tasdiq kutilmoqda |
 | P-14 | Cookie faqat server amalida yoziladi | ⏳ tasdiq kutilmoqda |
 | P-15 | Yetkazib beruvchiga TZ 9.3 maydonlari qo'shildi | ⏳ tasdiq kutilmoqda |
+| P-16 | Transport aniq nisbat bo'yicha taqsimlanadi | ⏳ tasdiq kutilmoqda |
+| P-17 | Brak tannarx bo'luvchisiga kirmaydi | ⏳ tasdiq kutilmoqda |
 
 ---
 
@@ -592,3 +594,106 @@ o'qigan odam qarzni bitta valyutada deb o'ylab qolmasin. Aks holda
 ### Hujjatga o'zgartirish
 
 QISM 3 §2.9 ga yetti ustun qo'shiladi va `valyuta` ustuniga izoh yoziladi.
+
+---
+
+## P-16 · Transport aniq nisbat bo'yicha taqsimlanadi
+
+**Bosqich:** 3 · **Tegadi:** TZ 7.9 · CLAUDE.md §6 (K-04)
+
+### TZ misoli o'z ichida ziddiyatli
+
+```
+Mato        3 744 000  (75.2%)  →  +1 504 000
+Karniz        594 000  (11.9%)  →  +  238 000
+Kronshteyn    640 000  (12.9%)  →  +  258 000
+            ─────────              ──────────
+            4 978 000               2 000 000
+```
+
+Foizlar to'g'ri (yaxlitlangan). Lekin natijalar **yaxlitlangan foizdan**
+hisoblangan: `75.2% × 2 000 000 = 1 504 000`.
+
+Aniq nisbat boshqacha beradi:
+
+| Qator | Aniq nisbat | TZ misoli | Farq |
+|---|---|---|---|
+| Mato | 1 504 218.56 | 1 504 000 | 0.01% |
+| Karniz | 238 650.06 | 238 000 | 0.27% |
+| Kronshteyn | 257 131.38 | 258 000 | 0.34% |
+
+Ikkalasining yig'indisi ham 2 000 000 — bu tasodif, foizlar yaxlitlanganda
+100.0% chiqqani uchun.
+
+### Qaror
+
+Kod **aniq nisbatni** ishlatadi. Foizni oldin yaxlitlash sun'iy xato
+kiritadi va u har doim ham yig'indini saqlamaydi: uchta qator o'rniga
+o'nta bo'lsa yaxlitlangan foizlar 100% dan chetga chiqadi va pul yo'qoladi
+yoki paydo bo'ladi.
+
+### Yig'indi HAR DOIM aynan teng
+
+Bu asosiy shart. Har ulush alohida yaxlitlansa bir-ikki tiyin yo'qoladi,
+uni esa hech kim sezmaydi va tannarx sekin siljiydi.
+
+Yechim — «eng katta qoldiq» usuli: ulushlar pastga yaxlitlanadi, qolgan
+tiyinlar qoldig'i kattaroq qatorlarga bittadan qo'shiladi. Test buni
+tekshiradi.
+
+### Kanonik raqamga ta'siri
+
+CLAUDE.md §6 dagi K-04 raqami (`1 504 000 + 238 000 + 258 000 = 2 000 000`)
+**yig'indi sifatida to'g'ri** va test uni aynan shu ko'rinishda tekshiradi.
+Alohida qatorlar 0.5% chegarasida solishtiriladi.
+
+### Hujjatga o'zgartirish
+
+TZ 7.9 misolidagi uch raqam aniq qiymatga almashtirilishi kerak, yoki
+misol yoniga «raqamlar yaxlitlangan» izohi qo'yilishi kerak.
+
+---
+
+## P-17 · Brak tannarx bo'luvchisiga KIRMAYDI
+
+**Bosqich:** 3 · **Tegadi:** QISM 3 §3.3 · TZ 7.9 · CLAUDE.md §6 (K-05)
+
+### Model o'z ogohlantirishiga zid
+
+QISM 3 §3.3 da ketma-ket ikki qator:
+
+```
+Tannarx: (narx_birlik * miqdor + transport_ulush) / (miqdor - defekt)
+⚠️ AUDIT: brak bo'lgan qism bo'luvchiga KIRMAYDI (7.9 misoli: 660 000/10 = 66 000).
+```
+
+Formula `miqdor − defekt` deydi — ya'ni brak bo'luvchiga TA'SIR QILADI.
+Ogohlantirish esa teskarisini aytadi.
+
+Raqamlar bilan: 10 shtanga, 660 000 so'm, 1 tasi brak.
+
+| Yo'l | Natija |
+|---|---|
+| Formula bo'yicha | 660 000 / 9 = **73 333** |
+| Ogohlantirish bo'yicha | 660 000 / 10 = **66 000** |
+
+### Qaror
+
+Ogohlantirish to'g'ri. Bo'luvchi — **to'liq miqdor**.
+
+TZ 7.9 ning o'zi buni tushuntiradi: «tannarx 66 000 bo'lib qolaveradi
+(73 333 emas), 66 000 so'm esa "yetkazib beruvchi defekti" xarajati
+bo'lib hisobotga tushadi».
+
+Sabab: «Aks holda qaysi yetkazib beruvchi ko'p brak berayotgani hech
+qayerda ko'rinmaydi, tannarx esa sekin-asta o'sib boraveradi.»
+
+CLAUDE.md §6 dagi K-05 kanonik raqami ham 66 000.
+
+### Hujjatga o'zgartirish
+
+QISM 3 §3.3 dagi formula tuzatilishi kerak:
+
+```
+Tannarx: (narx_birlik * miqdor + transport_ulush) / miqdor
+```
