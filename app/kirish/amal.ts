@@ -14,13 +14,8 @@ import { kir } from '@/lib/amal/kirish';
 import { telefonKanonik } from '@/lib/domain/telefon';
 import { kirishSxema } from '@/lib/sxema/kirish';
 import { sessiyaCookieQoy } from '@/lib/kirish/cookie';
+import type { KirishHolati } from './holat';
 
-export interface KirishHolati {
-  readonly xato: string | null;
-  readonly telefon: string;
-}
-
-export const BOSHLANGICH_HOLAT: KirishHolati = { xato: null, telefon: '' };
 
 /**
  * `FormData.get()` matn ham, FAYL ham qaytaradi. To'g'ridan-to'g'ri

@@ -49,6 +49,8 @@ export const XATO_BAND = {
   BIRLIK_OZGARMAYDI: 'TZ 5.3',
   KONSTRUKTOR_XATO: 'TZ 4.5',
   TELEFON_NOTOGRI: 'QISM 1 §8',
+  MATERIAL_TOPILMADI: 'TZ 5.1',
+  MATERIAL_SAQLANMADI: 'TZ 5.1',
 } as const;
 
 export type XatoKod = keyof typeof XATO_BAND;

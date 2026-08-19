@@ -39,6 +39,8 @@ export const XATO_MATNI: Record<XatoKod, string> = {
   BIRLIK_OZGARMAYDI: "Qoldiq bor ekan, birlikni o'zgartirib bo'lmaydi",
   KONSTRUKTOR_XATO: "Mahsulot turi sozlamasida xato bor",
   TELEFON_NOTOGRI: "Telefon raqami noto'g'ri",
+  MATERIAL_SAQLANMADI: "Materialni saqlab bo'lmadi",
+  MATERIAL_TOPILMADI: "Material topilmadi",
 };
 
 export const BIRLIK_MATNI = {

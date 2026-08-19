@@ -1,7 +1,8 @@
 'use client';
 
 import { useActionState } from 'react';
-import { BOSHLANGICH_HOLAT, kirishAmali } from './amal';
+import { kirishAmali } from './amal';
+import { BOSHLANGICH_HOLAT } from './holat';
 
 export function KirishFormasi() {
   const [holat, amal, kutilmoqda] = useActionState(kirishAmali, BOSHLANGICH_HOLAT);

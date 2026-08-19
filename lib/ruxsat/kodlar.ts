@@ -21,6 +21,7 @@ export const GURUHLAR = [
   'Ombor',
   'Kassa',
   'Narx',
+  'Spravochnik',
 ] as const;
 export type Guruh = (typeof GURUHLAR)[number];
 
@@ -88,6 +89,37 @@ export const RUXSATLAR = {
     nom: "Standart narxni o'zgartirish",
     guruh: 'Narx',
     band: '20.12',
+  },
+  'narx.filial.ozgartir': {
+    nom: "Filial narxini o'zgartirish",
+    guruh: 'Narx',
+    band: '20.9.1',
+  },
+
+  // ── Spravochniklar — TZ 4, 5, 6, 9 ─────────────────────────────────────
+  'material.kor': { nom: "Materiallarni ko'rish", guruh: 'Spravochnik', band: '5.1' },
+  'material.yarat': { nom: "Material qo'shish", guruh: 'Spravochnik', band: '5.1' },
+  'material.ozgartir': { nom: 'Materialni tahrirlash', guruh: 'Spravochnik', band: '5.3' },
+
+  'mahsulot.kor': { nom: "Mahsulot turlarini ko'rish", guruh: 'Spravochnik', band: '4.1' },
+  'mahsulot.yarat': { nom: 'Mahsulot turi yaratish', guruh: 'Spravochnik', band: '4.1' },
+  'mahsulot.ozgartir': { nom: 'Mahsulot turini tahrirlash', guruh: 'Spravochnik', band: '4.10' },
+
+  'mijoz.kor': { nom: "Mijozlarni ko'rish", guruh: 'Spravochnik', band: '6.1' },
+  'mijoz.yarat': { nom: "Mijoz qo'shish", guruh: 'Spravochnik', band: '3.10' },
+  'mijoz.ozgartir': { nom: 'Mijozni tahrirlash', guruh: 'Spravochnik', band: '6.2' },
+  'mijoz.qarz.hisobdan': {
+    nom: 'Qarzni hisobdan chiqarish',
+    guruh: 'Spravochnik',
+    band: '6.10',
+  },
+
+  'yetkazib.kor': { nom: "Yetkazib beruvchilarni ko'rish", guruh: 'Spravochnik', band: '9.1' },
+  'yetkazib.yarat': { nom: "Yetkazib beruvchi qo'shish", guruh: 'Spravochnik', band: '9.1' },
+  'yetkazib.ozgartir': {
+    nom: 'Yetkazib beruvchini tahrirlash',
+    guruh: 'Spravochnik',
+    band: '9.1',
   },
 } as const satisfies Record<string, Tavsif>;
 

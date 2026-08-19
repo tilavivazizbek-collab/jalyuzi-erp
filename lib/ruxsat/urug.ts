@@ -50,7 +50,12 @@ export const ROL_URUGI: readonly RolUrugi[] = [
       ['kassa.chiqim', 'OZ_FILIALI'],
       // TZ 3.3 — sotuv ekranida «har mato yonida qoldiq ko'rinadi»
       ['ombor.qoldiq.kor', 'OZ_FILIALI'],
-      // TZ 3.10 — mijoz tanlash va yangi mijoz qo'shish sotuv ekranida
+      // Sotuv ekrani ishlashi uchun zarur minimum
+      ['material.kor', 'BARCHA'], // 3.3 — mato tanlash (material umumiy, Q-26)
+      ['mahsulot.kor', 'BARCHA'], // 3.2 — mahsulot turini tanlash
+      ['mijoz.kor', 'BARCHA'], // 3.10 — mijoz qidirish
+      // 3.10 — «Topilmasa, o'sha yerning o'zidan yangi mijoz qo'shiladi»
+      ['mijoz.yarat', 'BARCHA'],
     ],
     // BERILMAYDI: kassa.barcha.kor (12.14 «faqat o'z kassasi»),
     //             kassa.ayirboshlash va kassa.storno (14.6 misolida ☐),
@@ -72,6 +77,9 @@ export const ROL_URUGI: readonly RolUrugi[] = [
       ['ombor.kirim.yarat', 'OZ_FILIALI'], // 20.12 ☑ · 14.6 ☑
       ['kassa.oz.kor', 'OZ_FILIALI'], // 12.14
       ['kassa.chiqim', 'OZ_FILIALI'], // 12.14 — yetkazib beruvchiga to'lov
+      // Kirim hujjati material va yetkazib beruvchini tanlashni talab qiladi (9.2)
+      ['material.kor', 'BARCHA'],
+      ['yetkazib.kor', 'BARCHA'],
     ],
     // BERILMAYDI: ombor.chiqim · ombor.storno · ombor.narx.ozgartir (14.6 misolida ☐)
     //             ombor.kochirish.yarat (20.12 misolida ☐)

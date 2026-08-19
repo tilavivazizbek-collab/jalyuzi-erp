@@ -59,3 +59,25 @@ export async function ruxsatTalab(kod: RuxsatKod, nishon: Nishon = {}): Promise<
   }
   return f;
 }
+
+export const RUXSAT_YOQ_YOLI = '/ruxsat-yoq';
+
+/**
+ * SAHIFA uchun ruxsat tekshiruvi.
+ *
+ * `ruxsatTalab` dan farqi: xato otmaydi, tushunarli sahifaga yuboradi.
+ * Xodim buzilgan tizim emas, «ruxsatingiz yo'q» xabarini ko'rishi kerak.
+ *
+ * Server amallarida esa `ruxsatTalab` ishlatiladi — u yerda amal
+ * TO'XTASHI shart, sahifa ko'rsatish emas.
+ */
+export async function sahifaRuxsati(
+  kod: RuxsatKod,
+  nishon: Nishon = {},
+): Promise<Foydalanuvchi> {
+  const f = await kirganBolishiShart();
+  if (!ruxsatTekshir(f, kod, nishon).ruxsat) {
+    redirect(`${RUXSAT_YOQ_YOLI}?kod=${encodeURIComponent(kod)}`);
+  }
+  return f;
+}
