@@ -29,6 +29,11 @@ export interface Slot {
   /** 4.4 — majburiy yoki ixtiyoriy */
   readonly majburiy: boolean;
   readonly tartib: number;
+  /**
+   * QISM 3 §2.5 — slot MATERIALGA emas, ALMASHTIRISH GURUHIGA bog'lanadi.
+   * TZ 5.6: «mexanizm bosilganda kronshteyn chiqmaydi».
+   */
+  readonly almashtirishGuruhId: number | null;
 }
 
 // ─── 4.6 · Aksessuar komplekti ────────────────────────────────────────────
@@ -36,9 +41,12 @@ export interface Slot {
 export interface KomplektQatori {
   readonly materialId: number;
   readonly nom: string;
-  /** Statik son yoki formula — biri to'ladi (3.7, 4.6) */
-  readonly soni: number | null;
-  readonly formula: string | null;
+  /**
+   * TZ 4.6 ekranida ikki rejim ko'rinadi («soni yoki formula»), lekin
+   * ikkalasi ham SHU BITTA maydonga yoziladi — `'4'` ham yaroqli formula.
+   * QISM 3 §2.7 shunday saqlaydi, ikki nusxa bo'lmaydi.
+   */
+  readonly formula: string;
   readonly majburiy: boolean;
 }
 
@@ -61,7 +69,8 @@ export type KonstruktorNuqsoni =
   | { readonly tur: 'NOM_TAKRORLANGAN'; readonly nom: string }
   | { readonly tur: 'PARAMETR_TAKRORLANGAN'; readonly nom: string }
   | { readonly tur: 'KOMPLEKT_QATORI_BOSH'; readonly nom: string }
-  | { readonly tur: 'KOMPLEKT_IKKALASI'; readonly nom: string };
+  /** Slotga almashtirish guruhi biriktirilmagan — sotuvda bo'sh dropdown chiqadi */
+  | { readonly tur: 'SLOT_GURUHSIZ'; readonly nom: string };
 
 export interface KonstruktorTekshiruvi {
   readonly saqlansinmi: boolean;
@@ -94,6 +103,12 @@ export function konstruktorTekshir(t: MahsulotTuri): KonstruktorTekshiruvi {
     }
     korilganSlot.add(kalit);
 
+    // TZ 5.6, 5.9 — guruhsiz slot sotuvda BO'SH dropdown beradi va muammo
+    // mijoz oldida ma'lum bo'ladi. Uni admin ekranida ushlaymiz.
+    if (slot.almashtirishGuruhId === null) {
+      nuqsonlar.push({ tur: 'SLOT_GURUHSIZ', nom: slot.nom });
+    }
+
     const natija = formulaTekshir(slot.formula, nomlar);
     if (natija.nomalum.length > 0) {
       nuqsonlar.push({ tur: 'NOMALUM_PARAMETR', slot: slot.nom, nomlar: natija.nomalum });
@@ -115,23 +130,19 @@ export function konstruktorTekshir(t: MahsulotTuri): KonstruktorTekshiruvi {
     korilganParametr.add(kalit);
   }
 
-  // 4.6 — soni yoki formula, aynan bittasi
+  // 4.6 — komplekt qatori. Statik son ham formula: `'4'` yaroqli (QISM 3 §2.7)
   for (const q of t.komplekt) {
-    const soniBor = q.soni !== null;
-    const formulaBor = q.formula !== null && q.formula.trim() !== '';
-    if (!soniBor && !formulaBor) {
+    if (q.formula.trim() === '') {
       nuqsonlar.push({ tur: 'KOMPLEKT_QATORI_BOSH', nom: q.nom });
-    } else if (soniBor && formulaBor) {
-      nuqsonlar.push({ tur: 'KOMPLEKT_IKKALASI', nom: q.nom });
-    } else if (formulaBor && q.formula !== null) {
-      const natija = formulaTekshir(q.formula, nomlar);
-      if (!natija.yaroqli) {
-        nuqsonlar.push({
-          tur: 'FORMULA_XATO',
-          slot: q.nom,
-          xato: natija.xato ?? 'formula xato',
-        });
-      }
+      continue;
+    }
+    const natija = formulaTekshir(q.formula, nomlar);
+    if (!natija.yaroqli) {
+      nuqsonlar.push({
+        tur: 'FORMULA_XATO',
+        slot: q.nom,
+        xato: natija.xato ?? 'formula xato',
+      });
     }
   }
 
@@ -190,11 +201,16 @@ export function slotOchirilsinmi(boglanganMaterialSoni: number): boolean {
  * Ya'ni "Orqa mato" qatorida to'r matolar ko'rinmaydi va sotuvchi adashib
  * qo'ya olmaydi (5.7).
  */
-export function slotMateriallari<T extends { readonly slotId: number; readonly faol: boolean }>(
-  slot: Slot,
-  barchaBoglanishlar: readonly T[],
-): T[] {
-  return barchaBoglanishlar.filter((b) => b.slotId === slot.id && b.faol);
+export function slotMateriallari<
+  T extends { readonly almashtirishGuruhId: number | null; readonly faol: boolean },
+>(slot: Slot, barchaMateriallar: readonly T[]): T[] {
+  // Slotga guruh biriktirilmagan bo'lsa hech narsa chiqmaydi — bo'sh
+  // dropdown mijoz oldida emas, admin ekranida ko'rinishi kerak (5.9).
+  if (slot.almashtirishGuruhId === null) return [];
+
+  return barchaMateriallar.filter(
+    (m) => m.faol && m.almashtirishGuruhId === slot.almashtirishGuruhId,
+  );
 }
 
 /** Sotuv ekranida slotlar tartib bo'yicha chiqadi (4.4). */

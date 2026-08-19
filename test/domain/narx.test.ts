@@ -56,7 +56,7 @@ describe("6.3 — mijoz offsetining uch turi", () => {
   });
 
   it('dollarda: baza + (offset × kurs)', () => {
-    const o: Offset = { turi: 'DOLLAR', summa: dollar(-1) };
+    const o: Offset = { turi: 'USD', summa: dollar(-1) };
     expect(pulMatn(offsetQolla(baza, o, KURS))).toBe('107350.00');
   });
 
@@ -65,14 +65,14 @@ describe("6.3 — mijoz offsetining uch turi", () => {
   });
 
   it('dollarli offsetda kurs MAJBURIY (§3.2)', () => {
-    const o: Offset = { turi: 'DOLLAR', summa: dollar(-1) };
+    const o: Offset = { turi: 'USD', summa: dollar(-1) };
     expect(() => offsetQolla(baza, o, null)).toThrow(BiznesXato);
   });
 
   it("SNAPSHOT kurs rad etiladi — buyurtma kursi bilan yashirin chegirma bo'lmasin", () => {
     // TZ 6.3: buyurtmadagi kurs olinsa, sotuvchi kursni ko'tarib mijozga
     // bilvosita chegirma bera oladi va u chegirma limitida (3.11) ko'rinmaydi
-    const o: Offset = { turi: 'DOLLAR', summa: dollar(-1) };
+    const o: Offset = { turi: 'USD', summa: dollar(-1) };
     expect(() => offsetQolla(baza, o, SNAPSHOT_KURS)).toThrow(BiznesXato);
   });
 

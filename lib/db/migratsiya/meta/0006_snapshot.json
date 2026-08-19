@@ -1,0 +1,2326 @@
+{
+  "id": "0b9f688d-8297-4483-b5f5-0dc3081c29be",
+  "prevId": "40cab917-aba8-45b6-8dcf-d1c02401cbf6",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.filial": {
+      "name": "filial",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "bigserial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "nom": {
+          "name": "nom",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "manzil": {
+          "name": "manzil",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "telefon": {
+          "name": "telefon",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sotadi": {
+          "name": "sotadi",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "ishlab_chiqaradi": {
+          "name": "ishlab_chiqaradi",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "standart_ishlab_chiqaruvchi_id": {
+          "name": "standart_ishlab_chiqaruvchi_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "kassa_yopilish_soati": {
+          "name": "kassa_yopilish_soati",
+          "type": "time",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'20:00'"
+        },
+        "bosh": {
+          "name": "bosh",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "faol": {
+          "name": "faol",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "ochirildi": {
+          "name": "ochirildi",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "yaratildi": {
+          "name": "yaratildi",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "yaratdi_id": {
+          "name": "yaratdi_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ozgartirildi": {
+          "name": "ozgartirildi",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ozgartirdi_id": {
+          "name": "ozgartirdi_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "filial_bitta_bosh": {
+          "name": "filial_bitta_bosh",
+          "columns": [
+            {
+              "expression": "bosh",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "with": {},
+          "method": "btree",
+          "where": "\"filial\".\"bosh\" = true",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "filial_standart_ishlab_chiqaruvchi_id_filial_id_fk": {
+          "name": "filial_standart_ishlab_chiqaruvchi_id_filial_id_fk",
+          "tableFrom": "filial",
+          "columnsFrom": [
+            "standart_ishlab_chiqaruvchi_id"
+          ],
+          "tableTo": "filial",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "filial_ishlab_chiqaruvchi_kerak": {
+          "name": "filial_ishlab_chiqaruvchi_kerak",
+          "value": "\"filial\".\"ishlab_chiqaradi\" = true OR \"filial\".\"standart_ishlab_chiqaruvchi_id\" IS NOT NULL"
+        },
+        "filial_ozi_ozgaga_emas": {
+          "name": "filial_ozi_ozgaga_emas",
+          "value": "\"filial\".\"standart_ishlab_chiqaruvchi_id\" IS NULL OR \"filial\".\"standart_ishlab_chiqaruvchi_id\" <> \"filial\".\"id\""
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.rol": {
+      "name": "rol",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "bigserial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "kod": {
+          "name": "kod",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "nom": {
+          "name": "nom",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tizimli": {
+          "name": "tizimli",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "faol": {
+          "name": "faol",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "ochirildi": {
+          "name": "ochirildi",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "yaratildi": {
+          "name": "yaratildi",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "yaratdi_id": {
+          "name": "yaratdi_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ozgartirildi": {
+          "name": "ozgartirildi",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ozgartirdi_id": {
+          "name": "ozgartirdi_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "rol_kod_unique": {
+          "name": "rol_kod_unique",
+          "columns": [
+            "kod"
+          ],
+          "nullsNotDistinct": false
+        },
+        "rol_nom_unique": {
+          "name": "rol_nom_unique",
+          "columns": [
+            "nom"
+          ],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "rol_tizimli_kod": {
+          "name": "rol_tizimli_kod",
+          "value": "(\"rol\".\"tizimli\" = false AND \"rol\".\"kod\" IS NULL) OR (\"rol\".\"tizimli\" = true AND \"rol\".\"kod\" IS NOT NULL)"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.rol_ruxsat": {
+      "name": "rol_ruxsat",
+      "schema": "",
+      "columns": {
+        "rol_id": {
+          "name": "rol_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ruxsat_kod": {
+          "name": "ruxsat_kod",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "qamrov": {
+          "name": "qamrov",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'OZ_FILIALI'"
+        },
+        "yaratildi": {
+          "name": "yaratildi",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "yaratdi_id": {
+          "name": "yaratdi_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ozgartirildi": {
+          "name": "ozgartirildi",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ozgartirdi_id": {
+          "name": "ozgartirdi_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "rol_ruxsat_rol_id_rol_id_fk": {
+          "name": "rol_ruxsat_rol_id_rol_id_fk",
+          "tableFrom": "rol_ruxsat",
+          "columnsFrom": [
+            "rol_id"
+          ],
+          "tableTo": "rol",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "rol_ruxsat_ruxsat_kod_ruxsat_kod_fk": {
+          "name": "rol_ruxsat_ruxsat_kod_ruxsat_kod_fk",
+          "tableFrom": "rol_ruxsat",
+          "columnsFrom": [
+            "ruxsat_kod"
+          ],
+          "tableTo": "ruxsat",
+          "columnsTo": [
+            "kod"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "rol_ruxsat_rol_id_ruxsat_kod_pk": {
+          "name": "rol_ruxsat_rol_id_ruxsat_kod_pk",
+          "columns": [
+            "rol_id",
+            "ruxsat_kod"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "rol_ruxsat_qamrov": {
+          "name": "rol_ruxsat_qamrov",
+          "value": "\"rol_ruxsat\".\"qamrov\" IN ('OZ_FILIALI','BARCHA')"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.ruxsat": {
+      "name": "ruxsat",
+      "schema": "",
+      "columns": {
+        "kod": {
+          "name": "kod",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "nom": {
+          "name": "nom",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "guruh": {
+          "name": "guruh",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.sessiya": {
+      "name": "sessiya",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "bigserial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "xodim_id": {
+          "name": "xodim_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "token_hash": {
+          "name": "token_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "amal_qiladi": {
+          "name": "amal_qiladi",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "bekor_qilindi": {
+          "name": "bekor_qilindi",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ip": {
+          "name": "ip",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "qurilma": {
+          "name": "qurilma",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "yaratildi": {
+          "name": "yaratildi",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "yaratdi_id": {
+          "name": "yaratdi_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ozgartirildi": {
+          "name": "ozgartirildi",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ozgartirdi_id": {
+          "name": "ozgartirdi_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "sessiya_xodim": {
+          "name": "sessiya_xodim",
+          "columns": [
+            {
+              "expression": "xodim_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "amal_qiladi",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "sessiya_xodim_id_xodim_id_fk": {
+          "name": "sessiya_xodim_id_xodim_id_fk",
+          "tableFrom": "sessiya",
+          "columnsFrom": [
+            "xodim_id"
+          ],
+          "tableTo": "xodim",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "sessiya_token_hash_unique": {
+          "name": "sessiya_token_hash_unique",
+          "columns": [
+            "token_hash"
+          ],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.xodim": {
+      "name": "xodim",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "bigserial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "filial_id": {
+          "name": "filial_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ism": {
+          "name": "ism",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "telefon": {
+          "name": "telefon",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "parol_hash": {
+          "name": "parol_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "telegram_id": {
+          "name": "telegram_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ishga_kirdi": {
+          "name": "ishga_kirdi",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ishdan_chiqdi": {
+          "name": "ishdan_chiqdi",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "xato_urinish": {
+          "name": "xato_urinish",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "bloklangan": {
+          "name": "bloklangan",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "faol": {
+          "name": "faol",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "ochirildi": {
+          "name": "ochirildi",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "yaratildi": {
+          "name": "yaratildi",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "yaratdi_id": {
+          "name": "yaratdi_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ozgartirildi": {
+          "name": "ozgartirildi",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ozgartirdi_id": {
+          "name": "ozgartirdi_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "xodim_filial": {
+          "name": "xodim_filial",
+          "columns": [
+            {
+              "expression": "filial_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "xodim_filial_id_filial_id_fk": {
+          "name": "xodim_filial_id_filial_id_fk",
+          "tableFrom": "xodim",
+          "columnsFrom": [
+            "filial_id"
+          ],
+          "tableTo": "filial",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "xodim_telefon_unique": {
+          "name": "xodim_telefon_unique",
+          "columns": [
+            "telefon"
+          ],
+          "nullsNotDistinct": false
+        },
+        "xodim_telegram_id_unique": {
+          "name": "xodim_telegram_id_unique",
+          "columns": [
+            "telegram_id"
+          ],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.xodim_rol": {
+      "name": "xodim_rol",
+      "schema": "",
+      "columns": {
+        "xodim_id": {
+          "name": "xodim_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rol_id": {
+          "name": "rol_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "yaratildi": {
+          "name": "yaratildi",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "yaratdi_id": {
+          "name": "yaratdi_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ozgartirildi": {
+          "name": "ozgartirildi",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ozgartirdi_id": {
+          "name": "ozgartirdi_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "xodim_rol_rol": {
+          "name": "xodim_rol_rol",
+          "columns": [
+            {
+              "expression": "rol_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "xodim_rol_xodim_id_xodim_id_fk": {
+          "name": "xodim_rol_xodim_id_xodim_id_fk",
+          "tableFrom": "xodim_rol",
+          "columnsFrom": [
+            "xodim_id"
+          ],
+          "tableTo": "xodim",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "xodim_rol_rol_id_rol_id_fk": {
+          "name": "xodim_rol_rol_id_rol_id_fk",
+          "tableFrom": "xodim_rol",
+          "columnsFrom": [
+            "rol_id"
+          ],
+          "tableTo": "rol",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "xodim_rol_xodim_id_rol_id_pk": {
+          "name": "xodim_rol_xodim_id_rol_id_pk",
+          "columns": [
+            "xodim_id",
+            "rol_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.amal_kaliti": {
+      "name": "amal_kaliti",
+      "schema": "",
+      "columns": {
+        "kalit": {
+          "name": "kalit",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "natija": {
+          "name": "natija",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "yaratildi": {
+          "name": "yaratildi",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.audit_jurnal": {
+      "name": "audit_jurnal",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "bigserial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "sana": {
+          "name": "sana",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "xodim_id": {
+          "name": "xodim_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "filial_id": {
+          "name": "filial_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "amal": {
+          "name": "amal",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "obyekt_turi": {
+          "name": "obyekt_turi",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "obyekt_id": {
+          "name": "obyekt_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "eski_qiymat": {
+          "name": "eski_qiymat",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "yangi_qiymat": {
+          "name": "yangi_qiymat",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "izoh": {
+          "name": "izoh",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ip": {
+          "name": "ip",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "audit_obyekt": {
+          "name": "audit_obyekt",
+          "columns": [
+            {
+              "expression": "obyekt_turi",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "obyekt_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "audit_sana": {
+          "name": "audit_sana",
+          "columns": [
+            {
+              "expression": "sana",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "audit_xodim": {
+          "name": "audit_xodim",
+          "columns": [
+            {
+              "expression": "xodim_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "sana",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "audit_jurnal_xodim_id_xodim_id_fk": {
+          "name": "audit_jurnal_xodim_id_xodim_id_fk",
+          "tableFrom": "audit_jurnal",
+          "columnsFrom": [
+            "xodim_id"
+          ],
+          "tableTo": "xodim",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "audit_jurnal_filial_id_filial_id_fk": {
+          "name": "audit_jurnal_filial_id_filial_id_fk",
+          "tableFrom": "audit_jurnal",
+          "columnsFrom": [
+            "filial_id"
+          ],
+          "tableTo": "filial",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.kurs_tarix": {
+      "name": "kurs_tarix",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "bigserial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "sana": {
+          "name": "sana",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "qiymat": {
+          "name": "qiymat",
+          "type": "numeric(10, 2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "yaratildi": {
+          "name": "yaratildi",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "yaratdi_id": {
+          "name": "yaratdi_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ozgartirildi": {
+          "name": "ozgartirildi",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ozgartirdi_id": {
+          "name": "ozgartirdi_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "kurs_sana": {
+          "name": "kurs_sana",
+          "columns": [
+            {
+              "expression": "sana",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.sozlama": {
+      "name": "sozlama",
+      "schema": "",
+      "columns": {
+        "kalit": {
+          "name": "kalit",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "qiymat": {
+          "name": "qiymat",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "turi": {
+          "name": "turi",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "guruh": {
+          "name": "guruh",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tz_band": {
+          "name": "tz_band",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "izoh": {
+          "name": "izoh",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "yaratildi": {
+          "name": "yaratildi",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "yaratdi_id": {
+          "name": "yaratdi_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ozgartirildi": {
+          "name": "ozgartirildi",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ozgartirdi_id": {
+          "name": "ozgartirdi_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.almashtirish_guruh": {
+      "name": "almashtirish_guruh",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "bigserial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "nom": {
+          "name": "nom",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "faol": {
+          "name": "faol",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "ochirildi": {
+          "name": "ochirildi",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "yaratildi": {
+          "name": "yaratildi",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "yaratdi_id": {
+          "name": "yaratdi_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ozgartirildi": {
+          "name": "ozgartirildi",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ozgartirdi_id": {
+          "name": "ozgartirdi_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.mahsulot_aksessuar": {
+      "name": "mahsulot_aksessuar",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "bigserial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "mahsulot_tur_id": {
+          "name": "mahsulot_tur_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "material_id": {
+          "name": "material_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "formula": {
+          "name": "formula",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "majburiy": {
+          "name": "majburiy",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "faol": {
+          "name": "faol",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "ochirildi": {
+          "name": "ochirildi",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "yaratildi": {
+          "name": "yaratildi",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "yaratdi_id": {
+          "name": "yaratdi_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ozgartirildi": {
+          "name": "ozgartirildi",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ozgartirdi_id": {
+          "name": "ozgartirdi_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "mahsulot_aksessuar_bitta": {
+          "name": "mahsulot_aksessuar_bitta",
+          "columns": [
+            {
+              "expression": "mahsulot_tur_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "material_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "mahsulot_aksessuar_material": {
+          "name": "mahsulot_aksessuar_material",
+          "columns": [
+            {
+              "expression": "material_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "mahsulot_aksessuar_mahsulot_tur_id_mahsulot_tur_id_fk": {
+          "name": "mahsulot_aksessuar_mahsulot_tur_id_mahsulot_tur_id_fk",
+          "tableFrom": "mahsulot_aksessuar",
+          "columnsFrom": [
+            "mahsulot_tur_id"
+          ],
+          "tableTo": "mahsulot_tur",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "mahsulot_aksessuar_material_id_material_id_fk": {
+          "name": "mahsulot_aksessuar_material_id_material_id_fk",
+          "tableFrom": "mahsulot_aksessuar",
+          "columnsFrom": [
+            "material_id"
+          ],
+          "tableTo": "material",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.mahsulot_parametr": {
+      "name": "mahsulot_parametr",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "bigserial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "mahsulot_tur_id": {
+          "name": "mahsulot_tur_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kod": {
+          "name": "kod",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nom": {
+          "name": "nom",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "standart_qiymat": {
+          "name": "standart_qiymat",
+          "type": "numeric(10, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "faol": {
+          "name": "faol",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "ochirildi": {
+          "name": "ochirildi",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "yaratildi": {
+          "name": "yaratildi",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "yaratdi_id": {
+          "name": "yaratdi_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ozgartirildi": {
+          "name": "ozgartirildi",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ozgartirdi_id": {
+          "name": "ozgartirdi_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "mahsulot_parametr_kod": {
+          "name": "mahsulot_parametr_kod",
+          "columns": [
+            {
+              "expression": "mahsulot_tur_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "kod",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "mahsulot_parametr_mahsulot_tur_id_mahsulot_tur_id_fk": {
+          "name": "mahsulot_parametr_mahsulot_tur_id_mahsulot_tur_id_fk",
+          "tableFrom": "mahsulot_parametr",
+          "columnsFrom": [
+            "mahsulot_tur_id"
+          ],
+          "tableTo": "mahsulot_tur",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "mahsulot_parametr_kod_shakli": {
+          "name": "mahsulot_parametr_kod_shakli",
+          "value": "\"mahsulot_parametr\".\"kod\" ~ '^[A-Z][A-Z0-9_'']*$'"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.mahsulot_slot": {
+      "name": "mahsulot_slot",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "bigserial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "mahsulot_tur_id": {
+          "name": "mahsulot_tur_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nom": {
+          "name": "nom",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tartib": {
+          "name": "tartib",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "majburiy": {
+          "name": "majburiy",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "almashtirish_guruh_id": {
+          "name": "almashtirish_guruh_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "formula": {
+          "name": "formula",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "faol": {
+          "name": "faol",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "ochirildi": {
+          "name": "ochirildi",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "yaratildi": {
+          "name": "yaratildi",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "yaratdi_id": {
+          "name": "yaratdi_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ozgartirildi": {
+          "name": "ozgartirildi",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ozgartirdi_id": {
+          "name": "ozgartirdi_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "mahsulot_slot_tur": {
+          "name": "mahsulot_slot_tur",
+          "columns": [
+            {
+              "expression": "mahsulot_tur_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "tartib",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "mahsulot_slot_mahsulot_tur_id_mahsulot_tur_id_fk": {
+          "name": "mahsulot_slot_mahsulot_tur_id_mahsulot_tur_id_fk",
+          "tableFrom": "mahsulot_slot",
+          "columnsFrom": [
+            "mahsulot_tur_id"
+          ],
+          "tableTo": "mahsulot_tur",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "mahsulot_slot_almashtirish_guruh_id_almashtirish_guruh_id_fk": {
+          "name": "mahsulot_slot_almashtirish_guruh_id_almashtirish_guruh_id_fk",
+          "tableFrom": "mahsulot_slot",
+          "columnsFrom": [
+            "almashtirish_guruh_id"
+          ],
+          "tableTo": "almashtirish_guruh",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.mahsulot_tur": {
+      "name": "mahsulot_tur",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "bigserial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "nom": {
+          "name": "nom",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "xizmat_haqi": {
+          "name": "xizmat_haqi",
+          "type": "numeric(14, 2)",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'0'"
+        },
+        "tartib": {
+          "name": "tartib",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "oynada_korinadi": {
+          "name": "oynada_korinadi",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "botda_korinadi": {
+          "name": "botda_korinadi",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "faol": {
+          "name": "faol",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "ochirildi": {
+          "name": "ochirildi",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "yaratildi": {
+          "name": "yaratildi",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "yaratdi_id": {
+          "name": "yaratdi_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ozgartirildi": {
+          "name": "ozgartirildi",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ozgartirdi_id": {
+          "name": "ozgartirdi_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "mahsulot_tur_xizmat_haqi_manfiy_emas": {
+          "name": "mahsulot_tur_xizmat_haqi_manfiy_emas",
+          "value": "\"mahsulot_tur\".\"xizmat_haqi\" IS NULL OR \"mahsulot_tur\".\"xizmat_haqi\" >= 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.material": {
+      "name": "material",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "bigserial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "nom": {
+          "name": "nom",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "hisob_turi": {
+          "name": "hisob_turi",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kirim_birligi": {
+          "name": "kirim_birligi",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sarflash_birligi": {
+          "name": "sarflash_birligi",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "koeffitsient": {
+          "name": "koeffitsient",
+          "type": "numeric(10, 4)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'1'"
+        },
+        "sotuv_narx": {
+          "name": "sotuv_narx",
+          "type": "numeric(14, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sotuv_valyuta": {
+          "name": "sotuv_valyuta",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'SOM'"
+        },
+        "min_ustama_foiz": {
+          "name": "min_ustama_foiz",
+          "type": "numeric(6, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "yaroqsiz_chegara_m": {
+          "name": "yaroqsiz_chegara_m",
+          "type": "numeric(6, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "kam_ishlatiladigan_m": {
+          "name": "kam_ishlatiladigan_m",
+          "type": "numeric(6, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "kam_qoldiq_chegara_m": {
+          "name": "kam_qoldiq_chegara_m",
+          "type": "numeric(6, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "standart_rulon_eni_m": {
+          "name": "standart_rulon_eni_m",
+          "type": "numeric(6, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "almashtirish_guruh_id": {
+          "name": "almashtirish_guruh_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "yaxlitlash_qadami": {
+          "name": "yaxlitlash_qadami",
+          "type": "numeric(8, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "faol": {
+          "name": "faol",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "ochirildi": {
+          "name": "ochirildi",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "yaratildi": {
+          "name": "yaratildi",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "yaratdi_id": {
+          "name": "yaratdi_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ozgartirildi": {
+          "name": "ozgartirildi",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ozgartirdi_id": {
+          "name": "ozgartirdi_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "material_guruh": {
+          "name": "material_guruh",
+          "columns": [
+            {
+              "expression": "almashtirish_guruh_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "material_almashtirish_guruh_id_almashtirish_guruh_id_fk": {
+          "name": "material_almashtirish_guruh_id_almashtirish_guruh_id_fk",
+          "tableFrom": "material",
+          "columnsFrom": [
+            "almashtirish_guruh_id"
+          ],
+          "tableTo": "almashtirish_guruh",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "material_hisob_turi": {
+          "name": "material_hisob_turi",
+          "value": "\"material\".\"hisob_turi\" IN ('RULON','CHIZIQLI','DONA','KV_M')"
+        },
+        "material_sarflash_birligi": {
+          "name": "material_sarflash_birligi",
+          "value": "\"material\".\"sarflash_birligi\" IN ('SM','KV_M','DONA')"
+        },
+        "material_valyuta": {
+          "name": "material_valyuta",
+          "value": "\"material\".\"sotuv_valyuta\" IN ('SOM','USD')"
+        },
+        "material_koeffitsient_musbat": {
+          "name": "material_koeffitsient_musbat",
+          "value": "\"material\".\"koeffitsient\" > 0"
+        },
+        "material_narx_manfiy_emas": {
+          "name": "material_narx_manfiy_emas",
+          "value": "\"material\".\"sotuv_narx\" IS NULL OR \"material\".\"sotuv_narx\" >= 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.material_filial_narx": {
+      "name": "material_filial_narx",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "bigserial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "material_id": {
+          "name": "material_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "filial_id": {
+          "name": "filial_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sotuv_narx": {
+          "name": "sotuv_narx",
+          "type": "numeric(14, 2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "yaratildi": {
+          "name": "yaratildi",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "yaratdi_id": {
+          "name": "yaratdi_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ozgartirildi": {
+          "name": "ozgartirildi",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ozgartirdi_id": {
+          "name": "ozgartirdi_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "material_filial_narx_bitta": {
+          "name": "material_filial_narx_bitta",
+          "columns": [
+            {
+              "expression": "material_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "filial_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "material_filial_narx_material_id_material_id_fk": {
+          "name": "material_filial_narx_material_id_material_id_fk",
+          "tableFrom": "material_filial_narx",
+          "columnsFrom": [
+            "material_id"
+          ],
+          "tableTo": "material",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "material_filial_narx_filial_id_filial_id_fk": {
+          "name": "material_filial_narx_filial_id_filial_id_fk",
+          "tableFrom": "material_filial_narx",
+          "columnsFrom": [
+            "filial_id"
+          ],
+          "tableTo": "filial",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "material_filial_narx_manfiy_emas": {
+          "name": "material_filial_narx_manfiy_emas",
+          "value": "\"material_filial_narx\".\"sotuv_narx\" >= 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.mijoz": {
+      "name": "mijoz",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "bigserial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "ism": {
+          "name": "ism",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "telefon": {
+          "name": "telefon",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "telegram_id": {
+          "name": "telegram_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "manzil": {
+          "name": "manzil",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "offset_turi": {
+          "name": "offset_turi",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "offset_qiymat": {
+          "name": "offset_qiymat",
+          "type": "numeric(14, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "qarz_limiti": {
+          "name": "qarz_limiti",
+          "type": "numeric(14, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "eslatma": {
+          "name": "eslatma",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "shaxs_turi": {
+          "name": "shaxs_turi",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'JISMONIY'"
+        },
+        "tashkilot_nomi": {
+          "name": "tashkilot_nomi",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "inn": {
+          "name": "inn",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "yuridik_manzil": {
+          "name": "yuridik_manzil",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "bank_nomi": {
+          "name": "bank_nomi",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "hisob_raqam": {
+          "name": "hisob_raqam",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "mfo": {
+          "name": "mfo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "shartnoma_raqam": {
+          "name": "shartnoma_raqam",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "shartnoma_sana": {
+          "name": "shartnoma_sana",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "nds_tolovchi": {
+          "name": "nds_tolovchi",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "nds_stavka": {
+          "name": "nds_stavka",
+          "type": "numeric(5, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "faol": {
+          "name": "faol",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "ochirildi": {
+          "name": "ochirildi",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "yaratildi": {
+          "name": "yaratildi",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "yaratdi_id": {
+          "name": "yaratdi_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ozgartirildi": {
+          "name": "ozgartirildi",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ozgartirdi_id": {
+          "name": "ozgartirdi_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "mijoz_ism": {
+          "name": "mijoz_ism",
+          "columns": [
+            {
+              "expression": "ism",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "mijoz_telefon_unique": {
+          "name": "mijoz_telefon_unique",
+          "columns": [
+            "telefon"
+          ],
+          "nullsNotDistinct": false
+        },
+        "mijoz_telegram_id_unique": {
+          "name": "mijoz_telegram_id_unique",
+          "columns": [
+            "telegram_id"
+          ],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "mijoz_shaxs_turi": {
+          "name": "mijoz_shaxs_turi",
+          "value": "\"mijoz\".\"shaxs_turi\" IN ('JISMONIY','YURIDIK')"
+        },
+        "mijoz_offset_turi": {
+          "name": "mijoz_offset_turi",
+          "value": "\"mijoz\".\"offset_turi\" IS NULL OR \"mijoz\".\"offset_turi\" IN ('FOIZ','SOM','USD')"
+        },
+        "mijoz_offset_toliq": {
+          "name": "mijoz_offset_toliq",
+          "value": "(\"mijoz\".\"offset_turi\" IS NULL AND \"mijoz\".\"offset_qiymat\" IS NULL)\n          OR (\"mijoz\".\"offset_turi\" IS NOT NULL AND \"mijoz\".\"offset_qiymat\" IS NOT NULL)"
+        },
+        "mijoz_yuridik_toliq": {
+          "name": "mijoz_yuridik_toliq",
+          "value": "\"mijoz\".\"shaxs_turi\" <> 'YURIDIK'\n          OR (\"mijoz\".\"tashkilot_nomi\" IS NOT NULL AND \"mijoz\".\"inn\" IS NOT NULL\n              AND \"mijoz\".\"yuridik_manzil\" IS NOT NULL)"
+        },
+        "mijoz_limit_manfiy_emas": {
+          "name": "mijoz_limit_manfiy_emas",
+          "value": "\"mijoz\".\"qarz_limiti\" IS NULL OR \"mijoz\".\"qarz_limiti\" >= 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.yetkazib_beruvchi": {
+      "name": "yetkazib_beruvchi",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "bigserial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "nom": {
+          "name": "nom",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "telefon": {
+          "name": "telefon",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "manzil": {
+          "name": "manzil",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tolov_muddati_kun": {
+          "name": "tolov_muddati_kun",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "valyuta": {
+          "name": "valyuta",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'SOM'"
+        },
+        "eslatma": {
+          "name": "eslatma",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "faol": {
+          "name": "faol",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "ochirildi": {
+          "name": "ochirildi",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "yaratildi": {
+          "name": "yaratildi",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "yaratdi_id": {
+          "name": "yaratdi_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ozgartirildi": {
+          "name": "ozgartirildi",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ozgartirdi_id": {
+          "name": "ozgartirdi_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "yetkazib_beruvchi_valyuta": {
+          "name": "yetkazib_beruvchi_valyuta",
+          "value": "\"yetkazib_beruvchi\".\"valyuta\" IN ('SOM','USD')"
+        },
+        "yetkazib_beruvchi_muddat": {
+          "name": "yetkazib_beruvchi_muddat",
+          "value": "\"yetkazib_beruvchi\".\"tolov_muddati_kun\" IS NULL OR \"yetkazib_beruvchi\".\"tolov_muddati_kun\" >= 0"
+        }
+      },
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "views": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

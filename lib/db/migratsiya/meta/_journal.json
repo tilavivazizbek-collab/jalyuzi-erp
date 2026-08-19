@@ -36,6 +36,20 @@
       "when": 1786938214798,
       "tag": "0004_woozy_nehzno",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1787151748620,
+      "tag": "0005_clever_namor",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1787151778725,
+      "tag": "0006_spravochnik_izlar",
+      "breakpoints": true
     }
   ]
 }

@@ -46,13 +46,13 @@ export const istisnomi = (filialNarxi: Som | null): boolean => filialNarxi !== n
 export type Offset =
   | { readonly turi: 'SOM'; readonly summa: Som }
   | { readonly turi: 'FOIZ'; readonly foiz: number }
-  | { readonly turi: 'DOLLAR'; readonly summa: Dollar };
+  | { readonly turi: 'USD'; readonly summa: Dollar };
 
 /**
  * Offsetni qo'llaydi. YAXLITLAMAYDI — yaxlitlash zanjirning oxirida,
  * bir marta bajariladi (20.9.3).
  *
- * `DOLLAR` turida kurs MAJBURIY va parametr bo'lib keladi (QISM 1 §3.2) —
+ * `USD` turida kurs MAJBURIY va parametr bo'lib keladi (QISM 1 §3.2) —
  * funksiya ichida sozlamadan o'qilsa snapshot buziladi.
  */
 export function offsetQolla(baza: Som, offset: Offset | null, kurs: Kurs | null): Som {
@@ -69,7 +69,7 @@ export function offsetQolla(baza: Som, offset: Offset | null, kurs: Kurs | null)
       // −3 → × 0.97
       return kopaytir(baza, 1 + offset.foiz / 100);
 
-    case 'DOLLAR': {
+    case 'USD': {
       if (kurs === null) {
         throw new BiznesXato('KURS_NOTOGRI', "dollarli offset uchun kurs kerak");
       }

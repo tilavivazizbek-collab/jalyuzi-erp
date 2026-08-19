@@ -22,13 +22,13 @@ const DIKKE: MahsulotTuri = {
   nom: 'Dikke',
   parametrlar: [{ nom: 'CHET', qiymat: 30 }],
   slotlar: [
-    { id: 1, nom: 'Oq mato (chet)', formula: "CHET × BO'YI", majburiy: true, tartib: 1 },
-    { id: 2, nom: "Ko'k mato (chet)", formula: "CHET × BO'YI", majburiy: true, tartib: 2 },
-    { id: 3, nom: "Ko'k mato (o'rta)", formula: "(ENI − 2×CHET) × BO'YI", majburiy: true, tartib: 3 },
+    { id: 1, nom: 'Oq mato (chet)', formula: "CHET × BO'YI", majburiy: true, tartib: 1, almashtirishGuruhId: 1 },
+    { id: 2, nom: "Ko'k mato (chet)", formula: "CHET × BO'YI", majburiy: true, tartib: 2, almashtirishGuruhId: 2 },
+    { id: 3, nom: "Ko'k mato (o'rta)", formula: "(ENI − 2×CHET) × BO'YI", majburiy: true, tartib: 3, almashtirishGuruhId: 3 },
   ],
   komplekt: [
-    { materialId: 10, nom: 'Mexanizm', soni: 1, formula: null, majburiy: true },
-    { materialId: 11, nom: 'Stepler lenta', soni: null, formula: 'ENI × 2', majburiy: false },
+    { materialId: 10, nom: 'Mexanizm', formula: '1', majburiy: true },
+    { materialId: 11, nom: 'Stepler lenta', formula: 'ENI × 2', majburiy: false },
   ],
   xizmatHaqiSoni: null,
   faol: true,
@@ -46,7 +46,7 @@ describe('4.5 — formula saqlashdan oldin tekshiriladi', () => {
   it("noma'lum parametr ushlanadi", () => {
     const yomon: MahsulotTuri = {
       ...DIKKE,
-      slotlar: [{ id: 1, nom: 'Mato', formula: 'QALINLIK × 2', majburiy: true, tartib: 1 }],
+      slotlar: [{ id: 1, nom: 'Mato', formula: 'QALINLIK × 2', majburiy: true, tartib: 1, almashtirishGuruhId: 1 }],
     };
     const n = konstruktorTekshir(yomon);
     expect(n.saqlansinmi).toBe(false);
@@ -60,7 +60,7 @@ describe('4.5 — formula saqlashdan oldin tekshiriladi', () => {
   it('sintaksis xatosi ushlanadi', () => {
     const yomon: MahsulotTuri = {
       ...DIKKE,
-      slotlar: [{ id: 1, nom: 'Mato', formula: '(ENI + ', majburiy: true, tartib: 1 }],
+      slotlar: [{ id: 1, nom: 'Mato', formula: '(ENI + ', majburiy: true, tartib: 1, almashtirishGuruhId: 1 }],
     };
     expect(konstruktorTekshir(yomon).nuqsonlar[0]?.tur).toBe('FORMULA_XATO');
   });
@@ -87,8 +87,8 @@ describe('4.4 — slot va nom tekshiruvlari', () => {
     const yomon: MahsulotTuri = {
       ...DIKKE,
       slotlar: [
-        { id: 1, nom: 'Mato', formula: 'MAYDON', majburiy: true, tartib: 1 },
-        { id: 2, nom: 'mato', formula: 'MAYDON', majburiy: true, tartib: 2 },
+        { id: 1, nom: 'Mato', formula: 'MAYDON', majburiy: true, tartib: 1, almashtirishGuruhId: 1 },
+        { id: 2, nom: 'mato', formula: 'MAYDON', majburiy: true, tartib: 2, almashtirishGuruhId: 2 },
       ],
     };
     expect(konstruktorTekshir(yomon).nuqsonlar).toContainEqual({
@@ -119,11 +119,11 @@ describe('4.4 — slot va nom tekshiruvlari', () => {
 
 // ─── 4.6 · Aksessuar komplekti ────────────────────────────────────────────
 
-describe('4.6 — komplekt qatorida soni YOKI formula', () => {
-  it("ikkalasi ham bo'sh — xato", () => {
+describe('4.6 — komplekt qatori', () => {
+  it("bo'sh formula xato beradi", () => {
     const yomon: MahsulotTuri = {
       ...DIKKE,
-      komplekt: [{ materialId: 1, nom: 'Brelok', soni: null, formula: null, majburiy: false }],
+      komplekt: [{ materialId: 1, nom: 'Brelok', formula: '   ', majburiy: false }],
     };
     expect(konstruktorTekshir(yomon).nuqsonlar).toContainEqual({
       tur: 'KOMPLEKT_QATORI_BOSH',
@@ -131,22 +131,27 @@ describe('4.6 — komplekt qatorida soni YOKI formula', () => {
     });
   });
 
-  it("ikkalasi ham to'ldirilgan — qaysi biri ustun ekani noaniq", () => {
-    const yomon: MahsulotTuri = {
+  it("statik son ham formula — QISM 3 §2.7 bitta ustunda saqlaydi", () => {
+    const tur: MahsulotTuri = {
       ...DIKKE,
-      komplekt: [{ materialId: 1, nom: 'Brelok', soni: 2, formula: 'ENI × 2', majburiy: false }],
+      komplekt: [{ materialId: 1, nom: 'Brelok', formula: '4', majburiy: false }],
     };
-    expect(konstruktorTekshir(yomon).nuqsonlar).toContainEqual({
-      tur: 'KOMPLEKT_IKKALASI',
-      nom: 'Brelok',
-    });
+    expect(konstruktorTekshir(tur).saqlansinmi).toBe(true);
+  });
+
+  it("o'lchamga bog'liq formula ham qabul qilinadi", () => {
+    const tur: MahsulotTuri = {
+      ...DIKKE,
+      komplekt: [{ materialId: 1, nom: 'Lenta', formula: 'ENI × 2', majburiy: false }],
+    };
+    expect(konstruktorTekshir(tur).saqlansinmi).toBe(true);
   });
 
   it('komplekt formulasi ham tekshiriladi', () => {
     const yomon: MahsulotTuri = {
       ...DIKKE,
       komplekt: [
-        { materialId: 1, nom: 'Lenta', soni: null, formula: 'QALINLIK', majburiy: false },
+        { materialId: 1, nom: 'Lenta', formula: 'QALINLIK', majburiy: false },
       ],
     };
     expect(konstruktorTekshir(yomon).nuqsonlar[0]?.tur).toBe('FORMULA_XATO');
@@ -177,7 +182,7 @@ describe("4.3 — ishlatilayotgan parametr o'chirilmaydi", () => {
   it("buzuq formulali qator yiqitmaydi", () => {
     const buzuq: MahsulotTuri = {
       ...DIKKE,
-      slotlar: [{ id: 1, nom: 'Buzuq', formula: '(((', majburiy: true, tartib: 1 }],
+      slotlar: [{ id: 1, nom: 'Buzuq', formula: '(((', majburiy: true, tartib: 1, almashtirishGuruhId: 1 }],
     };
     expect(() => parametrIshlatilishi(buzuq, 'CHET')).not.toThrow();
     expect(parametrOchirilsinmi(buzuq, 'CHET')).toBe(true);
@@ -186,32 +191,53 @@ describe("4.3 — ishlatilayotgan parametr o'chirilmaydi", () => {
 
 // ─── 3.3 · Slot qatorlari ─────────────────────────────────────────────────
 
-describe("3.3 va 5.7 — har slotda faqat o'z matolari", () => {
-  const boglanishlar = [
-    { slotId: 1, faol: true, nom: 'Oq mato A' },
-    { slotId: 1, faol: false, nom: 'Oq mato B (nofaol)' },
-    { slotId: 2, faol: true, nom: "Ko'k mato" },
+describe("3.3, 5.6 va 5.7 — har slotda faqat o'z guruhining matolari", () => {
+  // QISM 3 §2.5 — slot ALMASHTIRISH GURUHIGA bog'lanadi
+  const materiallar = [
+    { almashtirishGuruhId: 1, faol: true, nom: 'Oq mato A' },
+    { almashtirishGuruhId: 1, faol: false, nom: 'Oq mato B (nofaol)' },
+    { almashtirishGuruhId: 2, faol: true, nom: "Ko'k mato" },
+    { almashtirishGuruhId: null, faol: true, nom: 'Guruhsiz material' },
   ];
 
-  it('boshqa slotning matosi chiqmaydi — sotuvchi adashmaydi', () => {
-    const slot = DIKKE.slotlar[0];
-    if (slot === undefined) throw new Error('slot yo\'q');
-    expect(slotMateriallari(slot, boglanishlar).map((b) => b.nom)).toEqual(['Oq mato A']);
+  const slot = (n: number) => {
+    const s = DIKKE.slotlar[n];
+    if (s === undefined) throw new Error("slot yo'q");
+    return s;
+  };
+
+  it("boshqa guruhning matosi chiqmaydi — mexanizm bosilganda kronshteyn yo'q (5.6)", () => {
+    expect(slotMateriallari(slot(0), materiallar).map((m) => m.nom)).toEqual(['Oq mato A']);
+    expect(slotMateriallari(slot(1), materiallar).map((m) => m.nom)).toEqual(["Ko'k mato"]);
   });
 
   it('nofaol material sotuvda chiqmaydi (5.9)', () => {
-    const slot = DIKKE.slotlar[0];
-    if (slot === undefined) throw new Error('slot yo\'q');
-    expect(slotMateriallari(slot, boglanishlar)).toHaveLength(1);
+    expect(slotMateriallari(slot(0), materiallar)).toHaveLength(1);
+  });
+
+  it("guruhsiz slotda hech narsa chiqmaydi", () => {
+    const guruhsiz = { ...slot(0), almashtirishGuruhId: null };
+    expect(slotMateriallari(guruhsiz, materiallar)).toEqual([]);
+  });
+
+  it("guruhsiz slot saqlashda ushlanadi — bo'sh dropdown mijoz oldida chiqmasin", () => {
+    const yomon: MahsulotTuri = {
+      ...DIKKE,
+      slotlar: [{ ...slot(0), almashtirishGuruhId: null }],
+    };
+    expect(konstruktorTekshir(yomon).nuqsonlar).toContainEqual({
+      tur: 'SLOT_GURUHSIZ',
+      nom: 'Oq mato (chet)',
+    });
   });
 
   it('slotlar tartib bo\'yicha chiqadi', () => {
     const aralash: MahsulotTuri = {
       ...DIKKE,
       slotlar: [
-        { id: 3, nom: 'C', formula: 'MAYDON', majburiy: true, tartib: 3 },
-        { id: 1, nom: 'A', formula: 'MAYDON', majburiy: true, tartib: 1 },
-        { id: 2, nom: 'B', formula: 'MAYDON', majburiy: true, tartib: 2 },
+        { id: 3, nom: 'C', formula: 'MAYDON', majburiy: true, tartib: 3, almashtirishGuruhId: 3 },
+        { id: 1, nom: 'A', formula: 'MAYDON', majburiy: true, tartib: 1, almashtirishGuruhId: 1 },
+        { id: 2, nom: 'B', formula: 'MAYDON', majburiy: true, tartib: 2, almashtirishGuruhId: 2 },
       ],
     };
     expect(slotlarTartibda(aralash).map((s) => s.nom)).toEqual(['A', 'B', 'C']);
