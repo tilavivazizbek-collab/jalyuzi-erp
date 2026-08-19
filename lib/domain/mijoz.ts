@@ -16,6 +16,7 @@ import {
   type Kurs,
   type Som,
 } from '@/lib/domain/pul';
+import { telefonTeng } from '@/lib/domain/telefon';
 
 export const MIJOZ_TURLARI = ['ODDIY', 'B2B'] as const;
 export type MijozTuri = (typeof MIJOZ_TURLARI)[number];
@@ -87,11 +88,6 @@ export interface DublikatNatijasi {
   readonly mavjud: MavjudMijoz | null;
 }
 
-/** Telefon raqamini taqqoslash uchun bir ko'rinishga keltiradi. */
-export function telefonNormalla(telefon: string): string {
-  return telefon.replace(/\D/g, '').replace(/^998/, '');
-}
-
 const ismNormalla = (ism: string): string => ism.trim().toLowerCase().replace(/\s+/g, ' ');
 
 /**
@@ -106,12 +102,14 @@ export function dublikatTekshir(
   mavjudlar: readonly MavjudMijoz[],
   ozId: number | null = null,
 ): DublikatNatijasi {
-  const t = telefonNormalla(telefon);
   const i = ismNormalla(ism);
 
   for (const m of mavjudlar) {
     if (m.id === ozId) continue;
-    if (t !== '' && telefonNormalla(m.telefon) === t) {
+    // Taqqoslash `lib/domain/telefon.ts` da — u bilan bazaga yoziladigan
+    // ko'rinish bitta joyda turadi (§2.2). Ikki xil normallashtirish
+    // bo'lsa dublikat sirg'alib o'tib ketardi.
+    if (telefonTeng(m.telefon, telefon)) {
       return { dublikatmi: true, sabab: 'TELEFON', mavjud: m };
     }
   }

@@ -11,7 +11,6 @@ import {
   nofaolQilinsinmi,
   ochirilsinmi,
   qaytganTolovQayerga,
-  telefonNormalla,
   xabarYuborilsinmi,
   yopishNavbati,
   type MavjudMijoz,
@@ -86,9 +85,11 @@ describe('6.5 — dublikat nazorati', () => {
     expect(n.mavjud?.id).toBe(1);
   });
 
-  it('998 prefiksi bilan ham bir xil', () => {
-    expect(dublikatTekshir('X', '+998901234567', mavjudlar).sabab).toBe('TELEFON');
-    expect(telefonNormalla('+998 90 123 45 67')).toBe('901234567');
+  it('998 prefiksi, probel va qavs bilan ham bir xil odam deb topiladi', () => {
+    // Taqqoslash lib/domain/telefon.ts da — bitta joyda (§2.2)
+    for (const yozuv of ['+998901234567', '+998 90 123 45 67', '8 90 123 45 67']) {
+      expect(dublikatTekshir('X', yozuv, mavjudlar).sabab, yozuv).toBe('TELEFON');
+    }
   });
 
   it('bir xil ism — katta-kichik harf va probel farq qilmaydi', () => {

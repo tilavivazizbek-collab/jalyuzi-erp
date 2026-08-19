@@ -41,6 +41,9 @@ export const XATO_MATNI: Record<XatoKod, string> = {
   TELEFON_NOTOGRI: "Telefon raqami noto'g'ri",
   MATERIAL_SAQLANMADI: "Materialni saqlab bo'lmadi",
   MATERIAL_TOPILMADI: "Material topilmadi",
+  MIJOZ_SAQLANMADI: "Mijozni saqlab bo'lmadi",
+  MIJOZ_TOPILMADI: "Mijoz topilmadi",
+  MIJOZ_DUBLIKAT: "Bunday mijoz allaqachon bor",
 };
 
 export const BIRLIK_MATNI = {
