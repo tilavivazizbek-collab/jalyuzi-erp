@@ -1,0 +1,209 @@
+import Link from 'next/link';
+import { notFound } from 'next/navigation';
+import { sahifaRuxsati } from '@/lib/kirish/joriy';
+import { pulKorsat, som } from '@/lib/domain/pul';
+import { daraja } from '@/lib/domain/kesish';
+import {
+  materialBolaklari,
+  materialHarakatlari,
+  materialSarlavhasi,
+  type BolakQatori,
+  type HarakatQatori,
+} from '../malumot';
+
+export const dynamic = 'force-dynamic';
+
+const HOLAT_NOMI: Record<string, string> = {
+  BOSH: "bo'sh",
+  BAND: 'band',
+  YOLDA: "yo'lda",
+  ISHLATILDI: 'ishlatilgan',
+  BRAK: 'brak',
+  CHIQINDI: 'chiqindi',
+};
+
+const HARAKAT_NOMI: Record<string, string> = {
+  KIRIM: 'Kirim',
+  KESIM: 'Kesim',
+  OSTATKA: 'Qoldiq kesma',
+  CHIQINDI: 'Chiqindi',
+  BRAK: 'Hisobdan chiqarildi',
+  KOCHIRISH_CHIQDI: "Ko'chirish — chiqdi",
+  KOCHIRISH_KIRDI: "Ko'chirish — kirdi",
+  INVENTARIZATSIYA: 'Inventarizatsiya',
+  STORNO: 'Storno',
+  BOSHLANGICH: "Boshlang'ich qoldiq",
+};
+
+const CHEGARALAR = { yaroqsizM: null, kamIshlatiladiganM: null };
+
+/** TZ 7.5 — daraja ENI bo'yicha, maydon bo'yicha emas. */
+function darajaBelgisi(b: BolakQatori): string | null {
+  if (b.turi !== 'OSTATKA' || b.eniM === null) return null;
+  const d = daraja(b.eniM, CHEGARALAR);
+  if (d === 'YAROQSIZ') return 'yaroqsiz';
+  if (d === 'KAM_ISHLATILADIGAN') return 'kam ishlatiladigan';
+  return null;
+}
+
+function miqdorKorinishi(h: HarakatQatori): string {
+  if (h.miqdorKvM !== null) return `${h.miqdorKvM.toFixed(4)} kv.m`;
+  // Q-01 — smda saqlanadi, metrda ko'rsatiladi
+  if (h.miqdorSm !== null) return `${(h.miqdorSm / 100).toFixed(2)} m`;
+  if (h.miqdorDona !== null) return `${String(h.miqdorDona)} dona`;
+  return '—';
+}
+
+export default async function MaterialKartochkasi({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const f = await sahifaRuxsati('ombor.qoldiq.kor');
+
+  const { id } = await params;
+  const materialId = Number(id);
+  if (!Number.isSafeInteger(materialId) || materialId <= 0) notFound();
+
+  const sarlavha = await materialSarlavhasi(materialId);
+  if (sarlavha === null) notFound();
+
+  const [bolaklar, harakatlar] = await Promise.all([
+    materialBolaklari(materialId, f.filialId),
+    materialHarakatlari(materialId, f.filialId),
+  ]);
+
+  const olchamli = sarlavha.hisobTuri === 'RULON';
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div>
+        <Link href="/ombor" className="text-sm text-slate-500 hover:text-slate-900">
+          ← Ombor qoldig&apos;i
+        </Link>
+        <h1 className="mt-2 text-xl font-semibold tracking-tight">{sarlavha.nom}</h1>
+        <p className="mt-1 text-sm text-slate-500">
+          {bolaklar.length} ta bo&apos;lak · filial #{f.filialId}
+        </p>
+      </div>
+
+      {/* ── Qoldiq tarkibi (7.11) ── */}
+      <section>
+        <h2 className="mb-2 text-sm font-medium text-slate-700">Qoldiq tarkibi</h2>
+        {bolaklar.length === 0 ? (
+          <p className="rounded-xl border border-dashed border-slate-300 px-4 py-8 text-center text-sm text-slate-500">
+            Bo&apos;lak yo&apos;q.
+          </p>
+        ) : (
+          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+            <table className="w-full text-sm">
+              <thead className="border-b border-slate-200 bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+                <tr>
+                  <th className="px-4 py-2.5 font-medium">Kod</th>
+                  <th className="px-4 py-2.5 font-medium">Turi</th>
+                  <th className="px-4 py-2.5 font-medium">
+                    {olchamli ? "O'lcham" : 'Miqdor'}
+                  </th>
+                  <th className="px-4 py-2.5 font-medium">Holat</th>
+                  <th className="px-4 py-2.5 text-right font-medium">Tannarx</th>
+                  <th className="px-4 py-2.5 font-medium">Kirim</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {bolaklar.map((b) => {
+                  const belgi = darajaBelgisi(b);
+                  return (
+                    <tr key={b.id} className={b.holat === 'BOSH' ? '' : 'text-slate-500'}>
+                      <td className="px-4 py-2.5 font-mono text-xs">{b.kod}</td>
+                      <td className="px-4 py-2.5">
+                        {b.turi === 'RULON' ? 'Rulon' : b.turi === 'OSTATKA' ? 'Qoldiq kesma' : 'Dona'}
+                      </td>
+                      <td className="raqam px-4 py-2.5">
+                        {b.eniM !== null && b.boyiM !== null
+                          ? `${b.eniM.toFixed(2)} × ${b.boyiM.toFixed(2)} m`
+                          : b.miqdor !== null
+                            ? String(b.miqdor)
+                            : '—'}
+                        {belgi !== null && (
+                          <span className="ml-2 text-xs text-amber-700">{belgi}</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-2.5">
+                        <span
+                          className={
+                            b.holat === 'BOSH'
+                              ? 'text-emerald-700'
+                              : b.holat === 'BAND'
+                                ? 'text-amber-700'
+                                : 'text-slate-400'
+                          }
+                        >
+                          {HOLAT_NOMI[b.holat] ?? b.holat}
+                        </span>
+                      </td>
+                      <td className="raqam px-4 py-2.5">{pulKorsat(som(b.tannarx))}</td>
+                      <td className="px-4 py-2.5 text-xs text-slate-500">
+                        {b.kirimRaqam ?? '—'}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+        <p className="mt-2 text-xs text-slate-400">
+          Har bo&apos;lak o&apos;z kirimini va tannarxini eslab qoladi (7.8).
+        </p>
+      </section>
+
+      {/* ── Harakatlar tarixi (7.11) ── */}
+      <section>
+        <h2 className="mb-1 text-sm font-medium text-slate-700">Harakatlar tarixi</h2>
+        <p className="mb-3 text-xs text-slate-500">
+          Qoldiq alohida saqlanmaydi — u shu jadvalning yig&apos;indisi (2.2-invariant).
+          Yozuvlar o&apos;zgartirilmaydi va o&apos;chirilmaydi (§6.5).
+        </p>
+
+        {harakatlar.length === 0 ? (
+          <p className="rounded-xl border border-dashed border-slate-300 px-4 py-8 text-center text-sm text-slate-500">
+            Harakat yo&apos;q.
+          </p>
+        ) : (
+          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+            <table className="w-full text-sm">
+              <thead className="border-b border-slate-200 bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+                <tr>
+                  <th className="px-4 py-2.5 font-medium">Sana</th>
+                  <th className="px-4 py-2.5 font-medium">Turi</th>
+                  <th className="px-4 py-2.5 font-medium">Bo&apos;lak</th>
+                  <th className="px-4 py-2.5 text-right font-medium">Miqdor</th>
+                  <th className="px-4 py-2.5 text-right font-medium">Summa</th>
+                  <th className="px-4 py-2.5 font-medium">Kim</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {harakatlar.map((h) => (
+                  <tr key={h.id}>
+                    <td className="px-4 py-2.5 text-slate-600">
+                      {h.sana.toLocaleDateString('uz-UZ', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                      })}
+                    </td>
+                    <td className="px-4 py-2.5">{HARAKAT_NOMI[h.turi] ?? h.turi}</td>
+                    <td className="px-4 py-2.5 font-mono text-xs">{h.bolakKod}</td>
+                    <td className="raqam px-4 py-2.5">{miqdorKorinishi(h)}</td>
+                    <td className="raqam px-4 py-2.5">{pulKorsat(som(h.tannarxSumma))}</td>
+                    <td className="px-4 py-2.5 text-slate-500">{h.xodimIsmi}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
