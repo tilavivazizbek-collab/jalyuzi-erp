@@ -26,6 +26,7 @@ ko'chiriladi. Tasdiqlanmagani `⏳` bilan belgilanadi.
 | P-15 | Yetkazib beruvchiga TZ 9.3 maydonlari qo'shildi | ⏳ tasdiq kutilmoqda |
 | P-16 | Transport aniq nisbat bo'yicha taqsimlanadi | ⏳ tasdiq kutilmoqda |
 | P-17 | Brak tannarx bo'luvchisiga kirmaydi | ⏳ tasdiq kutilmoqda |
+| P-18 | `band` tashqi kalitlari 4-bosqichda | ⏳ tasdiq kutilmoqda |
 
 ---
 
@@ -697,3 +698,57 @@ QISM 3 §3.3 dagi formula tuzatilishi kerak:
 ```
 Tannarx: (narx_birlik * miqdor + transport_ulush) / miqdor
 ```
+
+---
+
+## P-18 · `band` tashqi kalitlari 4-bosqichda qo'shiladi
+
+**Bosqich:** 3 · **Tegadi:** QISM 3 §3.2 · TZ 7.3 · QISM 1 §21.2
+
+### Vaziyat
+
+`band` jadvali ikki ustun orqali buyurtmaga bog'lanadi:
+
+```
+buyurtma_pozitsiya_id  → buyurtma_pozitsiya(id)
+pozitsiya_material_id  → pozitsiya_material(id)
+```
+
+Bu jadvallar 4-bosqichda (sotuv va buyurtma) yaratiladi. QISM 1 §21.2
+esa tartibni qat'iy belgilaydi: «**Ombor sotuvdan oldin** — sotuv band
+qilishga tayanadi».
+
+### Qaror
+
+Ustunlar hozirdan `NOT NULL` bo'lib turadi, tashqi kalitlar 4-bosqichda
+qo'shiladi.
+
+### Nega bu xavfsiz
+
+`band` jadvalining ASOSIY kafolati tashqi kalit emas:
+
+```sql
+CREATE UNIQUE INDEX band_bitta_faol ON band (bolak_id) WHERE holat = 'FAOL';
+```
+
+TZ 7.3 ning «ikki usta bitta bo'lakka da'vo qilsa — birinchisi oladi,
+ikkinchisiga rad javobi» qoidasi **shu indeks** bilan ta'minlanadi va u
+hozirdan ishlaydi. Integratsiya testi buni haqiqiy poyga bilan tekshiradi:
+ikki `INSERT` bir vaqtda yuboriladi, aynan bittasi o'tadi.
+
+Tashqi kalit esa boshqa narsani kafolatlaydi — mavjud bo'lmagan
+pozitsiyaga band qo'yilmasligini. U 4-bosqichda qo'shiladi va o'sha
+paytda mavjud yozuvlar tekshiriladi.
+
+### 4-bosqichda bajariladigan ish
+
+```sql
+ALTER TABLE band ADD CONSTRAINT band_pozitsiya_fk
+  FOREIGN KEY (buyurtma_pozitsiya_id) REFERENCES buyurtma_pozitsiya(id);
+ALTER TABLE band ADD CONSTRAINT band_pozitsiya_material_fk
+  FOREIGN KEY (pozitsiya_material_id) REFERENCES pozitsiya_material(id);
+ALTER TABLE bolak ADD CONSTRAINT bolak_pozitsiya_fk
+  FOREIGN KEY (buyurtma_pozitsiya_id) REFERENCES buyurtma_pozitsiya(id);
+```
+
+docs/QARZLAR.md, T-04 sifatida yozib qo'yildi.

@@ -10,7 +10,8 @@ Shuning uchun bu ro'yxat qisqa bo'lishi va bo'shab borishi kerak.
 |---|---|---|---|
 | T-01 | Interfeys oqimlari avtomat sinalmagan | 2-bosqich | O'rta |
 | T-02 | `docker compose up` tekshiruvi bajarilmagan | Docker o'rnatilganda | Past |
-| T-03 | 14 ta qaror hujjatga ko'chirilmagan | Egasi tasdiqlagach | O'rta |
+| T-03 | Qarorlar hujjatga ko'chirilmagan | Egasi tasdiqlagach | O'rta |
+| T-04 | `band` va `bolak` ning buyurtma tashqi kalitlari qo'yilmagan | 4-bosqich | Past |
 
 ---
 
@@ -98,3 +99,45 @@ Eng muhim uchtasi:
 | P-01 | QISM 1 §3.1 dagi `Som`/`Dollar` namunasi — u invariantni himoya qilmaydi |
 | P-02 | QISM 1 §20 dagi «bitta ombor, bitta filial» qatori — Q-21 ga zid |
 | P-05 | QISM 3 §1.2 dagi `rol_id` — TZ 10.3 bilan zid, `xodim_rol` bo'lishi kerak |
+
+
+---
+
+## T-04 · `band` va `bolak` ning buyurtma tashqi kalitlari
+
+**Bosqich:** 3 · **Tegadi:** QISM 3 §3.1, §3.2 · QARORLAR-KOD P-18
+
+Uch ustun buyurtma jadvallariga bog'lanishi kerak, lekin ular
+4-bosqichda yaratiladi:
+
+```
+band.buyurtma_pozitsiya_id
+band.pozitsiya_material_id
+bolak.buyurtma_pozitsiya_id
+```
+
+**Xavf past.** `band` ning asosiy kafolati tashqi kalit emas, balki
+partial unique indeks:
+
+```sql
+CREATE UNIQUE INDEX band_bitta_faol ON band (bolak_id) WHERE holat = 'FAOL';
+```
+
+TZ 7.3 ning «ikki usta bitta bo'lakka da'vo qilsa — birinchisi oladi,
+ikkinchisiga rad javobi» qoidasi shu indeks bilan ta'minlanadi va u
+hozirdan ishlaydi. Integratsiya testi buni haqiqiy poyga bilan
+tekshiradi: ikki `INSERT` bir vaqtda yuboriladi, aynan bittasi o'tadi.
+
+Tashqi kalit boshqa narsani kafolatlaydi — mavjud bo'lmagan pozitsiyaga
+band qo'yilmasligini.
+
+4-bosqichda bajariladi:
+
+```sql
+ALTER TABLE band ADD CONSTRAINT band_pozitsiya_fk
+  FOREIGN KEY (buyurtma_pozitsiya_id) REFERENCES buyurtma_pozitsiya(id);
+ALTER TABLE band ADD CONSTRAINT band_pozitsiya_material_fk
+  FOREIGN KEY (pozitsiya_material_id) REFERENCES pozitsiya_material(id);
+ALTER TABLE bolak ADD CONSTRAINT bolak_pozitsiya_fk
+  FOREIGN KEY (buyurtma_pozitsiya_id) REFERENCES buyurtma_pozitsiya(id);
+```
