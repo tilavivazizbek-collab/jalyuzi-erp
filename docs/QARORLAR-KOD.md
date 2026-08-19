@@ -27,6 +27,7 @@ ko'chiriladi. Tasdiqlanmagani `⏳` bilan belgilanadi.
 | P-16 | Transport aniq nisbat bo'yicha taqsimlanadi | ⏳ tasdiq kutilmoqda |
 | P-17 | Brak tannarx bo'luvchisiga kirmaydi | ⏳ tasdiq kutilmoqda |
 | P-18 | `band` tashqi kalitlari 4-bosqichda | ⏳ tasdiq kutilmoqda |
+| P-19 | Band qilishda faqat bitta bo'lak qulflanadi | ⏳ tasdiq kutilmoqda |
 
 ---
 
@@ -752,3 +753,50 @@ ALTER TABLE bolak ADD CONSTRAINT bolak_pozitsiya_fk
 ```
 
 docs/QARZLAR.md, T-04 sifatida yozib qo'yildi.
+
+---
+
+## P-19 · Band qilishda faqat BITTA bo'lak qulflanadi
+
+**Bosqich:** 3 · **Tegadi:** QISM 1 §7.2 · TZ 7.3
+
+### Qanday topilgan
+
+Birinchi yozilgan kodda nomzodlar `FOR UPDATE SKIP LOCKED` bilan
+o'qilardi — bir yo'la 20 tagacha bo'lak qulflanardi.
+
+Integratsiya testi buni ushladi: omborda **ikki** bo'lak bor, ikki usta
+bir vaqtda so'raydi. Kutilgan natija — ikkalasi ham oladi. Haqiqiy
+natija — birinchisi **ikkalasini ham qulflab qo'ydi**, ikkinchisiga
+«Materialga kutmoqda» chiqdi.
+
+QISM 1 §7.2 esa aynan buning teskarisini talab qiladi:
+
+> «`FOR UPDATE SKIP LOCKED` — ikkinchi usta **bloklanmaydi, keyingi mos
+>  bo'lakni oladi**.»
+
+### Qaror
+
+Tanlov ikki qadamga bo'lindi:
+
+1. **Nomzodlar QULFSIZ o'qiladi** — hech kim bloklanmaydi
+2. `lib/domain/kesish.ts` dagi algoritm eng mosini tanlaydi (§2.2 —
+   qoida bir joyda qoladi, SQL ga ko'chirilmaydi)
+3. **FAQAT tanlangan bitta bo'lak** qulflanadi (`FOR UPDATE SKIP LOCKED`)
+4. Qulflab bo'lmasa — o'sha bo'lak ro'yxatdan chiqariladi va **keyingisi**
+   tanlanadi
+
+### Nega SQL ga ko'chirilmadi
+
+Eng oson yechim `ORDER BY ... LIMIT 1 FOR UPDATE SKIP LOCKED` bo'lardi —
+bitta so'rovda tanlash va qulflash. Lekin u holda TZ 7.6 algoritmi
+(tartib, bag'rikenglik, eng kam chiqindi) SQL da takrorlanardi va
+`lib/domain/kesish.ts` bilan ikki nusxa bo'lib qolardi.
+
+QISM 1 §2.2 buni taqiqlaydi. Ikki qadamli yechim qoidani bir joyda
+saqlaydi va qulflashni ham minimal qiladi.
+
+### Dars
+
+Bu xatoni faqat **bir vaqtda ikki so'rov** yuboradigan test ko'rsatdi.
+Ketma-ket ishlaganda kod butunlay to'g'ri ishlardi.
