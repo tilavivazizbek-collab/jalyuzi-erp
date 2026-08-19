@@ -53,6 +53,14 @@ export const XATO_MATNI: Record<XatoKod, string> = {
   KIRIM_BOSH: "Kirim hujjatida bironta qator yo'q",
   KIRIM_SAQLANMADI: "Kirim hujjatini saqlab bo'lmadi",
   KIRIM_BOLAK_YETISHMAYDI: "Har rulon uchun eni va bo'yi kiritilishi kerak",
+  KIRIM_ALLAQACHON_STORNO: "Bu hujjat allaqachon storno qilingan",
+  KIRIM_TOPILMADI: "Kirim hujjati topilmadi",
+  HARAKAT_BRAK_EMAS: "Bu yozuv hisobdan chiqarish emas",
+  HARAKAT_TOPILMADI: "Ombor yozuvi topilmadi",
+  BOLAK_ALLAQACHON_CHIQARILGAN: "Bu bo'lak allaqachon hisobdan chiqarilgan",
+  BOLAK_TOPILMADI: "Bo'lak topilmadi",
+  CHIQARISH_SAQLANMADI: "Hisobdan chiqarib bo'lmadi",
+  CHIQARISH_SABAB_KERAK: "Sabab kiritilishi shart",
 };
 
 export const BIRLIK_MATNI = {

@@ -309,7 +309,7 @@ describe("TZ 7.8 — har bo'lak O'Z kirimini va tannarxini biladi", () => {
         {
           materialId: matoId,
           miqdorKirim: 1,
-          narxBirlik: '78000',
+          narxBirlik: '7020000',
           defektMiqdor: 0,
           defektTuri: null,
           bolaklar: [{ eniM: 3.0, boyiM: 30.0 }],
@@ -324,7 +324,7 @@ describe("TZ 7.8 — har bo'lak O'Z kirimini va tannarxini biladi", () => {
         {
           materialId: matoId,
           miqdorKirim: 1,
-          narxBirlik: '91000',
+          narxBirlik: '8190000',
           defektMiqdor: 0,
           defektTuri: null,
           bolaklar: [{ eniM: 3.0, boyiM: 30.0 }],
@@ -341,6 +341,7 @@ describe("TZ 7.8 — har bo'lak O'Z kirimini va tannarxini biladi", () => {
       return Number(q[0]?.tannarx_birlik_snapshot);
     };
 
+    // 78 000 so'm/kv.m × 90 kv.m = 7 020 000 so'm/rulon
     expect(await olish(birinchi.kirimId)).toBe(78_000);
     expect(await olish(ikkinchi.kirimId)).toBe(91_000);
   });

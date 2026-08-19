@@ -800,3 +800,61 @@ saqlaydi va qulflashni ham minimal qiladi.
 
 Bu xatoni faqat **bir vaqtda ikki so'rov** yuboradigan test ko'rsatdi.
 Ketma-ket ishlaganda kod butunlay to'g'ri ishlardi.
+
+---
+
+## P-20 — Bo'lak tannarxi qaysi birlikda saqlanadi
+
+**Fayl:** `lib/amal/kirim.ts` · **Jadval:** `bolak.tannarx_birlik_snapshot`
+**Manba:** LOYIHA.md 7.8 · 7.9 · AUDIT EC-OMB-06
+
+### Ziddiyat
+
+Model `bolak.tannarx_birlik_snapshot` ustunini «birlik tannarxi» deb
+ataydi, lekin **qaysi** birlik ekanini aytmaydi. Ikki xil o'qish mumkin:
+
+| O'qish | 3.0 × 30.0 rulon uchun qiymat |
+|---|---|
+| A — **kirim** birligi (1 rulon) | `7 020 000` |
+| B — **sarflash** birligi (1 kv.m) | `78 000` |
+
+Men avval A ni yozgan edim. AUDIT EC-OMB-06 esa aynan B ni ko'rsatadi:
+
+> «tannarx zanjiri buziladi — yangi ostatka noto'g'ri otadan meros oladi
+>  (kirim №44: **78 000/kv.m** vs №51: **91 000/kv.m**)»
+
+### Qaror
+
+**B — sarflash birligi.** Kirimda hisoblangan birlik tannarxi bo'lakka
+yozilishdan oldin sarflash birligiga o'giriladi:
+
+| Hisob turi | Bo'luvchi | Natija birligi |
+|---|---|---|
+| `RULON` | `eni_m × boyi_m` (bo'lak maydoni) | so'm / kv.m |
+| `CHIZIQLI` | `koeffitsient` (masalan 300 sm) | so'm / sm |
+| `DONA` | `koeffitsient` (masalan 50 dona) | so'm / dona |
+
+Ombor jurnalidagi summa ham shu qoidaga bo'ysunadi:
+`tannarx × kv.m` (rulon) yoki `tannarx × miqdor` (qolganlari).
+
+### Nega
+
+Bo'lak **qismlarga bo'linadi** — 90 kv.m dan 12 kv.m kesiladi, 78 kv.m
+ostatka qoladi. Tannarx rulon uchun saqlansa, ostatka «bir rulon 7 020 000»
+degan qiymatni meros qilib oladi va zanjir birinchi kesishdayoq buziladi.
+Sarflash birligida saqlansa — 78 000/kv.m ota ham, bola ham, nevara ham
+bir xil bo'ladi. Hisobdan chiqarish, storno va FIFO shu qiymatga tayanadi.
+
+### Bu xatoni nima ko'rsatdi
+
+`test/integratsiya/hisobdan.test.ts` — storno 7 020 000 kutdi,
+631 800 000 chiqdi (aynan 90 barobar ko'p). Ya'ni tannarx bir marta
+maydonga ko'paytirilgan, keyin yana bir marta. Faqat **haqiqiy raqamli**
+test buni topa oladi: turlar to'g'ri, tiplar to'g'ri, formula ham
+sintaktik to'g'ri edi.
+
+### LOYIHA.md da o'zgarishi kerak
+
+7.8 dagi jadvalga ustun izohi qo'shilsin:
+`tannarx_birlik_snapshot — NUMERIC(14,4), sarflash birligi uchun`.
+`(14,4)` — bo'lish qoldiqli bo'lgani uchun to'rt kasr saqlanadi.

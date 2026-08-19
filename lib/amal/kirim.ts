@@ -198,6 +198,20 @@ export async function kirimYarat(
         }
 
         for (const olcham of q.bolaklar) {
+          /**
+           * ⚠️ Bo'lak tannarxi SARFLASH BIRLIGIDA saqlanadi (kv.m uchun),
+           * kirim birligida (rulon uchun) emas.
+           *
+           * AUDIT EC-OMB-06 aynan shunday yozadi: «kirim №44: 78 000/kv.m
+           * vs №51: 91 000/kv.m». Kesimda ham kv.m bilan hisoblanadi.
+           *
+           * Har rulon O'Z maydoniga bo'linadi: bir xil narxdagi kichikroq
+           * rulonning kv.m tannarxi yuqoriroq — bu iqtisodiy jihatdan
+           * to'g'ri (QARORLAR-KOD P-20).
+           */
+          const maydon = olcham.eniM * olcham.boyiM;
+          const kvMTannarx = new Decimal(pulMatn(tannarx.birlikTannarx)).div(maydon);
+
           await bolakYoz(tx, {
             materialId: q.materialId,
             filialId: kirim.filialId,
@@ -206,10 +220,10 @@ export async function kirimYarat(
             boyiM: olcham.boyiM,
             miqdor: null,
             kirimQatorId: qatorId,
-            tannarx: pulMatn(tannarx.birlikTannarx),
+            tannarx: kvMTannarx.toFixed(4),
             valyuta: kirim.valyuta,
             xodimId,
-            kvM: olcham.eniM * olcham.boyiM,
+            kvM: maydon,
           });
           bolakSoni += 1;
         }
@@ -217,6 +231,13 @@ export async function kirimYarat(
         // DONA va CHIZIQLI — bo'lak yo'q, bitta yozuv bilan hisoblanadi (7.8)
         const koeff = new Decimal(material.koeffitsient);
         const sarflashMiqdori = koeff.times(tannarx.kirimMiqdor).toNumber();
+
+        /**
+         * Q-01 — koeffitsient «1 kirim birligida nechta sarflash birligi».
+         * Tannarx ham shu birlikka o'giriladi: 66 000 so'm/shtanga va
+         * 1 shtanga = 300 sm bo'lsa, 220 so'm/sm.
+         */
+        const sarflashTannarx = new Decimal(pulMatn(tannarx.birlikTannarx)).div(koeff);
 
         await bolakYoz(tx, {
           materialId: q.materialId,
@@ -226,7 +247,7 @@ export async function kirimYarat(
           boyiM: null,
           miqdor: sarflashMiqdori,
           kirimQatorId: qatorId,
-          tannarx: pulMatn(tannarx.birlikTannarx),
+          tannarx: sarflashTannarx.toFixed(4),
           valyuta: kirim.valyuta,
           xodimId,
           sm: material.sarflash_birligi === 'SM' ? sarflashMiqdori : null,
@@ -299,8 +320,10 @@ async function bolakYoz(tx: postgres.TransactionSql, b: BolakYozuvi): Promise<vo
   const bolakId = yaratilgan[0]?.id;
   if (bolakId === undefined) throw new BiznesXato('KIRIM_SAQLANMADI');
 
+  // Tannarx endi SARFLASH birligida (P-20), shuning uchun summa
+  // miqdorga ko'paytiriladi: rulonda kv.m, donada sarflash miqdori
   const summa = new Decimal(b.tannarx).times(
-    b.turi === 'RULON' ? 1 : (b.miqdor ?? 0),
+    b.turi === 'RULON' ? (b.kvM ?? 0) : (b.miqdor ?? 0),
   );
 
   await tx`
@@ -310,4 +333,154 @@ async function bolakYoz(tx: postgres.TransactionSql, b: BolakYozuvi): Promise<vo
     VALUES (${b.filialId}, ${bolakId}, 'KIRIM', ${b.kvM ?? null}, ${b.sm ?? null},
             ${b.dona ?? null}, ${summa.toFixed(2)}, 'kirim_qator',
             ${b.kirimQatorId}, ${b.xodimId})`;
+}
+
+// ─── 7.12 · Kirim hujjatini storno qilish ─────────────────────────────────
+
+export interface StornoNatijasi {
+  readonly kirimRaqam: string;
+  readonly qaytarilganBolak: number;
+  readonly jamiSumma: Som;
+  /** 2.5-invariant — qoldiq manfiyga tushgan materiallar */
+  readonly manfiyQoldiq: readonly string[];
+}
+
+/**
+ * TZ 7.12 — «Xato kiritilgan kirim hujjati storno qilinadi.»
+ *
+ * ⚠️ STORNO TO'LIQ BO'LADI — hujjatdagi barcha material qaytariladi,
+ *    o'sha rulonlardan ALLAQACHON KESILGAN bo'lsa ham.
+ *
+ * ⚠️ QOLDIQ MANFIYGA TUSHISHI MUMKIN va bu RUXSAT ETILGAN (2.5-invariant):
+ *    «storno qo'lda bajariladigan amal, avtomatik operatsiya emas. Manfiy
+ *     qoldiq qizil bilan belgilanadi va admin tuzatgunicha shunday turadi.»
+ *
+ * ⚠️ KESILGAN BUYURTMALARGA TEGILMAYDI — ular o'z tannarxi bilan qotib
+ *    qolgan (2.3-invariant). Storno o'tgan oyning foydasini o'zgartirmaydi.
+ *
+ * TZ 7.12 storno UCH JOYGA birdan tegishini talab qiladi:
+ *   1. Ombor — qoldiq qaytariladi          ✅ shu yerda
+ *   2. Yetkazib beruvchi qarzi — kamayadi   ⏳ 5-bosqich (QARZLAR T-05)
+ *   3. Kassa — balans avansga o'tadi        ⏳ 5-bosqich
+ */
+export async function kirimniStorno(
+  ulanish: postgres.Sql,
+  kirimId: number,
+  sabab: string,
+  xodimId: number,
+): Promise<StornoNatijasi> {
+  if (sabab.trim() === '') {
+    throw new BiznesXato('KIRIM_SAQLANMADI', 'storno sababi majburiy');
+  }
+
+  return ulanish.begin(async (tx) => {
+    const hujjatlar = await tx<
+      { id: number; raqam: string; holat: string; filial_id: number }[]
+    >`SELECT id, raqam, holat, filial_id FROM kirim WHERE id = ${kirimId} FOR UPDATE`;
+
+    const hujjat = hujjatlar[0];
+    if (hujjat === undefined) throw new BiznesXato('KIRIM_TOPILMADI', String(kirimId));
+    if (hujjat.holat === 'STORNO') {
+      throw new BiznesXato('KIRIM_ALLAQACHON_STORNO', hujjat.raqam);
+    }
+
+    const bolaklar = await tx<
+      {
+        id: number;
+        kod: string;
+        turi: string;
+        holat: string;
+        eni_m: string | null;
+        boyi_m: string | null;
+        miqdor: string | null;
+        tannarx_birlik_snapshot: string;
+        material_nomi: string;
+        sarflash_birligi: string;
+      }[]
+    >`
+      SELECT b.id, b.kod, b.turi, b.holat, b.eni_m, b.boyi_m, b.miqdor,
+             b.tannarx_birlik_snapshot, m.nom AS material_nomi, m.sarflash_birligi
+      FROM bolak b
+      JOIN kirim_qator kq ON kq.id = b.kirim_qator_id
+      JOIN material m ON m.id = b.material_id
+      WHERE kq.kirim_id = ${kirimId}
+      FOR UPDATE OF b`;
+
+    let jami = new Decimal(0);
+    const manfiyQoldiq = new Set<string>();
+
+    for (const b of bolaklar) {
+      const kvM =
+        b.turi === 'DONA' ? null : new Decimal(b.eni_m ?? 0).times(b.boyi_m ?? 0);
+      const summa =
+        b.turi === 'DONA'
+          ? new Decimal(b.tannarx_birlik_snapshot).times(b.miqdor ?? 0)
+          : new Decimal(b.tannarx_birlik_snapshot).times(kvM ?? 0);
+
+      jami = jami.plus(summa);
+
+      // 7.12 — bo'lak allaqachon kesilgan bo'lsa ham qaytariladi.
+      // Uning qoldig'i manfiyga tushadi va qizil bo'lib turadi (2.5).
+      if (b.holat !== 'BOSH') manfiyQoldiq.add(b.material_nomi);
+
+      const sm = b.turi === 'DONA' && b.sarflash_birligi === 'SM' ? b.miqdor : null;
+      const dona =
+        b.turi === 'DONA' && b.sarflash_birligi === 'DONA'
+          ? Math.round(Number(b.miqdor ?? 0))
+          : null;
+
+      await tx`
+        INSERT INTO ombor_harakat (filial_id, bolak_id, turi, miqdor_kv_m, miqdor_sm,
+                                   miqdor_dona, tannarx_summa, manba_turi, manba_id,
+                                   izoh, xodim_id)
+        VALUES (${hujjat.filial_id}, ${b.id}, 'STORNO',
+                ${kvM === null ? null : kvM.negated().toFixed(4)},
+                ${sm === null ? null : new Decimal(sm).negated().toFixed(2)},
+                ${dona === null ? null : -dona},
+                ${summa.negated().toFixed(2)}, 'kirim', ${kirimId},
+                ${`Kirim ${hujjat.raqam} storno qilindi`}, ${xodimId})`;
+    }
+
+    // Bandlar bo'shatiladi — bo'lak endi omborda yo'q
+    const bolakIdlar = bolaklar.map((b) => b.id);
+    if (bolakIdlar.length > 0) {
+      await tx`
+        UPDATE band SET holat = 'BOSHATILDI', boshatish_sabab = 'BEKOR',
+                        boshatish_izoh = 'Kirim hujjati storno qilindi',
+                        boshatildi = now(), ozgartirildi = now(), ozgartirdi_id = ${xodimId}
+        WHERE bolak_id = ANY(${bolakIdlar}) AND holat = 'FAOL'`;
+
+      await tx`
+        UPDATE bolak SET faol = false, ochirildi = now(),
+                         ozgartirildi = now(), ozgartirdi_id = ${xodimId}
+        WHERE id = ANY(${bolakIdlar})`;
+    }
+
+    await tx`
+      UPDATE kirim SET holat = 'STORNO', storno_sabab = ${sabab.trim()},
+                       ozgartirildi = now(), ozgartirdi_id = ${xodimId}
+      WHERE id = ${kirimId}`;
+
+    // TZ 7.12 — «Adminga xabar ketadi va audit jurnaliga yoziladi:
+    // hujjat raqami, summa, kim storno qildi, sabab.»
+    await tx`
+      INSERT INTO audit_jurnal (xodim_id, filial_id, amal, obyekt_turi, obyekt_id,
+                                eski_qiymat, yangi_qiymat, izoh)
+      VALUES (${xodimId}, ${hujjat.filial_id}, 'STORNO', 'kirim', ${kirimId},
+              ${tx.json({ holat: 'FAOL', raqam: hujjat.raqam })},
+              ${tx.json({
+                holat: 'STORNO',
+                bolak_soni: bolaklar.length,
+                summa: jami.toFixed(2),
+                manfiy_qoldiq: [...manfiyQoldiq],
+              })},
+              ${sabab.trim()})`;
+
+    return {
+      kirimRaqam: hujjat.raqam,
+      qaytarilganBolak: bolaklar.length,
+      jamiSumma: som(jami.toFixed(2)),
+      manfiyQoldiq: [...manfiyQoldiq],
+    };
+  });
 }
