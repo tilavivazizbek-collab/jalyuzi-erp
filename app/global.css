@@ -1,0 +1,16 @@
+@import 'tailwindcss';
+
+/* QISM 1 §19 — son formati `1 234 567.89`, sana `DD.MM.YYYY` */
+@theme {
+  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+/* Pul va o'lcham ustunlari tik turishi uchun */
+.raqam {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}

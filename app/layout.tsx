@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
+import './global.css';
 
 export const metadata: Metadata = {
   title: 'Jalyuzi ERP',
@@ -10,15 +11,7 @@ export default function AsosiyQatlam({ children }: { children: ReactNode }) {
   // QISM 1 §19 — interfeys tili o'zbek (lotin)
   return (
     <html lang="uz">
-      <body
-        style={{
-          fontFamily: 'system-ui, -apple-system, Segoe UI, sans-serif',
-          margin: 0,
-          padding: '2rem',
-        }}
-      >
-        {children}
-      </body>
+      <body className="bg-white text-slate-900 antialiased">{children}</body>
     </html>
   );
 }

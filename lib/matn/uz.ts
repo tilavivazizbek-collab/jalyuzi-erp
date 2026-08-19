@@ -38,6 +38,7 @@ export const XATO_MATNI: Record<XatoKod, string> = {
   KOEFFITSIENT_NOTOGRI: "Konversiya koeffitsienti noto'g'ri",
   BIRLIK_OZGARMAYDI: "Qoldiq bor ekan, birlikni o'zgartirib bo'lmaydi",
   KONSTRUKTOR_XATO: "Mahsulot turi sozlamasida xato bor",
+  TELEFON_NOTOGRI: "Telefon raqami noto'g'ri",
 };
 
 export const BIRLIK_MATNI = {

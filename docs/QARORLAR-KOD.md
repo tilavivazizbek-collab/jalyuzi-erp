@@ -22,6 +22,7 @@ ko'chiriladi. Tasdiqlanmagani `⏳` bilan belgilanadi.
 | P-11 | Sessiya muddati soatiga bir marta suriladi | ⏳ tasdiq kutilmoqda |
 | P-12 | Vaqtincha boshqariladigan Postgres (Neon), faqat `postgres://` orqali | ⏳ tasdiq kutilmoqda |
 | P-13 | `BIGINT` ulanish darajasida songa o'giriladi | ⏳ tasdiq kutilmoqda |
+| P-14 | Cookie faqat server amalida yoziladi | ⏳ tasdiq kutilmoqda |
 
 ---
 
@@ -497,3 +498,50 @@ o'giradi. Bu qaror faqat `int8` ga tegishli.
 
 Sof mantiq 100% qoplangan bo'lsa ham, **baza bilan kod chegarasi alohida
 sinalishi kerak**. Shu sabab `test/amal/` integratsiya testlari qo'shildi.
+
+---
+
+## P-14 · Cookie faqat server amalida yoziladi
+
+**Bosqich:** 1 · **Tegadi:** QISM 1 §8
+
+### Qanday topilgan
+
+Sessiyasi tugagan foydalanuvchi kirish ekraniga emas, **500 xato sahifasiga**
+tushdi:
+
+```
+Error: Cookies can only be modified in a Server Action or Route Handler.
+  at sessiyaCookieOchir (lib/kirish/cookie.ts)
+  at async joriyFoydalanuvchi (lib/kirish/joriy.ts)
+```
+
+`joriyFoydalanuvchi()` sahifa chizilayotganda ikki joyda cookie yozmoqchi
+bo'lardi: yaroqsiz sessiyani tozalash va muddatni surish. Next.js ikkalasini
+ham taqiqlaydi.
+
+Bu xatoni faqat brauzer darajasidagi sinov ko'rsatdi — baza testlari 21/21
+o'tgan edi, chunki ular Next.js ni umuman ishga solmaydi.
+
+### Qaror
+
+**Cookie faqat `'use server'` amalida yoziladi** — ya'ni kirish va chiqishda.
+Sahifa chizilayotganda faqat o'qiladi.
+
+Buning uchun cookie ning vazifasi qisqartirildi: u endi faqat **tokenni
+tashiydi**, muddatni emas.
+
+| Nima | Qayerda |
+|---|---|
+| Haqiqiy muddat, uzayish, bekor qilish | **bazada** (`sessiya` jadvali) |
+| Token | cookie da, uzoq muddat bilan |
+
+§8 buzilmaydi:
+· «har so'rovda uzayadi» — bazada uzayadi (P-11)
+· «darhol bekor qilish» — baza yozuvi bekor qilinadi, cookie ahamiyatsiz
+· Yaroqsiz cookie zararsiz: haqiqat bazada, token baribir ishlamaydi
+
+### Dars
+
+Baza testlari va sof mantiq testlari yetarli emas — freymvork chegarasi
+alohida sinaladi. Shu sabab `npm run sinov:brauzer` qo'shildi.
