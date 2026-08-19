@@ -7,7 +7,6 @@
  * aks holda har rol uchun alohida so'rov ketardi.
  */
 
-import { sql } from 'drizzle-orm';
 import type postgres from 'postgres';
 import { ruxsatKodmi, type RuxsatKod } from '@/lib/ruxsat/kodlar';
 import type { Foydalanuvchi, Qamrov, Rol, TizimliRol } from '@/lib/ruxsat/tekshir';
@@ -63,17 +62,6 @@ function qatorlardanYig(qatorlar: readonly Qator[]): Foydalanuvchi | null {
   };
 }
 
-const SOROV = sql`
-  SELECT x.id AS xodim_id, x.filial_id, f.bosh,
-         r.id AS rol_id, r.kod AS rol_kod, r.nom AS rol_nom,
-         rr.ruxsat_kod, rr.qamrov
-  FROM xodim x
-  JOIN filial f ON f.id = x.filial_id
-  LEFT JOIN xodim_rol xr ON xr.xodim_id = x.id
-  LEFT JOIN rol r ON r.id = xr.rol_id AND r.faol = true
-  LEFT JOIN rol_ruxsat rr ON rr.rol_id = r.id
-`;
-
 export async function foydalanuvchiniOl(
   ulanish: postgres.Sql,
   xodimId: number,
@@ -91,4 +79,3 @@ export async function foydalanuvchiniOl(
   return qatorlardanYig(qatorlar);
 }
 
-export { SOROV as FOYDALANUVCHI_SOROVI, qatorlardanYig };
