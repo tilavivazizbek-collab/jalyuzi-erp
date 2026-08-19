@@ -50,6 +50,9 @@ export const XATO_MATNI: Record<XatoKod, string> = {
   YETKAZIB_TOPILMADI: "Yetkazib beruvchi topilmadi",
   TANNARX_NOTOGRI: "Tannarx hisobida noto'g'ri qiymat",
   KESIM_NOTOGRI: "Kesim ma'lumoti noto'g'ri",
+  KIRIM_BOSH: "Kirim hujjatida bironta qator yo'q",
+  KIRIM_SAQLANMADI: "Kirim hujjatini saqlab bo'lmadi",
+  KIRIM_BOLAK_YETISHMAYDI: "Har rulon uchun eni va bo'yi kiritilishi kerak",
 };
 
 export const BIRLIK_MATNI = {

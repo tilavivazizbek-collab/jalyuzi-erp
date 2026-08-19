@@ -12,6 +12,7 @@ Shuning uchun bu ro'yxat qisqa bo'lishi va bo'shab borishi kerak.
 | T-02 | `docker compose up` tekshiruvi bajarilmagan | Docker o'rnatilganda | Past |
 | T-03 | Qarorlar hujjatga ko'chirilmagan | Egasi tasdiqlagach | O'rta |
 | T-04 | `band` va `bolak` ning buyurtma tashqi kalitlari qo'yilmagan | 4-bosqich | Past |
+| T-05 | Kirimda yetkazib beruvchi qarzi yozilmaydi | 5-bosqich | O'rta |
 
 ---
 
@@ -141,3 +142,26 @@ ALTER TABLE band ADD CONSTRAINT band_pozitsiya_material_fk
 ALTER TABLE bolak ADD CONSTRAINT bolak_pozitsiya_fk
   FOREIGN KEY (buyurtma_pozitsiya_id) REFERENCES buyurtma_pozitsiya(id);
 ```
+
+---
+
+## T-05 · Kirimda yetkazib beruvchi qarzi yozilmaydi
+
+**Bosqich:** 3 · **Tegadi:** TZ 7.9, 9.2 · QISM 1 §7.1
+
+QISM 1 §7.1 kirim hujjatini shunday ta'riflaydi:
+
+> «Kirim hujjati | bo'laklar yaratiladi + transport taqsimlanadi +
+>  **qarz yoziladi** | 7.9, 9.2»
+
+Hozir birinchi ikkitasi bajarilyapti. Uchinchisi —
+`yetkazib_beruvchi_harakat` jadvalini talab qiladi, u esa 5-bosqichda
+(xodimlar va kassa) yaratiladi.
+
+**Xavf o'rta.** Ombor hisobi to'g'ri, lekin yetkazib beruvchi balansi
+hozircha yuritilmaydi. Bu 5-bosqichgacha hech qanday hisobotga
+ta'sir qilmaydi, chunki qarz ekranlari ham o'sha yerda quriladi.
+
+**5-bosqichda bajariladi:** `kirimYarat` tranzaksiyasiga qarz yozuvi
+qo'shiladi — o'sha bitta tranzaksiyada, aks holda 2.1-invariant
+buziladi.
