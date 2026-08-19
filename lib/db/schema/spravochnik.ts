@@ -310,10 +310,34 @@ export const yetkazibBeruvchi = pgTable(
   {
     id: id(),
     nom: text('nom').notNull(),
+    /** TZ 9.3 — «nima yetkazadi» */
+    nimaYetkazadi: text('nima_yetkazadi'),
+
+    // ── Aloqa (9.3) ──
+    kontaktShaxs: text('kontakt_shaxs'),
     telefon: text('telefon'),
+    qoshimchaTelefon: text('qoshimcha_telefon'),
     manzil: text('manzil'),
-    /** Bo'sh → sozlamadagi standart (9.3) */
+
+    // ── To'lov rekvizitlari (9.3) — «to'lov oynasida avtomatik chiqadi» ──
+    bankNomi: text('bank_nomi'),
+    hisobRaqam: text('hisob_raqam'),
+    inn: text('inn'),
+    mfo: text('mfo'),
+
+    /** Bo'sh → sozlamadagi standart (9.3). Kirim hujjatiga avtomatik qo'yiladi */
     tolovMuddatiKun: integer('tolov_muddati_kun'),
+
+    /**
+     * ⚠️ Bu QARZ valyutasi EMAS.
+     *
+     * TZ 9.2: «So'm va dollar ALOHIDA turadi... Bitta yetkazib beruvchida
+     * IKKALA valyutada qarz bo'lishi mumkin.» Qarz `yetkazib_beruvchi_harakat`
+     * jadvalida, har yozuv o'z valyutasi bilan.
+     *
+     * Bu maydon — yangi kirim hujjatiga qo'yiladigan STANDART valyuta,
+     * shunchaki qulaylik uchun.
+     */
     valyuta: text('valyuta').notNull().default('SOM'),
     eslatma: text('eslatma'),
     ...ochirilmaydi,

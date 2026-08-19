@@ -46,6 +46,8 @@ export const XATO_MATNI: Record<XatoKod, string> = {
   MIJOZ_DUBLIKAT: "Bunday mijoz allaqachon bor",
   MAHSULOT_SAQLANMADI: "Mahsulot turini saqlab bo'lmadi",
   MAHSULOT_TOPILMADI: "Mahsulot turi topilmadi",
+  YETKAZIB_SAQLANMADI: "Yetkazib beruvchini saqlab bo'lmadi",
+  YETKAZIB_TOPILMADI: "Yetkazib beruvchi topilmadi",
 };
 
 export const BIRLIK_MATNI = {

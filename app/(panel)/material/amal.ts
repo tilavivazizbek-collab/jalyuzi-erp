@@ -14,30 +14,28 @@ import { materialTahrirla, materialYarat } from '@/lib/amal/material';
 import { ruxsatTalab } from '@/lib/kirish/joriy';
 import { materialSxema } from '@/lib/sxema/material';
 import { biznesXatosimi } from '@/lib/xato';
-import { matnMaydon, xatolarniYig, type FormaHolati } from './holat';
+import { maydonlarniOqi } from '../forma-yordamchi';
+import { xatolarniYig, type FormaHolati } from './holat';
 
+const MAYDONLAR = [
+  'nom',
+  'hisobTuri',
+  'kirimBirligi',
+  'sarflashBirligi',
+  'koeffitsient',
+  'sotuvNarx',
+  'sotuvValyuta',
+  'minUstamaFoiz',
+  'yaroqsizChegaraM',
+  'kamIshlatiladiganM',
+  'kamQoldiqChegaraM',
+  'standartRulonEniM',
+  'almashtirishGuruhId',
+  'yaxlitlashQadami',
+];
 
-function formadanOqi(forma: FormData): Record<string, string> {
-  const maydonlar = [
-    'nom',
-    'hisobTuri',
-    'kirimBirligi',
-    'sarflashBirligi',
-    'koeffitsient',
-    'sotuvNarx',
-    'sotuvValyuta',
-    'minUstamaFoiz',
-    'yaroqsizChegaraM',
-    'kamIshlatiladiganM',
-    'kamQoldiqChegaraM',
-    'standartRulonEniM',
-    'almashtirishGuruhId',
-    'yaxlitlashQadami',
-  ];
-  const natija: Record<string, string> = {};
-  for (const m of maydonlar) natija[m] = matnMaydon(forma, m);
-  return natija;
-}
+const formadanOqi = (forma: FormData): Record<string, string> =>
+  maydonlarniOqi(forma, MAYDONLAR);
 
 export async function materialYaratAmali(
   _oldingi: FormaHolati,

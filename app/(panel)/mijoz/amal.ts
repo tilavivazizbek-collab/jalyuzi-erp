@@ -12,7 +12,8 @@ import { ruxsatTalab } from '@/lib/kirish/joriy';
 import { mijozSxema } from '@/lib/sxema/mijoz';
 import { telefonKorsat } from '@/lib/domain/telefon';
 import { biznesXatosimi } from '@/lib/xato';
-import { matnMaydon, xatolarniYig, type MijozHolati } from './holat';
+import { maydonlarniOqi } from '../forma-yordamchi';
+import { xatolarniYig, type MijozHolati } from './holat';
 
 const MAYDONLAR = [
   'ism',
@@ -33,11 +34,8 @@ const MAYDONLAR = [
   'ndsStavka',
 ];
 
-function formadanOqi(forma: FormData): Record<string, string> {
-  const natija: Record<string, string> = {};
-  for (const m of MAYDONLAR) natija[m] = matnMaydon(forma, m);
-  return natija;
-}
+const formadanOqi = (forma: FormData): Record<string, string> =>
+  maydonlarniOqi(forma, MAYDONLAR);
 
 export async function mijozYaratAmali(
   _oldingi: MijozHolati,

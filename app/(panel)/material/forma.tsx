@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from 'react';
 import Link from 'next/link';
+import { Maydon, kirishUslubi } from '../maydon';
 import { BOSH_HOLAT, type FormaHolati } from './holat';
 import {
   HISOB_TURI_NOMI,
@@ -51,35 +52,6 @@ export const BOSH_QIYMATLAR: MaterialQiymatlari = {
   yaxlitlashQadami: '',
 };
 
-const kirish =
-  'w-full rounded-lg border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-slate-900/10';
-
-function Maydon({
-  nom,
-  yorliq,
-  izoh,
-  xato,
-  children,
-}: {
-  nom: string;
-  yorliq: string;
-  izoh?: string;
-  xato?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className="flex flex-col gap-1" htmlFor={nom}>
-      <span className="text-sm font-medium text-slate-700">{yorliq}</span>
-      {children}
-      {xato !== undefined ? (
-        <span className="text-xs text-red-700">{xato}</span>
-      ) : izoh !== undefined ? (
-        <span className="text-xs text-slate-500">{izoh}</span>
-      ) : null}
-    </label>
-  );
-}
-
 export function MaterialFormasi({
   amal,
   qiymatlar,
@@ -98,8 +70,7 @@ export function MaterialFormasi({
   );
 
   const x = (nom: string): string | undefined => holat.maydonXatolari[nom];
-  const chegara = (nom: string): string =>
-    `${kirish} ${x(nom) !== undefined ? 'border-red-400' : 'border-slate-300'}`;
+  const chegara = (nom: string): string => kirishUslubi(x(nom) !== undefined);
 
   return (
     <form action={yubor} className="flex flex-col gap-6">

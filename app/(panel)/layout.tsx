@@ -13,6 +13,7 @@ const BANDLAR: readonly (MenyuBandi & { kod: RuxsatKod | null })[] = [
   { yol: '/material', nom: 'Materiallar', kod: 'material.kor' },
   { yol: '/mahsulot', nom: 'Mahsulot turlari', kod: 'mahsulot.kor' },
   { yol: '/mijoz', nom: 'Mijozlar', kod: 'mijoz.kor' },
+  { yol: '/yetkazib', nom: 'Yetkazib beruvchilar', kod: 'yetkazib.kor' },
 ];
 
 /**

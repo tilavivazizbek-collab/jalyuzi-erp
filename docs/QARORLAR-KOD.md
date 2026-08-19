@@ -23,6 +23,7 @@ ko'chiriladi. Tasdiqlanmagani `⏳` bilan belgilanadi.
 | P-12 | Vaqtincha boshqariladigan Postgres (Neon), faqat `postgres://` orqali | ⏳ tasdiq kutilmoqda |
 | P-13 | `BIGINT` ulanish darajasida songa o'giriladi | ⏳ tasdiq kutilmoqda |
 | P-14 | Cookie faqat server amalida yoziladi | ⏳ tasdiq kutilmoqda |
+| P-15 | Yetkazib beruvchiga TZ 9.3 maydonlari qo'shildi | ⏳ tasdiq kutilmoqda |
 
 ---
 
@@ -545,3 +546,49 @@ tashiydi**, muddatni emas.
 
 Baza testlari va sof mantiq testlari yetarli emas — freymvork chegarasi
 alohida sinaladi. Shu sabab `npm run sinov:brauzer` qo'shildi.
+
+---
+
+## P-15 · Yetkazib beruvchiga TZ 9.3 maydonlari qo'shildi
+
+**Bosqich:** 2 · **Tegadi:** QISM 3 §2.9 · TZ 9.2, 9.3
+
+### Nomuvofiqlik
+
+Ma'lumotlar modeli (§2.9) yetti maydon beradi: nom, telefon, manzil,
+to'lov muddati, valyuta, eslatma.
+
+TZ 9.3 esa quyidagilarni talab qiladi:
+
+| Guruh | Maydonlar |
+|---|---|
+| Asosiy | nomi, **nima yetkazadi**, holati, izoh |
+| Aloqa | **kontakt shaxs**, telefon, **qo'shimcha telefon**, manzil |
+| To'lov rekvizitlari | **bank nomi, hisob raqami, INN/STIR, MFO** |
+| To'lov shartlari | standart to'lov muddati |
+
+Rekvizitlar haqida 9.3 aniq yozgan: «**To'lov oynasida avtomatik chiqadi.**»
+Ular saqlanmasa to'lov oynasi (9.5) ishlamaydi.
+
+### Qaror
+
+Yetti maydon qo'shildi: `nima_yetkazadi`, `kontakt_shaxs`,
+`qoshimcha_telefon`, `bank_nomi`, `hisob_raqam`, `inn`, `mfo`.
+
+### Yana bir aniqlik: `valyuta` ustuni QARZ valyutasi EMAS
+
+TZ 9.2: «So'm va dollar **alohida turadi**, hech qachon bitta summaga
+qo'shilmaydi. Bitta yetkazib beruvchida **ikkala valyutada** qarz bo'lishi
+mumkin.»
+
+Ya'ni qarz valyutasi har HARAKAT yozuvida, yetkazib beruvchida emas.
+`yetkazib_beruvchi.valyuta` — bu faqat yangi kirim hujjatiga qo'yiladigan
+standart qiymat.
+
+Buni sxemaga izoh qilib yozib qo'yildi va ekranda ham ko'rsatildi:
+o'qigan odam qarzni bitta valyutada deb o'ylab qolmasin. Aks holda
+5-bosqichda balans noto'g'ri hisoblanardi.
+
+### Hujjatga o'zgartirish
+
+QISM 3 §2.9 ga yetti ustun qo'shiladi va `valyuta` ustuniga izoh yoziladi.
