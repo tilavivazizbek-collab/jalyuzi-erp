@@ -4,6 +4,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   birlikTannarxi,
+  bolakQiymati,
   fifoYech,
   qatorQiymati,
   ustamaniTekshir,
@@ -221,5 +222,67 @@ describe('7.9 — ustama chegaradan past bo\'lsa ogohlantiradi', () => {
 describe('qator qiymati', () => {
   it('narx × miqdor — defekt ham sotib olingan', () => {
     expect(pulMatn(qatorQiymati(qator(1, 10, '66000', 2)))).toBe('660000.00');
+  });
+});
+
+// --- 7.10 - Bolakning ombordagi qiymati ---
+
+describe("TZ 7.10 - bo'lak qiymati", () => {
+  it("RULON - tannarx kv.m uchun, maydonga ko'paytiriladi (P-20)", () => {
+    // AUDIT EC-OMB-06: 78 000/kv.m x (3.00 x 30.00) = 7 020 000
+    const q = bolakQiymati({
+      turi: 'RULON',
+      eniM: '3.00',
+      boyiM: '30.00',
+      miqdor: null,
+      tannarxBirlik: som('78000'),
+    });
+    expect(pulMatn(q)).toBe('7020000.00');
+  });
+
+  it('OSTATKA ham RULON kabi hisoblanadi - tannarx otadan meros', () => {
+    const q = bolakQiymati({
+      turi: 'OSTATKA',
+      eniM: '1.20',
+      boyiM: '2.50',
+      miqdor: null,
+      tannarxBirlik: som('78000'),
+    });
+    // 1.20 x 2.50 = 3 kv.m
+    expect(pulMatn(q)).toBe('234000.00');
+  });
+
+  it("DONA - tannarx dona uchun, miqdorga ko'paytiriladi", () => {
+    const q = bolakQiymati({
+      turi: 'DONA',
+      eniM: null,
+      boyiM: null,
+      miqdor: '50',
+      tannarxBirlik: som('5000'),
+    });
+    expect(pulMatn(q)).toBe('250000.00');
+  });
+
+  it("o'lcham yo'q bo'lsa nol beradi - xato tashlamaydi", () => {
+    const q = bolakQiymati({
+      turi: 'RULON',
+      eniM: null,
+      boyiM: null,
+      miqdor: null,
+      tannarxBirlik: som('78000'),
+    });
+    expect(pulMatn(q)).toBe('0.00');
+  });
+
+  it("Q-05 - kv.m KIRITILMAYDI, eni x bo'yi dan chiqadi", () => {
+    // Bir xil maydon, boshqa olcham - qiymat bir xil
+    const a = bolakQiymati({
+      turi: 'RULON', eniM: 2, boyiM: 45, miqdor: null, tannarxBirlik: som('1000'),
+    });
+    const b = bolakQiymati({
+      turi: 'RULON', eniM: 3, boyiM: 30, miqdor: null, tannarxBirlik: som('1000'),
+    });
+    expect(pulMatn(a)).toBe(pulMatn(b));
+    expect(pulMatn(a)).toBe('90000.00');
   });
 });

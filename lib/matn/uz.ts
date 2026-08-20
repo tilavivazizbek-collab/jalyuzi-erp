@@ -61,6 +61,12 @@ export const XATO_MATNI: Record<XatoKod, string> = {
   BOLAK_TOPILMADI: "Bo'lak topilmadi",
   CHIQARISH_SAQLANMADI: "Hisobdan chiqarib bo'lmadi",
   CHIQARISH_SABAB_KERAK: "Sabab kiritilishi shart",
+  CHIQARISH_ALLAQACHON_BEKOR: "Bu yozuv allaqachon bekor qilingan",
+  INV_SABAB_KERAK: "Farq chiqdi — sababni tanlang",
+  INV_TOPILMADI: "Inventarizatsiya topilmadi",
+  INV_YAKUNLANGAN: "Bu inventarizatsiya allaqachon yakunlangan",
+  INV_BOSH: "Sanash varaqasida bironta qator yo'q",
+  BOSHLANGICH_TAKROR: "Bu material uchun boshlang'ich qoldiq allaqachon kiritilgan",
 };
 
 export const BIRLIK_MATNI = {

@@ -228,3 +228,34 @@ export function ustamaniTekshir(
 
   return { ustamaFoiz, chegara: chegaraFoiz, pastmi: ustamaFoiz < chegaraFoiz };
 }
+
+// ─── 7.10 · Bo'lakning ombordagi qiymati ──────────────────────────────────
+
+export interface BolakOlchovi {
+  /** `RULON` · `OSTATKA` · `DONA` */
+  readonly turi: string;
+  readonly eniM: string | number | null;
+  readonly boyiM: string | number | null;
+  readonly miqdor: string | number | null;
+  /** P-20 — SARFLASH birligi uchun tannarx (so'm/kv.m, so'm/sm, so'm/dona) */
+  readonly tannarxBirlik: Som;
+}
+
+/**
+ * TZ 7.10 — bo'lak hisobdan chiqarilsa qancha zarar bo'ladi.
+ *
+ * Shu bitta funksiya uch joyda ishlatiladi: hisobdan chiqarish
+ * tranzaksiyasi, storno va ekrandagi ogohlantirish (§2.2). SQL da
+ * `CASE ... END` bo'lib takrorlanmaydi — aks holda P-20 kabi birlik
+ * xatosi bir joyda tuzalib, ikkinchisida qolib ketardi.
+ *
+ * ⚠️ Kv.m KIRITILMAYDI — `eni × bo'yi` dan hisoblanadi (Q-05).
+ */
+export function bolakQiymati(b: BolakOlchovi): Som {
+  if (b.turi === 'DONA') {
+    return kopaytir(b.tannarxBirlik, b.miqdor ?? 0);
+  }
+  // RULON va OSTATKA — tannarx 1 kv.m uchun
+  const kvM = new Decimal(b.eniM ?? 0).times(b.boyiM ?? 0);
+  return kopaytir(b.tannarxBirlik, kvM.toString());
+}

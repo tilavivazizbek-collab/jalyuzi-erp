@@ -165,3 +165,76 @@ ta'sir qilmaydi, chunki qarz ekranlari ham o'sha yerda quriladi.
 **5-bosqichda bajariladi:** `kirimYarat` tranzaksiyasiga qarz yozuvi
 qo'shiladi — o'sha bitta tranzaksiyada, aks holda 2.1-invariant
 buziladi.
+
+---
+
+## T-06 · Baza testlari bir martalik edi — YOPILDI
+
+**Sana:** 2026-08-20 · **Bosqich:** 3 · **Holat:** ✅ yopildi
+
+### Nima bo'ldi
+
+Tarmoq uzilgan kunda baza testlari umuman ishga tushmadi
+(`CONNECT_TIMEOUT`, `ECONNRESET`, `ENOTFOUND`). Tarmoq tiklangach to'liq
+to'plam yurgizilganda **ikki xil** muammo chiqdi — ikkalasi ham testning
+o'zida, kodda emas:
+
+| Test | Muammo | Yechim |
+|---|---|---|
+| `himoya.test.ts` · P-07 | 9600/9601 qat'iy id lar tozalanmasdi → ikkinchi yurishda `duplicate key` | Test o'zidan oldin tozalaydi (halqa uchun kechiktirilgan cheklovlar bilan) |
+| `himoya.test.ts` · §13 | 11 ta jadval nomi QO'LDA sanalgan edi, 2 va 3-bosqich 19 ta qo'shdi | Ro'yxat `lib/db/schema/index.ts` dan olinadi — endi eskirmaydi |
+| `spravochnik-amal.test.ts` | Mijoz ismi va telefoni qat'iy edi → ikkinchi yurishda birinchi test DUBLIKAT olardi va keyingi 4 tasi qulardi | Har yurishda yangi ism/telefon |
+
+### Dars
+
+**Baza testi bir marta emas, HAR SAFAR o'tishi kerak.** Qat'iy id yoki
+qat'iy nom ishlatgan test birinchi yurishdan keyin o'zini o'zi buzadi va
+buni «kod buzildi» deb o'qish oson.
+
+Endi qoida: baza testida ishlatilgan har qanday noyob qiymat yo har
+yurishda yangi bo'ladi, yo test o'zidan oldin tozalaydi.
+
+### Yon ta'sir
+
+`vitest.baza.config.ts` da limit 30 s dan **120 s** ga ko'tarildi — baza
+10-bosqichgacha masofada turadi va kechikish sakraganda to'g'ri kod
+«yiqilgan» bo'lib ko'rinardi.
+
+---
+
+## T-07 · Inventarizatsiya farqlari hisoboti
+
+**Sana:** 2026-08-20 · **Bosqich:** 8 (hisobotlar) · **Manba:** TZ 15.1
+
+### Nima yetishmaydi
+
+15.1 davr va omborchi kesimidagi hisobotni talab qiladi:
+
+```
+Omborchi   O'tkazilgan   Farq bo'lgan   Jami farq (tannarx)
+Anvar               12              7        −1 840 000
+```
+
+Hujjat uni shunday izohlaydi:
+
+> «Ombor uchta yo'l bilan kamayishi mumkin... Uchalasi ham omborchi
+>  qo'lida va admin tasdig'isiz. Shuning uchun bu hisobot **majburiy** —
+>  u yagona nazorat vositasi.»
+
+### Hozir nima bor
+
+`/ombor/inventarizatsiya` ro'yxati har varaqa uchun **kim**, **nechta
+qator**, **nechta farq** va **jami farq** ni ko'rsatadi. Ya'ni nazorat
+ma'lumoti bor, lekin omborchi kesimida **jamlanmagan** va davr bo'yicha
+filtrlanmaydi.
+
+### Nega 8-bosqichga qoldirildi
+
+Bu hisobot foyda-zarar (11.4.1) bilan bir xil manbadan oziqlanadi va
+xarajat moddasi bo'lib ham chiqadi. Ikkalasini bir vaqtda yozish
+mantiqiy: aks holda bir formula ikki joyda paydo bo'ladi (§2.2).
+
+### Yopilish sharti
+
+11-bo'lim hisobotlari yozilganda `Ombor braki` va `Inventarizatsiya
+farqi` moddalari birga chiqadi va omborchi kesimi shu yerdan tayyorlanadi.

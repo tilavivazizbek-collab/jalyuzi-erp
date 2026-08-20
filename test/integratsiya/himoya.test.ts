@@ -8,6 +8,8 @@
  * yozilsa ham ular kuchda qoladi.
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { getTableName, is, Table } from 'drizzle-orm';
+import * as sxema from '@/lib/db/schema';
 import type { Ulanish } from '@/lib/db/ulanish';
 import { sinovUlanishi } from './yordamchi';
 
@@ -123,6 +125,21 @@ describe('QISM 1 §6.3 — ON DELETE CASCADE taqiqlanadi', () => {
 
 describe('P-07 — halqali tashqi kalitlar DEFERRABLE', () => {
   it("filial va xodim bir-birisiz mavjud bo'la olmaydi, bitta tranzaksiyada yoziladi", async () => {
+    // ⚠️ Test QAT'IY id lar bilan ishlaydi (9600/9601) — halqani ko'rsatish
+    //    uchun ikkalasi bir-biriga havola qilishi shart. Shuning uchun u
+    //    o'zidan keyin tozalab ketmasa IKKINCHI yurishda «duplicate key»
+    //    beradi: kod emas, testning o'zi buziladi.
+    //    Tozalash ham HALQA ichida: filial xodimga, xodim filialga havola
+    //    qiladi. Shuning uchun u ham bitta tranzaksiyada, kechiktirilgan
+    //    cheklovlar bilan bajariladi — aynan P-07 isbotlayotgan narsa.
+    await sql.begin(async (tx) => {
+      await tx`SET CONSTRAINTS ALL DEFERRED`;
+      await tx`DELETE FROM xodim_rol WHERE xodim_id = 9601`;
+      await tx`DELETE FROM sessiya WHERE xodim_id = 9601`;
+      await tx`DELETE FROM xodim WHERE id = 9601`;
+      await tx`DELETE FROM filial WHERE id = 9600`;
+    });
+
     await sql.begin(async (tx) => {
       await tx`SET CONSTRAINTS ALL DEFERRED`;
       await tx`
@@ -165,23 +182,44 @@ describe('P-05 · TZ 10.3 — xodimda bir nechta rol', () => {
   });
 });
 
-describe('QISM 3 §13 — 1-bosqich jadvallari', () => {
-  it('11 ta asos va tizim jadvali bor', async () => {
-    const q = await sql<{ table_name: string }[]>`
+describe("QISM 3 §13 — jadvallar ro'yxati", () => {
+  /**
+   * ⚠️ Ro'yxat QO'LDA yozilmaydi — `lib/db/schema/index.ts` dan olinadi.
+   *
+   *    Avval bu yerda 11 ta jadval nomi qo'lda sanab chiqilgan edi.
+   *    2-bosqich 9 ta, 3-bosqich 10 ta jadval qo'shdi va test o'zi
+   *    eskirib qoldi: u endi migratsiyani emas, o'zining eskirganini
+   *    ko'rsatardi. Endi u ikki tomonni solishtiradi va HAR IKKALASI
+   *    ham xato bo'lishi mumkin:
+   *      · sxemada bor, bazada yo'q  → migratsiya yurgizilmagan
+   *      · bazada bor, sxemada yo'q  → qo'lda ALTER TABLE qilingan (§6.8)
+   */
+  it('bazadagi jadvallar sxema bilan aynan bir xil', async () => {
+    const bazada = await sql<{ table_name: string }[]>`
       SELECT table_name FROM information_schema.tables
       WHERE table_schema = 'public' ORDER BY table_name`;
-    expect(q.map((r) => r.table_name)).toEqual([
-      'amal_kaliti',
-      'audit_jurnal',
-      'filial',
-      'kurs_tarix',
-      'rol',
-      'rol_ruxsat',
-      'ruxsat',
-      'sessiya',
-      'sozlama',
-      'xodim',
-      'xodim_rol',
-    ]);
+
+    const jadvalNomi = (x: unknown): string | null =>
+      is(x, Table) ? getTableName(x) : null;
+
+    const sxemada = Object.values(sxema)
+      .map((x: unknown) => jadvalNomi(x))
+      .filter((n): n is string => n !== null);
+
+    // Drizzle o'z migratsiya jurnalini shu sxemada saqlaydi
+    const jurnal = ['__drizzle_migrations'];
+
+    const b = bazada.map((r) => r.table_name).filter((n) => !jurnal.includes(n));
+    expect([...new Set(b)].sort()).toEqual([...new Set(sxemada)].sort());
+  });
+
+  it('1-bosqich jadvallari joyida turibdi', async () => {
+    const q = await sql<{ table_name: string }[]>`
+      SELECT table_name FROM information_schema.tables
+      WHERE table_schema = 'public'
+        AND table_name IN ('amal_kaliti','audit_jurnal','filial','kurs_tarix',
+                           'rol','rol_ruxsat','ruxsat','sessiya','sozlama',
+                           'xodim','xodim_rol')`;
+    expect(q).toHaveLength(11);
   });
 });

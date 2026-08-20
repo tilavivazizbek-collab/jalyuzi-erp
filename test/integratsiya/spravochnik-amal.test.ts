@@ -124,9 +124,25 @@ describe('lib/amal/material.ts', () => {
 
 // ─── lib/amal/mijoz.ts ────────────────────────────────────────────────────
 
+/**
+ * ⚠️ Ism va telefon HAR YURISHDA yangi bo'ladi.
+ *
+ *    Avval ular qat'iy edi ('Amal sinov mijozi', '905554433'). Birinchi
+ *    yurishda testlar o'tardi, IKKINCHISIDA esa mijoz allaqachon bazada
+ *    bo'lgani uchun birinchi test DUBLIKAT olardi, `mijozId` yozilmasdan
+ *    qolardi va undan keyingi to'rt test ham yiqilardi. Kod to'g'ri
+ *    ishlardi — testning o'zi bir martalik edi.
+ *
+ *    Dublikat testlari SHU YURISH ichida to'qnashishi kerak, boshqa
+ *    yurishlar bilan emas.
+ */
+const BELGI = String(Date.now()).slice(-7);
+const MIJOZ_ISMI = `Amal sinov mijozi ${BELGI}`;
+const MIJOZ_TELEFON = `90${BELGI}`;
+
 const MIJOZ: MijozKirimi = {
-  ism: 'Amal sinov mijozi',
-  telefon: '+998 90 555 44 33',
+  ism: MIJOZ_ISMI,
+  telefon: `+998 ${MIJOZ_TELEFON.slice(0, 2)} ${MIJOZ_TELEFON.slice(2, 5)} ${MIJOZ_TELEFON.slice(5, 7)} ${MIJOZ_TELEFON.slice(7)}`,
   manzil: undefined,
   eslatma: undefined,
   offsetTuri: undefined,
@@ -154,12 +170,16 @@ describe('lib/amal/mijoz.ts — TZ 6.5 dublikat nazorati', () => {
 
     const q = await sql<{ telefon: string }[]>`
       SELECT telefon FROM mijoz WHERE id = ${mijozId}`;
-    // '+998 90 555 44 33' → '998905554433'
-    expect(q[0]?.telefon).toBe('998905554433');
+    // '+998 90 XXX XX XX' → '99890XXXXXXX' (bo'shliqlar va + tushadi)
+    expect(q[0]?.telefon).toBe(`998${MIJOZ_TELEFON}`);
   });
 
   it("bir xil telefon BOSHQACHA yozilsa ham dublikat deb topiladi", async () => {
-    const n = await mijozYarat(sql, { ...MIJOZ, ism: 'Boshqa ism', telefon: '905554433' }, XODIM);
+    const n = await mijozYarat(
+      sql,
+      { ...MIJOZ, ism: `Boshqa ism ${BELGI}`, telefon: MIJOZ_TELEFON },
+      XODIM,
+    );
     expect(n.holat).toBe('DUBLIKAT');
     if (n.holat === 'DUBLIKAT') {
       expect(n.dublikat.sabab).toBe('TELEFON');
@@ -168,14 +188,14 @@ describe('lib/amal/mijoz.ts — TZ 6.5 dublikat nazorati', () => {
   });
 
   it('bir xil ism ham dublikat', async () => {
-    const n = await mijozYarat(sql, { ...MIJOZ, telefon: '905550001' }, XODIM);
+    const n = await mijozYarat(sql, { ...MIJOZ, telefon: `91${BELGI}` }, XODIM);
     expect(n.holat).toBe('DUBLIKAT');
     if (n.holat === 'DUBLIKAT') expect(n.dublikat.sabab).toBe('ISM');
   });
 
   it('dublikat bazaga YOZILMAYDI', async () => {
     const q = await sql<{ n: number }[]>`
-      SELECT COUNT(*)::int AS n FROM mijoz WHERE ism = 'Amal sinov mijozi'`;
+      SELECT COUNT(*)::int AS n FROM mijoz WHERE ism = ${MIJOZ_ISMI}`;
     expect(q[0]?.n).toBe(1);
   });
 
@@ -189,11 +209,11 @@ describe('lib/amal/mijoz.ts — TZ 6.5 dublikat nazorati', () => {
       sql,
       {
         ...MIJOZ,
-        ism: 'Amal sinov MChJ',
-        telefon: '905550002',
+        ism: `Amal sinov MChJ ${BELGI}`,
+        telefon: `93${BELGI}`,
         shaxsTuri: 'YURIDIK',
         tashkilotNomi: 'MChJ Sinov',
-        inn: '987654321',
+        inn: `98${BELGI}`,
         yuridikManzil: 'Toshkent',
         ndsStavka: '12',
       },
@@ -202,7 +222,7 @@ describe('lib/amal/mijoz.ts — TZ 6.5 dublikat nazorati', () => {
     expect(n.holat).toBe('SAQLANDI');
 
     const q = await sql<{ nds_tolovchi: boolean; inn: string }[]>`
-      SELECT nds_tolovchi, inn FROM mijoz WHERE inn = '987654321'`;
+      SELECT nds_tolovchi, inn FROM mijoz WHERE inn = ${`98${BELGI}`}`;
     expect(q[0]?.nds_tolovchi).toBe(true);
   });
 });

@@ -15,31 +15,20 @@
 
 import type postgres from 'postgres';
 import Decimal from 'decimal.js';
-import { pulMatn, som, type Som } from '@/lib/domain/pul';
+import { manfiy, pulMatn, som, type Som } from '@/lib/domain/pul';
+import { bolakQiymati } from '@/lib/domain/tannarx';
 import { BiznesXato } from '@/lib/xato';
+import { SABAB_NOMI, type ChiqarishSababi } from '@/lib/sxema/chiqim';
 
-/** TZ 7.10 — sabablar ro'yxati (14.9 spravochnigi). */
-export const CHIQARISH_SABABLARI = [
-  'SUV_KETDI',
-  'RANG_OCHDI',
-  'YIRTILDI',
-  'MUDDATI_OTDI',
-  'YOQOLDI',
-  'YETKAZIB_BERUVCHI_DEFEKTI',
-  'BOSHQA',
-] as const;
-
-export type ChiqarishSababi = (typeof CHIQARISH_SABABLARI)[number];
-
-export const SABAB_NOMI: Record<ChiqarishSababi, string> = {
-  SUV_KETDI: 'Suv ketdi',
-  RANG_OCHDI: "Rangi o'chdi",
-  YIRTILDI: 'Yirtildi',
-  MUDDATI_OTDI: "Muddati o'tdi",
-  YOQOLDI: "Yo'qoldi",
-  YETKAZIB_BERUVCHI_DEFEKTI: 'Yetkazib beruvchi defekti — keyin topildi',
-  BOSHQA: 'Boshqa',
-};
+/**
+ * TZ 7.10 — sabablar ro'yxati `lib/sxema/chiqim.ts` da (§2.2: bir joyda).
+ * Forma ham, tranzaksiya ham shu bitta manbadan oladi.
+ */
+export {
+  CHIQARISH_SABABLARI,
+  SABAB_NOMI,
+  type ChiqarishSababi,
+} from '@/lib/sxema/chiqim';
 
 export interface ChiqarishKirimi {
   readonly bolakId: number;
@@ -75,18 +64,6 @@ interface BolakQatori {
   readonly tannarx_birlik_snapshot: string;
   readonly material_nomi: string;
   readonly sarflash_birligi: string;
-}
-
-/** Bo'lakning ombordagi qiymati — tannarx × miqdor. */
-function zararniHisobla(b: BolakQatori): Decimal {
-  const tannarx = new Decimal(b.tannarx_birlik_snapshot);
-
-  if (b.turi === 'DONA') {
-    return tannarx.times(b.miqdor ?? 0);
-  }
-  // RULON va OSTATKA — tannarx 1 kv.m uchun (Q-05)
-  const kvM = new Decimal(b.eni_m ?? 0).times(b.boyi_m ?? 0);
-  return tannarx.times(kvM);
 }
 
 /**
@@ -141,7 +118,13 @@ export async function hisobdanChiqar(
       UPDATE bolak SET holat = 'BRAK', ozgartirildi = now(), ozgartirdi_id = ${xodimId}
       WHERE id = ${bolak.id}`;
 
-    const zarar = zararniHisobla(bolak);
+    const zarar = bolakQiymati({
+      turi: bolak.turi,
+      eniM: bolak.eni_m,
+      boyiM: bolak.boyi_m,
+      miqdor: bolak.miqdor,
+      tannarxBirlik: som(bolak.tannarx_birlik_snapshot),
+    });
     const kvM = bolak.turi === 'DONA' ? null : new Decimal(bolak.eni_m ?? 0).times(bolak.boyi_m ?? 0);
     const sm = bolak.turi === 'DONA' && bolak.sarflash_birligi === 'SM' ? bolak.miqdor : null;
     const dona =
@@ -162,7 +145,7 @@ export async function hisobdanChiqar(
               ${kvM === null ? null : kvM.negated().toFixed(4)},
               ${sm === null ? null : new Decimal(sm).negated().toFixed(2)},
               ${dona === null ? null : -dona},
-              ${zarar.negated().toFixed(2)},
+              ${pulMatn(manfiy(zarar))},
               ${kirim.kirimId === null ? null : 'kirim'}, ${kirim.kirimId},
               ${izohMatni}, ${xodimId})
       RETURNING id`;
@@ -180,7 +163,7 @@ export async function hisobdanChiqar(
               ${tx.json({
                 holat: 'BRAK',
                 sabab: kirim.sabab,
-                zarar: zarar.toFixed(2),
+                zarar: pulMatn(zarar),
                 davo_qilinadimi: kirim.davoQilinadimi,
               })},
               ${izohMatni})`;
@@ -189,7 +172,7 @@ export async function hisobdanChiqar(
       harakatId,
       bolakKod: bolak.kod,
       materialNomi: bolak.material_nomi,
-      zarar: som(zarar.toFixed(2)),
+      zarar,
     };
   });
 }
@@ -242,6 +225,20 @@ export async function chiqarishniBekorQil(
     }
     if (harakat.turi !== 'BRAK') {
       throw new BiznesXato('HARAKAT_BRAK_EMAS', harakat.turi);
+    }
+
+    // ⚠️ Bir yozuv IKKI MARTA bekor qilinmasin. Ombor jurnali o'zgarmas
+    //    bo'lgani uchun (§6.5) «bekor qilindi» degan bayroq qo'yib
+    //    bo'lmaydi — tekshiruv teskari yozuvning O'ZI bor-yo'qligi bilan
+    //    bo'ladi. Aks holda qoldiq 2.2-invariant bo'yicha ikki barobar
+    //    qaytardi.
+    const bekorlar = await tx<{ id: number }[]>`
+      SELECT id FROM ombor_harakat
+      WHERE turi = 'STORNO' AND manba_turi = 'ombor_harakat'
+        AND manba_id = ${harakatId}
+      LIMIT 1`;
+    if (bekorlar.length > 0) {
+      throw new BiznesXato('CHIQARISH_ALLAQACHON_BEKOR', harakat.bolak_kod);
     }
 
     // Teskari yozuv — eski yozuvga TEGILMAYDI (§6.5)

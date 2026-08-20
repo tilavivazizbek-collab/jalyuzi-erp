@@ -31,6 +31,16 @@ afterAll(async () => {
   await sql.end();
 });
 
+/**
+ * ⚠️ Bo'lak kodi va kirim raqami BAZADA NOYOB. Qat'iy yozilsa test
+ *    birinchi yurishdan keyin o'zini o'zi buzadi: ikkinchi safar
+ *    `duplicate key` chiqadi va bu «kod buzildi» bo'lib ko'rinadi.
+ *
+ *    Belgi HAR YURISHDA yangi, lekin yurish ICHIDA bir xil — shuning
+ *    uchun «kod takrorlanmasin» degan test ham ishlayveradi.
+ */
+const BELGI = String(Date.now()).slice(-8);
+
 async function radEtilsin(ish: () => Promise<unknown>): Promise<void> {
   await expect(ish()).rejects.toThrow();
 }
@@ -40,7 +50,8 @@ async function bolakYarat(kod: string, eni = 3.0, boyi = 30.0): Promise<number> 
   const q = await sql<{ id: number }[]>`
     INSERT INTO bolak (material_id, filial_id, kod, turi, eni_m, boyi_m,
                        tannarx_birlik_snapshot, yaratdi_id)
-    VALUES (${materialId}, ${FILIAL}, ${kod}, 'RULON', ${eni}, ${boyi}, 78000, ${XODIM})
+    VALUES (${materialId}, ${FILIAL}, ${`${kod}-${BELGI}`}, 'RULON', ${eni}, ${boyi},
+            78000, ${XODIM})
     RETURNING id`;
   const id = q[0]?.id;
   if (id === undefined) throw new Error("bo'lak yaratilmadi");
@@ -256,7 +267,7 @@ describe('TZ 7.9 va 9.6 — kirim hujjati', () => {
     await radEtilsin(
       () => sql`
         INSERT INTO kirim (raqam, sana, filial_id, yetkazib_beruvchi_id, valyuta, yaratdi_id)
-        VALUES ('K-USD-KURSSIZ', current_date, ${FILIAL}, ${yetkazibId}, 'USD', ${XODIM})`,
+        VALUES (${`K-USD-KURSSIZ-${BELGI}`}, current_date, ${FILIAL}, ${yetkazibId}, 'USD', ${XODIM})`,
     );
   });
 
@@ -264,22 +275,22 @@ describe('TZ 7.9 va 9.6 — kirim hujjati', () => {
     await sql`
       INSERT INTO kirim (raqam, sana, filial_id, yetkazib_beruvchi_id, valyuta,
                          kurs_snapshot, yaratdi_id)
-      VALUES ('K-USD-1', current_date, ${FILIAL}, ${yetkazibId}, 'USD', 12650, ${XODIM})`;
+      VALUES (${`K-USD-1-${BELGI}`}, current_date, ${FILIAL}, ${yetkazibId}, 'USD', 12650, ${XODIM})`;
     const q = await sql<{ n: number }[]>`
-      SELECT COUNT(*)::int AS n FROM kirim WHERE raqam = 'K-USD-1'`;
+      SELECT COUNT(*)::int AS n FROM kirim WHERE raqam = ${`K-USD-1-${BELGI}`}`;
     expect(q[0]?.n).toBe(1);
   });
 
   it('storno sababsiz bo\'lmaydi (7.12)', async () => {
     await radEtilsin(
-      () => sql`UPDATE kirim SET holat = 'STORNO' WHERE raqam = 'K-USD-1'`,
+      () => sql`UPDATE kirim SET holat = 'STORNO' WHERE raqam = ${`K-USD-1-${BELGI}`}`,
     );
   });
 
   it("TZ 7.9 — defekt bor bo'lsa qayerga ketishi AYTILISHI shart", async () => {
     const k = await sql<{ id: number }[]>`
       INSERT INTO kirim (raqam, sana, filial_id, yetkazib_beruvchi_id, yaratdi_id)
-      VALUES ('K-DEFEKT', current_date, ${FILIAL}, ${yetkazibId}, ${XODIM}) RETURNING id`;
+      VALUES (${`K-DEFEKT-${BELGI}`}, current_date, ${FILIAL}, ${yetkazibId}, ${XODIM}) RETURNING id`;
     const kirimId = k[0]?.id ?? 0;
 
     await radEtilsin(
@@ -292,7 +303,7 @@ describe('TZ 7.9 va 9.6 — kirim hujjati', () => {
 
   it('defekt turi bilan saqlanadi', async () => {
     const k = await sql<{ id: number }[]>`
-      SELECT id FROM kirim WHERE raqam = 'K-DEFEKT'`;
+      SELECT id FROM kirim WHERE raqam = ${`K-DEFEKT-${BELGI}`}`;
     const kirimId = k[0]?.id ?? 0;
 
     await sql`
@@ -307,7 +318,8 @@ describe('TZ 7.9 va 9.6 — kirim hujjati', () => {
   });
 
   it("defekt miqdori umumiy miqdordan oshmaydi", async () => {
-    const k = await sql<{ id: number }[]>`SELECT id FROM kirim WHERE raqam = 'K-DEFEKT'`;
+    const k = await sql<{ id: number }[]>`
+      SELECT id FROM kirim WHERE raqam = ${`K-DEFEKT-${BELGI}`}`;
     await radEtilsin(
       () => sql`
         INSERT INTO kirim_qator (kirim_id, material_id, miqdor_kirim, narx_birlik,

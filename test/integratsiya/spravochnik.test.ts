@@ -25,6 +25,15 @@ afterAll(async () => {
   await sql.end();
 });
 
+/**
+ * ⚠️ Sanaydigan testlar HAR YURISHDA yangi belgi bilan yozadi.
+ *
+ *    Avval `LIKE 'Sinov %'` bo'yicha 4 ta kutilardi. Har yurish yana
+ *    4 ta qo'shardi va beshinchi yurishda «expected 20 to be 4» chiqardi.
+ *    Kod to'g'ri edi — test o'zining oldingi yurishlarini sanardi.
+ */
+const BELGI = String(Date.now()).slice(-8);
+
 async function radEtilsin(ish: () => Promise<unknown>): Promise<void> {
   await expect(ish()).rejects.toThrow();
 }
@@ -52,10 +61,10 @@ describe('TZ 5.2 — hisob turi to\'rt qiymatdan biri', () => {
     for (const turi of ['RULON', 'CHIZIQLI', 'DONA', 'KV_M'] as const) {
       await sql`
         INSERT INTO material (nom, hisob_turi, kirim_birligi, sarflash_birligi, yaratdi_id)
-        VALUES (${`Sinov ${turi}`}, ${turi}, 'rulon', 'KV_M', 1)`;
+        VALUES (${`Sinov ${turi} ${BELGI}`}, ${turi}, 'rulon', 'KV_M', 1)`;
     }
     const n = await sql<{ n: number }[]>`
-      SELECT COUNT(*)::int AS n FROM material WHERE nom LIKE 'Sinov %'`;
+      SELECT COUNT(*)::int AS n FROM material WHERE nom LIKE ${`Sinov %${BELGI}`}`;
     expect(n[0]?.n).toBe(4);
   });
 });
@@ -204,9 +213,10 @@ describe('TZ 6 va Q-23 — mijoz', () => {
   it("uchalasi to'ldirilsa saqlanadi", async () => {
     await sql`
       INSERT INTO mijoz (ism, shaxs_turi, tashkilot_nomi, inn, yuridik_manzil, yaratdi_id)
-      VALUES ('Yuridik to''liq', 'YURIDIK', 'MChJ Sinov', '123456789', 'Toshkent', 1)`;
+      VALUES (${`Yuridik to'liq ${BELGI}`}, 'YURIDIK', 'MChJ Sinov',
+              ${`12${BELGI}`}, 'Toshkent', 1)`;
     const n = await sql<{ n: number }[]>`
-      SELECT COUNT(*)::int AS n FROM mijoz WHERE inn = '123456789'`;
+      SELECT COUNT(*)::int AS n FROM mijoz WHERE inn = ${`12${BELGI}`}`;
     expect(n[0]?.n).toBe(1);
   });
 
@@ -229,10 +239,10 @@ describe('TZ 6 va Q-23 — mijoz', () => {
     for (const turi of ['FOIZ', 'SOM', 'USD'] as const) {
       await sql`
         INSERT INTO mijoz (ism, offset_turi, offset_qiymat, yaratdi_id)
-        VALUES (${`Offset ${turi}`}, ${turi}, -3, 1)`;
+        VALUES (${`Offset ${turi} ${BELGI}`}, ${turi}, -3, 1)`;
     }
     const n = await sql<{ n: number }[]>`
-      SELECT COUNT(*)::int AS n FROM mijoz WHERE ism LIKE 'Offset %'`;
+      SELECT COUNT(*)::int AS n FROM mijoz WHERE ism LIKE ${`Offset %${BELGI}`}`;
     expect(n[0]?.n).toBe(3);
   });
 

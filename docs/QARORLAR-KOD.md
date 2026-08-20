@@ -858,3 +858,151 @@ sintaktik to'g'ri edi.
 7.8 dagi jadvalga ustun izohi qo'shilsin:
 `tannarx_birlik_snapshot — NUMERIC(14,4), sarflash birligi uchun`.
 `(14,4)` — bo'lish qoldiqli bo'lgani uchun to'rt kasr saqlanadi.
+
+---
+
+## P-21 — Hisobdan chiqarishni ikki marta bekor qilish
+
+**Fayl:** `lib/amal/hisobdan.ts` → `chiqarishniBekorQil()`
+**Manba:** LOYIHA.md 7.10 · §6.5 · 2.2-invariant
+
+### Ziddiyat
+
+TZ 7.10 bekor qilishni tasvirlaydi, lekin **bir yozuv ikki marta bekor
+qilinsa nima bo'lishini aytmaydi**. Kodda ham himoya yo'q edi.
+
+Interfeysda tugma bir marta ko'rinadi, lekin bu himoya emas: brauzerni
+yangilash, ikki barobar bosish yoki ikki omborchining bir vaqtda ishlashi
+funksiyani ikki marta chaqiradi.
+
+### Nima bo'lardi
+
+| Qadam | Jurnal | Qoldiq (SUM) |
+|---|---|---|
+| Chiqarish | `BRAK −20 kv.m` | −20 |
+| 1-bekor | `STORNO +20 kv.m` | 0 ✅ |
+| 2-bekor | `STORNO +20 kv.m` | **+20** ❌ |
+
+Yo'qdan 20 kv.m mato paydo bo'lardi. `UPDATE bolak` idempotent bo'lgani
+uchun bo'lak holati to'g'ri qolardi — xato faqat **pul va qoldiqda**
+ko'rinardi.
+
+### Qaror
+
+Teskari yozuv qo'shishdan oldin tekshiriladi: shu `harakat_id` ga
+ishora qiluvchi `STORNO` yozuvi bormi. Bo'lsa —
+`CHIQARISH_ALLAQACHON_BEKOR` xatosi.
+
+Bayroq ustuni **qo'shilmadi**: §6.5 bo'yicha ombor jurnali o'zgarmas,
+`UPDATE` qilib bo'lmaydi. Tekshiruv teskari yozuvning o'zi bilan bo'ladi —
+manba jadvalning o'zi haqiqat manbai bo'lib qoladi (2.2-invariant).
+
+### Nega bu muhim
+
+2.2-invariant qoldiqni saqlamaydi, `SUM()` bilan hisoblaydi. Ya'ni
+jurnalga tushgan har ortiqcha qator **to'g'ridan-to'g'ri** omborni
+buzadi — hech qayerda «to'g'ri» qiymat turmaydi.
+
+### Sinov
+
+`test/integratsiya/hisobdan.test.ts` →
+«IKKI MARTA bekor qilib bo'lmaydi — qoldiq ikki barobar qaytmaydi»:
+ikkinchi chaqiruv xato beradi va `SUM(miqdor_kv_m) = 0` bo'lib qoladi.
+
+---
+
+## P-21 — Bekor qilingan yozuv qanday aniqlanadi
+
+**Fayl:** `lib/amal/hisobdan.ts` · **Manba:** LOYIHA.md 7.10 · §6.5 · 2.2-invariant
+
+### Ziddiyat
+
+7.10 hisobdan chiqarishni **bekor qilish** mumkinligini aytadi. Lekin:
+
+- §6.5 — harakat jadvalida `UPDATE` yo'q, yozuv o'zgarmas
+- 2.2-invariant — qoldiq saqlanmaydi, u jurnalning `SUM()` i
+
+Demak yozuvga «bekor qilindi» degan bayroq **qo'yib bo'lmaydi**. U holda
+bir yozuv ikki marta bekor qilinsa, ikkita teskari yozuv tushadi va
+qoldiq **ikki barobar** qaytadi. Hujjat bu holatni umuman ko'rmagan.
+
+### Qaror
+
+Bayroq yo'q — tekshiruv **teskari yozuvning o'zi bor-yo'qligi** bilan:
+
+```sql
+SELECT id FROM ombor_harakat
+WHERE turi = 'STORNO' AND manba_turi = 'ombor_harakat' AND manba_id = $1
+```
+
+Topilsa `CHIQARISH_ALLAQACHON_BEKOR` xatosi tashlanadi. Ekranda ham shu
+so'rov ishlatiladi (`bekor_qilingan` ustuni) — bekor qilingan yozuv
+yonida tugma o'rniga «bekor qilingan» yozuvi turadi.
+
+### Nega shunday
+
+Jurnal o'zgarmas bo'lgani uchun **haqiqat jurnalning o'zida** turadi:
+teskari yozuv bor bo'lsa — bekor qilingan. Alohida bayroq ikkinchi
+haqiqat manbai bo'lardi va u jurnal bilan ajralib ketishi mumkin edi.
+
+Qulf `FOR UPDATE OF b` bo'lakni ushlab turadi, shuning uchun bir vaqtda
+kelgan ikki so'rov ham ketma-ket bajariladi: ikkinchisi tekshiruvga
+kelganda birinchi yozuv allaqachon joyida bo'ladi.
+
+### Test
+
+`test/integratsiya/hisobdan.test.ts` — «IKKI MARTA bekor qilib
+bo'lmaydi». Bekor qilingandan keyin jurnal yig'indisi **nolga** qaytadi;
+ikkinchi urinish xato tashlaydi.
+
+---
+
+## P-22 — Inventarizatsiyani kim o'tkazadi
+
+**Fayl:** `lib/ruxsat/urug.ts` · **Manba:** LOYIHA.md 15.1 · 14.6 · 7.10
+
+### Ziddiyat
+
+TZ 15.1 aniq yozadi:
+
+> «Kim qiladi. **Omborchi.** Admin tasdig'i kutilmaydi — kiritilgan
+>  zahoti qoldiq o'zgaradi va adminga xabar ketadi.»
+
+Lekin TZ 14.6 dagi ruxsatlar matritsasi misolida aynan omborchida
+`ombor.chiqim` katakchasi **bo'sh**. Inventarizatsiya ham qoldiqni
+kamaytiradi — demak ikkalasi bir xil kuchga ega.
+
+### Qaror
+
+`ombor.inventarizatsiya` — **alohida ruxsat kodi**, omborchiga
+boshlang'ich sozlamada **beriladi**.
+
+| Kod | OMBORCHI | Nega |
+|---|---|---|
+| `ombor.kirim.yarat` | ☑ | 14.6 · 20.12 misolida ☑ |
+| `ombor.chiqim` | ☐ | 14.6 misolida ☐ |
+| `ombor.inventarizatsiya` | ☑ | **15.1 to'g'ridan-to'g'ri beradi** |
+| `ombor.boshlangich` | ☐ | tizimga o'tish amali, adminda qoladi |
+
+### Nega
+
+Q-04: «14.6 matritsasi — yagona manba, 11.10 va 12.14 jadvallari
+boshlang'ich **preset**». Ya'ni urug'dagi qiymat qoida emas, birinchi
+o'rnatish. Egasi ruxsatlar ekranidan istalgan paytda olib qo'yadi.
+
+15.1 ning o'zi nazorat mexanizmini ham beradi:
+
+> «Ombor uchta yo'l bilan kamayishi mumkin: hisobdan chiqarish, qo'lda
+>  korrektsiya, inventarizatsiya. Uchalasi ham omborchi qo'lida va admin
+>  tasdig'isiz. Shuning uchun bu hisobot **majburiy** — u yagona nazorat
+>  vositasi.»
+
+Ya'ni hujjat bu xavfni **ko'rgan** va tasdiq bilan emas, **keyingi
+nazorat** bilan yopgan: har varaqa audit jurnalida, farqlar hisoboti
+omborchi kesimida.
+
+### Boshlang'ich qoldiq nega adminda
+
+Bu bir martalik, qaytarilmaydigan amal: bir material uchun ikkinchi marta
+kiritilmaydi (kodda ham to'silgan). Xato bo'lsa faqat inventarizatsiya
+bilan tuzatiladi. Shuning uchun u omborchiga berilmadi.

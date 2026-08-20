@@ -184,3 +184,54 @@ zarar**. U rozilikka ishonib qaror qabul qiladi.
 ✅ "Material qo'shish ishlaydi — quyidagicha tekshiring: ..."
 
 Odatiy javob — 10–20 qator. Jadval va ro'yxat ishlat, uzun matn emas.
+
+---
+
+## 6. BAZA TESTI — HAR SAFAR O'TISHI SHART
+
+**2026-08-20 da olingan dars.** Baza testlari birinchi yurishda o'tdi,
+ikkinchisida oltita test yiqildi. Kodda bironta xato yo'q edi — testlar
+o'zining oldingi yurishlarini ko'rib turgan edi.
+
+### Uch xil buzilish
+
+| Namuna | Nima bo'ladi | Xatoning ko'rinishi |
+|---|---|---|
+| Qat'iy `id` (`9600`, `9601`) | Ikkinchi yurishda o'sha qator turibdi | `duplicate key value violates unique constraint` |
+| Qat'iy noyob nom (`'K-USD-1'`, `'Amal sinov mijozi'`) | Ikkinchi yurishda dublikat | `duplicate key` yoki kutilmagan `DUBLIKAT` javobi |
+| `COUNT(*)` bilan aniq son (`toBe(4)`) | Har yurish yana 4 ta qo'shadi | `expected 20 to be 4` |
+
+Uchalasi ham «kod buzildi» bo'lib o'qiladi va vaqt kodni qidirishga
+ketadi. Aslida test tuzatilishi kerak.
+
+### Qoida
+
+Baza testida ishlatilgan **har qanday noyob qiymat** ikki yo'ldan biri
+bilan yozilsin:
+
+```ts
+// 1. Har yurishda yangi belgi — yurish ICHIDA bir xil
+const BELGI = String(Date.now()).slice(-8);
+const kod = `R-NOYOB-${BELGI}`;
+
+// 2. Yoki test o'zidan oldin tozalaydi
+await sql`DELETE FROM xodim WHERE id = 9601`;
+```
+
+Belgi **yurish ichida bir xil** bo'lishi muhim: «kod takrorlanmasin»
+degan testlar aynan shu takrorlanishga tayanadi.
+
+### Sanashda
+
+`COUNT(*)` ni butun jadval bo'yicha emas, **shu yurish yozgan qatorlar**
+bo'yicha sana:
+
+```ts
+// ❌ WHERE nom LIKE 'Sinov %'
+// ✅ WHERE nom LIKE ${`Sinov %${BELGI}`}
+```
+
+### Tekshirish
+
+Modul tugadi deyishdan oldin `npm run test:baza` **ikki marta** ketma-ket
+yurgiziladi. Ikkinchi yurish qizil bo'lsa — modul tayyor emas.

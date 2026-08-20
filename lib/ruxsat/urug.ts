@@ -75,6 +75,11 @@ export const ROL_URUGI: readonly RolUrugi[] = [
     ruxsatlar: [
       ['ombor.qoldiq.kor', 'OZ_FILIALI'], // 20.12 ☑
       ['ombor.kirim.yarat', 'OZ_FILIALI'], // 20.12 ☑ · 14.6 ☑
+      // TZ 15.1 — «Kim qiladi. OMBORCHI. Admin tasdig'i kutilmaydi.»
+      // 14.6 misolida `ombor.chiqim` ☐ bo'lsa ham inventarizatsiya
+      // ALOHIDA ruxsat: 15.1 uni to'g'ridan-to'g'ri omborchiga beradi
+      // va nazoratni «farqlar hisoboti» bilan ta'minlaydi (P-22).
+      ['ombor.inventarizatsiya', 'OZ_FILIALI'], // 15.1
       ['kassa.oz.kor', 'OZ_FILIALI'], // 12.14
       ['kassa.chiqim', 'OZ_FILIALI'], // 12.14 — yetkazib beruvchiga to'lov
       // Kirim hujjati material va yetkazib beruvchini tanlashni talab qiladi (9.2)
@@ -83,6 +88,7 @@ export const ROL_URUGI: readonly RolUrugi[] = [
     ],
     // BERILMAYDI: ombor.chiqim · ombor.storno · ombor.narx.ozgartir (14.6 misolida ☐)
     //             ombor.kochirish.yarat (20.12 misolida ☐)
+    //             ombor.boshlangich — tizimga o'tish amali, adminda qoladi
     //             kassa.barcha.kor · kassa.ayirboshlash · kassa.storno
   },
 

@@ -11,6 +11,8 @@ export const dynamic = 'force-dynamic';
 const BANDLAR: readonly (MenyuBandi & { kod: RuxsatKod | null })[] = [
   { yol: '/boshqaruv', nom: 'Boshqaruv', kod: null },
   { yol: '/ombor', nom: 'Ombor', kod: 'ombor.qoldiq.kor' },
+  { yol: '/ombor/kirim', nom: 'Kirimlar', kod: 'ombor.qoldiq.kor' },
+  { yol: '/ombor/inventarizatsiya', nom: 'Inventarizatsiya', kod: 'ombor.inventarizatsiya' },
   { yol: '/material', nom: 'Materiallar', kod: 'material.kor' },
   { yol: '/mahsulot', nom: 'Mahsulot turlari', kod: 'mahsulot.kor' },
   { yol: '/mijoz', nom: 'Mijozlar', kod: 'mijoz.kor' },

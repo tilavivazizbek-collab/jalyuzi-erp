@@ -27,7 +27,11 @@ export default defineConfig({
     // testlari bir-birini buzib qo'yadi
     fileParallelism: false,
     sequence: { concurrent: false },
-    testTimeout: 30_000,
-    hookTimeout: 60_000,
+    // ⚠️ Baza MASOFADA turibdi (10-bosqichgacha), har so'rov tarmoqdan
+    //    o'tadi. Bitta test 10–15 ta so'rov yuboradi: kechikish sakraganda
+    //    30 s yetmay qoldi va TO'G'RI ishlaydigan testlar «yiqildi».
+    //    Limit tarmoqqa, kodga emas, moslangan — testning o'zi qisqartirilmadi.
+    testTimeout: 120_000,
+    hookTimeout: 120_000,
   },
 });

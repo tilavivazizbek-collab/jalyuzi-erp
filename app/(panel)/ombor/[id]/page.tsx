@@ -1,12 +1,15 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { sahifaRuxsati } from '@/lib/kirish/joriy';
+import { ruxsatBormi } from '@/lib/ruxsat/tekshir';
+import { BekorTugmasi } from '../chiqim/bekor';
 import { pulKorsat, som } from '@/lib/domain/pul';
 import { daraja } from '@/lib/domain/kesish';
 import {
   materialBolaklari,
   materialHarakatlari,
   materialSarlavhasi,
+  oxirgiSanoq,
   type BolakQatori,
   type HarakatQatori,
 } from '../malumot';
@@ -60,6 +63,9 @@ export default async function MaterialKartochkasi({
   params: Promise<{ id: string }>;
 }) {
   const f = await sahifaRuxsati('ombor.qoldiq.kor');
+  // TZ 14.6 — omborchida kirim bor, chiqim yo'q bo'lishi mumkin
+  const chiqaraOladi = ruxsatBormi(f, 'ombor.chiqim');
+  const boshlangichQilaOladi = ruxsatBormi(f, 'ombor.boshlangich');
 
   const { id } = await params;
   const materialId = Number(id);
@@ -68,9 +74,10 @@ export default async function MaterialKartochkasi({
   const sarlavha = await materialSarlavhasi(materialId);
   if (sarlavha === null) notFound();
 
-  const [bolaklar, harakatlar] = await Promise.all([
+  const [bolaklar, harakatlar, sanoq] = await Promise.all([
     materialBolaklari(materialId, f.filialId),
     materialHarakatlari(materialId, f.filialId),
+    oxirgiSanoq(materialId, f.filialId),
   ]);
 
   const olchamli = sarlavha.hisobTuri === 'RULON';
@@ -84,7 +91,17 @@ export default async function MaterialKartochkasi({
         <h1 className="mt-2 text-xl font-semibold tracking-tight">{sarlavha.nom}</h1>
         <p className="mt-1 text-sm text-slate-500">
           {bolaklar.length} ta bo&apos;lak · filial #{f.filialId}
+          {/* TZ 15.1 — oxirgi sanoq kartochkada ko'rinadi */}
+          {sanoq !== null && ` · oxirgi sanoq ${sanoq.sana} (${sanoq.kim})`}
         </p>
+        {boshlangichQilaOladi && bolaklar.length === 0 && (
+          <Link
+            href={`/ombor/boshlangich/${String(materialId)}`}
+            className="mt-3 inline-block rounded-lg border border-slate-300 px-3 py-1.5 text-sm text-slate-700 transition hover:bg-slate-50"
+          >
+            Boshlang&apos;ich qoldiq kiritish
+          </Link>
+        )}
       </div>
 
       {/* ── Qoldiq tarkibi (7.11) ── */}
@@ -107,6 +124,7 @@ export default async function MaterialKartochkasi({
                   <th className="px-4 py-2.5 font-medium">Holat</th>
                   <th className="px-4 py-2.5 text-right font-medium">Tannarx</th>
                   <th className="px-4 py-2.5 font-medium">Kirim</th>
+                  {chiqaraOladi && <th className="px-4 py-2.5 font-medium" />}
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -145,6 +163,18 @@ export default async function MaterialKartochkasi({
                       <td className="px-4 py-2.5 text-xs text-slate-500">
                         {b.kirimRaqam ?? '—'}
                       </td>
+                      {chiqaraOladi && (
+                        <td className="px-4 py-2.5 text-right">
+                          {b.holat === 'BOSH' || b.holat === 'BAND' ? (
+                            <Link
+                              href={`/ombor/chiqim/${String(b.id)}`}
+                              className="text-xs text-red-700 underline underline-offset-2 hover:text-red-900"
+                            >
+                              Hisobdan chiqarish
+                            </Link>
+                          ) : null}
+                        </td>
+                      )}
                     </tr>
                   );
                 })}
@@ -180,6 +210,7 @@ export default async function MaterialKartochkasi({
                   <th className="px-4 py-2.5 text-right font-medium">Miqdor</th>
                   <th className="px-4 py-2.5 text-right font-medium">Summa</th>
                   <th className="px-4 py-2.5 font-medium">Kim</th>
+                  {chiqaraOladi && <th className="px-4 py-2.5 font-medium" />}
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -197,6 +228,15 @@ export default async function MaterialKartochkasi({
                     <td className="raqam px-4 py-2.5">{miqdorKorinishi(h)}</td>
                     <td className="raqam px-4 py-2.5">{pulKorsat(som(h.tannarxSumma))}</td>
                     <td className="px-4 py-2.5 text-slate-500">{h.xodimIsmi}</td>
+                    {chiqaraOladi && (
+                      <td className="px-4 py-2.5 text-right align-top">
+                        {h.turi === 'BRAK' && !h.bekorQilingan ? (
+                          <BekorTugmasi harakatId={h.id} bolakKod={h.bolakKod} />
+                        ) : h.turi === 'BRAK' ? (
+                          <span className="text-xs text-slate-400">bekor qilingan</span>
+                        ) : null}
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>

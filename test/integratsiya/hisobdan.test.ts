@@ -196,6 +196,26 @@ describe('TZ 7.10 — chiqarishni bekor qilish', () => {
     await expect(chiqarishniBekorQil(sql, n.harakatId, '   ', XODIM)).rejects.toThrow();
   });
 
+  it("IKKI MARTA bekor qilib bo'lmaydi — qoldiq ikki barobar qaytmaydi", async () => {
+    const bolakId = await bolakYarat(2.0, 10.0);
+    const n = await hisobdanChiqar(
+      sql,
+      { bolakId, sabab: 'YIRTILDI', izoh: null, kirimId: null, davoQilinadimi: false },
+      XODIM,
+    );
+
+    await chiqarishniBekorQil(sql, n.harakatId, 'Birinchi bekor', XODIM);
+    await expect(
+      chiqarishniBekorQil(sql, n.harakatId, 'Ikkinchi bekor', XODIM),
+    ).rejects.toThrow();
+
+    // 2.2-invariant — qoldiq jurnal YIG'INDISI, u nolga qaytishi kerak
+    const q = await sql<{ jami: string }[]>`
+      SELECT COALESCE(SUM(miqdor_kv_m), 0)::text AS jami
+      FROM ombor_harakat WHERE bolak_id = ${bolakId}`;
+    expect(Number(q[0]?.jami)).toBe(0);
+  });
+
   it("BRAK bo'lmagan yozuvni bekor qilib bo'lmaydi", async () => {
     const bolakId = await bolakYarat();
     const q = await sql<{ id: number }[]>`

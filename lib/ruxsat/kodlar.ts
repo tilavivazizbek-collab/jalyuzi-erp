@@ -70,6 +70,16 @@ export const RUXSATLAR = {
     guruh: 'Ombor',
     band: '14.6',
   },
+  'ombor.inventarizatsiya': {
+    nom: 'Inventarizatsiya',
+    guruh: 'Ombor',
+    band: '15.1',
+  },
+  'ombor.boshlangich': {
+    nom: "Boshlang'ich qoldiq kiritish",
+    guruh: 'Ombor',
+    band: '7.10',
+  },
   'ombor.kochirish.yarat': {
     nom: "Material ko'chirish so'rovi",
     guruh: 'Ombor',

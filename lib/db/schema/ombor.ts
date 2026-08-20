@@ -16,8 +16,10 @@
 import { sql } from 'drizzle-orm';
 import {
   bigint,
+  boolean,
   check,
   date,
+  foreignKey,
   index,
   integer,
   numeric,
@@ -351,5 +353,106 @@ export const omborHarakat = pgTable(
     index('ombor_harakat_filial_sana').on(t.filialId, t.sana),
     index('ombor_harakat_bolak').on(t.bolakId),
     index('ombor_harakat_manba').on(t.manbaTuri, t.manbaId),
+  ],
+);
+
+// ─── 3.6 · inventarizatsiya — TZ 15.1 · Q-05 · AUDIT Z-05, U-06, A-09 ─────
+
+export const INVENTARIZATSIYA_HOLATLARI = ['OCHIQ', 'YAKUNLANDI', 'STORNO'] as const;
+
+/**
+ * TZ 15.1 — sanash varaqasi.
+ *
+ * ⚠️ To'liq va QISMAN bo'ladi: butun omborni sanash shart emas.
+ *    Shuning uchun qatorlar sanash boshlanganda yoziladi, material
+ *    bo'yicha filtr bilan.
+ */
+export const inventarizatsiya = pgTable(
+  'inventarizatsiya',
+  {
+    id: id(),
+    sana: date('sana').notNull(),
+    filialId: bigint('filial_id', { mode: 'number' })
+      .notNull()
+      .references(() => filial.id),
+    holat: text('holat').notNull().default('OCHIQ'),
+    /** Yakunlanganda hisoblanadi — foyda-zararga XARAJAT bo'lib tushadi */
+    farqSumma: numeric('farq_summa', { precision: 14, scale: 2 }),
+    izoh: text('izoh'),
+    ...izlar,
+  },
+  (t) => [
+    check(
+      'inventarizatsiya_holat',
+      sql`${t.holat} IN ('OCHIQ','YAKUNLANDI','STORNO')`,
+    ),
+    index('inventarizatsiya_filial_sana').on(t.filialId, t.sana),
+  ],
+);
+
+/** TZ 15.1 — farq sabablari (majburiy). */
+export const INVENTARIZATSIYA_SABABLARI = [
+  'HISOBGA_OLINMAGAN_CHIQINDI',
+  'OLCHOV_XATOSI',
+  'YOQOLGAN',
+  'NOTOGRI_KIRIM',
+  'BOSHQA',
+] as const;
+
+/**
+ * Har bo'lak O'Z qatorida — «48 kv.m bor» degan javob hech narsani
+ * tekshirmaydi (15.1).
+ *
+ * ⚠️ AUDIT Z-05 — sanash `eni × bo'yi` METRDA. Kv.m saqlanmaydi,
+ *    tizim hisoblaydi. Aks holda omborchi 28 yozadi, tizim 84 kutadi.
+ * ⚠️ AUDIT U-06 — `band` ustuni: band bo'lak jismonan omborda, sanaladi,
+ *    lekin omborchi nimaga solishtirayotganini bilishi kerak.
+ * ⚠️ AUDIT A-09 — `yolda` bo'lak jo'natuvchi filialda ko'rinadi, lekin
+ *    SANALMAYDI: u jismonan yo'q.
+ */
+export const inventarizatsiyaQator = pgTable(
+  'inventarizatsiya_qator',
+  {
+    id: id(),
+    // ⚠️ Tashqi kalit quyida ANIQ nom bilan e'lon qilingan: avtomatik nom
+    //    63 belgidan oshib ketardi va Postgres uni jimgina qisqartirardi.
+    inventarizatsiyaId: bigint('inventarizatsiya_id', { mode: 'number' }).notNull(),
+    bolakId: bigint('bolak_id', { mode: 'number' })
+      .notNull()
+      .references(() => bolak.id),
+
+    // Varaqa chop etilgandagi holat (2.3-invariant — o'zgarmaydi)
+    tizimdaEniM: numeric('tizimda_eni_m', { precision: 8, scale: 2 }),
+    tizimdaBoyiM: numeric('tizimda_boyi_m', { precision: 8, scale: 2 }),
+    tizimdaMiqdor: numeric('tizimda_miqdor', { precision: 10, scale: 2 }),
+
+    // Omborchi yozgani — sanalmaguncha NULL
+    haqiqatdaEniM: numeric('haqiqatda_eni_m', { precision: 8, scale: 2 }),
+    haqiqatdaBoyiM: numeric('haqiqatda_boyi_m', { precision: 8, scale: 2 }),
+    haqiqatdaMiqdor: numeric('haqiqatda_miqdor', { precision: 10, scale: 2 }),
+
+    band: boolean('band').notNull().default(false),
+    yolda: boolean('yolda').notNull().default(false),
+
+    farqKvM: numeric('farq_kv_m', { precision: 10, scale: 4 }),
+    farqSumma: numeric('farq_summa', { precision: 14, scale: 2 }),
+    sabab: text('sabab'),
+    izoh: text('izoh'),
+  },
+  (t) => [
+    foreignKey({
+      columns: [t.inventarizatsiyaId],
+      foreignColumns: [inventarizatsiya.id],
+      name: 'inventarizatsiya_qator_hujjat_fk',
+    }),
+    check(
+      'inventarizatsiya_qator_sabab',
+      sql`${t.sabab} IS NULL OR ${t.sabab} IN (
+            'HISOBGA_OLINMAGAN_CHIQINDI','OLCHOV_XATOSI','YOQOLGAN',
+            'NOTOGRI_KIRIM','BOSHQA')`,
+    ),
+    // Bir bo'lak bir varaqada bir marta
+    uniqueIndex('inventarizatsiya_qator_bir_marta').on(t.inventarizatsiyaId, t.bolakId),
+    index('inventarizatsiya_qator_bolak').on(t.bolakId),
   ],
 );

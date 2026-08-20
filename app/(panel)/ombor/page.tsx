@@ -26,14 +26,22 @@ export default async function OmborQoldigi() {
             Filial #{f.filialId} · har filialda o&apos;z ombori (Q-25)
           </p>
         </div>
-        {kirimQilaOladi && (
+        <div className="flex items-center gap-3">
           <Link
-            href="/ombor/kirim/yangi"
-            className="rounded-lg bg-slate-900 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-slate-800"
+            href="/ombor/kirim"
+            className="rounded-lg border border-slate-300 px-3.5 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
           >
-            Kirim hujjati
+            Kirim hujjatlari
           </Link>
-        )}
+          {kirimQilaOladi && (
+            <Link
+              href="/ombor/kirim/yangi"
+              className="rounded-lg bg-slate-900 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-slate-800"
+            >
+              Yangi kirim
+            </Link>
+          )}
+        </div>
       </div>
 
       {qoldiq.length === 0 ? (

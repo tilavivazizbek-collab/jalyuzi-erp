@@ -21,7 +21,12 @@ export function Menyu({ bandlar }: { bandlar: readonly MenyuBandi[] }) {
   return (
     <nav className="flex flex-wrap items-center gap-1">
       {bandlar.map((b) => {
-        const faol = yol === b.yol || yol.startsWith(`${b.yol}/`);
+        // ⚠️ Aniqrog'i yutadi: /ombor/kirim ochilganda «Ombor» ham,
+        //    «Kirimlar» ham yonib turmasin.
+        const eng = bandlar
+          .filter((d) => yol === d.yol || yol.startsWith(`${d.yol}/`))
+          .reduce<string>((u, d) => (d.yol.length > u.length ? d.yol : u), '');
+        const faol = eng === b.yol && eng !== '';
         return (
           <Link
             key={b.yol}
