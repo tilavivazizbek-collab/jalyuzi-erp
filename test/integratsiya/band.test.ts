@@ -13,7 +13,7 @@ import {
   type SlotSorovi,
 } from '@/lib/amal/band';
 import type { Ulanish } from '@/lib/db/ulanish';
-import { sinovUlanishi } from './yordamchi';
+import { pozitsiyaTolqini, sinovUlanishi } from './yordamchi';
 
 let sql: Ulanish;
 let matoId: number;
@@ -22,11 +22,32 @@ let ikkinchiMatoId: number;
 const FILIAL = 1;
 const XODIM = 1;
 
-/** Sinov pozitsiyalari haqiqiy yozuvlar bilan to'qnashmasligi uchun. */
-let pozitsiya = 700_000;
+/**
+ * ⚠️ T-04 dan keyin `band.buyurtma_pozitsiya_id` HAQIQIY pozitsiyaga
+ *    bog'langan — avvalgi «700 001, 700 002…» o'ylab topilgan raqamlar
+ *    endi tashqi kalitga urilib qoladi.
+ *
+ *    Shuning uchun `beforeAll` da haqiqiy pozitsiyalar TO'PLAMI bir
+ *    marta yaratiladi va testlar undan navbat bilan oladi. Har testda
+ *    alohida buyurtma yaratish masofadagi bazada juda sekin bo'lardi.
+ */
+let pozitsiyalar: readonly number[] = [];
+let materialQatorlari: readonly number[] = [];
+let pozitsiyaNavbat = 0;
+let qatorNavbat = 0;
+
 const yangiPozitsiya = (): number => {
-  pozitsiya += 1;
-  return pozitsiya;
+  const id = pozitsiyalar[pozitsiyaNavbat % pozitsiyalar.length];
+  pozitsiyaNavbat += 1;
+  if (id === undefined) throw new Error("sinov pozitsiyalari tayyorlanmagan");
+  return id;
+};
+
+const yangiQator = (): number => {
+  const id = materialQatorlari[qatorNavbat % materialQatorlari.length];
+  qatorNavbat += 1;
+  if (id === undefined) throw new Error("sinov material qatorlari tayyorlanmagan");
+  return id;
 };
 
 beforeAll(async () => {
@@ -41,7 +62,11 @@ beforeAll(async () => {
 
   matoId = await yarat(`Band sinov matosi ${String(Date.now())}`);
   ikkinchiMatoId = await yarat(`Band sinov matosi 2 ${String(Date.now())}`);
-}, 60_000);
+
+  const tolqin = await pozitsiyaTolqini(sql, matoId, 40, 40, FILIAL, XODIM);
+  pozitsiyalar = tolqin.pozitsiyalar;
+  materialQatorlari = tolqin.materialQatorlari;
+}, 120_000);
 
 afterAll(async () => {
   await sql.end();
@@ -73,7 +98,7 @@ async function tozala(materialId: number): Promise<void> {
 }
 
 const slot = (materialId: number, eniM: number, boyiM: number, majburiy = true): SlotSorovi => ({
-  pozitsiyaMaterialId: yangiPozitsiya(),
+  pozitsiyaMaterialId: yangiQator(),
   materialId,
   kerak: { eniM, boyiM },
   majburiy,

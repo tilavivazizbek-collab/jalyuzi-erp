@@ -11,7 +11,7 @@ Shuning uchun bu ro'yxat qisqa bo'lishi va bo'shab borishi kerak.
 | T-01 | Interfeys oqimlari avtomat sinalmagan | 2-bosqich | O'rta |
 | T-02 | `docker compose up` tekshiruvi bajarilmagan | Docker o'rnatilganda | Past |
 | T-03 | Qarorlar hujjatga ko'chirilmagan | Egasi tasdiqlagach | O'rta |
-| T-04 | `band` va `bolak` ning buyurtma tashqi kalitlari qo'yilmagan | 4-bosqich | Past |
+| ~~T-04~~ | ~~`band` va `bolak` ning buyurtma tashqi kalitlari~~ | ✅ yopildi | — |
 | T-05 | Kirimda yetkazib beruvchi qarzi yozilmaydi | 5-bosqich | O'rta |
 
 ---
@@ -104,44 +104,39 @@ Eng muhim uchtasi:
 
 ---
 
-## T-04 · `band` va `bolak` ning buyurtma tashqi kalitlari
+## T-04 · `band` va `bolak` tashqi kalitlari — YOPILDI
 
-**Bosqich:** 3 · **Tegadi:** QISM 3 §3.1, §3.2 · QARORLAR-KOD P-18
+**Sana:** 2026-08-21 · **Bosqich:** 4 · **Holat:** ✅ yopildi
 
-Uch ustun buyurtma jadvallariga bog'lanishi kerak, lekin ular
-4-bosqichda yaratiladi:
+Uch ustun endi haqiqiy jadvalga bog'landi (migratsiya 0013):
 
 ```
-band.buyurtma_pozitsiya_id
-band.pozitsiya_material_id
-bolak.buyurtma_pozitsiya_id
+band.buyurtma_pozitsiya_id   → buyurtma_pozitsiya(id)
+band.pozitsiya_material_id   → pozitsiya_material(id)
+bolak.buyurtma_pozitsiya_id  → buyurtma_pozitsiya(id)
 ```
 
-**Xavf past.** `band` ning asosiy kafolati tashqi kalit emas, balki
-partial unique indeks:
+`ON DELETE CASCADE` yo'q (§6.3) — pozitsiya o'chirilmaydi, bekor qilinadi.
 
-```sql
-CREATE UNIQUE INDEX band_bitta_faol ON band (bolak_id) WHERE holat = 'FAOL';
-```
+### Nima chiqdi
 
-TZ 7.3 ning «ikki usta bitta bo'lakka da'vo qilsa — birinchisi oladi,
-ikkinchisiga rad javobi» qoidasi shu indeks bilan ta'minlanadi va u
-hozirdan ishlaydi. Integratsiya testi buni haqiqiy poyga bilan
-tekshiradi: ikki `INSERT` bir vaqtda yuboriladi, aynan bittasi o'tadi.
+Tashqi kalit qo'yilishi bilan **testlar yiqildi**. Ular `700 001`,
+`1004`, `3001` kabi **o'ylab topilgan** pozitsiya raqamlari bilan band
+yozardi va bu faqat tashqi kalit YO'Q bo'lgani uchun o'tardi.
 
-Tashqi kalit boshqa narsani kafolatlaydi — mavjud bo'lmagan pozitsiyaga
-band qo'yilmasligini.
+Ya'ni bu testlar T-04 gacha bazaning to'liq qoidalari ostida
+ishlamagan. Endi `test/integratsiya/yordamchi.ts` dagi
+`pozitsiyaTolqini()` haqiqiy buyurtma → pozitsiya → pozitsiya_material
+zanjirini yaratadi va testlar undan oladi.
 
-4-bosqichda bajariladi:
+Sinov bazasidagi 154 ta eski `band` qatori o'chirildi — ularning
+hammasi shu soxta raqamlar bilan yozilgan test qoldig'i edi.
 
-```sql
-ALTER TABLE band ADD CONSTRAINT band_pozitsiya_fk
-  FOREIGN KEY (buyurtma_pozitsiya_id) REFERENCES buyurtma_pozitsiya(id);
-ALTER TABLE band ADD CONSTRAINT band_pozitsiya_material_fk
-  FOREIGN KEY (pozitsiya_material_id) REFERENCES pozitsiya_material(id);
-ALTER TABLE bolak ADD CONSTRAINT bolak_pozitsiya_fk
-  FOREIGN KEY (buyurtma_pozitsiya_id) REFERENCES buyurtma_pozitsiya(id);
-```
+### Dars
+
+Kechiktirilgan tashqi kalit **testni ham kechiktiradi**. Kalit
+qo'yilmaguncha test bazaning haqiqiy qoidasini emas, yumshoq holatini
+sinaydi.
 
 ---
 

@@ -92,6 +92,13 @@
       "when": 1787245833111,
       "tag": "0012_left_rawhide_kid",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1787251300000,
+      "tag": "0013_flaky_vindicator",
+      "breakpoints": true
     }
   ]
 }

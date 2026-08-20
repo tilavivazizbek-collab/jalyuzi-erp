@@ -7,7 +7,8 @@
  * Jadvallar ro'yxati — QISM 3 §13. Bosqichma-bosqich to'ldiriladi:
  *   1-bosqich  asos + tizim (11 jadval)   ✅
  *   2-bosqich  spravochniklar (9)       ✅
- *   3-bosqich  ombor (10)               ✅  ← hozir
+ *   3-bosqich  ombor (10)               ✅
+ *   4-bosqich  buyurtma (5)             ← hozir
  *   ...
  *
  * ⚠️ Yangi jadval qo'shilsa BU YERGA ham qo'shiladi. `himoya.test.ts`
@@ -20,3 +21,4 @@ export * from './asos';
 export * from './tizim';
 export * from './spravochnik';
 export * from './ombor';
+export * from './buyurtma';

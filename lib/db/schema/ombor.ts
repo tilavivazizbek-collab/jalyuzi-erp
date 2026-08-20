@@ -32,6 +32,7 @@ import {
 import { id, izlar, ochirilmaydi } from './ustunlar';
 import { filial } from './asos';
 import { material, yetkazibBeruvchi } from './spravochnik';
+import { buyurtmaPozitsiya, pozitsiyaMaterial } from './buyurtma';
 
 // ─── 3.3 · kirim va kirim_qator — TZ 7.9 ──────────────────────────────────
 
@@ -181,8 +182,10 @@ export const bolak = pgTable(
     otaBolakId: bigint('ota_bolak_id', { mode: 'number' }).references(
       (): AnyPgColumn => bolak.id,
     ),
-    /** Qaysi kesimdan chiqqan. FK 4-bosqichda qo'shiladi (P-18) */
-    buyurtmaPozitsiyaId: bigint('buyurtma_pozitsiya_id', { mode: 'number' }),
+    /** Qaysi kesimdan chiqqan. FK 4-bosqichda qo'yildi (P-18, T-04) */
+    buyurtmaPozitsiyaId: bigint('buyurtma_pozitsiya_id', { mode: 'number' }).references(
+      () => buyurtmaPozitsiya.id,
+    ),
 
     /** Snapshot — 2.3-invariant, hech qachon qayta hisoblanmaydi */
     tannarxBirlikSnapshot: numeric('tannarx_birlik_snapshot', {
@@ -241,14 +244,14 @@ export const band = pgTable(
     bolakId: bigint('bolak_id', { mode: 'number' })
       .notNull()
       .references(() => bolak.id),
-    /** FK 4-bosqichda qo'shiladi (P-18) */
+    /** FK 4-bosqichda qo'yildi (P-18, T-04 yopildi) */
     buyurtmaPozitsiyaId: bigint('buyurtma_pozitsiya_id', { mode: 'number' }).notNull(),
     /**
      * QISM 3 §3.2.1 — «Bitta pozitsiyaga BIR NECHTA band».
      *
      * Har slot uchun alohida band qo'yiladi. Faqat pozitsiya bilan
      * bog'lansa, ko'p slotli mahsulotda materialning bir qismi band
-     * qilinmay qoladi. FK 4-bosqichda qo'shiladi (P-18).
+     * qilinmay qoladi. FK 4-bosqichda qo'yildi (P-18, T-04 yopildi).
      */
     pozitsiyaMaterialId: bigint('pozitsiya_material_id', { mode: 'number' }).notNull(),
 
@@ -284,6 +287,19 @@ export const band = pgTable(
      * yopadi: kod xato yozilsa ham ikkinchi band yozilmaydi.
      */
     uniqueIndex('band_bitta_faol').on(t.bolakId).where(sql`${t.holat} = 'FAOL'`),
+
+    // T-04 — mavjud bo'lmagan pozitsiyaga band qo'yib bo'lmaydi.
+    // ⚠️ CASCADE YO'Q (§6.3): pozitsiya o'chirilmaydi, bekor qilinadi.
+    foreignKey({
+      columns: [t.buyurtmaPozitsiyaId],
+      foreignColumns: [buyurtmaPozitsiya.id],
+      name: 'band_pozitsiya_fk',
+    }),
+    foreignKey({
+      columns: [t.pozitsiyaMaterialId],
+      foreignColumns: [pozitsiyaMaterial.id],
+      name: 'band_pozitsiya_material_fk',
+    }),
     index('band_pozitsiya').on(t.buyurtmaPozitsiyaId),
     index('band_muddat').on(t.amalQiladi).where(sql`${t.holat} = 'FAOL'`),
   ],

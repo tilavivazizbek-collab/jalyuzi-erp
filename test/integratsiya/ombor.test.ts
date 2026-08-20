@@ -7,7 +7,7 @@
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { Ulanish } from '@/lib/db/ulanish';
-import { sinovUlanishi } from './yordamchi';
+import { pozitsiyaTolqini, sinovUlanishi } from './yordamchi';
 
 let sql: Ulanish;
 let materialId: number;
@@ -25,7 +25,11 @@ beforeAll(async () => {
   const mid = m[0]?.id;
   if (mid === undefined) throw new Error('material yaratilmadi');
   materialId = mid;
-}, 60_000);
+
+  const tolqin = await pozitsiyaTolqini(sql, materialId, 12, 12, FILIAL, XODIM);
+  pozitsiyalar = tolqin.pozitsiyalar;
+  qatorlar = tolqin.materialQatorlari;
+}, 120_000);
 
 afterAll(async () => {
   await sql.end();
@@ -40,6 +44,27 @@ afterAll(async () => {
  *    uchun «kod takrorlanmasin» degan test ham ishlayveradi.
  */
 const BELGI = String(Date.now()).slice(-8);
+
+/**
+ * ⚠️ T-04 dan keyin `band` ning ikki ustuni HAQIQIY buyurtma
+ *    pozitsiyasiga bog'langan. Avval bu yerda 1001, 2001 kabi o'ylab
+ *    topilgan raqamlar turardi — ular faqat tashqi kalit YO'Q bo'lgani
+ *    uchun o'tardi.
+ */
+let pozitsiyalar: readonly number[] = [];
+let qatorlar: readonly number[] = [];
+let navbat = 0;
+
+/** Navbatdagi (pozitsiya, material qatori) juftligi. */
+function juft(): { p: number; m: number } {
+  const p = pozitsiyalar[navbat % pozitsiyalar.length];
+  const m = qatorlar[navbat % qatorlar.length];
+  navbat += 1;
+  if (p === undefined || m === undefined) {
+    throw new Error('sinov pozitsiyalari tayyorlanmagan');
+  }
+  return { p, m };
+}
 
 async function radEtilsin(ish: () => Promise<unknown>): Promise<void> {
   await expect(ish()).rejects.toThrow();
@@ -123,14 +148,16 @@ describe('TZ 7.3 — bir bo\'lakda bir vaqtda BITTA faol band', () => {
     VALUES (${bolakId}, ${pozitsiya}, ${material}, now() + interval '30 days', ${XODIM})`;
 
   it('birinchi band qo\'yiladi', async () => {
-    await bandQoy(1001, 2001);
+    const a = juft();
+    await bandQoy(a.p, a.m);
     const q = await sql<{ n: number }[]>`
       SELECT COUNT(*)::int AS n FROM band WHERE bolak_id = ${bolakId} AND holat = 'FAOL'`;
     expect(q[0]?.n).toBe(1);
   });
 
   it("IKKINCHI band RAD ETILADI — «ikkinchi ustaga rad javobi»", async () => {
-    await radEtilsin(() => bandQoy(1002, 2002));
+    const a = juft();
+    await radEtilsin(() => bandQoy(a.p, a.m));
   });
 
   it("band bo'shatilgach yangisini qo'ysa bo'ladi (Q-06)", async () => {
@@ -138,7 +165,8 @@ describe('TZ 7.3 — bir bo\'lakda bir vaqtda BITTA faol band', () => {
       UPDATE band SET holat = 'BOSHATILDI', boshatish_sabab = 'IFLOS',
                       boshatildi = now()
       WHERE bolak_id = ${bolakId} AND holat = 'FAOL'`;
-    await bandQoy(1003, 2003);
+    const a = juft();
+    await bandQoy(a.p, a.m);
 
     const q = await sql<{ n: number }[]>`
       SELECT COUNT(*)::int AS n FROM band WHERE bolak_id = ${bolakId} AND holat = 'FAOL'`;
@@ -150,7 +178,7 @@ describe('TZ 7.3 — bir bo\'lakda bir vaqtda BITTA faol band', () => {
     await sql`
       INSERT INTO band (bolak_id, buyurtma_pozitsiya_id, pozitsiya_material_id,
                         amal_qiladi, yaratdi_id)
-      VALUES (${boshqa}, 1004, 2004, now() + interval '30 days', ${XODIM})`;
+      VALUES (${boshqa}, ${juft().p}, ${juft().m}, now() + interval '30 days', ${XODIM})`;
 
     await radEtilsin(
       () => sql`UPDATE band SET holat = 'BOSHATILDI' WHERE bolak_id = ${boshqa}`,
@@ -163,7 +191,7 @@ describe('TZ 7.3 — bir bo\'lakda bir vaqtda BITTA faol band', () => {
       () => sql`
         INSERT INTO band (bolak_id, buyurtma_pozitsiya_id, pozitsiya_material_id,
                           holat, boshatish_sabab, amal_qiladi, yaratdi_id)
-        VALUES (${boshqa}, 1005, 2005, 'BOSHATILDI', 'YOMON_SABAB',
+        VALUES (${boshqa}, ${juft().p}, ${juft().m}, 'BOSHATILDI', 'YOMON_SABAB',
                 now() + interval '30 days', ${XODIM})`,
     );
   });
@@ -173,11 +201,11 @@ describe('TZ 7.3 — bir bo\'lakda bir vaqtda BITTA faol band', () => {
     await sql`
       INSERT INTO band (bolak_id, buyurtma_pozitsiya_id, pozitsiya_material_id,
                         holat, amal_qiladi, yaratdi_id)
-      VALUES (${b}, 1006, 2006, 'ISHLATILDI', now(), ${XODIM})`;
+      VALUES (${b}, ${juft().p}, ${juft().m}, 'ISHLATILDI', now(), ${XODIM})`;
     await sql`
       INSERT INTO band (bolak_id, buyurtma_pozitsiya_id, pozitsiya_material_id,
                         amal_qiladi, yaratdi_id)
-      VALUES (${b}, 1007, 2007, now() + interval '30 days', ${XODIM})`;
+      VALUES (${b}, ${juft().p}, ${juft().m}, now() + interval '30 days', ${XODIM})`;
 
     const q = await sql<{ n: number }[]>`
       SELECT COUNT(*)::int AS n FROM band WHERE bolak_id = ${b}`;
@@ -191,16 +219,16 @@ describe('TZ 7.3 — HAQIQIY POYGA: ikki so\'rov bir vaqtda', () => {
   it("faqat BITTASI o'tadi, ikkinchisi rad etiladi", async () => {
     const b = await bolakYarat('R-POYGA');
 
-    const urinish = (pozitsiya: number) =>
+    const urinish = (j: { p: number; m: number }) =>
       sql`
         INSERT INTO band (bolak_id, buyurtma_pozitsiya_id, pozitsiya_material_id,
                           amal_qiladi, yaratdi_id)
-        VALUES (${b}, ${pozitsiya}, ${pozitsiya}, now() + interval '30 days', ${XODIM})`
+        VALUES (${b}, ${j.p}, ${j.m}, now() + interval '30 days', ${XODIM})`
         .then(() => 'OK' as const)
         .catch(() => 'RAD' as const);
 
     // Ikkalasi ham bir vaqtda yuboriladi
-    const natijalar = await Promise.all([urinish(3001), urinish(3002)]);
+    const natijalar = await Promise.all([urinish(juft()), urinish(juft())]);
 
     expect(natijalar.filter((n) => n === 'OK')).toHaveLength(1);
     expect(natijalar.filter((n) => n === 'RAD')).toHaveLength(1);
