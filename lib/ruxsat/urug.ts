@@ -63,6 +63,9 @@ export const ROL_URUGI: readonly RolUrugi[] = [
       ['buyurtma.tahrirla', 'OZ_FILIALI'], // 8.7
       ['buyurtma.bekor', 'OZ_FILIALI'], // 8.8
       ['buyurtma.chegirma', 'OZ_FILIALI'], // 3.11 — limitdan oshsa ogohlantiriladi
+      // BERILMAYDI: buyurtma.qayta_kesish — 8.17.2 «ADMIN ko'radi va
+      //             qaror qiladi». Sotuvchi ishlab chiqarish brakini
+      //             tasdiqlamaydi.
     ],
     // BERILMAYDI: kassa.barcha.kor (12.14 «faqat o'z kassasi»),
     //             kassa.ayirboshlash va kassa.storno (14.6 misolida ☐),

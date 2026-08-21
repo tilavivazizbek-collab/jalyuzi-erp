@@ -93,6 +93,13 @@ export const RUXSATLAR = {
   'buyurtma.tasdiqla': { nom: 'Buyurtmani tasdiqlash', guruh: 'Sotuv', band: '8.4' },
   'buyurtma.tahrirla': { nom: 'Buyurtmani tahrirlash', guruh: 'Sotuv', band: '8.7' },
   'buyurtma.bekor': { nom: 'Buyurtmani bekor qilish', guruh: 'Sotuv', band: '8.8' },
+  // ⚠️ Kod `guruh.amal` ko'rinishida bo'lishi shart (14.6) — pastki
+  //    chiziq ishlatilmaydi, shuning uchun `qayta_kesish` emas `brak`.
+  'buyurtma.brak': {
+    nom: 'Ishlab chiqarish brakini hal qilish (8.17)',
+    guruh: 'Sotuv',
+    band: '8.17',
+  },
   'buyurtma.chegirma': {
     nom: 'Chegirma berish',
     guruh: 'Sotuv',

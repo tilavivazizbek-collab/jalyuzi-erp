@@ -13,6 +13,10 @@ Shuning uchun bu ro'yxat qisqa bo'lishi va bo'shab borishi kerak.
 | T-03 | Qarorlar hujjatga ko'chirilmagan | Egasi tasdiqlagach | O'rta |
 | ~~T-04~~ | ~~`band` va `bolak` ning buyurtma tashqi kalitlari~~ | ✅ yopildi | — |
 | T-05 | Kirimda yetkazib beruvchi qarzi yozilmaydi | 5-bosqich | O'rta |
+| ~~T-06~~ | ~~Baza testlari bir martalik edi~~ | ✅ yopildi | — |
+| T-07 | Inventarizatsiya farqlari hisoboti | 8-bosqich | Past |
+| T-08 | Masofadagi baza tarmoq uzilishlari | 10-bosqich | O'rta |
+| T-09 | Qayta kesishda ustaning haqi bekor qilinmaydi | 5-bosqich | O'rta |
 
 ---
 
@@ -279,3 +283,50 @@ bilan loqal ishlash talabi (QISM 1 §2.3) allaqachon bor.
 `vitest.baza.config.ts` da limit 120 s — kechikish sakraganda to'g'ri
 kod «yiqilgan» bo'lib ko'rinmasin. Bu uzilishning o'zini yopmaydi,
 faqat sekinlikni yopadi.
+
+---
+
+## T-09 · Qayta kesishda ustaning haqi bekor qilinmaydi
+
+**Sana:** 2026-08-21 · **Bosqich:** 5 · **Manba:** TZ 8.17.5 · Q-15 · 10.13
+
+### Nima yetishmaydi
+
+TZ 8.17.5 (Q-15) talab qiladi:
+
+> - Birinchi «Tugatdim» dagi haq **bekor qilinadi** (teskari yozuv,
+>   xodim harakatiga)
+> - Ikkinchi «Tugatdim» da haq **bir marta** hisoblanadi
+> - Natija: usta bir marta oladi, ikki marta ishlagan bo'lsa ham
+
+Teskari yozuv `xodim_harakat` jadvaliga tushishi kerak. U jadval
+**5-bosqichda** (xodimlar va kassa) yaratiladi.
+
+Ushlanma (10.13) ham shu jadvalga tegadi.
+
+### Hozir nima bor
+
+`qayta_kesish` jadvalida qaror **yozib qo'yilgan**:
+
+| Ustun | Nima |
+|---|---|
+| `ushlanma_summa` | admin ushlab qolgan summa |
+| `haq_saqlandi` | 8.17.5.1 istisnosi qo'llanganmi |
+
+Ya'ni ma'lumot yo'qolmaydi — faqat ish haqi hisobiga hali ulanmagan.
+
+### Nega shunday qoldirildi
+
+Ish haqi jadvalisiz teskari yozuvni yozib bo'lmaydi. Uni «vaqtincha»
+boshqa joyga yozish esa 2.2-invariantni buzardi: balans ikki manbadan
+yig'ilib qolardi.
+
+### Yopilishi
+
+5-bosqichda `xodim_harakat` yaratilganda:
+
+1. `qaytaKesishHal()` tasdiqlanganda `haq_saqlandi = false` bo'lsa —
+   birinchi «Tugatdim» stavkasiga teskari yozuv
+2. `ushlanma_summa > 0` bo'lsa — ushlanma yozuvi (ish haqi xarajatini
+   KAMAYTIRADI, alohida daromad emas — 8.17.6)
+3. Ikkalasi ham `qaytaKesishHal` ning O'SHA tranzaksiyasida

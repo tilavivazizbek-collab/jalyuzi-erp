@@ -1124,3 +1124,56 @@ kesish ham (8.17) shu bitta funksiyani chaqiradi (§2.2).
 Testi: `test/domain/kesish.test.ts` — Dikke uch slotining enlari
 `0.30 + 0.30 + 1.20 = 1.80 m` ga, ya'ni mahsulotning butun eniga teng
 chiqadi (K-02 bilan bir xil misol).
+
+---
+
+## P-25 — Qayta kesish TAYYOR pozitsiyani ishlab chiqarishga qaytaradi
+
+**Fayl:** `lib/amal/qayta-kesish.ts` · **Manba:** LOYIHA.md 8.3 · 8.17.8 · EC-BRK-05
+
+### Ziddiyat
+
+TZ 8.17.8 aniq yozadi:
+
+> «Yangi status kerak emas. Pozitsiya **"Ishlab chiqarilmoqda"ga
+>  QAYTADI**.»
+
+EC-BRK-05 esa buni tayyor mahsulot uchun ham talab qiladi:
+
+> «Usta "Tugatdim" bosgan, keyin brak topildi → haq bekor qilinadi,
+>  material tiklanmaydi.»
+
+Lekin 8.3 dagi holat oqimi bir tomonlama: `TAYYOR` dan orqaga yo'l yo'q.
+Kodda bu oq ro'yxat bilan yopilgan (`lib/domain/buyurtma.ts`):
+
+```
+TAYYOR: ['TOPSHIRILDI', 'RAD_ETILGAN']
+```
+
+### Qaror
+
+**8.17 foydasiga.** `qaytaKesishHal()` da `otishniTekshir` chaqirilmaydi —
+u umumiy oqim uchun qoladi va `TAYYOR → ISHLAB_CHIQARILMOQDA` sakrashini
+to'sib turaveradi.
+
+### Nega oq ro'yxatga qo'shilmadi
+
+`TAYYOR → ISHLAB_CHIQARILMOQDA` ni umumiy ro'yxatga kiritish uni HAR
+QAYERDA ochib qo'yardi: tasodifiy tugma, xato so'rov, bot xatosi tayyor
+mahsulotni ishlab chiqarishga qaytara olardi.
+
+Qayta kesish esa **yagona** qonuniy yo'l va u uch to'siqdan o'tadi:
+
+1. Usta so'rov yuboradi (8.17.3)
+2. **Admin tasdiqlaydi** (8.17.2) — avtomatik emas
+3. Har qadam audit jurnalida, `qayta_kesildi_soni` oshadi (8.17.8)
+
+Ya'ni cheklovni ro'yxatdan olib tashlash o'rniga, uni AYLANIB O'TISH
+huquqi faqat shu bitta, nazorat ostidagi funksiyaga berildi.
+
+### Tekshiruv
+
+`test/integratsiya/qayta-kesish.test.ts` — «TAYYOR pozitsiya qayta
+kesishdan keyin ISHLAB_CHIQARILMOQDA ga qaytadi», va oddiy oqimda
+`otishniTekshir('TAYYOR', 'ISHLAB_CHIQARILMOQDA')` hamon xato tashlaydi
+(`test/domain/buyurtma.test.ts`).

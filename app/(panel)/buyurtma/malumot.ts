@@ -337,3 +337,95 @@ export async function buyurtmaTafsili(
     })),
   };
 }
+
+// ─── 8.17 · Qayta kesish so'rovlari ───────────────────────────────────────
+
+export interface QaytaKesishQatori {
+  readonly id: number;
+  readonly pozitsiyaId: number;
+  readonly buyurtmaId: number;
+  readonly buyurtmaRaqam: string;
+  readonly tartib: number;
+  readonly turNomi: string;
+  readonly eniSm: number;
+  readonly boyiSm: number;
+  readonly ustaIsmi: string;
+  readonly sabab: string;
+  readonly izoh: string | null;
+  readonly sana: Date;
+  /** TZ 8.17.8 — adminga jami son ko'rsatiladi (EC-BRK-03) */
+  readonly oldingiSoni: number;
+  /** Oldingi qayta kesishlarda yo'qotilgan maydon */
+  readonly yoqotilganKvM: number;
+  readonly yoqotilganSumma: string;
+}
+
+/**
+ * TZ 8.17.2 — admin hal qiladigan ochiq so'rovlar.
+ *
+ * ⚠️ 8.17.8 — «Ikkinchi marta so'ralsa admin buni ko'radi: bu pozitsiya
+ *    2 marta qayta kesilgan, material yo'qotishi 7.20 kv.m · 631 000
+ *    so'm.» Shuning uchun ro'yxat oldingi yo'qotishni ham olib keladi.
+ */
+export async function ochiqQaytaKesishlar(
+  filialId: number,
+): Promise<QaytaKesishQatori[]> {
+  const q = await ulanishOl()<
+    {
+      id: number;
+      pozitsiya_id: number;
+      buyurtma_id: number;
+      buyurtma_raqam: string;
+      tartib: number;
+      tur_nomi: string;
+      eni_sm: number;
+      boyi_sm: number;
+      usta_ismi: string;
+      sabab: string;
+      izoh: string | null;
+      sana: Date;
+      oldingi_soni: number;
+      yoqotilgan_kv_m: string | null;
+      yoqotilgan_summa: string | null;
+    }[]
+  >`
+    SELECT qk.id, p.id AS pozitsiya_id, b.id AS buyurtma_id,
+           b.raqam AS buyurtma_raqam, p.tartib, t.nom AS tur_nomi,
+           p.eni_sm, p.boyi_sm, x.ism AS usta_ismi, qk.sabab, qk.izoh,
+           qk.yaratildi AS sana, p.qayta_kesildi_soni AS oldingi_soni,
+           (SELECT SUM(ABS(oh.miqdor_kv_m))
+              FROM ombor_harakat oh
+              JOIN qayta_kesish e ON e.id = oh.manba_id
+             WHERE oh.manba_turi = 'qayta_kesish'
+               AND e.buyurtma_pozitsiya_id = p.id)::text AS yoqotilgan_kv_m,
+           (SELECT SUM(ABS(oh.tannarx_summa))
+              FROM ombor_harakat oh
+              JOIN qayta_kesish e ON e.id = oh.manba_id
+             WHERE oh.manba_turi = 'qayta_kesish'
+               AND e.buyurtma_pozitsiya_id = p.id)::text AS yoqotilgan_summa
+    FROM qayta_kesish qk
+    JOIN buyurtma_pozitsiya p ON p.id = qk.buyurtma_pozitsiya_id
+    JOIN buyurtma b ON b.id = p.buyurtma_id
+    JOIN mahsulot_tur t ON t.id = p.mahsulot_tur_id
+    JOIN xodim x ON x.id = qk.soragan_usta_id
+    WHERE qk.holat = 'SOROV' AND b.ishlab_chiqaruvchi_filial_id = ${filialId}
+    ORDER BY qk.yaratildi`;
+
+  return q.map((r) => ({
+    id: r.id,
+    pozitsiyaId: r.pozitsiya_id,
+    buyurtmaId: r.buyurtma_id,
+    buyurtmaRaqam: r.buyurtma_raqam,
+    tartib: r.tartib,
+    turNomi: r.tur_nomi,
+    eniSm: r.eni_sm,
+    boyiSm: r.boyi_sm,
+    ustaIsmi: r.usta_ismi,
+    sabab: r.sabab,
+    izoh: r.izoh,
+    sana: r.sana,
+    oldingiSoni: r.oldingi_soni,
+    yoqotilganKvM: Number(r.yoqotilgan_kv_m ?? 0),
+    yoqotilganSumma: r.yoqotilgan_summa ?? '0',
+  }));
+}
