@@ -1006,3 +1006,121 @@ omborchi kesimida.
 Bu bir martalik, qaytarilmaydigan amal: bir material uchun ikkinchi marta
 kiritilmaydi (kodda ham to'silgan). Xato bo'lsa faqat inventarizatsiya
 bilan tuzatiladi. Shuning uchun u omborchiga berilmadi.
+
+---
+
+## P-23 — Band qilish buyurtma tranzaksiyasi ICHIDA bajariladi
+
+**Fayl:** `lib/amal/band.ts` · `lib/amal/buyurtma.ts`
+**Manba:** LOYIHA.md 7.3 · 3.14 · 2.1-invariant · CLAUDE.md §3
+
+### Muammo
+
+CLAUDE.md §3 «buyurtma tasdiqlash» ni bitta tranzaksiyada bajarilishi
+shart bo'lgan amallar ro'yxatiga kiritadi. TZ 7.3 esa: «Pozitsiya
+"Tasdiqlangan" bo'lgan **zahoti** tizim mos bo'lakni topadi va band
+qiladi.»
+
+Demak buyurtma yozilib, band qilinmay qolsa — 2.1-invariant buziladi:
+mijozga «buyurtma qabul qilindi» deyildi, lekin material hech kimga
+ushlanmagan va boshqa buyurtma uni olib ketishi mumkin.
+
+Lekin `pozitsiyaniBandQil()` O'Z tranzaksiyasini ochardi
+(`ulanish.begin`). `postgres.js` da `TransactionSql` turida `begin`
+umuman yo'q — uning o'rniga `savepoint` bor.
+
+### Qaror
+
+Funksiya ikkiga bo'lindi:
+
+| Funksiya | Kim chaqiradi | Nima qiladi |
+|---|---|---|
+| `pozitsiyaniBandQil(sql, …)` | mustaqil band qilish | tranzaksiya ochadi |
+| `bandQilTx(tx, …)` | `buyurtmaYarat`, `pozitsiyaniTasdiqla` | chaqiruvchi tranzaksiyasida, **savepoint** ichida |
+
+Ish tanasi **bitta** — `bandQilTx` da. Tashqi qobiq faqat tranzaksiya
+ochadi va o'shani chaqiradi (§2.2 — nusxa yo'q).
+
+### Nega savepoint
+
+QISM 3 §3.2.1 «yarim band qolmasin» deydi: bir slot topilmasa, o'sha
+pozitsiyaning boshqa slotlari uchun qo'yilgan bandlar ham bekor
+bo'lishi kerak. Lekin **buyurtmaning o'zi saqlanishi** kerak — Q-03
+bo'yicha pozitsiya «Materialga kutmoqda» ga tushadi va mijoz ketmaydi.
+
+Savepoint aynan shuni beradi: ichkarisi orqaga qaytadi, tashqarisi
+qoladi. To'liq `ROLLBACK` bo'lganda buyurtma ham yo'qolardi.
+
+### Tekshiruv
+
+`test/integratsiya/buyurtma.test.ts` — «bitta slot topilmasa IKKALASI
+ham band qilinmaydi»: pozitsiyada `band` qatori **0** ta, lekin
+buyurtma bazada turibdi.
+
+---
+
+## P-24 — Band qilish uchun kesim o'lchami qanday chiqadi
+
+**Fayl:** `lib/domain/kesish.ts` (`kesimOlchami`) · **Manba:** LOYIHA.md 3.5 · 7.6 · Q-05
+
+### Ziddiyat
+
+Ikki band bir-biriga tayanadi, lekin **turli o'lchov** bilan gapiradi:
+
+| Band | Nima beradi |
+|---|---|
+| 3.5 | slot formulasi natijasi — **maydon** (kv.m) |
+| 7.6 | band qilish uchun kerakli **to'rtburchak** (`eni × bo'yi`, metrda) |
+
+Maydondan to'rtburchakni tiklash usuli hujjatda yozilmagan.
+
+### Nima xato bo'lardi
+
+Eng oson yechim — pozitsiyaning butun o'lchamini yuborish. TZ 3.5 dagi
+Dikke misolida (180 × 220, CHET = 30) bu shunday chiqardi:
+
+| Slot | Kerak | Butun o'lcham yuborilsa band qilinardi |
+|---|---|---|
+| Oq mato (chet) | 0.30 × 2.20 m | **1.80 × 2.20 m** |
+| Ko'k mato (chet) | 0.30 × 2.20 m | **1.80 × 2.20 m** |
+| Ko'k mato (o'rta) | 1.20 × 2.20 m | 1.80 × 2.20 m |
+
+30 smlik chet uchun 180 smlik bo'lak band qilinardi. Uchta slotga bitta
+rulon yetmay qolardi va pozitsiya sababsiz «Materialga kutmoqda» ga
+tushardi — omborda mato bo'la turib.
+
+### Qaror
+
+Kesim eni **maydonni bo'yiga bo'lishdan** chiqadi:
+
+```
+eni_m = hisoblangan_kv_m ÷ (boyi_sm ÷ 100)
+```
+
+| Misol | Hisob | Natija |
+|---|---|---|
+| Rollo 210 × 140 | 2.94 ÷ 1.40 | 2.10 m — butun eni |
+| Dikke chet, CHET=30 | 0.66 ÷ 2.20 | 0.30 m — chet bo'lagi |
+
+### Nega ishlaydi
+
+TZ 3.5 dagi barcha slot formulalari `X × BO'YI` ko'rinishida: mahsulot
+bo'yiga **butun** kesiladi, faqat eni bo'linadi. Bu jalyuzining
+tabiatidan kelib chiqadi — mato rulondan bo'yi bo'ylab tortiladi.
+
+### Chegara
+
+Formula `BO'YI` ga ko'paytirilmagan bo'lsa (masalan `MAYDON / 2`) bu
+hisob noto'g'ri eni beradi. Hozircha bunday formula TZ da yo'q. Agar
+kerak bo'lsa, slotga «kesim eni formulasi» degan alohida ustun
+qo'shiladi — lekin ikkinchi formula qo'shishdan oldin egadan haqiqiy
+misol so'raladi.
+
+### Qayerda turadi
+
+`lib/domain/kesish.ts` — sotuv ekrani ham, bot ham (13-bo'lim), qayta
+kesish ham (8.17) shu bitta funksiyani chaqiradi (§2.2).
+
+Testi: `test/domain/kesish.test.ts` — Dikke uch slotining enlari
+`0.30 + 0.30 + 1.20 = 1.80 m` ga, ya'ni mahsulotning butun eniga teng
+chiqadi (K-02 bilan bir xil misol).

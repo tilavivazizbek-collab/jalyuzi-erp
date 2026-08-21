@@ -56,6 +56,13 @@ export const ROL_URUGI: readonly RolUrugi[] = [
       ['mijoz.kor', 'BARCHA'], // 3.10 — mijoz qidirish
       // 3.10 — «Topilmasa, o'sha yerning o'zidan yangi mijoz qo'shiladi»
       ['mijoz.yarat', 'BARCHA'],
+      // TZ 3.1 — sotuv ekrani sotuvchining asosiy ishi
+      ['buyurtma.kor', 'OZ_FILIALI'],
+      ['buyurtma.yarat', 'OZ_FILIALI'], // 3.14
+      ['buyurtma.tasdiqla', 'OZ_FILIALI'], // 8.4 — botdan kelganini tasdiqlaydi
+      ['buyurtma.tahrirla', 'OZ_FILIALI'], // 8.7
+      ['buyurtma.bekor', 'OZ_FILIALI'], // 8.8
+      ['buyurtma.chegirma', 'OZ_FILIALI'], // 3.11 — limitdan oshsa ogohlantiriladi
     ],
     // BERILMAYDI: kassa.barcha.kor (12.14 «faqat o'z kassasi»),
     //             kassa.ayirboshlash va kassa.storno (14.6 misolida ☐),

@@ -15,6 +15,7 @@ import {
   sigadimi,
   type Bolak,
   type Chegaralar,
+  kesimOlchami,
 } from '@/lib/domain/kesish';
 import { BiznesXato } from '@/lib/xato';
 
@@ -270,5 +271,41 @@ describe('7.6, 0-qadam va Q-13 — birlashtirish TAVSIYASI', () => {
   it('bitta pozitsiyada tavsiya yo\'q', () => {
     expect(birlashtirishTavsiyasi([{ eniM: 2.1, boyiM: 1.4 }])).toBeNull();
     expect(birlashtirishTavsiyasi([])).toBeNull();
+  });
+});
+
+// ─── P-24 · Maydondan kesim to'rtburchagi ─────────────────────────────────
+
+describe("P-24 — slot maydonidan kesim eni chiqadi", () => {
+  it('Rollo 210 × 140 — butun eni qaytadi', () => {
+    // 2.94 kv.m ÷ 1.40 m = 2.10 m
+    expect(kesimOlchami('2.9400', 140)).toEqual({ eniM: 2.1, boyiM: 1.4 });
+  });
+
+  it("Dikke chet sloti — 30 sm, butun eni EMAS (TZ 3.5)", () => {
+    // 0.66 kv.m ÷ 2.20 m = 0.30 m
+    expect(kesimOlchami('0.6600', 220)).toEqual({ eniM: 0.3, boyiM: 2.2 });
+  });
+
+  it("Dikke o'rta sloti — 120 sm", () => {
+    // 2.64 kv.m ÷ 2.20 m = 1.20 m
+    expect(kesimOlchami('2.6400', 220)).toEqual({ eniM: 1.2, boyiM: 2.2 });
+  });
+
+  it("uch slot yig'indisi butun maydonga teng (K-02)", () => {
+    const a = kesimOlchami('0.6600', 220);
+    const b = kesimOlchami('0.6600', 220);
+    const c = kesimOlchami('2.6400', 220);
+    const jami = a.eniM + b.eniM + c.eniM;
+    // 0.30 + 0.30 + 1.20 = 1.80 m — mahsulotning butun eni
+    expect(jami).toBeCloseTo(1.8, 10);
+  });
+
+  it("bo'yi nol bo'lsa rad etiladi — bo'luvchi", () => {
+    expect(() => kesimOlchami('2.94', 0)).toThrow(BiznesXato);
+  });
+
+  it("maydon nol bo'lsa rad etiladi", () => {
+    expect(() => kesimOlchami('0', 140)).toThrow(BiznesXato);
   });
 });

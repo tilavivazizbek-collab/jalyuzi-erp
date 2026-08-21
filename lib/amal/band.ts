@@ -140,80 +140,104 @@ export async function pozitsiyaniBandQil(
   xodimId: number,
   hozir: Date = new Date(),
 ): Promise<BandNatijasi> {
+  return ulanish.begin(async (tx) =>
+    bandQilTx(tx, buyurtmaPozitsiyaId, filialId, slotlar, xodimId, hozir),
+  );
+}
+
+/**
+ * Xuddi shu ish, lekin CHAQIRUVCHINING tranzaksiyasi ichida.
+ *
+ * ⚠️ Buyurtma yaratish band qilishni O'Z tranzaksiyasiga qo'shishi
+ *    kerak (2.1-invariant): buyurtma yozilib, band qilinmay qolsa
+ *    material ushlanmasdan qoladi. `postgres.js` da `TransactionSql`
+ *    da `begin` yo'q, shuning uchun ish tanasi shu funksiyada turadi
+ *    va tashqi qobiq faqat tranzaksiya ochadi (§2.2 — bir nusxa).
+ */
+export async function bandQilTx(
+  tx: postgres.TransactionSql,
+  buyurtmaPozitsiyaId: number,
+  filialId: number,
+  slotlar: readonly SlotSorovi[],
+  xodimId: number,
+  hozir: Date = new Date(),
+): Promise<BandNatijasi> {
   const majburiy = slotlar.filter((s) => s.majburiy);
   if (majburiy.length === 0) {
     return { holat: 'BAND_QILINDI', bandlar: [] };
   }
 
-  return ulanish.begin(async (tx) => {
-    const bandlar: BandYozuvi[] = [];
-    const topilmagan: number[] = [];
+  return tx
+    .savepoint(async (sp) => {
+      const bandlar: BandYozuvi[] = [];
+      const topilmagan: number[] = [];
 
-    for (const slot of majburiy) {
-      let qolgan = await nomzodlarniOqi(tx, slot.materialId, filialId, slot.kerak);
-      let tanlov = null as ReturnType<typeof bolakTanla>;
+      for (const slot of majburiy) {
+        let qolgan = await nomzodlarniOqi(sp, slot.materialId, filialId, slot.kerak);
+        let tanlov = null as ReturnType<typeof bolakTanla>;
 
-      /**
-       * Tanla → qulfla → band qo'y.
-       *
-       * Qulflab bo'lmasa (boshqa usta olayotgan bo'lsa) o'sha bo'lak
-       * ro'yxatdan chiqariladi va KEYINGI nomzod tanlanadi — §7.2 aynan
-       * shuni talab qiladi.
-       */
-      while (qolgan.length > 0) {
-        // TZ 7.6 algoritmi — tanlov `lib/domain/kesish.ts` da, bir joyda (§2.2)
-        const nomzod = bolakTanla(qolgan, slot.kerak);
-        if (nomzod === null) break;
+        /**
+         * Tanla → qulfla → band qo'y.
+         *
+         * Qulflab bo'lmasa (boshqa usta olayotgan bo'lsa) o'sha bo'lak
+         * ro'yxatdan chiqariladi va KEYINGI nomzod tanlanadi — §7.2 aynan
+         * shuni talab qiladi.
+         */
+        while (qolgan.length > 0) {
+          // TZ 7.6 algoritmi — tanlov `lib/domain/kesish.ts` da, bir joyda (§2.2)
+          const nomzod = bolakTanla(qolgan, slot.kerak);
+          if (nomzod === null) break;
 
-        if (await bolakniQulfla(tx, nomzod.bolak.id)) {
-          tanlov = nomzod;
-          break;
+          if (await bolakniQulfla(sp, nomzod.bolak.id)) {
+            tanlov = nomzod;
+            break;
+          }
+          qolgan = qolgan.filter((b) => b.id !== nomzod.bolak.id);
         }
-        qolgan = qolgan.filter((b) => b.id !== nomzod.bolak.id);
+
+        if (tanlov === null) {
+          topilmagan.push(slot.pozitsiyaMaterialId);
+          continue;
+        }
+
+        const muddat = new Date(hozir.getTime() + BAND_MUDDATI_KUN * 86_400_000);
+
+        await sp`
+          INSERT INTO band (bolak_id, buyurtma_pozitsiya_id, pozitsiya_material_id,
+                            amal_qiladi, yaratdi_id)
+          VALUES (${tanlov.bolak.id}, ${buyurtmaPozitsiyaId}, ${slot.pozitsiyaMaterialId},
+                  ${muddat}, ${xodimId})`;
+
+        await sp`
+          UPDATE bolak SET holat = 'BAND', ozgartirildi = now(), ozgartirdi_id = ${xodimId}
+          WHERE id = ${tanlov.bolak.id}`;
+
+        bandlar.push({
+          pozitsiyaMaterialId: slot.pozitsiyaMaterialId,
+          bolakId: tanlov.bolak.id,
+          bolakKod: tanlov.bolak.kod,
+          manba: tanlov.manba,
+        });
       }
 
-      if (tanlov === null) {
-        topilmagan.push(slot.pozitsiyaMaterialId);
-        continue;
+      if (topilmagan.length > 0) {
+        /**
+         * QISM 3 §3.2.1 — «yarim band qolmasin».
+         *
+         * Xatoni otish tranzaksiyani orqaga qaytaradi: yozilgan bandlar
+         * ham, `bolak.holat` o'zgarishi ham bekor bo'ladi.
+         */
+        throw new YarimBandXatosi(topilmagan);
       }
 
-      const muddat = new Date(hozir.getTime() + BAND_MUDDATI_KUN * 86_400_000);
-
-      await tx`
-        INSERT INTO band (bolak_id, buyurtma_pozitsiya_id, pozitsiya_material_id,
-                          amal_qiladi, yaratdi_id)
-        VALUES (${tanlov.bolak.id}, ${buyurtmaPozitsiyaId}, ${slot.pozitsiyaMaterialId},
-                ${muddat}, ${xodimId})`;
-
-      await tx`
-        UPDATE bolak SET holat = 'BAND', ozgartirildi = now(), ozgartirdi_id = ${xodimId}
-        WHERE id = ${tanlov.bolak.id}`;
-
-      bandlar.push({
-        pozitsiyaMaterialId: slot.pozitsiyaMaterialId,
-        bolakId: tanlov.bolak.id,
-        bolakKod: tanlov.bolak.kod,
-        manba: tanlov.manba,
-      });
-    }
-
-    if (topilmagan.length > 0) {
-      /**
-       * QISM 3 §3.2.1 — «yarim band qolmasin».
-       *
-       * Xatoni otish tranzaksiyani orqaga qaytaradi: yozilgan bandlar
-       * ham, `bolak.holat` o'zgarishi ham bekor bo'ladi.
-       */
-      throw new YarimBandXatosi(topilmagan);
-    }
-
-    return { holat: 'BAND_QILINDI', bandlar } as const;
-  }).catch((x: unknown) => {
-    if (x instanceof YarimBandXatosi) {
-      return { holat: 'MATERIAL_YOQ', topilmagan: x.topilmagan } as const;
-    }
-    throw x;
-  });
+      return { holat: 'BAND_QILINDI', bandlar } as const;
+    })
+    .catch((x: unknown) => {
+      if (x instanceof YarimBandXatosi) {
+        return { holat: 'MATERIAL_YOQ', topilmagan: x.topilmagan } as const;
+      }
+      throw x;
+    });
 }
 
 /** Tranzaksiyani orqaga qaytarish uchun ichki xato — tashqariga chiqmaydi. */

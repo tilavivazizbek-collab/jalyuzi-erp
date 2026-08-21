@@ -12,6 +12,7 @@
  * faqat `eni × bo'yi`.
  */
 
+import Decimal from 'decimal.js';
 import { BiznesXato } from '@/lib/xato';
 import { kvM, m, type KvadratMetr, type Metr } from '@/lib/domain/birlik';
 
@@ -298,4 +299,33 @@ export function birlashtirishTavsiyasi(olchamlar: readonly Olcham[]): Olcham | n
 
   const jamiEni = olchamlar.reduce((y, o) => y + o.eniM, 0);
   return { eniM: Number(jamiEni.toFixed(2)), boyiM: birinchi.boyiM };
+}
+
+// ─── P-24 · Maydondan kesim to'rtburchagi ─────────────────────────────────
+
+/**
+ * TZ 3.5 · 7.6 — slot formulasi MAYDON beradi, band qilish esa
+ * `eni × bo'yi` TO'RTBURCHAGINI talab qiladi (Q-05).
+ *
+ * ⚠️ Butun mahsulot enini ishlatish XATO: Dikke'da (180 × 220,
+ *    CHET = 30) 30 smlik chet uchun 180 smlik bo'lak band qilinib,
+ *    qolgan ikki slotga material yetmay qolardi (P-24).
+ *
+ * TZ 3.5 dagi barcha formulalar `X × BO'YI` ko'rinishida — mato
+ * rulondan bo'yi bo'ylab tortiladi, faqat eni bo'linadi. Shuning
+ * uchun eni maydonni bo'yiga bo'lishdan chiqadi.
+ */
+export function kesimOlchami(hisoblanganKvM: string | number, boyiSm: number): Olcham {
+  if (boyiSm <= 0) {
+    throw new BiznesXato('KESIM_NOTOGRI', "bo'yi noldan katta bo'lsin");
+  }
+  const boyiM = new Decimal(boyiSm).div(100);
+  const eniM = new Decimal(hisoblanganKvM).div(boyiM);
+  if (eniM.lessThanOrEqualTo(0)) {
+    throw new BiznesXato('KESIM_NOTOGRI', "kesim eni noldan katta bo'lsin");
+  }
+  return {
+    eniM: eniM.toDecimalPlaces(2).toNumber(),
+    boyiM: boyiM.toDecimalPlaces(2).toNumber(),
+  };
 }

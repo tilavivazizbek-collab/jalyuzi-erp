@@ -99,6 +99,13 @@
       "when": 1787251300000,
       "tag": "0013_flaky_vindicator",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1787251300001,
+      "tag": "0014_buyurtma_raqam_ketmaketligi",
+      "breakpoints": true
     }
   ]
 }

@@ -9,7 +9,7 @@ import { chiqarishniBekorQil, hisobdanChiqar } from '@/lib/amal/hisobdan';
 import { kirimYarat, kirimniStorno } from '@/lib/amal/kirim';
 import { pulMatn } from '@/lib/domain/pul';
 import type { Ulanish } from '@/lib/db/ulanish';
-import { sinovUlanishi } from './yordamchi';
+import { pozitsiyaTolqini, sinovUlanishi } from './yordamchi';
 
 let sql: Ulanish;
 let matoId: number;
@@ -132,10 +132,14 @@ describe('TZ 7.10 — hisobdan chiqarish', () => {
 
   it("band qilingan bo'lak chiqarilsa band ham bo'shaydi", async () => {
     const bolakId = await bolakYarat();
+    // T-04 dan keyin band HAQIQIY pozitsiyaga bog'lanadi
+    const tolqin = await pozitsiyaTolqini(sql, matoId, 1, 1, FILIAL, XODIM);
     await sql`
       INSERT INTO band (bolak_id, buyurtma_pozitsiya_id, pozitsiya_material_id,
                         amal_qiladi, yaratdi_id)
-      VALUES (${bolakId}, 880001, 880001, now() + interval '30 days', ${XODIM})`;
+      VALUES (${bolakId}, ${tolqin.pozitsiyalar[0] ?? 0},
+              ${tolqin.materialQatorlari[0] ?? 0},
+              now() + interval '30 days', ${XODIM})`;
     await sql`UPDATE bolak SET holat = 'BAND' WHERE id = ${bolakId}`;
 
     await hisobdanChiqar(

@@ -1,0 +1,339 @@
+/**
+ * app/(panel)/buyurtma/malumot.ts — TZ 8.14 · 8.15 · 8.16 · Q-25
+ *
+ * ⚠️ TZ 8.2 — buyurtmaning UMUMIY STATUSI YO'Q. Ro'yxatda pozitsiya
+ *    holatlari SANOQ bo'lib ko'rsatiladi («3 tayyor, 1 tikilmoqda»),
+ *    bitta status sifatida emas. Aks holda yarim tayyor buyurtma
+ *    «tayyor» bo'lib ko'rinardi.
+ */
+
+import { ulanishOl } from '@/lib/db';
+
+export interface BuyurtmaQatori {
+  readonly id: number;
+  readonly raqam: string;
+  readonly sana: Date;
+  readonly mijozIsmi: string | null;
+  readonly manba: string;
+  readonly valyuta: string;
+  readonly tayyorlikSana: string | null;
+  readonly pozitsiyaSoni: number;
+  readonly jami: string;
+  /** Holat → soni (8.2) */
+  readonly holatlar: Readonly<Record<string, number>>;
+}
+
+export type BuyurtmaFiltri =
+  | 'HAMMASI'
+  | 'BUGUNGI'
+  | 'TASDIQ_KUTMOQDA'
+  | 'ISHLAB_CHIQARILMOQDA'
+  | 'TAYYOR'
+  | 'MATERIALGA_KUTMOQDA'
+  | 'MUDDATI_OTGAN';
+
+export const FILTR_NOMI: Record<BuyurtmaFiltri, string> = {
+  HAMMASI: 'Hammasi',
+  BUGUNGI: 'Bugungi',
+  TASDIQ_KUTMOQDA: 'Tasdiq kutmoqda',
+  ISHLAB_CHIQARILMOQDA: 'Ishlab chiqarilmoqda',
+  TAYYOR: 'Tayyor, topshirilmagan',
+  MATERIALGA_KUTMOQDA: 'Materialga kutmoqda',
+  MUDDATI_OTGAN: "Muddati o'tgan",
+};
+
+export async function buyurtmalar(
+  filialId: number,
+  filtr: BuyurtmaFiltri = 'HAMMASI',
+  chegara = 100,
+): Promise<BuyurtmaQatori[]> {
+  const sql = ulanishOl();
+
+  const holatliFiltr =
+    filtr === 'TASDIQ_KUTMOQDA' ||
+    filtr === 'ISHLAB_CHIQARILMOQDA' ||
+    filtr === 'TAYYOR' ||
+    filtr === 'MATERIALGA_KUTMOQDA';
+
+  const qatorlar = await sql<
+    {
+      id: number;
+      raqam: string;
+      sana: Date;
+      mijoz_ismi: string | null;
+      manba: string;
+      valyuta: string;
+      tayyorlik_sana: string | null;
+      pozitsiya_soni: number;
+      jami: string | null;
+    }[]
+  >`
+    SELECT b.id, b.raqam, b.sana, m.ism AS mijoz_ismi, b.manba, b.valyuta,
+           b.tayyorlik_sana::text AS tayyorlik_sana,
+           COUNT(p.id)::int AS pozitsiya_soni,
+           SUM(p.narx_snapshot - COALESCE(p.chegirma_summa, 0))::text AS jami
+    FROM buyurtma b
+    LEFT JOIN mijoz m ON m.id = b.mijoz_id
+    LEFT JOIN buyurtma_pozitsiya p ON p.buyurtma_id = b.id
+    WHERE b.sotgan_filial_id = ${filialId}
+      ${filtr === 'BUGUNGI' ? sql`AND b.sana::date = current_date` : sql``}
+      ${
+        holatliFiltr
+          ? sql`AND EXISTS (SELECT 1 FROM buyurtma_pozitsiya x
+                            WHERE x.buyurtma_id = b.id AND x.holat = ${filtr})`
+          : sql``
+      }
+      ${
+        filtr === 'MUDDATI_OTGAN'
+          ? // TZ 3.13 — sanasi YO'Q buyurtma kechikkan hisoblanmaydi
+            sql`AND b.tayyorlik_sana IS NOT NULL
+                AND b.tayyorlik_sana < current_date
+                AND EXISTS (SELECT 1 FROM buyurtma_pozitsiya x
+                            WHERE x.buyurtma_id = b.id
+                              AND x.holat NOT IN ('TOPSHIRILDI','QAYTARILGAN',
+                                                  'RAD_ETILGAN','BEKOR'))`
+          : sql``
+      }
+    GROUP BY b.id, m.ism
+    ORDER BY b.sana DESC, b.id DESC
+    LIMIT ${chegara}`;
+
+  if (qatorlar.length === 0) return [];
+
+  const holatlar = await sql<
+    { buyurtma_id: number; holat: string; n: number }[]
+  >`
+    SELECT buyurtma_id, holat, COUNT(*)::int AS n
+    FROM buyurtma_pozitsiya
+    WHERE buyurtma_id = ANY(${qatorlar.map((q) => q.id)})
+    GROUP BY buyurtma_id, holat`;
+
+  const holatBoyicha = new Map<number, Record<string, number>>();
+  for (const h of holatlar) {
+    const joriy = holatBoyicha.get(h.buyurtma_id) ?? {};
+    joriy[h.holat] = h.n;
+    holatBoyicha.set(h.buyurtma_id, joriy);
+  }
+
+  return qatorlar.map((q) => ({
+    id: q.id,
+    raqam: q.raqam,
+    sana: q.sana,
+    mijozIsmi: q.mijoz_ismi,
+    manba: q.manba,
+    valyuta: q.valyuta,
+    tayyorlikSana: q.tayyorlik_sana,
+    pozitsiyaSoni: q.pozitsiya_soni,
+    jami: q.jami ?? '0',
+    holatlar: holatBoyicha.get(q.id) ?? {},
+  }));
+}
+
+// ─── 8.14 · Kartochka ─────────────────────────────────────────────────────
+
+export interface PozitsiyaTafsili {
+  readonly id: number;
+  readonly tartib: number;
+  readonly turNomi: string;
+  readonly eniSm: number;
+  readonly boyiSm: number;
+  readonly soni: number;
+  readonly narx: string;
+  readonly chegirma: string;
+  readonly holat: string;
+  readonly ustaIsmi: string | null;
+  readonly materiallar: readonly {
+    readonly slotNomi: string;
+    readonly materialNomi: string;
+    readonly hisoblangan: number;
+    readonly tuzatilgan: number | null;
+    readonly birlik: string;
+    /** Band qilingan bo'lak kodlari (7.3) */
+    readonly bandKodlari: readonly string[];
+  }[];
+  readonly aksessuarlar: readonly {
+    readonly nom: string;
+    readonly soni: number;
+    readonly birlik: string;
+    readonly qoldaKiritildi: boolean;
+  }[];
+}
+
+export interface BuyurtmaTafsili {
+  readonly id: number;
+  readonly raqam: string;
+  readonly sana: Date;
+  readonly mijozIsmi: string | null;
+  readonly mijozTelefon: string | null;
+  readonly sotuvchiIsmi: string;
+  readonly manba: string;
+  readonly valyuta: string;
+  readonly kursSnapshot: string | null;
+  readonly tayyorlikSana: string | null;
+  readonly sotganFilialId: number;
+  readonly tikuvchiFilialId: number;
+  readonly pozitsiyalar: readonly PozitsiyaTafsili[];
+}
+
+export async function buyurtmaTafsili(
+  buyurtmaId: number,
+  filialId: number,
+): Promise<BuyurtmaTafsili | null> {
+  const sql = ulanishOl();
+
+  const bosh = await sql<
+    {
+      id: number;
+      raqam: string;
+      sana: Date;
+      mijoz_ismi: string | null;
+      mijoz_telefon: string | null;
+      sotuvchi_ismi: string;
+      manba: string;
+      valyuta: string;
+      kurs_snapshot: string | null;
+      tayyorlik_sana: string | null;
+      sotgan_filial_id: number;
+      ishlab_chiqaruvchi_filial_id: number;
+    }[]
+  >`
+    SELECT b.id, b.raqam, b.sana, m.ism AS mijoz_ismi, m.telefon AS mijoz_telefon,
+           x.ism AS sotuvchi_ismi, b.manba, b.valyuta, b.kurs_snapshot,
+           b.tayyorlik_sana::text AS tayyorlik_sana,
+           b.sotgan_filial_id, b.ishlab_chiqaruvchi_filial_id
+    FROM buyurtma b
+    JOIN xodim x ON x.id = b.sotuvchi_id
+    LEFT JOIN mijoz m ON m.id = b.mijoz_id
+    WHERE b.id = ${buyurtmaId}
+      AND (b.sotgan_filial_id = ${filialId} OR b.ishlab_chiqaruvchi_filial_id = ${filialId})`;
+
+  const h = bosh[0];
+  if (h === undefined) return null;
+
+  const pozitsiyalar = await sql<
+    {
+      id: number;
+      tartib: number;
+      tur_nomi: string;
+      eni_sm: number;
+      boyi_sm: number;
+      soni: number;
+      narx_snapshot: string;
+      chegirma_summa: string | null;
+      holat: string;
+      usta_ismi: string | null;
+    }[]
+  >`
+    SELECT p.id, p.tartib, t.nom AS tur_nomi, p.eni_sm, p.boyi_sm, p.soni,
+           p.narx_snapshot, p.chegirma_summa, p.holat, u.ism AS usta_ismi
+    FROM buyurtma_pozitsiya p
+    JOIN mahsulot_tur t ON t.id = p.mahsulot_tur_id
+    LEFT JOIN xodim u ON u.id = p.usta_id
+    WHERE p.buyurtma_id = ${buyurtmaId}
+    ORDER BY p.tartib`;
+
+  if (pozitsiyalar.length === 0) {
+    return {
+      id: h.id,
+      raqam: h.raqam,
+      sana: h.sana,
+      mijozIsmi: h.mijoz_ismi,
+      mijozTelefon: h.mijoz_telefon,
+      sotuvchiIsmi: h.sotuvchi_ismi,
+      manba: h.manba,
+      valyuta: h.valyuta,
+      kursSnapshot: h.kurs_snapshot,
+      tayyorlikSana: h.tayyorlik_sana,
+      sotganFilialId: h.sotgan_filial_id,
+      tikuvchiFilialId: h.ishlab_chiqaruvchi_filial_id,
+      pozitsiyalar: [],
+    };
+  }
+
+  const idlar = pozitsiyalar.map((p) => p.id);
+
+  const materiallar = await sql<
+    {
+      buyurtma_pozitsiya_id: number;
+      slot_nomi: string;
+      material_nomi: string;
+      hisoblangan_miqdor: string;
+      tuzatilgan_miqdor: string | null;
+      birlik: string;
+      band_kodlari: string[] | null;
+    }[]
+  >`
+    SELECT pm.buyurtma_pozitsiya_id, s.nom AS slot_nomi, m.nom AS material_nomi,
+           pm.hisoblangan_miqdor, pm.tuzatilgan_miqdor, pm.birlik,
+           array_remove(array_agg(bo.kod) FILTER (WHERE bd.holat = 'FAOL'), NULL)
+             AS band_kodlari
+    FROM pozitsiya_material pm
+    JOIN mahsulot_slot s ON s.id = pm.slot_id
+    JOIN material m ON m.id = pm.material_id
+    LEFT JOIN band bd ON bd.pozitsiya_material_id = pm.id
+    LEFT JOIN bolak bo ON bo.id = bd.bolak_id
+    WHERE pm.buyurtma_pozitsiya_id = ANY(${idlar})
+    GROUP BY pm.id, s.nom, m.nom
+    ORDER BY s.nom`;
+
+  const aksessuarlar = await sql<
+    {
+      buyurtma_pozitsiya_id: number;
+      nom: string;
+      soni: string;
+      birlik: string;
+      qolda_kiritildi: boolean;
+    }[]
+  >`
+    SELECT pa.buyurtma_pozitsiya_id, m.nom, pa.soni, pa.birlik, pa.qolda_kiritildi
+    FROM pozitsiya_aksessuar pa
+    JOIN material m ON m.id = pa.material_id
+    WHERE pa.buyurtma_pozitsiya_id = ANY(${idlar})
+    ORDER BY m.nom`;
+
+  return {
+    id: h.id,
+    raqam: h.raqam,
+    sana: h.sana,
+    mijozIsmi: h.mijoz_ismi,
+    mijozTelefon: h.mijoz_telefon,
+    sotuvchiIsmi: h.sotuvchi_ismi,
+    manba: h.manba,
+    valyuta: h.valyuta,
+    kursSnapshot: h.kurs_snapshot,
+    tayyorlikSana: h.tayyorlik_sana,
+    sotganFilialId: h.sotgan_filial_id,
+    tikuvchiFilialId: h.ishlab_chiqaruvchi_filial_id,
+    pozitsiyalar: pozitsiyalar.map((p) => ({
+      id: p.id,
+      tartib: p.tartib,
+      turNomi: p.tur_nomi,
+      eniSm: p.eni_sm,
+      boyiSm: p.boyi_sm,
+      soni: p.soni,
+      narx: p.narx_snapshot,
+      chegirma: p.chegirma_summa ?? '0',
+      holat: p.holat,
+      ustaIsmi: p.usta_ismi,
+      materiallar: materiallar
+        .filter((m) => m.buyurtma_pozitsiya_id === p.id)
+        .map((m) => ({
+          slotNomi: m.slot_nomi,
+          materialNomi: m.material_nomi,
+          hisoblangan: Number(m.hisoblangan_miqdor),
+          tuzatilgan:
+            m.tuzatilgan_miqdor === null ? null : Number(m.tuzatilgan_miqdor),
+          birlik: m.birlik,
+          bandKodlari: m.band_kodlari ?? [],
+        })),
+      aksessuarlar: aksessuarlar
+        .filter((a) => a.buyurtma_pozitsiya_id === p.id)
+        .map((a) => ({
+          nom: a.nom,
+          soni: Number(a.soni),
+          birlik: a.birlik,
+          qoldaKiritildi: a.qolda_kiritildi,
+        })),
+    })),
+  };
+}

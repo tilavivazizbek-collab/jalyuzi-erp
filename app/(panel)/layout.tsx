@@ -10,6 +10,8 @@ export const dynamic = 'force-dynamic';
 /** Menyu bandi va uni ochadigan ruxsat. */
 const BANDLAR: readonly (MenyuBandi & { kod: RuxsatKod | null })[] = [
   { yol: '/boshqaruv', nom: 'Boshqaruv', kod: null },
+  { yol: '/sotuv', nom: 'Sotuv', kod: 'buyurtma.yarat' },
+  { yol: '/buyurtma', nom: 'Buyurtmalar', kod: 'buyurtma.kor' },
   { yol: '/ombor', nom: 'Ombor', kod: 'ombor.qoldiq.kor' },
   { yol: '/ombor/kirim', nom: 'Kirimlar', kod: 'ombor.qoldiq.kor' },
   { yol: '/ombor/inventarizatsiya', nom: 'Inventarizatsiya', kod: 'ombor.inventarizatsiya' },

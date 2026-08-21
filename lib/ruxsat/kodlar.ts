@@ -19,6 +19,7 @@ export const GURUHLAR = [
   'Xodimlar',
   'Filiallar',
   'Ombor',
+  'Sotuv',
   'Kassa',
   'Narx',
   'Spravochnik',
@@ -84,6 +85,18 @@ export const RUXSATLAR = {
     nom: "Material ko'chirish so'rovi",
     guruh: 'Ombor',
     band: '20.12',
+  },
+
+  // ── Buyurtma va sotuv — TZ 14.6 · 8 ────────────────────────────────────
+  'buyurtma.kor': { nom: "Buyurtmalarni ko'rish", guruh: 'Sotuv', band: '8.1' },
+  'buyurtma.yarat': { nom: 'Buyurtma yaratish', guruh: 'Sotuv', band: '3.14' },
+  'buyurtma.tasdiqla': { nom: 'Buyurtmani tasdiqlash', guruh: 'Sotuv', band: '8.4' },
+  'buyurtma.tahrirla': { nom: 'Buyurtmani tahrirlash', guruh: 'Sotuv', band: '8.7' },
+  'buyurtma.bekor': { nom: 'Buyurtmani bekor qilish', guruh: 'Sotuv', band: '8.8' },
+  'buyurtma.chegirma': {
+    nom: 'Chegirma berish',
+    guruh: 'Sotuv',
+    band: '3.11',
   },
 
   // ── Kassa — TZ 14.6 ────────────────────────────────────────────────────
