@@ -1351,3 +1351,103 @@ Ish tanasi bitta (§2.2).
 
 `test/integratsiya/band.test.ts` — uchta muddati o'tgan band, chegara
 ikkita: aynan ikkitasi bo'shaydi va `yanaBormi = true` chiqadi.
+
+---
+
+## P-29 — Rad etish va qaytarish IKKI BOSHQA amal
+
+**Fayl:** `lib/amal/ish.ts` · `lib/amal/qaytarish.ts`
+**Manba:** LOYIHA.md 8.8 · 8.9 · 8.10 · 7.13
+
+### Nima topildi
+
+Qaytarish funksiyasini yozib, testda `TAYYOR → QAYTARILGAN` o'tishini
+sinadim. Holat mashinasi uni **rad etdi**:
+
+```
+TAYYOR: ['TOPSHIRILDI', 'RAD_ETILGAN']
+```
+
+Avvaliga o'z himoyam xato bo'lib tuyuldi. Hujjatni qayta o'qib
+ko'rilganda **himoya to'g'ri**, test noto'g'ri ekan.
+
+### Uch amal, uch xil holat
+
+TZ 8.8 va 8.10 ni birga o'qiganda uchta alohida hodisa chiqadi:
+
+| Amal | Qachon | Mahsulot qayerda | Pul |
+|---|---|---|---|
+| **Bekor qilish** | kesishdan OLDIN | material omborda | to'liq qaytariladi |
+| **Rad etish** | tayyor, mijoz OLMADI | omborda, «sotilmagan tayyor» (7.13) | to'lov bo'lmagan |
+| **Qaytarish** | mijoz OLGAN, keyin qaytardi | omborda | sotuvchi kelishadi (8.10) |
+
+Qaytarish uchun mahsulot avval **topshirilgan** bo'lishi shart —
+«mijoz uchta pardadan bittasini qaytara oladi» degani u ularni
+allaqachon olgan degani.
+
+### Nima yetishmayotgan edi
+
+Topshirish (8.9) umuman yozilmagan ekan. Uni qo'shmasdan qaytarishni
+sinab bo'lmasdi.
+
+`pozitsiyaniTopshir()` qo'shildi:
+- qisman topshirish mumkin (8.9)
+- barcha pozitsiya yopilganda buyurtma ham yopiladi
+- **pulga tegmaydi** — to'lov alohida hodisa (12.4), mijoz qarzga olib
+  ketishi mumkin
+
+### Dars
+
+Test qizil bo'lganda birinchi savol «kodni tuzatamanmi» emas, «kod
+to'g'ri emasmi» bo'lishi kerak. Bu safar oq ro'yxat hujjatni mendan
+yaxshiroq eslagan.
+
+---
+
+## P-30 — Qaytarishdagi pul qayerdan chiqadi
+
+**Fayl:** `lib/amal/qaytarish.ts` · **Manba:** LOYIHA.md 8.10 · 11.4.1
+
+### Talab
+
+TZ 8.10 ikki qoidani beradi:
+
+> «Pul qayerdan qaytariladi: avval mijoz QARZIDAN chegiriladi.
+>  Qaytariladigan summa qarzdan ko'p bo'lsa — ortiqchasi uchun
+>  **sotuvchi tanlaydi**: kassadan naqd berish yoki avans bo'lib
+>  qolish.»
+
+> «Farq (pozitsiya narxi − qaytarilgan summa) kassada qoladi va
+>  hisobotda **"qaytarishdan ushlab qolindi"** deb alohida chiqadi.»
+
+### Qaror
+
+Pul uch bo'lakka bo'linadi:
+
+```
+qarzdan = min(qaytariladigan, joriy qarz)
+qolgan  = qaytariladigan − qarzdan
+          → sotuvchi tanlagan yo'l: naqd (C6) yoki avans
+ushlab  = pozitsiya narxi − qaytariladigan
+```
+
+### «Ushlab qolindi» qayerga yoziladi
+
+`xarajat` jadvaliga **MANFIY** `BOSHQA` moddasi bilan.
+
+Bu qaram tuyulishi mumkin, lekin 8.17.6 dagi ushlanma bilan bir xil
+naqsh: **xarajatni kamaytiradi, alohida daromad emas**. Aks holda
+foyda-zararda soxta daromad moddasi paydo bo'lardi va bir xil pul ikki
+joyda ko'rinardi.
+
+### Mijozsiz buyurtma
+
+TZ 8.10 — «Mijozsiz buyurtma qaytarilsa — qarz yo'q, hammasi kassadan
+naqd.» Kodda tanlov umuman ko'rilmaydi: mijoz yo'q bo'lsa `AVANS`
+tanlangan bo'lsa ham naqd chiqadi. Avansni kimga yozishni tizim
+bilmaydi.
+
+### Chegara yo'q
+
+TZ 8.10 — «sotuvchi 0 ham kirita oladi». Kod nolni qabul qiladi, lekin
+**izoh majburiy** va amal audit jurnalida qoladi.

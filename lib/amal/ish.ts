@@ -469,3 +469,99 @@ export async function pozitsiyaniBekorQil(
     return { boshatilganBand: boshatilgan };
   });
 }
+
+// ─── TZ 8.9 · Topshirish ──────────────────────────────────────────────────
+
+/**
+ * TZ 8.9 — «QISMAN TOPSHIRISH MUMKIN. Uchtadan bittasi tayyor bo'lsa,
+ * mijoz shuni olib keta oladi. Qolganlari o'z holida qoladi.»
+ *
+ * ⚠️ «Buyurtma yopiladi, qachonki BARCHA pozitsiya "Topshirilgan",
+ *    "Qaytarilgan", "Rad etilgan" yoki "Bekor qilingan" bo'lsa.»
+ *
+ * ⚠️ Topshirish PULGA TEGMAYDI — to'lov alohida hodisa (3.12, 12.4).
+ *    Mijoz qarzga olib ketishi mumkin.
+ */
+export async function pozitsiyaniTopshir(
+  ulanish: postgres.Sql,
+  pozitsiyaId: number,
+  xodimId: number,
+): Promise<{ buyurtmaYopildimi: boolean }> {
+  return ulanish.begin(async (tx) => {
+    const p = await pozitsiyaniQulfla(tx, pozitsiyaId);
+
+    otishniTekshir(p.holat as PozitsiyaHolati, 'TOPSHIRILDI');
+
+    await tx`
+      UPDATE buyurtma_pozitsiya
+      SET holat = 'TOPSHIRILDI', ozgartirildi = now(), ozgartirdi_id = ${xodimId}
+      WHERE id = ${pozitsiyaId}`;
+
+    // 8.9 — barcha pozitsiya yopilgan bo'lsa buyurtma ham yopiladi
+    const ochiq = await tx<{ n: number }[]>`
+      SELECT COUNT(*)::int AS n FROM buyurtma_pozitsiya
+      WHERE buyurtma_id = ${p.buyurtma_id}
+        AND holat NOT IN ('TOPSHIRILDI','QAYTARILGAN','RAD_ETILGAN','BEKOR')`;
+
+    const yopildi = (ochiq[0]?.n ?? 0) === 0;
+    if (yopildi) {
+      await tx`
+        UPDATE buyurtma SET yopildi = now(), ozgartirildi = now(),
+                            ozgartirdi_id = ${xodimId}
+        WHERE id = ${p.buyurtma_id} AND yopildi IS NULL`;
+    }
+
+    await tx`
+      INSERT INTO audit_jurnal (xodim_id, filial_id, amal, obyekt_turi, obyekt_id,
+                                eski_qiymat, yangi_qiymat, izoh)
+      VALUES (${xodimId}, ${p.sotgan_filial_id}, 'TOPSHIRISH',
+              'buyurtma_pozitsiya', ${pozitsiyaId},
+              ${tx.json({ holat: p.holat })},
+              ${tx.json({ holat: 'TOPSHIRILDI', buyurtma_yopildi: yopildi })},
+              ${null})`;
+
+    return { buyurtmaYopildimi: yopildi };
+  });
+}
+
+/**
+ * TZ 8.8 · 8.10 — «RAD ETISH» — mahsulot tayyor, mijoz olishdan bosh
+ * tortdi.
+ *
+ * ⚠️ Bu QAYTARISH EMAS: mijoz mahsulotni umuman olmagan. Ombor
+ *    qoldig'iga tegilmaydi (mato kesilgan) va pozitsiya 7.13
+ *    «sotilmagan tayyor mahsulot» ro'yxatiga tushadi.
+ */
+export async function pozitsiyaniRadEt(
+  ulanish: postgres.Sql,
+  pozitsiyaId: number,
+  sabab: string,
+  xodimId: number,
+): Promise<void> {
+  if (sabab.trim() === '') {
+    throw new BiznesXato('ISH_SABAB_KERAK', 'rad etish sababi majburiy');
+  }
+
+  return ulanish.begin(async (tx) => {
+    const p = await pozitsiyaniQulfla(tx, pozitsiyaId);
+
+    otishniTekshir(p.holat as PozitsiyaHolati, 'RAD_ETILGAN');
+
+    await tx`
+      UPDATE buyurtma_pozitsiya
+      SET holat = 'RAD_ETILGAN',
+          -- TZ 7.13 — «sotilmagan tayyor mahsulot» ro'yxatiga tushadi
+          tayyor_mahsulot = true,
+          ozgartirildi = now(), ozgartirdi_id = ${xodimId}
+      WHERE id = ${pozitsiyaId}`;
+
+    await tx`
+      INSERT INTO audit_jurnal (xodim_id, filial_id, amal, obyekt_turi, obyekt_id,
+                                eski_qiymat, yangi_qiymat, izoh)
+      VALUES (${xodimId}, ${p.sotgan_filial_id}, 'RAD_ETISH',
+              'buyurtma_pozitsiya', ${pozitsiyaId},
+              ${tx.json({ holat: p.holat })},
+              ${tx.json({ holat: 'RAD_ETILGAN', tayyor_mahsulot: true })},
+              ${sabab.trim()})`;
+  });
+}

@@ -13,6 +13,11 @@ import {
 import { buyurtmaTafsili, tolovHolati, tolovKassalari } from '../malumot';
 import { TasdiqlashTugmasi } from '../tasdiqla';
 import { BekorTugmasi, QaytaribOlishTugmasi } from '../amallar';
+import {
+  QaytarishTugmasi,
+  RadEtishTugmasi,
+  TopshirishTugmasi,
+} from '../hayot';
 import { TolovFormasi } from '../tolov-forma';
 
 export const dynamic = 'force-dynamic';
@@ -249,22 +254,77 @@ export default async function BuyurtmaKartochkasi({
                 </div>
               )}
 
-              {/* TZ 8.6 · 8.8 — amallar holatga qarab ochiladi */}
-              {(bekorQilaOladi && bekorQilinadimi(p.holat as PozitsiyaHolati)) ||
-              (tahrirlayOladi && qaytaribOlinadimi(p.holat as PozitsiyaHolati)) ? (
-                <div className="flex flex-wrap items-start gap-6 border-t border-slate-100 px-4 py-3">
-                  {bekorQilaOladi && bekorQilinadimi(p.holat as PozitsiyaHolati) && (
-                    <BekorTugmasi pozitsiyaId={p.id} />
-                  )}
-                  {tahrirlayOladi && qaytaribOlinadimi(p.holat as PozitsiyaHolati) && (
-                    <QaytaribOlishTugmasi pozitsiyaId={p.id} ustaIsmi={p.ustaIsmi} />
-                  )}
-                </div>
-              ) : null}
+              {/* TZ 8.6 · 8.8 · 8.9 · 8.10 — amallar holatga qarab ochiladi */}
+              <PozitsiyaAmallari
+                holat={p.holat as PozitsiyaHolati}
+                pozitsiyaId={p.id}
+                ustaIsmi={p.ustaIsmi}
+                narx={pulMatn(ayir(som(p.narx), som(p.chegirma)))}
+                bekorQilaOladi={bekorQilaOladi}
+                tahrirlayOladi={tahrirlayOladi}
+                tolovQilaOladi={tolovQilaOladi}
+                kassalar={kassalar}
+              />
             </div>
           ))}
         </div>
       </section>
+    </div>
+  );
+}
+
+/**
+ * TZ 8.3 — pozitsiyaning holati qaysi amallarni ochishini bir joyda
+ * hal qiladi.
+ *
+ * ⚠️ Shartlar TAKRORLANMAYDI (§2.2): tekshiruvlar `lib/domain/buyurtma.ts`
+ *    dagi funksiyalarga tayanadi.
+ */
+function PozitsiyaAmallari({
+  holat,
+  pozitsiyaId,
+  ustaIsmi,
+  narx,
+  bekorQilaOladi,
+  tahrirlayOladi,
+  tolovQilaOladi,
+  kassalar,
+}: {
+  holat: PozitsiyaHolati;
+  pozitsiyaId: number;
+  ustaIsmi: string | null;
+  narx: string;
+  bekorQilaOladi: boolean;
+  tahrirlayOladi: boolean;
+  tolovQilaOladi: boolean;
+  kassalar: readonly { id: number; nom: string; turi: string; valyuta: string }[];
+}) {
+  const bekor = bekorQilaOladi && bekorQilinadimi(holat);
+  const qaytaribOl = tahrirlayOladi && qaytaribOlinadimi(holat);
+  // 8.9 — topshirish faqat TAYYOR yoki YETIB_KELDI dan
+  const topshir = tahrirlayOladi && (holat === 'TAYYOR' || holat === 'YETIB_KELDI');
+  // 8.8 — rad etish ham o'sha holatlardan
+  const radEt = bekorQilaOladi && (holat === 'TAYYOR' || holat === 'YETIB_KELDI');
+  // 8.10 — qaytarish faqat TOPSHIRILGANDAN keyin
+  const qaytar = tolovQilaOladi && holat === 'TOPSHIRILDI';
+
+  if (!bekor && !qaytaribOl && !topshir && !radEt && !qaytar) return null;
+
+  return (
+    <div className="flex flex-wrap items-start gap-6 border-t border-slate-100 px-4 py-3">
+      {topshir && <TopshirishTugmasi pozitsiyaId={pozitsiyaId} />}
+      {radEt && <RadEtishTugmasi pozitsiyaId={pozitsiyaId} />}
+      {qaytar && (
+        <QaytarishTugmasi
+          pozitsiyaId={pozitsiyaId}
+          narx={narx}
+          kassalar={kassalar}
+        />
+      )}
+      {bekor && <BekorTugmasi pozitsiyaId={pozitsiyaId} />}
+      {qaytaribOl && (
+        <QaytaribOlishTugmasi pozitsiyaId={pozitsiyaId} ustaIsmi={ustaIsmi} />
+      )}
     </div>
   );
 }

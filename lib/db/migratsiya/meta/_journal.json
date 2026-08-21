@@ -127,6 +127,13 @@
       "when": 1787293108636,
       "tag": "0017_broken_lilandra",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1787293108637,
+      "tag": "0018_qolda_manba_ketmaketligi",
+      "breakpoints": true
     }
   ]
 }
