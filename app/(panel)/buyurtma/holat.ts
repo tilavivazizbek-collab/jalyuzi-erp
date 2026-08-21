@@ -7,3 +7,10 @@ export interface TasdiqHolati {
 }
 
 export const BOSH_HOLAT: TasdiqHolati = { xato: null, materialgaKutmoqda: false };
+
+export interface AmalHolati {
+  readonly xato: string | null;
+  readonly bajarildi: boolean;
+}
+
+export const BOSH_AMAL: AmalHolati = { xato: null, bajarildi: false };

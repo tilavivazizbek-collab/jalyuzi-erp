@@ -266,7 +266,24 @@ export async function bandniBoshat(
   xodimId: number,
   izoh: string | null = null,
 ): Promise<number> {
-  return ulanish.begin(async (tx) => {
+  return ulanish.begin(async (tx) =>
+    bandniBoshatTx(tx, buyurtmaPozitsiyaId, sabab, xodimId, izoh),
+  );
+}
+
+/**
+ * Xuddi shu ish, chaqiruvchining tranzaksiyasida — P-23 bilan bir xil
+ * sabab: pozitsiyani bekor qilish va bandni bo'shatish BITTA
+ * tranzaksiyada bo'lishi shart (2.1-invariant).
+ */
+export async function bandniBoshatTx(
+  tx: postgres.TransactionSql,
+  buyurtmaPozitsiyaId: number,
+  sabab: BoshatishSababi,
+  xodimId: number,
+  izoh: string | null = null,
+): Promise<number> {
+  {
     const bandlar = await tx<{ id: number; bolak_id: number }[]>`
       SELECT id, bolak_id FROM band
       WHERE buyurtma_pozitsiya_id = ${buyurtmaPozitsiyaId} AND holat = 'FAOL'
@@ -287,7 +304,7 @@ export async function bandniBoshat(
       WHERE id = ANY(${bandlar.map((b) => b.bolak_id)}) AND holat = 'BAND'`;
 
     return bandlar.length;
-  });
+  }
 }
 
 /**

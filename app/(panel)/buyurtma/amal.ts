@@ -7,10 +7,11 @@
 import { revalidatePath } from 'next/cache';
 import { ulanishOl } from '@/lib/db';
 import { pozitsiyaniTasdiqla } from '@/lib/amal/buyurtma';
+import { ishniQaytaribOl, pozitsiyaniBekorQil } from '@/lib/amal/ish';
 import { ruxsatTalab } from '@/lib/kirish/joriy';
 import { matnMaydon } from '../forma-yordamchi';
 import { biznesXatosimi } from '@/lib/xato';
-import type { TasdiqHolati } from './holat';
+import type { AmalHolati, TasdiqHolati } from './holat';
 
 export async function tasdiqlashAmali(
   _oldingi: TasdiqHolati,
@@ -51,4 +52,90 @@ export async function tasdiqlashAmali(
       materialgaKutmoqda: false,
     };
   }
+}
+
+/** O'z filialidagi pozitsiyani topadi — Q-25. */
+async function ozFilialidami(pozitsiyaId: number, filialId: number): Promise<boolean> {
+  const q = await ulanishOl()<{ n: number }[]>`
+    SELECT COUNT(*)::int AS n
+    FROM buyurtma_pozitsiya p
+    JOIN buyurtma b ON b.id = p.buyurtma_id
+    WHERE p.id = ${pozitsiyaId}
+      AND (b.sotgan_filial_id = ${filialId} OR b.ishlab_chiqaruvchi_filial_id = ${filialId})`;
+  return (q[0]?.n ?? 0) > 0;
+}
+
+/**
+ * TZ 8.8 — pozitsiyani bekor qilish.
+ *
+ * Band bo'shaydi va material omborga qaytadi (Q-06). Ish boshlangach
+ * tugma ko'rinmaydi, lekin tekshiruv SERVERDA ham bor (§9.4).
+ */
+export async function bekorAmali(
+  _oldingi: AmalHolati,
+  forma: FormData,
+): Promise<AmalHolati> {
+  const f = await ruxsatTalab('buyurtma.bekor');
+
+  const pozitsiyaId = Number(matnMaydon(forma, 'pozitsiyaId'));
+  const sabab = matnMaydon(forma, 'sabab');
+
+  if (!Number.isSafeInteger(pozitsiyaId) || pozitsiyaId <= 0) {
+    return { xato: 'Pozitsiya tanlanmagan', bajarildi: false };
+  }
+  if (!(await ozFilialidami(pozitsiyaId, f.filialId))) {
+    return { xato: 'Buyurtma pozitsiyasi topilmadi', bajarildi: false };
+  }
+
+  try {
+    await pozitsiyaniBekorQil(ulanishOl(), pozitsiyaId, sabab, f.xodimId);
+  } catch (x) {
+    return {
+      xato: biznesXatosimi(x) ? x.message : 'Bekor qilishda xato yuz berdi',
+      bajarildi: false,
+    };
+  }
+
+  revalidatePath('/buyurtma');
+  revalidatePath('/ombor');
+  return { xato: null, bajarildi: true };
+}
+
+/**
+ * TZ 8.6 — admin ishni ustadan qaytarib oladi.
+ *
+ * ⚠️ Stavkani ADMIN QO'LDA kiritadi: usta ishning bir qismini bajargan
+ *    bo'lishi mumkin. Sabab majburiy.
+ */
+export async function qaytaribOlishAmali(
+  _oldingi: AmalHolati,
+  forma: FormData,
+): Promise<AmalHolati> {
+  const f = await ruxsatTalab('buyurtma.tahrirla');
+
+  const pozitsiyaId = Number(matnMaydon(forma, 'pozitsiyaId'));
+  const stavka = matnMaydon(forma, 'stavka');
+  const sabab = matnMaydon(forma, 'sabab');
+
+  if (!Number.isSafeInteger(pozitsiyaId) || pozitsiyaId <= 0) {
+    return { xato: 'Pozitsiya tanlanmagan', bajarildi: false };
+  }
+  if (!/^\d+(\.\d{1,2})?$/.test(stavka.trim())) {
+    return { xato: "To'lanadigan stavkani kiriting", bajarildi: false };
+  }
+  if (!(await ozFilialidami(pozitsiyaId, f.filialId))) {
+    return { xato: 'Buyurtma pozitsiyasi topilmadi', bajarildi: false };
+  }
+
+  try {
+    await ishniQaytaribOl(ulanishOl(), pozitsiyaId, stavka.trim(), sabab, f.xodimId);
+  } catch (x) {
+    return {
+      xato: biznesXatosimi(x) ? x.message : 'Qaytarib olishda xato yuz berdi',
+      bajarildi: false,
+    };
+  }
+
+  revalidatePath('/buyurtma');
+  return { xato: null, bajarildi: true };
 }

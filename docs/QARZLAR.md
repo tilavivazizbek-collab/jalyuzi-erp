@@ -233,3 +233,49 @@ mantiqiy: aks holda bir formula ikki joyda paydo bo'ladi (§2.2).
 
 11-bo'lim hisobotlari yozilganda `Ombor braki` va `Inventarizatsiya
 farqi` moddalari birga chiqadi va omborchi kesimi shu yerdan tayyorlanadi.
+
+---
+
+## T-08 · Masofadagi baza tarmoq uzilishlari
+
+**Sana:** 2026-08-21 · **Bosqich:** 10 da yopiladi · **Xavf:** o'rta (chalg'itadi)
+
+### Holat
+
+`npm run test:baza` ba'zan qizil bo'ladi, ba'zan yashil — **bir xil kod
+bilan**. Bir kunda kuzatilgan namuna:
+
+| Yurish | Natija | Xato turi |
+|---|---|---|
+| 1 | 11 yiqildi | `getaddrinfo ENOTFOUND`, `CONNECTION_CLOSED` |
+| 2 | 220/220 yashil | — |
+
+Xatolar HAR SAFAR boshqa testlarda chiqadi va hammasi bir xil sababdan:
+baza 10-bosqichgacha **masofada** turibdi va uy tarmog'i uzilib turadi.
+Shu kuni brauzer va API so'rovlari ham `ENOTFOUND` bergan.
+
+### Nega bu xavfli
+
+Tarmoq xatosi **kod xatosiga o'xshaydi**: test qizil, xabar uzun,
+odam kodni qidira boshlaydi. Bir necha marta shunday bo'ldi va har
+safar sabab tarmoq chiqdi.
+
+### Qanday ajratiladi
+
+```bash
+npm run test:baza 2>&1 | grep -E "ENOTFOUND|ECONNRESET|CONNECT_TIMEOUT|CONNECTION_CLOSED"
+```
+
+Chiqsa — **tarmoq**, kod emas. Qayta yurgizish kifoya.
+
+### Yopilishi
+
+10-bosqichda baza egasining o'z serveriga (yoki loqal Docker'ga)
+ko'chiriladi va bu muammo o'z-o'zidan yo'qoladi. `docker compose up`
+bilan loqal ishlash talabi (QISM 1 §2.3) allaqachon bor.
+
+### Vaqtinchalik chora
+
+`vitest.baza.config.ts` da limit 120 s — kechikish sakraganda to'g'ri
+kod «yiqilgan» bo'lib ko'rinmasin. Bu uzilishning o'zini yopmaydi,
+faqat sekinlikni yopadi.

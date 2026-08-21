@@ -4,12 +4,15 @@ import { sahifaRuxsati } from '@/lib/kirish/joriy';
 import { ruxsatBormi } from '@/lib/ruxsat/tekshir';
 import { nolSom, pulKorsat, pulMatn, qosh, ayir, som } from '@/lib/domain/pul';
 import {
+  bekorQilinadimi,
   HOLAT_NOMI,
+  qaytaribOlinadimi,
   tasdiqlanadimi,
   type PozitsiyaHolati,
 } from '@/lib/domain/buyurtma';
 import { buyurtmaTafsili } from '../malumot';
 import { TasdiqlashTugmasi } from '../tasdiqla';
+import { BekorTugmasi, QaytaribOlishTugmasi } from '../amallar';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,6 +25,8 @@ export default async function BuyurtmaKartochkasi({
 }) {
   const f = await sahifaRuxsati('buyurtma.kor');
   const tasdiqlayOladi = ruxsatBormi(f, 'buyurtma.tasdiqla');
+  const bekorQilaOladi = ruxsatBormi(f, 'buyurtma.bekor');
+  const tahrirlayOladi = ruxsatBormi(f, 'buyurtma.tahrirla');
 
   const { id } = await params;
   const buyurtmaId = Number(id);
@@ -177,6 +182,19 @@ export default async function BuyurtmaKartochkasi({
                   Usta: {p.ustaIsmi}
                 </div>
               )}
+
+              {/* TZ 8.6 · 8.8 — amallar holatga qarab ochiladi */}
+              {(bekorQilaOladi && bekorQilinadimi(p.holat as PozitsiyaHolati)) ||
+              (tahrirlayOladi && qaytaribOlinadimi(p.holat as PozitsiyaHolati)) ? (
+                <div className="flex flex-wrap items-start gap-6 border-t border-slate-100 px-4 py-3">
+                  {bekorQilaOladi && bekorQilinadimi(p.holat as PozitsiyaHolati) && (
+                    <BekorTugmasi pozitsiyaId={p.id} />
+                  )}
+                  {tahrirlayOladi && qaytaribOlinadimi(p.holat as PozitsiyaHolati) && (
+                    <QaytaribOlishTugmasi pozitsiyaId={p.id} ustaIsmi={p.ustaIsmi} />
+                  )}
+                </div>
+              ) : null}
             </div>
           ))}
         </div>

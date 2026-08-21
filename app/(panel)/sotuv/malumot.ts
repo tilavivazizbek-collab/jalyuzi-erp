@@ -229,6 +229,9 @@ export interface SotuvMijozi {
   readonly ism: string;
   readonly telefon: string | null;
   readonly qarzLimiti: string | null;
+  /** TZ 3.10 — «Mijoz tanlangach offseti darhol ko'rinadi va narx qayta hisoblanadi» */
+  readonly offsetTuri: string | null;
+  readonly offsetQiymat: string | null;
 }
 
 export async function mijozQidir(matn: string, chegara = 10): Promise<SotuvMijozi[]> {
@@ -236,9 +239,16 @@ export async function mijozQidir(matn: string, chegara = 10): Promise<SotuvMijoz
   if (q === '') return [];
 
   const qatorlar = await ulanishOl()<
-    { id: number; ism: string; telefon: string | null; qarz_limiti: string | null }[]
+    {
+      id: number;
+      ism: string;
+      telefon: string | null;
+      qarz_limiti: string | null;
+      offset_turi: string | null;
+      offset_qiymat: string | null;
+    }[]
   >`
-    SELECT id, ism, telefon, qarz_limiti FROM mijoz
+    SELECT id, ism, telefon, qarz_limiti, offset_turi, offset_qiymat FROM mijoz
     WHERE faol = true AND (ism ILIKE ${`%${q}%`} OR telefon LIKE ${`%${q}%`})
     ORDER BY ism LIMIT ${chegara}`;
 
@@ -247,6 +257,8 @@ export async function mijozQidir(matn: string, chegara = 10): Promise<SotuvMijoz
     ism: r.ism,
     telefon: r.telefon,
     qarzLimiti: r.qarz_limiti,
+    offsetTuri: r.offset_turi,
+    offsetQiymat: r.offset_qiymat,
   }));
 }
 

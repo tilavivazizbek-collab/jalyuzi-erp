@@ -26,7 +26,12 @@ import {
   som,
   type Som,
 } from '@/lib/domain/pul';
-import { qatorSummasi } from '@/lib/domain/narx';
+import {
+  aksessuarNarxi,
+  matoNarxi,
+  qatorSummasi,
+  type Offset,
+} from '@/lib/domain/narx';
 import { biznesXatosimi } from '@/lib/xato';
 import { Maydon, kirishUslubi } from '../maydon';
 import { buyurtmaYaratAmali } from './amal';
@@ -64,6 +69,26 @@ interface SavatQatori {
 
 let keyingiKalit = 0;
 
+/**
+ * TZ 3.10 — «Mijoz tanlangach uning offseti darhol ko'rinadi va narx
+ * QAYTA HISOBLANADI.»
+ *
+ * ⚠️ Offset BARCHA matolarga bir xil qo'llanadi (6.3) va yaxlitlash
+ *    zanjirning oxirida bir marta bajariladi (20.9.3) — shuning uchun
+ *    bu yerda yaxlitlanmaydi.
+ *
+ * ⚠️ `USD` offseti JORIY kursni talab qiladi (6.3). Kurs sotuv ekraniga
+ *    hali ulanmagan, shuning uchun dollarli offset qo'llanmaydi va
+ *    sotuvchiga ochiq aytiladi — jimgina noto'g'ri narx chiqarishdan
+ *    ko'ra ko'rinadigan cheklov yaxshi.
+ */
+function mijozOffseti(m: SotuvMijozi | null): Offset | null {
+  if (m === null || m.offsetTuri === null || m.offsetQiymat === null) return null;
+  if (m.offsetTuri === 'FOIZ') return { turi: 'FOIZ', foiz: Number(m.offsetQiymat) };
+  if (m.offsetTuri === 'SOM') return { turi: 'SOM', summa: som(m.offsetQiymat) };
+  return null; // USD — kurs kerak (6.3)
+}
+
 const son = (x: string): number | null => {
   const t = x.trim();
   if (t === '') return null;
@@ -97,6 +122,7 @@ export function SotuvFormasi({
   const [kelishilgan, kelishilganniOzgartir] = useState('');
 
   const tur = turlar.find((t) => t.id === turId) ?? null;
+  const offset = mijozOffseti(mijoz);
 
   /** TZ 3.5 — har slot uchun formula bo'yicha miqdor. */
   const hisob = useMemo(() => {
@@ -131,7 +157,24 @@ export function SotuvFormasi({
       }
 
       const tuzatilgan = son(tanlov?.tuzatilgan ?? '');
-      const narxMatn = material?.narx ?? null;
+      /**
+       * TZ 20.9.3 ning to'liq zanjiri — `lib/domain/narx.ts` da:
+       * filial narxi → mijoz offseti → yaxlitlash.
+       *
+       * Filial narxi SQL da hal qilingan (`COALESCE`), shuning uchun
+       * bu yerda `filialNarxi` yo'q.
+       */
+      const narxMatn =
+        material === null || material.narx === null
+          ? null
+          : pulMatn(
+              matoNarxi({
+                standart: som(material.narx),
+                filialNarxi: null,
+                offset,
+                kurs: null,
+              }),
+            );
 
       // TZ 3.6 — NARX tuzatilgan songa, ombor hisoblanganiga tayanadi
       const summa =
@@ -144,7 +187,26 @@ export function SotuvFormasi({
               narx: som(narxMatn),
             });
 
-      return { slot: s, material, birlik, hisoblangan, tuzatilgan, summa, xato };
+      /**
+       * Q-03 · QABUL S3.4 — «Bu mato hozir yetarli emas» ogohi
+       * BUYURTMA BERILAYOTGANDA chiqadi, usta olganda emas.
+       *
+       * ⚠️ Bu ogoh — TAXMIN, aniq javob emas: bu yerda umumiy bo'sh
+       *    qoldiq ko'riladi, band qilish esa TO'RTBURCHAK qidiradi
+       *    (7.6). Aniq javobni server beradi va u ham bloklamaydi —
+       *    pozitsiya «Materialga kutmoqda» ga tushadi (8.12).
+       */
+      const yetarlimi =
+        material === null || hisoblangan === null
+          ? true
+          : birlik === 'KV_M'
+            ? material.boshKvM >= hisoblangan
+            : material.boshDona >= hisoblangan;
+
+      return {
+        slot: s, material, birlik, hisoblangan, tuzatilgan, summa, xato,
+        narxMatn, yetarlimi,
+      };
     });
 
     const aksQatorlar = tur.aksessuarlar
@@ -167,17 +229,20 @@ export function SotuvFormasi({
         // TZ 3.7 — qo'lda kiritilgan sonni formula USTIDAN YOZMAYDI
         const soni = t?.qoldaKiritildi === true ? (son(t.soni) ?? 0) : hisoblangan;
 
+        // ⚠️ TZ 6.3 — «Offset FAQAT MATOGA qo'llanadi, AKSESSUARGA TEGMAYDI.»
+        const narx = a.narx === null ? null : aksessuarNarxi(som(a.narx), null);
+
         const summa =
-          a.narx === null
+          narx === null
             ? nolSom()
             : qatorSummasi({
                 nom: a.nom,
                 sarflashBirligi: birlik,
                 miqdor: soni as never,
-                narx: som(a.narx),
+                narx,
               });
 
-        return { aksessuar: a, birlik, soni, summa };
+        return { aksessuar: a, birlik, soni, summa, narx };
       });
 
     const xizmat = tur.xizmatHaqi === null ? nolSom() : som(tur.xizmatHaqi);
@@ -188,9 +253,12 @@ export function SotuvFormasi({
     );
 
     return { qatorlar, aksQatorlar, xizmat, jami, eniSm, boyiSm };
-  }, [tur, eni, boyi, parametrlar, slotlar, aksessuarlar]);
+  }, [tur, eni, boyi, parametrlar, slotlar, aksessuarlar, offset]);
 
   const savatJami = savat.reduce<Som>((y, q) => qosh(y, som(q.narx)), nolSom());
+
+  // Q-03 — yetmaydigan matolar (ogohlantirish, bloklamaydi)
+  const yetmaydiganlar = (hisob?.qatorlar ?? []).filter((q) => !q.yetarlimi);
 
   const savatgaQoshilsinmi =
     hisob !== null &&
@@ -228,13 +296,13 @@ export function SotuvFormasi({
           hisoblanganMiqdor: String(q.hisoblangan ?? 0),
           tuzatilganMiqdor: q.tuzatilgan === null ? null : String(q.tuzatilgan),
           birlik: q.birlik,
-          narxSnapshot: q.material?.narx ?? '0',
+          narxSnapshot: q.narxMatn ?? '0',
         })),
       aksessuarlar: hisob.aksQatorlar.map((a) => ({
         materialId: a.aksessuar.materialId,
         soni: String(a.soni),
         birlik: a.birlik,
-        narxSnapshot: a.aksessuar.narx ?? '0',
+        narxSnapshot: a.narx === null ? '0' : pulMatn(a.narx),
         qoldaKiritildi: aksessuarlar[a.aksessuar.materialId]?.qoldaKiritildi ?? false,
       })),
     };
@@ -456,9 +524,7 @@ export function SotuvFormasi({
                         />
                       </td>
                       <td className="raqam px-3 py-2">
-                        {q.material?.narx === null || q.material === null
-                          ? '—'
-                          : pulKorsat(som(q.material.narx))}
+                        {q.narxMatn === null ? '—' : pulKorsat(som(q.narxMatn))}
                       </td>
                       <td className="raqam px-3 py-2 font-medium">
                         {pulKorsat(q.summa)}
@@ -513,9 +579,7 @@ export function SotuvFormasi({
                           {BIRLIK_MATNI[a.birlik]}
                         </td>
                         <td className="raqam px-3 py-2">
-                          {a.aksessuar.narx === null
-                            ? '—'
-                            : pulKorsat(som(a.aksessuar.narx))}
+                          {a.narx === null ? '—' : pulKorsat(a.narx)}
                         </td>
                         <td className="raqam px-3 py-2 font-medium">
                           {pulKorsat(a.summa)}
@@ -545,6 +609,31 @@ export function SotuvFormasi({
                 </table>
               </div>
             </section>
+          )}
+
+          {/* Q-03 · QABUL S3.4 — yetishmovchilik OGOHI, bloklamaydi */}
+          {yetmaydiganlar.length > 0 && (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              <b>Bu mato hozir yetarli emas:</b>
+              <ul className="mt-1 list-disc space-y-0.5 pl-5 text-xs">
+                {yetmaydiganlar.map((q) => (
+                  <li key={q.slot.id}>
+                    {q.material?.nom ?? q.slot.nom} — kerak{' '}
+                    {(q.hisoblangan ?? 0).toFixed(2)} {BIRLIK_MATNI[q.birlik]}, bo&apos;sh{' '}
+                    {q.birlik === 'KV_M'
+                      ? (q.material?.boshKvM ?? 0).toFixed(2)
+                      : String(q.material?.boshDona ?? 0)}{' '}
+                    {BIRLIK_MATNI[q.birlik]}
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-2 text-xs">
+                Davom etsangiz buyurtma <b>saqlanadi</b>, pozitsiya «Materialga
+                kutmoqda» holatiga tushadi va kirim bo&apos;lgach avtomatik
+                navbatga qaytadi (8.12). Yoki yuqoridan <b>boshqa mato</b>
+                &nbsp;tanlang.
+              </p>
+            </div>
           )}
 
           {/* ── 3.8 · Pozitsiya narxi ── */}
