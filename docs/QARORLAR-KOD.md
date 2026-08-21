@@ -1233,3 +1233,121 @@ Storno o'z manbasiga ega: `('storno', asl_yozuv_id, 1)`. Aks holda u
 asl yozuvning uchligiga urilib qolardi. Bundan tashqari `storno_id`
 ustunida ham qisman unique indeks bor — **bitta yozuvga bitta storno**
 (12.15).
+
+---
+
+## P-27 — Mijoz qarzi qaysi paytda yoziladi
+
+**Fayl:** `lib/amal/buyurtma.ts` · `lib/amal/tolov.ts`
+**Manba:** LOYIHA.md 6.8 · 3.12 · 2.2-invariant
+
+### Ziddiyat
+
+TZ 6.8 «sotuv qarzni oshiradi» deydi, lekin **qachon** yozilishini
+aytmaydi. Ikki o'qish bor:
+
+| O'qish | Qachon |
+|---|---|
+| A | buyurtma yaratilganda |
+| B | to'lov qabul qilinganda |
+
+### Nima xato bo'lardi
+
+B ni tanlaganimda kod ishlab turgandek ko'rindi, lekin **ikki marta
+to'lov** qilinganda qarz IKKI BAROBAR oshardi: har to'lovda yangi
+`SOTUV` qatori tushardi.
+
+```
+Buyurtma 800 000
+  1-to'lov 300 000  →  SOTUV +800 000, TOLOV −300 000  → qarz 500 000
+  2-to'lov 500 000  →  SOTUV +800 000, TOLOV −500 000  → qarz 800 000 ❌
+```
+
+Aslida qarz nol bo'lishi kerak edi.
+
+### Qaror
+
+**A — buyurtma yaratilganda.** Sotuv BIR MARTA bo'ladi, to'lov esa bir
+necha marta (3.12: «bir nechta usul birga»).
+
+`buyurtmaYarat()` shu tranzaksiyada `mijoz_harakat` ga `SOTUV` qatorini
+yozadi. `buyurtmaTolovi()` faqat `TOLOV` qatorini qo'shadi.
+
+### Mijozsiz buyurtma
+
+TZ 3.10 — «ko'chadagi tasodifiy xaridor» uchun mijoz majburiy emas. U
+holda qarz yozilmaydi va to'lov TO'LIQ bo'lishi shart: tizim qarzni
+kimdan undirishni bilmaydi.
+
+Kod buni ikki joyda ushlaydi:
+- `buyurtmaYarat` — `qarzgaKetadimi = true` bo'lsa mijoz talab qiladi
+- `buyurtmaTolovi` — to'lov kam bo'lsa va mijoz yo'q bo'lsa rad etadi
+
+### Tekshiruv
+
+`test/integratsiya/tolov.test.ts`:
+- «buyurtma yaratilganda SOTUV qatori tushadi» — bitta qator
+- «mijozsiz buyurtmada qarz YOZILMAYDI»
+- «mijozsiz buyurtmada to'liq to'lanmasa RAD ETILADI»
+
+---
+
+## P-28 — Muddati o'tgan bandlarni bo'shatish CHEGARA bilan
+
+**Fayl:** `lib/amal/band.ts` · **Manba:** LOYIHA.md 7.3 · QISM 1 §7.2
+
+### Talab
+
+TZ 7.3:
+
+> «Band muddati 30 kun. Pozitsiya shu vaqt ichida bajarilmasa band
+>  avtomatik bo'shaydi va adminga xabar ketadi.»
+
+Chegara haqida hech narsa yozilmagan.
+
+### Nima topildi
+
+Dastlabki kod **butun bazadagi** hamma muddati o'tgan bandni bir
+so'rovda tanlab, hammasini `FOR UPDATE` bilan qulflardi:
+
+```sql
+SELECT ... FROM band WHERE holat = 'FAOL' AND amal_qiladi < $1
+FOR UPDATE OF b SKIP LOCKED
+```
+
+Sinov bazasida band qatorlari to'planib borgach shu test **120
+soniyada tugamay qoldi**. Kod to'g'ri edi — hajm o'sib ketgan edi.
+
+### Nega bu ishlab chiqarishda ham xavfli
+
+Tungi vazifa bir necha ming bandni bir tranzaksiyada qulflasa:
+
+- tranzaksiya uzoq davom etadi
+- o'sha paytda band qo'yayotgan sotuvchi kutib qoladi
+- qulf jadval darajasiga o'sib ketishi mumkin
+
+TZ 7.2 «ikkinchi usta BLOKLANMAYDI» deydi — bu esa aynan bloklardi.
+
+### Qaror
+
+Bir chaqiruvda ko'pi bilan **200 ta** band bo'shatiladi
+(`BOSHATISH_CHEGARASI`). Eng eskisidan boshlanadi (`ORDER BY
+amal_qiladi`).
+
+Ish tugamagan bo'lsa `yanaBormi = true` qaytadi va chaqiruvchi yana
+chaqiradi. Shunday qilib katta ish kichik tranzaksiyalarga bo'linadi va
+hech kim uzoq kutmaydi.
+
+### Ikki funksiya nega
+
+| Funksiya | Kim uchun |
+|---|---|
+| `muddatiOtganBandlarniBoshat` | oddiy chaqiruv — ro'yxat qaytaradi |
+| `muddatiOtganlarniBoshatBatafsil` | vazifa rejalashtiruvchi — `yanaBormi` kerak |
+
+Ish tanasi bitta (§2.2).
+
+### Tekshiruv
+
+`test/integratsiya/band.test.ts` — uchta muddati o'tgan band, chegara
+ikkita: aynan ikkitasi bo'shaydi va `yanaBormi = true` chiqadi.

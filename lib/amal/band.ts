@@ -313,20 +313,53 @@ export async function bandniBoshatTx(
  *
  * `/api/cron/band-muddati` shu funksiyani chaqiradi (QISM 1 §13).
  */
+/**
+ * ⚠️ Bir chaqiruvda ko'pi bilan shuncha band bo'shatiladi (P-28).
+ *
+ *    Chegarasiz variant butun bazadagi HAMMA muddati o'tgan bandni bir
+ *    yo'la qulflardi. Bir necha ming band to'planganda bu uzoq
+ *    tranzaksiya va katta qulf bo'lib, o'sha paytda band qo'yayotgan
+ *    sotuvchilarni kutishga majbur qilardi.
+ *
+ *    Ish tugamagan bo'lsa `yanaBormi` bayrog'i qaytadi — chaqiruvchi
+ *    yana chaqiradi.
+ */
+export const BOSHATISH_CHEGARASI = 200;
+
+export interface MuddatNatijasi {
+  readonly boshatilgan: readonly { buyurtmaPozitsiyaId: number; bolakKod: string }[];
+  /** Chegaraga yetildi — yana chaqirish kerak */
+  readonly yanaBormi: boolean;
+}
+
 export async function muddatiOtganBandlarniBoshat(
   ulanish: postgres.Sql,
   xodimId: number,
   hozir: Date = new Date(),
+  chegara: number = BOSHATISH_CHEGARASI,
 ): Promise<readonly { buyurtmaPozitsiyaId: number; bolakKod: string }[]> {
+  const n = await muddatiOtganlarniBoshatBatafsil(ulanish, xodimId, hozir, chegara);
+  return n.boshatilgan;
+}
+
+/** Xuddi shu ish, lekin «yana bormi» bayrog'i bilan. */
+export async function muddatiOtganlarniBoshatBatafsil(
+  ulanish: postgres.Sql,
+  xodimId: number,
+  hozir: Date = new Date(),
+  chegara: number = BOSHATISH_CHEGARASI,
+): Promise<MuddatNatijasi> {
   return ulanish.begin(async (tx) => {
     const eskirgan = await tx<{ id: number; bolak_id: number; buyurtma_pozitsiya_id: number; kod: string }[]>`
       SELECT b.id, b.bolak_id, b.buyurtma_pozitsiya_id, bo.kod
       FROM band b
       JOIN bolak bo ON bo.id = b.bolak_id
       WHERE b.holat = 'FAOL' AND b.amal_qiladi < ${hozir}
+      ORDER BY b.amal_qiladi
+      LIMIT ${chegara}
       FOR UPDATE OF b SKIP LOCKED`;
 
-    if (eskirgan.length === 0) return [];
+    if (eskirgan.length === 0) return { boshatilgan: [], yanaBormi: false };
 
     const idlar = eskirgan.map((e) => e.id);
     await tx`
@@ -338,10 +371,13 @@ export async function muddatiOtganBandlarniBoshat(
       UPDATE bolak SET holat = 'BOSH', ozgartirildi = now(), ozgartirdi_id = ${xodimId}
       WHERE id = ANY(${eskirgan.map((e) => e.bolak_id)}) AND holat = 'BAND'`;
 
-    return eskirgan.map((e) => ({
-      buyurtmaPozitsiyaId: e.buyurtma_pozitsiya_id,
-      bolakKod: e.kod,
-    }));
+    return {
+      boshatilgan: eskirgan.map((e) => ({
+        buyurtmaPozitsiyaId: e.buyurtma_pozitsiya_id,
+        bolakKod: e.kod,
+      })),
+      yanaBormi: eskirgan.length === chegara,
+    };
   });
 }
 

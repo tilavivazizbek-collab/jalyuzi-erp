@@ -63,6 +63,10 @@ export const ROL_URUGI: readonly RolUrugi[] = [
       ['buyurtma.tahrirla', 'OZ_FILIALI'], // 8.7
       ['buyurtma.bekor', 'OZ_FILIALI'], // 8.8
       ['buyurtma.chegirma', 'OZ_FILIALI'], // 3.11 — limitdan oshsa ogohlantiriladi
+      // TZ 3.12 · 6.9 — sotuvchi to'lov qabul qiladi
+      ['kassa.tolov', 'OZ_FILIALI'],
+      // TZ 10.15 — «Kim qila oladi: admin, SOTUVCHI, omborchi»
+      ['kassa.ish.haqi', 'OZ_FILIALI'],
       // BERILMAYDI: buyurtma.qayta_kesish — 8.17.2 «ADMIN ko'radi va
       //             qaror qiladi». Sotuvchi ishlab chiqarish brakini
       //             tasdiqlamaydi.

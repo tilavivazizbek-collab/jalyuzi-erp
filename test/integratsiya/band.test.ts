@@ -9,6 +9,7 @@ import {
   bandniBoshat,
   mosOstatkaBormi,
   muddatiOtganBandlarniBoshat,
+  muddatiOtganlarniBoshatBatafsil,
   pozitsiyaniBandQil,
   type SlotSorovi,
 } from '@/lib/amal/band';
@@ -415,5 +416,38 @@ describe('TZ 7.6 — «ostatka bor turib rulon ochildi» tekshiruvi', () => {
   it("kichik ostatka hisobga olinmaydi", async () => {
     await bolakYarat(matoId, 'OSTATKA', 0.8, 2.0);
     expect(await mosOstatkaBormi(sql, matoId, FILIAL, { eniM: 1.2, boyiM: 2.0 })).toBe(false);
+  });
+});
+
+// ─── P-28 · Bo'shatish chegarasi ──────────────────────────────────────────
+
+describe("P-28 — muddat bo'shatish CHEGARA bilan ishlaydi", () => {
+  it("bir chaqiruvda chegaradan ortiq band bo'shatilmaydi", async () => {
+    // Uchta muddati o'tgan band, chegara ikkita
+    const eski = new Date('2026-01-01T10:00:00+05:00');
+    for (let i = 0; i < 3; i += 1) {
+      await bolakYarat(ikkinchiMatoId, 'RULON', 3.0, 30.0);
+      await pozitsiyaniBandQil(
+        sql,
+        yangiPozitsiya(),
+        FILIAL,
+        [slot(ikkinchiMatoId, 1.2, 2.0)],
+        XODIM,
+        eski,
+      );
+    }
+
+    const keyin = new Date(eski.getTime() + 31 * 86_400_000);
+    const n = await muddatiOtganlarniBoshatBatafsil(sql, XODIM, keyin, 2);
+
+    expect(n.boshatilgan).toHaveLength(2);
+    // Chegaraga yetildi — chaqiruvchi yana chaqirishi kerak
+    expect(n.yanaBormi).toBe(true);
+  });
+
+  it("chegaradan kam bo'lsa «yana bor» bayrog'i qo'yilmaydi", async () => {
+    const kelajak = new Date('2030-01-01T10:00:00+05:00');
+    const n = await muddatiOtganlarniBoshatBatafsil(sql, XODIM, kelajak, 10_000);
+    expect(n.yanaBormi).toBe(false);
   });
 });

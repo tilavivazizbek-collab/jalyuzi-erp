@@ -429,3 +429,113 @@ export async function ochiqQaytaKesishlar(
     yoqotilganSumma: r.yoqotilgan_summa ?? '0',
   }));
 }
+
+// ─── 3.12 · 8.14 · To'lov bloki ───────────────────────────────────────────
+
+export interface TolovHolati {
+  readonly buyurtmaId: number;
+  readonly valyuta: string;
+  readonly jami: string;
+  readonly tolangan: string;
+  readonly qarz: string;
+  readonly mijozId: number | null;
+  readonly qatorlar: readonly {
+    readonly id: number;
+    readonly sana: Date;
+    readonly kassaNomi: string;
+    readonly summa: string;
+    readonly valyuta: string;
+    readonly xodimIsmi: string;
+    readonly stornoQilinganmi: boolean;
+  }[];
+}
+
+/**
+ * TZ 8.14 — kartochkaning pul bloki.
+ *
+ * ⚠️ 2.2-invariant — to'langan summa SAQLANMAYDI, kassa yozuvlarining
+ *    yig'indisi. Storno qilingan yozuv ham jurnalda qoladi, lekin
+ *    yig'indiga teskari yozuvi bilan birga kiradi va o'zini yo'q qiladi.
+ */
+export async function tolovHolati(
+  buyurtmaId: number,
+  filialId: number,
+): Promise<TolovHolati | null> {
+  const sql = ulanishOl();
+
+  const b = await sql<
+    { valyuta: string; mijoz_id: number | null; jami: string | null }[]
+  >`
+    SELECT b.valyuta, b.mijoz_id,
+           (SELECT SUM(p.narx_snapshot - COALESCE(p.chegirma_summa, 0))::text
+              FROM buyurtma_pozitsiya p
+             WHERE p.buyurtma_id = b.id
+               AND p.holat NOT IN ('BEKOR','RAD_ETILGAN')) AS jami
+    FROM buyurtma b
+    WHERE b.id = ${buyurtmaId} AND b.sotgan_filial_id = ${filialId}`;
+
+  const buyurtma = b[0];
+  if (buyurtma === undefined) return null;
+
+  const q = await sql<
+    {
+      id: number;
+      sana: Date;
+      kassa_nomi: string;
+      summa: string;
+      valyuta: string;
+      xodim_ismi: string;
+      storno_qilinganmi: boolean;
+    }[]
+  >`
+    SELECT y.id, y.sana, k.nom AS kassa_nomi, y.summa, y.valyuta,
+           x.ism AS xodim_ismi,
+           EXISTS (SELECT 1 FROM kassa_yozuv s WHERE s.storno_id = y.id)
+             AS storno_qilinganmi
+    FROM kassa_yozuv y
+    JOIN kassa k ON k.id = y.kassa_id
+    JOIN xodim x ON x.id = y.xodim_id
+    WHERE y.manba_turi = 'buyurtma' AND y.manba_id = ${buyurtmaId}
+    ORDER BY y.qator`;
+
+  const tolangan = q
+    .filter((r) => !r.storno_qilinganmi)
+    .reduce((y, r) => y + Number(r.summa), 0);
+
+  const jami = Number(buyurtma.jami ?? 0);
+
+  return {
+    buyurtmaId,
+    valyuta: buyurtma.valyuta,
+    jami: jami.toFixed(2),
+    tolangan: tolangan.toFixed(2),
+    qarz: (jami - tolangan).toFixed(2),
+    mijozId: buyurtma.mijoz_id,
+    qatorlar: q.map((r) => ({
+      id: r.id,
+      sana: r.sana,
+      kassaNomi: r.kassa_nomi,
+      summa: r.summa,
+      valyuta: r.valyuta,
+      xodimIsmi: r.xodim_ismi,
+      stornoQilinganmi: r.storno_qilinganmi,
+    })),
+  };
+}
+
+/** TZ 3.12 — to'lov qabul qilinadigan kassalar. */
+export async function tolovKassalari(
+  filialId: number,
+  xodimId: number,
+): Promise<{ id: number; nom: string; turi: string; valyuta: string }[]> {
+  const q = await ulanishOl()<
+    { id: number; nom: string; turi: string; valyuta: string }[]
+  >`
+    SELECT id, nom, turi, valyuta FROM kassa
+    WHERE filial_id = ${filialId} AND faol = true
+      -- TZ 12.2 — sotuvchi faqat O'Z naqd kassasiga oladi,
+      -- karta esa TO'G'RIDAN-TO'G'RI admin kassasiga tushadi
+      AND (xodim_id = ${xodimId} OR turi = 'KARTA')
+    ORDER BY turi, valyuta`;
+  return q;
+}

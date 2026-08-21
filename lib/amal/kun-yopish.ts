@@ -22,7 +22,7 @@ import { BiznesXato } from '@/lib/xato';
  * ⚠️ `as unknown as` kastini ishlatmaslik uchun ATAYLAB union: kast
  *    turlar himoyasini o'chiradi va keyin xato jimgina o'tib ketadi.
  */
-type Soruvchi = postgres.Sql | postgres.TransactionSql;
+export type Soruvchi = postgres.Sql | postgres.TransactionSql;
 
 export interface KunHolati {
   readonly kassaId: number;
@@ -180,7 +180,7 @@ export async function kunniYop(
  * Kassa yozuvi qo'shishdan oldin chaqiriladi.
  */
 export async function kunYopiqmi(
-  ulanish: postgres.Sql,
+  ulanish: Soruvchi,
   kassaId: number,
   sana: string,
 ): Promise<boolean> {

@@ -167,7 +167,14 @@ export default async function KassaSahifasi() {
               <tbody className="divide-y divide-slate-100">
                 {balanslar.map((b) => (
                   <tr key={b.xodimId}>
-                    <td className="px-4 py-2.5">{b.ism}</td>
+                    <td className="px-4 py-2.5">
+                      <Link
+                        href={`/kassa/xodim/${String(b.xodimId)}`}
+                        className="underline underline-offset-2 hover:text-slate-900"
+                      >
+                        {b.ism}
+                      </Link>
+                    </td>
                     <td
                       className={`raqam px-4 py-2.5 ${Number(b.somBalans) < 0 ? 'text-red-700' : ''}`}
                     >

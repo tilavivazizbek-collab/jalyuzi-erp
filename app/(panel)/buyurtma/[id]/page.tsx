@@ -10,9 +10,10 @@ import {
   tasdiqlanadimi,
   type PozitsiyaHolati,
 } from '@/lib/domain/buyurtma';
-import { buyurtmaTafsili } from '../malumot';
+import { buyurtmaTafsili, tolovHolati, tolovKassalari } from '../malumot';
 import { TasdiqlashTugmasi } from '../tasdiqla';
 import { BekorTugmasi, QaytaribOlishTugmasi } from '../amallar';
+import { TolovFormasi } from '../tolov-forma';
 
 export const dynamic = 'force-dynamic';
 
@@ -34,6 +35,14 @@ export default async function BuyurtmaKartochkasi({
 
   const b = await buyurtmaTafsili(buyurtmaId, f.filialId);
   if (b === null) notFound();
+
+  const tolovQilaOladi = ruxsatBormi(f, 'kassa.tolov');
+  const [tolov, kassalar] = await Promise.all([
+    tolovHolati(buyurtmaId, f.filialId),
+    tolovQilaOladi
+      ? tolovKassalari(f.filialId, f.xodimId)
+      : Promise.resolve([]),
+  ]);
 
   const somda = b.valyuta === 'SOM';
   const pul = (x: string): string => (somda ? pulKorsat(som(x)) : `${x} $`);
@@ -79,6 +88,63 @@ export default async function BuyurtmaKartochkasi({
           </>
         )}
       </dl>
+
+      {/* ── 3.12 · 8.14 · To'lovlar ── */}
+      {tolov !== null && (
+        <section>
+          <h2 className="mb-1 text-sm font-medium text-slate-700">To&apos;lovlar</h2>
+
+          <dl className="mb-3 grid max-w-md grid-cols-2 gap-x-4 gap-y-1 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
+            <dt className="text-slate-500">Jami</dt>
+            <dd className="raqam">{pul(tolov.jami)}</dd>
+            <dt className="text-slate-500">To&apos;langan</dt>
+            <dd className="raqam text-emerald-700">{pul(tolov.tolangan)}</dd>
+            <dt className="border-t border-slate-200 pt-1 font-medium">Qarz</dt>
+            <dd
+              className={`raqam border-t border-slate-200 pt-1 font-semibold ${
+                Number(tolov.qarz) > 0 ? 'text-amber-800' : ''
+              }`}
+            >
+              {pul(tolov.qarz)}
+            </dd>
+          </dl>
+
+          {tolov.qatorlar.length > 0 && (
+            <div className="mb-3 overflow-x-auto rounded-xl border border-slate-200 bg-white">
+              <table className="w-full text-sm">
+                <tbody className="divide-y divide-slate-100">
+                  {tolov.qatorlar.map((q) => (
+                    <tr key={q.id} className={q.stornoQilinganmi ? 'text-slate-400' : ''}>
+                      <td className="px-4 py-2 text-slate-600">
+                        {q.sana.toLocaleDateString('uz-UZ')}
+                      </td>
+                      <td className="px-4 py-2">{q.kassaNomi}</td>
+                      <td className="raqam px-4 py-2 font-medium">
+                        {pul(q.summa)}
+                        {q.stornoQilinganmi && (
+                          <span className="ml-2 text-xs">storno qilingan</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-2 text-xs text-slate-500">
+                        {q.xodimIsmi}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {tolovQilaOladi && Number(tolov.qarz) > 0 && (
+            <TolovFormasi
+              buyurtmaId={b.id}
+              qarz={tolov.qarz}
+              valyuta={b.valyuta}
+              kassalar={kassalar}
+            />
+          )}
+        </section>
+      )}
 
       {filiallararo && (
         <p className="rounded-xl bg-sky-50 px-4 py-3 text-sm text-sky-900 ring-1 ring-sky-200">

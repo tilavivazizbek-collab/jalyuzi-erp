@@ -23,3 +23,15 @@ export function xatolarniYig(
 ): MijozHolati {
   return { xato: FORMA_XATO_XABARI, maydonXatolari: maydonXatolari(xatolar), dublikat: null };
 }
+
+export interface QarzHolati {
+  readonly xato: string | null;
+  readonly qolganQarz: string | null;
+  readonly bajarildi: boolean;
+}
+
+export const BOSH_QARZ: QarzHolati = {
+  xato: null,
+  qolganQarz: null,
+  bajarildi: false,
+};

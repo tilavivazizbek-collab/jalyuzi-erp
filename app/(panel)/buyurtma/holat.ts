@@ -14,3 +14,16 @@ export interface AmalHolati {
 }
 
 export const BOSH_AMAL: AmalHolati = { xato: null, bajarildi: false };
+
+export interface TolovFormaHolati {
+  readonly xato: string | null;
+  /** TZ 3.12 — «qolgan summa qarzga yoziladi va YANGI QARZ ko'rsatiladi» */
+  readonly qarz: string | null;
+  readonly bajarildi: boolean;
+}
+
+export const BOSH_TOLOV: TolovFormaHolati = {
+  xato: null,
+  qarz: null,
+  bajarildi: false,
+};

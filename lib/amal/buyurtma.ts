@@ -235,6 +235,32 @@ export async function buyurtmaYarat(
       natijalar.push({ pozitsiyaId, holat, topilmaganMateriallar: topilmagan });
     }
 
+    /**
+     * TZ 6.8 — «Sotuv qarzni OSHIRADI.»
+     *
+     * ⚠️ Qarz SHU YERDA yoziladi, to'lovda emas: sotuv BIR MARTA
+     *    bo'ladi, to'lov esa bir necha marta. To'lovda yozilsa har
+     *    to'lov qarzni yana oshirardi.
+     *
+     * ⚠️ Mijozsiz buyurtmada qarz yo'q (3.10) — «ko'chadagi tasodifiy
+     *    xaridor».
+     */
+    if (kirim.mijozId !== null) {
+      const jami = kirim.pozitsiyalar.reduce(
+        (y, p) => y.plus(new Decimal(p.narxSnapshot)).minus(new Decimal(p.chegirmaSumma)),
+        new Decimal(0),
+      );
+
+      await tx`
+        INSERT INTO mijoz_harakat (mijoz_id, filial_id, turi, summa, valyuta,
+                                   kurs_snapshot, manba_turi, manba_id, izoh,
+                                   xodim_id)
+        VALUES (${kirim.mijozId}, ${kirim.sotganFilialId}, 'SOTUV',
+                ${jami.toFixed(2)}, ${kirim.valyuta}, ${kirim.kursSnapshot},
+                'buyurtma', ${buyurtmaId}, ${`Buyurtma ${kirim.raqam}`},
+                ${xodimId})`;
+    }
+
     // TZ 2.4 — har buyurtma audit jurnalida
     await tx`
       INSERT INTO audit_jurnal (xodim_id, filial_id, amal, obyekt_turi, obyekt_id,

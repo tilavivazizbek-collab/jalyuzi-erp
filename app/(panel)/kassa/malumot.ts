@@ -254,3 +254,85 @@ export async function xarajatModdalari(
     pulChiqmadi: r.pul_chiqmadi ?? '0',
   }));
 }
+
+// ─── 10.16 · Xodim kartochkasi ────────────────────────────────────────────
+
+export interface XodimKartochkasi {
+  readonly xodimId: number;
+  readonly ism: string;
+  readonly somBalans: string;
+  readonly dollarBalans: string;
+  /** TZ 10.16 — «jami ishlagan» va «jami olgan» alohida ko'rsatiladi */
+  readonly jamiIshlagan: string;
+  readonly jamiOlgan: string;
+  readonly harakatlar: readonly {
+    readonly id: number;
+    readonly sana: Date;
+    readonly turi: string;
+    readonly summa: string;
+    readonly valyuta: string;
+    readonly izoh: string | null;
+  }[];
+}
+
+export const XODIM_HARAKAT_NOMI: Record<string, string> = {
+  HAQ: 'Hisoblangan haq',
+  AVANS: 'Avans',
+  TOLOV: "To'lov",
+  USHLANMA: 'Ushlanma',
+  JARIMA: 'Jarima',
+  QOLDA_TUZATISH: "Qo'lda tuzatish",
+  HAQ_BEKOR: 'Haq bekor qilindi',
+  HISOBDAN_CHIQARISH: 'Hisobdan chiqarildi',
+};
+
+export async function xodimKartochkasi(
+  xodimId: number,
+  filialId: number,
+): Promise<XodimKartochkasi | null> {
+  const sql = ulanishOl();
+
+  const x = await sql<{ id: number; ism: string }[]>`
+    SELECT id, ism FROM xodim WHERE id = ${xodimId} AND filial_id = ${filialId}`;
+
+  const xodim = x[0];
+  if (xodim === undefined) return null;
+
+  const b = await sql<
+    {
+      som: string | null;
+      dollar: string | null;
+      ishlagan: string | null;
+      olgan: string | null;
+    }[]
+  >`
+    SELECT SUM(summa) FILTER (WHERE valyuta = 'SOM')::text AS som,
+           SUM(summa) FILTER (WHERE valyuta = 'USD')::text AS dollar,
+           SUM(summa) FILTER (WHERE summa > 0 AND valyuta = 'SOM')::text AS ishlagan,
+           ABS(SUM(summa) FILTER (WHERE summa < 0 AND valyuta = 'SOM'))::text AS olgan
+    FROM xodim_harakat WHERE xodim_id = ${xodimId}`;
+
+  const h = await sql<
+    {
+      id: number;
+      sana: Date;
+      turi: string;
+      summa: string;
+      valyuta: string;
+      izoh: string | null;
+    }[]
+  >`
+    SELECT id, sana, turi, summa, valyuta, izoh FROM xodim_harakat
+    WHERE xodim_id = ${xodimId}
+    ORDER BY sana DESC, id DESC LIMIT 50`;
+
+  return {
+    xodimId,
+    ism: xodim.ism,
+    somBalans: b[0]?.som ?? '0',
+    dollarBalans: b[0]?.dollar ?? '0',
+    jamiIshlagan: b[0]?.ishlagan ?? '0',
+    jamiOlgan: b[0]?.olgan ?? '0',
+    harakatlar: h,
+  };
+}

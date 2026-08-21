@@ -107,6 +107,8 @@ export const RUXSATLAR = {
   },
 
   // ── Kassa — TZ 14.6 ────────────────────────────────────────────────────
+  'kassa.tolov': { nom: "To'lov qabul qilish", guruh: 'Kassa', band: '3.12' },
+  'kassa.ish.haqi': { nom: "Ish haqi to'lash", guruh: 'Kassa', band: '10.15' },
   'kassa.oz.kor': { nom: "O'z kassasini ko'rish", guruh: 'Kassa', band: '14.6' },
   'kassa.barcha.kor': { nom: "Barcha kassani ko'rish", guruh: 'Kassa', band: '14.6' },
   'kassa.kirim': { nom: 'Kassa kirim', guruh: 'Kassa', band: '14.6' },

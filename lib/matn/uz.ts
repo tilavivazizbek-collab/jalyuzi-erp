@@ -84,6 +84,8 @@ export const XATO_MATNI: Record<XatoKod, string> = {
   KASSA_ALLAQACHON_STORNO: "Bu yozuv allaqachon storno qilingan",
   KASSA_SABAB_KERAK: "Storno sababi majburiy",
   KUN_IZOH_KERAK: "Farq bor — izoh kiritilishi shart",
+  TOLOV_BOSH: "To'lov qatori kiritilmagan",
+  TOLOV_MANFIY: "To'lov summasi noldan katta bo'lishi kerak",
   KUN_SAQLANMADI: "Kunni yopib bo'lmadi",
   KUN_TOPILMADI: "Kun yozuvi topilmadi",
   KUN_YOPILMAGAN: "Bu kun yopilmagan",
