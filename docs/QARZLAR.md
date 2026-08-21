@@ -12,11 +12,11 @@ Shuning uchun bu ro'yxat qisqa bo'lishi va bo'shab borishi kerak.
 | T-02 | `docker compose up` tekshiruvi bajarilmagan | Docker o'rnatilganda | Past |
 | T-03 | Qarorlar hujjatga ko'chirilmagan | Egasi tasdiqlagach | O'rta |
 | ~~T-04~~ | ~~`band` va `bolak` ning buyurtma tashqi kalitlari~~ | ✅ yopildi | — |
-| T-05 | Kirimda yetkazib beruvchi qarzi yozilmaydi | 5-bosqich | O'rta |
+| ~~T-05~~ | ~~Kirimda yetkazib beruvchi qarzi yozilmaydi~~ | ✅ yopildi | — |
 | ~~T-06~~ | ~~Baza testlari bir martalik edi~~ | ✅ yopildi | — |
 | T-07 | Inventarizatsiya farqlari hisoboti | 8-bosqich | Past |
 | T-08 | Masofadagi baza tarmoq uzilishlari | 10-bosqich | O'rta |
-| T-09 | Qayta kesishda ustaning haqi bekor qilinmaydi | 5-bosqich | O'rta |
+| ~~T-09~~ | ~~Qayta kesishda ustaning haqi bekor qilinmaydi~~ | ✅ yopildi | — |
 
 ---
 
@@ -144,26 +144,23 @@ sinaydi.
 
 ---
 
-## T-05 · Kirimda yetkazib beruvchi qarzi yozilmaydi
+## T-05 · Kirimda yetkazib beruvchi qarzi — YOPILDI
 
-**Bosqich:** 3 · **Tegadi:** TZ 7.9, 9.2 · QISM 1 §7.1
+**Sana:** 2026-08-21 · **Bosqich:** 5 · **Holat:** ✅ yopildi
 
-QISM 1 §7.1 kirim hujjatini shunday ta'riflaydi:
+`kirimYarat()` endi O'SHA tranzaksiyada `yetkazib_beruvchi_harakat` ga
+`XARID` yozuvini qo'shadi (QISM 1 §7.1 talab qilgan uchinchi ish).
 
-> «Kirim hujjati | bo'laklar yaratiladi + transport taqsimlanadi +
->  **qarz yoziladi** | 7.9, 9.2»
+**Transport va bojxona qarzga KIRMAYDI.** Ular alohida to'lanadi (C3
+kodi) va tannarxga allaqachon qo'shilgan — ikkalasini ham qarzga
+qo'shish pulni ikki marta sanardi.
 
-Hozir birinchi ikkitasi bajarilyapti. Uchinchisi —
-`yetkazib_beruvchi_harakat` jadvalini talab qiladi, u esa 5-bosqichda
-(xodimlar va kassa) yaratiladi.
+Storno ham qarzni qaytaradi: harakat jadvali o'zgarmas (§6.5), shuning
+uchun TESKARI YOZUV qo'shiladi va asl `XARID` qatori tarixda qoladi.
 
-**Xavf o'rta.** Ombor hisobi to'g'ri, lekin yetkazib beruvchi balansi
-hozircha yuritilmaydi. Bu 5-bosqichgacha hech qanday hisobotga
-ta'sir qilmaydi, chunki qarz ekranlari ham o'sha yerda quriladi.
-
-**5-bosqichda bajariladi:** `kirimYarat` tranzaksiyasiga qarz yozuvi
-qo'shiladi — o'sha bitta tranzaksiyada, aks holda 2.1-invariant
-buziladi.
+Testi: `test/integratsiya/kirim.test.ts` — «xarid summasi qarzga
+tushadi» va «storno qarzni teskari yozuv bilan qaytaradi» (jurnal
+yig'indisi nolga qaytadi, 2.2-invariant).
 
 ---
 
@@ -286,47 +283,30 @@ faqat sekinlikni yopadi.
 
 ---
 
-## T-09 · Qayta kesishda ustaning haqi bekor qilinmaydi
+## T-09 · Qayta kesishda ustaning haqi — YOPILDI
 
-**Sana:** 2026-08-21 · **Bosqich:** 5 · **Manba:** TZ 8.17.5 · Q-15 · 10.13
+**Sana:** 2026-08-21 · **Bosqich:** 5 · **Holat:** ✅ yopildi
 
-### Nima yetishmaydi
+Uch narsa qo'shildi:
 
-TZ 8.17.5 (Q-15) talab qiladi:
-
-> - Birinchi «Tugatdim» dagi haq **bekor qilinadi** (teskari yozuv,
->   xodim harakatiga)
-> - Ikkinchi «Tugatdim» da haq **bir marta** hisoblanadi
-> - Natija: usta bir marta oladi, ikki marta ishlagan bo'lsa ham
-
-Teskari yozuv `xodim_harakat` jadvaliga tushishi kerak. U jadval
-**5-bosqichda** (xodimlar va kassa) yaratiladi.
-
-Ushlanma (10.13) ham shu jadvalga tegadi.
-
-### Hozir nima bor
-
-`qayta_kesish` jadvalida qaror **yozib qo'yilgan**:
-
-| Ustun | Nima |
+| Qaerda | Nima |
 |---|---|
-| `ushlanma_summa` | admin ushlab qolgan summa |
-| `haq_saqlandi` | 8.17.5.1 istisnosi qo'llanganmi |
+| `tugatdim()` | 10.10 — haq «Tugatdim» da hisoblanadi: `xodim_harakat` ga `HAQ`, `xarajat` ga `ISH_HAQI` (kassa yozuvisiz, 12.1) |
+| `qaytaKesishHal()` | Q-15 — `HAQ_BEKOR` teskari yozuvi, xarajat ham teskari |
+| `qaytaKesishHal()` | 10.13 · 8.17.6 — ushlanma `USHLANMA` yozuvi va MANFIY `ISH_HAQI` xarajati |
 
-Ya'ni ma'lumot yo'qolmaydi — faqat ish haqi hisobiga hali ulanmagan.
+**8.17.5.1 istisnosi** — material defekti bo'lsa `haqSaqlandi = true`
+va teskari yozuv umuman qo'yilmaydi.
 
-### Nega shunday qoldirildi
+**8.17.7** — ikkinchi marta yechilgan material `ISHLAB_CHIQARISH_BRAKI`
+moddasiga tushadi, `CHIQINDI` ga emas.
 
-Ish haqi jadvalisiz teskari yozuvni yozib bo'lmaydi. Uni «vaqtincha»
-boshqa joyga yozish esa 2.2-invariantni buzardi: balans ikki manbadan
-yig'ilib qolardi.
+### Yo'l-yo'lakay topilgan narsa
 
-### Yopilishi
+Ushlanma dastlab ustaning HAQ yozuvidan izlanardi. Lekin 10.13 oldindan
+hisoblangan haqni talab qilmaydi: usta matoni «Tugatdim» dan oldin
+buzgan bo'lsa haq hali yozilmagan, ushlanma esa baribir qo'yilishi
+mumkin. Usta endi POZITSIYADAN olinadi.
 
-5-bosqichda `xodim_harakat` yaratilganda:
-
-1. `qaytaKesishHal()` tasdiqlanganda `haq_saqlandi = false` bo'lsa —
-   birinchi «Tugatdim» stavkasiga teskari yozuv
-2. `ushlanma_summa > 0` bo'lsa — ushlanma yozuvi (ish haqi xarajatini
-   KAMAYTIRADI, alohida daromad emas — 8.17.6)
-3. Ikkalasi ham `qaytaKesishHal` ning O'SHA tranzaksiyasida
+Testi: `test/integratsiya/qayta-kesish.test.ts` — «usta ikki marta
+ishlagan bo'lsa ham BIR MARTA oladi» (balans nolga qaytadi).

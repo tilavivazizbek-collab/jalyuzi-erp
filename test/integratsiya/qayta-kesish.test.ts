@@ -65,7 +65,7 @@ async function rulonYarat(eni = 1.8, boyi = 2.0): Promise<number> {
   return q[0]?.id ?? 0;
 }
 
-async function ishdagiPozitsiya(): Promise<number> {
+async function ishdagiPozitsiya(stavka = '45000'): Promise<number> {
   hisoblagich += 1;
 
   const kirim: BuyurtmaKirimi = {
@@ -106,7 +106,7 @@ async function ishdagiPozitsiya(): Promise<number> {
 
   const n = await buyurtmaYarat(sql, kirim, XODIM);
   const pozitsiyaId = n.pozitsiyalar[0]?.pozitsiyaId ?? 0;
-  await ishniOl(sql, pozitsiyaId, USTA, '45000');
+  await ishniOl(sql, pozitsiyaId, USTA, stavka, 'DONA');
   return pozitsiyaId;
 }
 
@@ -512,5 +512,192 @@ describe('TZ 8.17.5.1 — qaysi sabab istisnoga tushishi mumkin', () => {
     expect(haqSaqlanishiMumkinmi('OLCHAM_XATO')).toBe(false);
     expect(haqSaqlanishiMumkinmi('TIKUV_BUZILDI')).toBe(false);
     expect(haqSaqlanishiMumkinmi('BOSHQA')).toBe(false);
+  });
+});
+
+// ─── Q-15 · TZ 8.17.5 · 8.17.6 · 8.17.7 — ish haqi va xarajat ────────────
+
+describe('Q-15 · TZ 8.17.5 — haq BEKOR qilinadi', () => {
+  it("usta ikki marta ishlagan bo'lsa ham BIR MARTA oladi", async () => {
+    await rulonYarat(1.8, 2.0);
+    await rulonYarat(1.8, 2.0);
+    const pozitsiyaId = await ishdagiPozitsiya('45000');
+
+    // Birinchi «Tugatdim» — haq hisoblandi
+    await tugatdim(
+      sql,
+      {
+        pozitsiyaId,
+        manba: 'RULON',
+        qoldiq: { eniM: 0.6, boyiM: 2.0, saqlansinmi: true },
+        ogohTasdiqlandi: false,
+        izoh: null,
+      },
+      CHEGARALAR,
+      USTA,
+    );
+
+    const s = await qaytaKesishSora(
+      sql,
+      { pozitsiyaId, sabab: 'TIKUV_BUZILDI', izoh: null, rasmYol: null },
+      USTA,
+    );
+
+    await qaytaKesishHal(
+      sql,
+      {
+        sorovId: s.sorovId,
+        tasdiqlansinmi: true,
+        ushlanmaSumma: '0',
+        haqSaqlandi: false,
+        izoh: null,
+      },
+      XODIM,
+    );
+
+    // 2.2-invariant — balans jurnal yig'indisi, u NOLGA qaytadi
+    const h = await sql<{ turi: string; summa: string }[]>`
+      SELECT turi, summa FROM xodim_harakat
+      WHERE (manba_turi = 'buyurtma_pozitsiya' AND manba_id = ${pozitsiyaId})
+         OR (manba_turi = 'xodim_harakat' AND manba_id IN (
+              SELECT id FROM xodim_harakat
+              WHERE manba_turi = 'buyurtma_pozitsiya' AND manba_id = ${pozitsiyaId}))
+      ORDER BY id`;
+
+    expect(h.map((x) => x.turi)).toEqual(['HAQ', 'HAQ_BEKOR']);
+    expect(h.reduce((y, x) => y + Number(x.summa), 0)).toBe(0);
+  });
+
+  it("TZ 8.17.5.1 — material defekti bo'lsa haq SAQLANADI", async () => {
+    await rulonYarat(1.8, 2.0);
+    await rulonYarat(1.8, 2.0);
+    const pozitsiyaId = await ishdagiPozitsiya('45000');
+
+    await tugatdim(
+      sql,
+      {
+        pozitsiyaId,
+        manba: 'RULON',
+        qoldiq: { eniM: 0.6, boyiM: 2.0, saqlansinmi: true },
+        ogohTasdiqlandi: false,
+        izoh: null,
+      },
+      CHEGARALAR,
+      USTA,
+    );
+
+    const s = await qaytaKesishSora(
+      sql,
+      { pozitsiyaId, sabab: 'MATO_YIRTILDI', izoh: null, rasmYol: null },
+      USTA,
+    );
+
+    await qaytaKesishHal(
+      sql,
+      {
+        sorovId: s.sorovId,
+        tasdiqlansinmi: true,
+        ushlanmaSumma: '0',
+        // 8.17.5.1 — usta aybdor emas
+        haqSaqlandi: true,
+        izoh: 'Material defekti',
+      },
+      XODIM,
+    );
+
+    const h = await sql<{ turi: string }[]>`
+      SELECT turi FROM xodim_harakat
+      WHERE manba_turi = 'xodim_harakat' AND manba_id IN (
+        SELECT id FROM xodim_harakat
+        WHERE manba_turi = 'buyurtma_pozitsiya' AND manba_id = ${pozitsiyaId})`;
+    expect(h).toHaveLength(0);
+  });
+
+  it("TZ 8.17.6 — ushlanma ish haqi XARAJATINI kamaytiradi", async () => {
+    await rulonYarat(1.8, 2.0);
+    await rulonYarat(1.8, 2.0);
+    const pozitsiyaId = await ishdagiPozitsiya('45000');
+
+    await tugatdim(
+      sql,
+      {
+        pozitsiyaId,
+        manba: 'RULON',
+        qoldiq: { eniM: 0.6, boyiM: 2.0, saqlansinmi: true },
+        ogohTasdiqlandi: false,
+        izoh: null,
+      },
+      CHEGARALAR,
+      USTA,
+    );
+
+    const s = await qaytaKesishSora(
+      sql,
+      { pozitsiyaId, sabab: 'OLCHAM_XATO', izoh: null, rasmYol: null },
+      USTA,
+    );
+
+    await qaytaKesishHal(
+      sql,
+      {
+        sorovId: s.sorovId,
+        tasdiqlansinmi: true,
+        ushlanmaSumma: '50000',
+        haqSaqlandi: false,
+        izoh: null,
+      },
+      XODIM,
+    );
+
+    const u = await sql<{ turi: string; summa: string }[]>`
+      SELECT turi, summa FROM xodim_harakat
+      WHERE manba_turi = 'qayta_kesish' AND manba_id = ${s.sorovId}`;
+    expect(u[0]?.turi).toBe('USHLANMA');
+    expect(Number(u[0]?.summa)).toBe(-50_000);
+
+    // Xarajat MANFIY ISH_HAQI — alohida daromad emas (11.4.1)
+    const x = await sql<{ modda: string; summa: string }[]>`
+      SELECT modda, summa FROM xarajat
+      WHERE manba_turi = 'qayta_kesish' AND manba_id = ${s.sorovId}
+        AND modda = 'ISH_HAQI' AND summa = -50000`;
+    expect(x).toHaveLength(1);
+  });
+
+  it("TZ 8.17.7 — brak ISHLAB_CHIQARISH_BRAKI moddasiga tushadi, CHIQINDIGA emas", async () => {
+    await rulonYarat(1.8, 2.0);
+    await rulonYarat(1.8, 2.0);
+    const pozitsiyaId = await ishdagiPozitsiya('45000');
+
+    const s = await qaytaKesishSora(
+      sql,
+      { pozitsiyaId, sabab: 'OLCHAM_XATO', izoh: null, rasmYol: null },
+      USTA,
+    );
+
+    await qaytaKesishHal(
+      sql,
+      {
+        sorovId: s.sorovId,
+        tasdiqlansinmi: true,
+        ushlanmaSumma: '0',
+        haqSaqlandi: false,
+        izoh: null,
+      },
+      XODIM,
+    );
+
+    const x = await sql<{ modda: string; summa: string }[]>`
+      SELECT modda, summa FROM xarajat
+      WHERE manba_turi = 'qayta_kesish' AND manba_id = ${s.sorovId}
+        AND modda = 'ISHLAB_CHIQARISH_BRAKI'`;
+    expect(x).toHaveLength(1);
+    // 1.80 × 2.00 × 78 000 = 280 800
+    expect(Number(x[0]?.summa)).toBe(280_800);
+
+    const chiqindi = await sql<{ n: number }[]>`
+      SELECT COUNT(*)::int AS n FROM xarajat
+      WHERE manba_turi = 'qayta_kesish' AND manba_id = ${s.sorovId}
+        AND modda = 'CHIQINDI'`;
+    expect(chiqindi[0]?.n).toBe(0);
   });
 });

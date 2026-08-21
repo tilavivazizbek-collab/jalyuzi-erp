@@ -22,6 +22,8 @@ import {
   type Chegaralar,
   type Qoldiq,
 } from '@/lib/domain/kesish';
+import { haqHisobla, type StavkaBirligi } from '@/lib/domain/stavka';
+import { pulMatn } from '@/lib/domain/pul';
 import {
   navbatdami,
   otishniTekshir,
@@ -38,6 +40,10 @@ interface PozitsiyaQatori {
   readonly holat: string;
   readonly usta_id: number | null;
   readonly buyurtma_id: number;
+  readonly eni_sm: number;
+  readonly boyi_sm: number;
+  readonly stavka_snapshot: string | null;
+  readonly stavka_birlik_snapshot: string | null;
   readonly sotgan_filial_id: number;
   readonly ishlab_chiqaruvchi_filial_id: number;
 }
@@ -47,7 +53,8 @@ async function pozitsiyaniQulfla(
   pozitsiyaId: number,
 ): Promise<PozitsiyaQatori> {
   const q = await tx<PozitsiyaQatori[]>`
-    SELECT p.id, p.holat, p.usta_id, p.buyurtma_id,
+    SELECT p.id, p.holat, p.usta_id, p.buyurtma_id, p.eni_sm, p.boyi_sm,
+           p.stavka_snapshot, p.stavka_birlik_snapshot,
            b.sotgan_filial_id, b.ishlab_chiqaruvchi_filial_id
     FROM buyurtma_pozitsiya p
     JOIN buyurtma b ON b.id = p.buyurtma_id
@@ -72,6 +79,7 @@ export async function ishniOl(
   pozitsiyaId: number,
   ustaId: number,
   stavka: string,
+  stavkaBirligi: StavkaBirligi = 'DONA',
 ): Promise<{ olindi: boolean }> {
   return ulanish.begin(async (tx) => {
     const p = await pozitsiyaniQulfla(tx, pozitsiyaId);
@@ -86,7 +94,7 @@ export async function ishniOl(
     await tx`
       UPDATE buyurtma_pozitsiya
       SET holat = 'ISHLAB_CHIQARILMOQDA', usta_id = ${ustaId},
-          stavka_snapshot = ${stavka},
+          stavka_snapshot = ${stavka}, stavka_birlik_snapshot = ${stavkaBirligi},
           ozgartirildi = now(), ozgartirdi_id = ${ustaId}
       WHERE id = ${pozitsiyaId}`;
 
@@ -96,7 +104,12 @@ export async function ishniOl(
       VALUES (${ustaId}, ${p.ishlab_chiqaruvchi_filial_id}, 'ISH_OLINDI',
               'buyurtma_pozitsiya', ${pozitsiyaId},
               ${tx.json({ holat: p.holat, usta_id: p.usta_id })},
-              ${tx.json({ holat: 'ISHLAB_CHIQARILMOQDA', usta_id: ustaId, stavka })},
+              ${tx.json({
+                holat: 'ISHLAB_CHIQARILMOQDA',
+                usta_id: ustaId,
+                stavka,
+                stavka_birligi: stavkaBirligi,
+              })},
               ${'Usta ishni navbatdan oldi'})`;
 
     return { olindi: true };
@@ -339,6 +352,45 @@ export async function tugatdim(
           ozgartirildi = now(), ozgartirdi_id = ${xodimId}
       WHERE id = ${kirim.pozitsiyaId}`;
 
+    /**
+     * TZ 10.10 — «Haq usta "Tugatdim" bosgan payt hisoblanadi. Mahsulot
+     * mijozga topshirilishini KUTMAYDI: mijoz umuman kelmasligi mumkin
+     * (8.8), ish esa bajarilgan.»
+     *
+     * ⚠️ TZ 12.1 — bu XARAJAT, lekin KASSADAN PUL CHIQMAYDI. To'lov
+     *    alohida hodisa (C4) va u xarajat sanalMAYDI, aks holda bir
+     *    xil pul ikki marta hisoblanardi.
+     *
+     * ⚠️ TZ 10.12 — stavkasi belgilanmagan tur ishlab chiqarishni
+     *    to'xtatmaydi: haq 0 bo'ladi va adminga bildirishnoma ketadi.
+     */
+    const maydonKvM = new Decimal(p.eni_sm).times(p.boyi_sm).div(10_000).toNumber();
+    const haq =
+      p.stavka_snapshot === null
+        ? null
+        : haqHisobla(
+            p.stavka_snapshot,
+            (p.stavka_birlik_snapshot ?? 'DONA') as StavkaBirligi,
+            maydonKvM,
+          );
+
+    if (haq !== null && p.usta_id !== null && Number(pulMatn(haq)) > 0) {
+      await tx`
+        INSERT INTO xodim_harakat (xodim_id, filial_id, turi, summa, valyuta,
+                                   manba_turi, manba_id, izoh, xodim_yozdi_id)
+        VALUES (${p.usta_id}, ${filialId}, 'HAQ', ${pulMatn(haq)}, 'SOM',
+                'buyurtma_pozitsiya', ${kirim.pozitsiyaId},
+                ${'Tugatdim (10.10)'}, ${xodimId})`;
+
+      // 12.1 — pul chiqmagan xarajat, kassa yozuvi YO'Q
+      await tx`
+        INSERT INTO xarajat (sana, filial_id, modda, summa, valyuta,
+                             kassa_yozuv_id, manba_turi, manba_id, izoh, xodim_id)
+        VALUES (current_date, ${filialId}, 'ISH_HAQI', ${pulMatn(haq)}, 'SOM',
+                NULL, 'buyurtma_pozitsiya', ${kirim.pozitsiyaId},
+                ${'Hisoblangan ish haqi (10.10)'}, ${xodimId})`;
+    }
+
     await tx`
       INSERT INTO audit_jurnal (xodim_id, filial_id, amal, obyekt_turi, obyekt_id,
                                 eski_qiymat, yangi_qiymat, izoh)
@@ -354,6 +406,9 @@ export async function tugatdim(
                 chiqindi_kv_m: chiqindi?.kvM ?? 0,
                 // 7.6 · 11.7.7 — «ostatka turgan holda rulon ochildi»
                 ogoh_tasdiqlandi: kirim.ogohTasdiqlandi,
+                // 10.12 — stavkasi yo'q bo'lsa adminga bildirishnoma
+                haq: haq === null ? null : pulMatn(haq),
+                stavka_yoq: p.stavka_snapshot === null,
               })},
               ${kirim.izoh})`;
 

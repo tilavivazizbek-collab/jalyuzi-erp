@@ -16,6 +16,7 @@ const BANDLAR: readonly (MenyuBandi & { kod: RuxsatKod | null })[] = [
   { yol: '/ombor', nom: 'Ombor', kod: 'ombor.qoldiq.kor' },
   { yol: '/ombor/kirim', nom: 'Kirimlar', kod: 'ombor.qoldiq.kor' },
   { yol: '/ombor/inventarizatsiya', nom: 'Inventarizatsiya', kod: 'ombor.inventarizatsiya' },
+  { yol: '/kassa', nom: 'Kassa', kod: 'kassa.oz.kor' },
   { yol: '/material', nom: 'Materiallar', kod: 'material.kor' },
   { yol: '/mahsulot', nom: 'Mahsulot turlari', kod: 'mahsulot.kor' },
   { yol: '/mijoz', nom: 'Mijozlar', kod: 'mijoz.kor' },

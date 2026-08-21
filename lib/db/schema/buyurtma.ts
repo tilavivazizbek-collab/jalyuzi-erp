@@ -150,6 +150,12 @@ export const buyurtmaPozitsiya = pgTable(
     ustaId: bigint('usta_id', { mode: 'number' }).references(() => xodim.id),
     /** TZ 10.10 — stavka ish berilgan paytda qotadi */
     stavkaSnapshot: numeric('stavka_snapshot', { precision: 14, scale: 2 }),
+    /**
+     * ⚠️ Birlik ham QOTADI: `DONA` bo'lsa qat'iy summa, `KV_M` bo'lsa
+     *    maydonga ko'paytiriladi (10.8). Faqat qiymatni saqlash yetmaydi —
+     *    keyin uni qanday talqin qilishni bilib bo'lmaydi.
+     */
+    stavkaBirlikSnapshot: text('stavka_birlik_snapshot'),
     tugatildi: timestamp('tugatildi', { withTimezone: true }),
 
     holat: text('holat').notNull(),

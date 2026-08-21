@@ -5,7 +5,7 @@
  * va tannarx.
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { kirimYarat, type KirimKirimi } from '@/lib/amal/kirim';
+import { kirimYarat, kirimniStorno, type KirimKirimi } from '@/lib/amal/kirim';
 import { pulMatn } from '@/lib/domain/pul';
 import type { Ulanish } from '@/lib/db/ulanish';
 import { sinovUlanishi } from './yordamchi';
@@ -472,5 +472,75 @@ describe('Q-01 — chiziqli material koeffitsient bilan smga o\'giriladi', () =>
       JOIN kirim_qator kq ON kq.id = bo.kirim_qator_id
       WHERE kq.kirim_id = ${n.kirimId}`;
     expect(Number(q[0]?.miqdor)).toBe(3000);
+  });
+});
+
+// ─── T-05 · TZ 9.2 · QISM 1 §7.1 — yetkazib beruvchi qarzi ────────────────
+
+describe('TZ 9.2 — kirim yetkazib beruvchiga QARZ yozadi', () => {
+  it("xarid summasi qarzga tushadi — transport va bojxonasiz", async () => {
+    const n = await kirimYarat(
+      sql,
+      {
+        ...asos([
+          {
+            materialId: matoId,
+            miqdorKirim: 2,
+            narxBirlik: '3510000',
+            defektMiqdor: 0,
+            defektTuri: null,
+            bolaklar: [
+              { eniM: 3.0, boyiM: 30.0 },
+              { eniM: 3.0, boyiM: 30.0 },
+            ],
+          },
+        ]),
+        transportSumma: '2000000',
+        bojxonaSumma: '500000',
+      },
+      XODIM,
+    );
+
+    const q = await sql<{ turi: string; summa: string }[]>`
+      SELECT turi, summa FROM yetkazib_beruvchi_harakat
+      WHERE manba_turi = 'kirim' AND manba_id = ${n.kirimId}`;
+
+    expect(q).toHaveLength(1);
+    expect(q[0]?.turi).toBe('XARID');
+    // 2 × 3 510 000 = 7 020 000 — transport (2 000 000) va bojxona
+    // (500 000) QO'SHILMAYDI: ular alohida to'lanadi (C3)
+    expect(Number(q[0]?.summa)).toBe(7_020_000);
+  });
+
+  it('storno qarzni TESKARI YOZUV bilan qaytaradi (§6.5)', async () => {
+    const n = await kirimYarat(
+      sql,
+      asos([
+        {
+          materialId: matoId,
+          miqdorKirim: 1,
+          narxBirlik: '3510000',
+          defektMiqdor: 0,
+          defektTuri: null,
+          bolaklar: [{ eniM: 3.0, boyiM: 30.0 }],
+        },
+      ]),
+      XODIM,
+    );
+
+    await kirimniStorno(sql, n.kirimId, 'Hujjat ikki marta kiritilgan', XODIM);
+
+    const q = await sql<{ summa: string; manba_turi: string }[]>`
+      SELECT summa, manba_turi FROM yetkazib_beruvchi_harakat
+      WHERE manba_id = ${n.kirimId} AND manba_turi IN ('kirim', 'kirim_storno')
+      ORDER BY id`;
+
+    expect(q).toHaveLength(2);
+    expect(Number(q[0]?.summa)).toBe(3_510_000);
+    expect(Number(q[1]?.summa)).toBe(-3_510_000);
+
+    // 2.2-invariant — qarz jurnal YIG'INDISI, u nolga qaytadi
+    const jami = q.reduce((y, r) => y + Number(r.summa), 0);
+    expect(jami).toBe(0);
   });
 });

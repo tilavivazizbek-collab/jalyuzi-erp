@@ -8,7 +8,8 @@
  *   1-bosqich  asos + tizim (11 jadval)   ✅
  *   2-bosqich  spravochniklar (9)       ✅
  *   3-bosqich  ombor (10)               ✅
- *   4-bosqich  buyurtma (5)             ← hozir
+ *   4-bosqich  buyurtma (5)             ✅
+ *   5-bosqich  kassa va balanslar (9)   ← hozir
  *   ...
  *
  * ⚠️ Yangi jadval qo'shilsa BU YERGA ham qo'shiladi. `himoya.test.ts`
@@ -22,3 +23,4 @@ export * from './tizim';
 export * from './spravochnik';
 export * from './ombor';
 export * from './buyurtma';
+export * from './kassa';

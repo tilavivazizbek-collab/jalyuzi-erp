@@ -6,7 +6,7 @@
  * shu yerga qo'shiladi.
  */
 import { describe, expect, it } from 'vitest';
-import { K01, K02, K03, K04, K05, K06, K07, KANONIK } from './kanonik';
+import { K01, K02, K03, K04, K05, K06, K07, K09, K10, KANONIK } from './kanonik';
 import {
   dona,
   kvM,
@@ -22,6 +22,7 @@ import { pozitsiyaNarxi, qatorSummasi, type Qator } from '@/lib/domain/narx';
 import { dollar, kopaytir, kurs, kursFarqi, nolSom, pulKorsat, pulMatn, som } from '@/lib/domain/pul';
 import { birlikTannarxi, xarajatniTaqsimla } from '@/lib/domain/tannarx';
 import { bolakTanla, kesimBalansi, kesimQatorlari } from '@/lib/domain/kesish';
+import { kunHisobi, xodimBalansi } from '@/lib/domain/balans';
 
 describe('K-01: karniz narxi — Q-01', () => {
   it("210 sm eni → 420 sm sarf → 4.20 m → 147 000 so'm", () => {
@@ -127,9 +128,16 @@ describe('kanonik ro\'yxat butunligi', () => {
   });
 
   it('qurilgan bosqichlarning raqamlari TAYYOR', () => {
-    const qurilgan = KANONIK.filter((k) => k.bosqich <= 3);
-    expect(qurilgan).toHaveLength(7);
+    // 5-bosqichgacha qurilgan: K-01…K-07 (ombor va sotuv) + K-09 (kassa)
+    const qurilgan = KANONIK.filter((k) => k.bosqich <= 5);
+    expect(qurilgan).toHaveLength(8);
     expect(qurilgan.every((k) => k.holat === 'TAYYOR')).toBe(true);
+  });
+
+  it("hali qurilmagan bosqichlar KUTILMOQDA bo'lib qoladi", () => {
+    // K-08 (11.7.5 ustama eroziyasi) va K-11 (22.3.1 filiallararo)
+    const kutayotgan = KANONIK.filter((k) => k.holat === 'KUTILMOQDA');
+    expect(kutayotgan.map((k) => k.kod)).toEqual(['K-08', 'K-11']);
   });
 
   it('kodlar takrorlanmaydi', () => {
@@ -206,5 +214,27 @@ describe('K-06: kesim uch qatori — TZ 7.6', () => {
     const n = bolakTanla([manba], K06.kerak);
     expect(n?.bolak.kod).toBe('O-207');
     expect(n?.manba).toBe('OSTATKA');
+  });
+});
+
+// ─── K-09 · TZ 12.17 — kun yopish ─────────────────────────────────────────
+
+describe('K-09: kun yopish — TZ 12.17', () => {
+  it('850 000 + 4 200 000 − 1 850 000 = 3 200 000', () => {
+    const k = kunHisobi(som(K09.boshlangich), som(K09.kirim), som(K09.chiqim));
+    expect(pulMatn(k.hisoblangan)).toBe(K09.hisoblangan);
+  });
+});
+
+// ─── K-10 · AUDIT Z-12 — usta balansi ─────────────────────────────────────
+
+describe('K-10: usta balansi — TZ 13.8 · AUDIT Z-12', () => {
+  it('2 180 000 − 940 000 − 100 000 = 1 140 000', () => {
+    const b = xodimBalansi([
+      { turi: 'HAQ', summa: K10.haq, valyuta: 'SOM' },
+      { turi: 'TOLOV', summa: K10.tolov, valyuta: 'SOM' },
+      { turi: 'USHLANMA', summa: K10.ushlanma, valyuta: 'SOM' },
+    ]);
+    expect(pulMatn(b.som)).toBe(K10.balans);
   });
 });

@@ -1177,3 +1177,59 @@ huquqi faqat shu bitta, nazorat ostidagi funksiyaga berildi.
 kesishdan keyin ISHLAB_CHIQARILMOQDA ga qaytadi», va oddiy oqimda
 `otishniTekshir('TAYYOR', 'ISHLAB_CHIQARILMOQDA')` hamon xato tashlaydi
 (`test/domain/buyurtma.test.ts`).
+
+---
+
+## P-26 — Kassa yozuvi qanday takrorlanmaydi
+
+**Fayl:** `lib/db/schema/kassa.ts` · `lib/amal/kassa.ts`
+**Manba:** LOYIHA.md 12.3 · 12.4
+
+### Talab
+
+TZ 12.3:
+
+> «`(manba turi, manba ID, qator)` uchligi takrorlanmasligi kerak — bu
+>  BAZADA bloklanadi. Shunda hech qanday tasdiqlash, tugmani qayta
+>  bosish yoki sahifani yangilash ikkinchi yozuv yarata olmaydi.»
+
+### Qaror
+
+Uchta ustun (`manba_turi`, `manba_id`, `qator`) ustida **unique
+indeks**. Kod darajasida ham tekshiriladi, lekin asosiy kafolat bazada:
+kod almashsa ham, qo'lda SQL yozilsa ham indeks kuchda qoladi.
+
+### Nega xato tashlanadi, jimgina o'tkazib yuborilmaydi
+
+Idempotentlikni ikki xil qilish mumkin:
+
+| Yo'l | Nima bo'ladi |
+|---|---|
+| Jimgina o'tkazib yuborish (`ON CONFLICT DO NOTHING`) | Chaqiruvchi «pul tushdi» deb o'ylab qoladi |
+| **Xato tashlash** (`KASSA_TAKROR`) | Chaqiruvchi aniq javob oladi |
+
+Ikkinchisi tanlandi. Sotuvchi tugmani ikki marta bossa, ekranda «bu
+hodisa uchun kassa yozuvi allaqachon bor» chiqadi — u pul tushganini
+biladi va ikkinchi marta urinmaydi.
+
+### `qator` nima uchun kerak
+
+TZ 12.3 misolida bitta buyurtmaga ikki to'lov:
+
+```
+kirim · buyurtma_tolovi · 1247 · qator 1 · naqd   500 000
+kirim · buyurtma_tolovi · 1247 · qator 2 · karta  300 000
+```
+
+Uchlikda `qator` bo'lmasa ikkinchi to'lov bloklanardi.
+
+Topshiriqda ham shu ishlatiladi: bitta topshiriqdan ikki yozuv
+tug'iladi — jo'natuvchidan chiqim (qator 1) va qabul qiluvchiga kirim
+(qator 2).
+
+### Storno uchligi
+
+Storno o'z manbasiga ega: `('storno', asl_yozuv_id, 1)`. Aks holda u
+asl yozuvning uchligiga urilib qolardi. Bundan tashqari `storno_id`
+ustunida ham qisman unique indeks bor — **bitta yozuvga bitta storno**
+(12.15).

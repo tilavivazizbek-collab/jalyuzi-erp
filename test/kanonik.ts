@@ -94,7 +94,7 @@ export const KANONIK: readonly Kanonik[] = [
     band: 'TZ 12.17',
     kutilgan: '850 000 + 4 200 000 − 1 850 000 = 3 200 000',
     bosqich: 5,
-    holat: 'KUTILMOQDA',
+    holat: 'TAYYOR',
   },
   {
     kod: 'K-10',
@@ -102,7 +102,7 @@ export const KANONIK: readonly Kanonik[] = [
     band: 'TZ 13.8 (Z-12)',
     kutilgan: '2 180 000 − 940 000 − 100 000 = 1 140 000',
     bosqich: 7,
-    holat: 'KUTILMOQDA',
+    holat: 'TAYYOR',
   },
   {
     kod: 'K-11',
@@ -200,4 +200,24 @@ export const K06 = {
   ostatka: 1.2,
   chiqindi: 0,
   mahsulotga: 2.4,
+} as const;
+
+/** K-09 · TZ 12.17 — kun yopish. */
+export const K09 = {
+  boshlangich: '850000',
+  kirim: '4200000',
+  chiqim: '1850000',
+  hisoblangan: '3200000.00',
+} as const;
+
+/**
+ * K-10 · TZ 13.8 · AUDIT Z-12 — usta balansi.
+ *
+ * «balans = hisoblangan − olingan − ushlangan»
+ */
+export const K10 = {
+  haq: '2180000',
+  tolov: '-940000',
+  ushlanma: '-100000',
+  balans: '1140000.00',
 } as const;

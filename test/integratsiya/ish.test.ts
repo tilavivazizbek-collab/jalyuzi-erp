@@ -516,3 +516,112 @@ describe('TZ 8.8 — bekor qilish FAQAT kesishdan oldin', () => {
     expect(b[0]?.holat).toBe('BAND');
   });
 });
+
+// ─── TZ 10.10 · 12.1 — «Tugatdim» da haq hisoblanadi ─────────────────────
+
+describe('TZ 10.10 — haq «Tugatdim» da hisoblanadi', () => {
+  it("kv.m stavkasi maydonga ko'paytiriladi va xodim balansiga tushadi", async () => {
+    await rulonYarat(1.8, 2.0);
+    const { pozitsiyaId } = await pozitsiyaTayyorla(1.2, 2.0);
+    // 18 000 so'm/kv.m, pozitsiya 1.20 × 2.00 = 2.40 kv.m → 43 200
+    await ishniOl(sql, pozitsiyaId, USTA, '18000', 'KV_M');
+
+    await tugatdim(
+      sql,
+      {
+        pozitsiyaId,
+        manba: 'OSTATKA',
+        qoldiq: { eniM: 0.6, boyiM: 2.0, saqlansinmi: true },
+        ogohTasdiqlandi: false,
+        izoh: null,
+      },
+      CHEGARALAR,
+      USTA,
+    );
+
+    const h = await sql<{ turi: string; summa: string }[]>`
+      SELECT turi, summa FROM xodim_harakat
+      WHERE manba_turi = 'buyurtma_pozitsiya' AND manba_id = ${pozitsiyaId}`;
+    expect(h).toHaveLength(1);
+    expect(h[0]?.turi).toBe('HAQ');
+    expect(Number(h[0]?.summa)).toBe(43_200);
+  });
+
+  it("TZ 12.1 — hisoblangan haq XARAJAT, lekin kassa yozuvi YO'Q", async () => {
+    await rulonYarat(1.8, 2.0);
+    const { pozitsiyaId } = await pozitsiyaTayyorla(1.2, 2.0);
+    await ishniOl(sql, pozitsiyaId, USTA, '45000', 'DONA');
+
+    await tugatdim(
+      sql,
+      {
+        pozitsiyaId,
+        manba: 'OSTATKA',
+        qoldiq: { eniM: 0.6, boyiM: 2.0, saqlansinmi: true },
+        ogohTasdiqlandi: false,
+        izoh: null,
+      },
+      CHEGARALAR,
+      USTA,
+    );
+
+    const x = await sql<{ modda: string; summa: string; kassa_yozuv_id: number | null }[]>`
+      SELECT modda, summa, kassa_yozuv_id FROM xarajat
+      WHERE manba_turi = 'buyurtma_pozitsiya' AND manba_id = ${pozitsiyaId}`;
+    expect(x).toHaveLength(1);
+    expect(x[0]?.modda).toBe('ISH_HAQI');
+    expect(Number(x[0]?.summa)).toBe(45_000);
+    expect(x[0]?.kassa_yozuv_id).toBeNull();
+  });
+
+  it("qat'iy stavka o'lchamdan qat'i nazar bir xil (10.8)", async () => {
+    await rulonYarat(1.8, 2.0);
+    const { pozitsiyaId } = await pozitsiyaTayyorla(1.6, 2.0);
+    await ishniOl(sql, pozitsiyaId, USTA, '15000', 'DONA');
+
+    await tugatdim(
+      sql,
+      {
+        pozitsiyaId,
+        manba: 'RULON',
+        qoldiq: { eniM: 0.2, boyiM: 2.0, saqlansinmi: false },
+        ogohTasdiqlandi: true,
+        izoh: null,
+      },
+      CHEGARALAR,
+      USTA,
+    );
+
+    const h = await sql<{ summa: string }[]>`
+      SELECT summa FROM xodim_harakat
+      WHERE manba_turi = 'buyurtma_pozitsiya' AND manba_id = ${pozitsiyaId}`;
+    expect(Number(h[0]?.summa)).toBe(15_000);
+  });
+
+  it("TZ 10.12 — stavkasi yo'q pozitsiyada haq yozilmaydi, ish to'xtamaydi", async () => {
+    await rulonYarat(1.8, 2.0);
+    const { pozitsiyaId } = await pozitsiyaTayyorla(1.2, 2.0);
+    // Stavka 0 — 10.12 bo'yicha ishlab chiqarish davom etadi
+    await ishniOl(sql, pozitsiyaId, USTA, '0', 'DONA');
+
+    const n = await tugatdim(
+      sql,
+      {
+        pozitsiyaId,
+        manba: 'OSTATKA',
+        qoldiq: { eniM: 0.6, boyiM: 2.0, saqlansinmi: true },
+        ogohTasdiqlandi: false,
+        izoh: null,
+      },
+      CHEGARALAR,
+      USTA,
+    );
+
+    expect(n.holat).toBe('TAYYOR');
+
+    const h = await sql<{ n: number }[]>`
+      SELECT COUNT(*)::int AS n FROM xodim_harakat
+      WHERE manba_turi = 'buyurtma_pozitsiya' AND manba_id = ${pozitsiyaId}`;
+    expect(h[0]?.n).toBe(0);
+  });
+});

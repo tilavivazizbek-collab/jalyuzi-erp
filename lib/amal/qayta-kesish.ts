@@ -153,10 +153,17 @@ export interface HalQilishNatijasi {
  *   4. Pozitsiya «Ishlab chiqarilmoqda» ga qaytadi
  *   5. `qayta_kesildi_soni` oshadi (8.17.8)
  *
- * ⚠️ Haq bekor qilish (8.17.5) BU YERDA EMAS — u `xodim_harakat`
- *    jadvaliga tegadi va u 5-bosqichda yaratiladi (T-09). Hozircha
- *    qaror `haq_saqlandi` ustunida yoziladi va ish haqi hisobi shu
- *    ustunga tayanadi.
+ * ⚠️ Q-15 — haq BEKOR QILINADI (8.17.5): «Birinchi "Tugatdim" dagi haq
+ *    bekor qilinadi (teskari yozuv), ikkinchi "Tugatdim" da haq bir
+ *    marta hisoblanadi. Natija: usta bir marta oladi, ikki marta
+ *    ishlagan bo'lsa ham.»
+ *
+ *    Istisno 8.17.5.1 — material defekti bo'lsa (`haqSaqlandi = true`)
+ *    haq qoldiriladi.
+ *
+ * ⚠️ TZ 8.17.6 — ushlanma ISH HAQI XARAJATINI KAMAYTIRADI, alohida
+ *    daromad EMAS (11.4.1). Shuning uchun u `xarajat` jadvaliga MANFIY
+ *    `ISH_HAQI` bo'lib tushadi.
  */
 export async function qaytaKesishHal(
   ulanish: postgres.Sql,
@@ -185,12 +192,13 @@ export async function qaytaKesishHal(
         holat: string;
         eni_sm: number;
         boyi_sm: number;
+        usta_id: number | null;
         qayta_kesildi_soni: number;
         sotgan_filial_id: number;
         ishlab_chiqaruvchi_filial_id: number;
       }[]
     >`
-      SELECT p.holat, p.eni_sm, p.boyi_sm, p.qayta_kesildi_soni,
+      SELECT p.holat, p.eni_sm, p.boyi_sm, p.usta_id, p.qayta_kesildi_soni,
              b.sotgan_filial_id, b.ishlab_chiqaruvchi_filial_id
       FROM buyurtma_pozitsiya p
       JOIN buyurtma b ON b.id = p.buyurtma_id
@@ -329,6 +337,101 @@ export async function qaytaKesishHal(
           tugatildi = NULL,
           ozgartirildi = now(), ozgartirdi_id = ${adminId}
       WHERE id = ${pozitsiyaId}`;
+
+    /**
+     * Q-15 · TZ 8.17.5 — birinchi «Tugatdim» dagi haq bekor qilinadi.
+     *
+     * ⚠️ `xodim_harakat` o'zgarmas (§6.5) — TESKARI YOZUV qo'shiladi,
+     *    asl `HAQ` qatori tarixda qoladi.
+     */
+    const haqlar = await tx<
+      { id: number; xodim_id: number; summa: string; valyuta: string }[]
+    >`
+      SELECT id, xodim_id, summa, valyuta FROM xodim_harakat
+      WHERE turi = 'HAQ' AND manba_turi = 'buyurtma_pozitsiya'
+        AND manba_id = ${pozitsiyaId}
+        AND NOT EXISTS (
+          SELECT 1 FROM xodim_harakat b
+          WHERE b.turi = 'HAQ_BEKOR' AND b.manba_turi = 'xodim_harakat'
+            AND b.manba_id = xodim_harakat.id
+        )`;
+
+    if (!kirim.haqSaqlandi) {
+      for (const h of haqlar) {
+        await tx`
+          INSERT INTO xodim_harakat (xodim_id, filial_id, turi, summa, valyuta,
+                                     manba_turi, manba_id, izoh, xodim_yozdi_id)
+          VALUES (${h.xodim_id}, ${filialId}, 'HAQ_BEKOR',
+                  ${(-Number(h.summa)).toFixed(2)}, ${h.valyuta},
+                  'xodim_harakat', ${h.id},
+                  ${`Qayta kesish — haq bekor qilindi (Q-15)`}, ${adminId})`;
+
+        // 12.1 — hisoblangan haq xarajat edi, u ham teskari yoziladi
+        await tx`
+          INSERT INTO xarajat (sana, filial_id, modda, summa, valyuta,
+                               kassa_yozuv_id, manba_turi, manba_id, izoh, xodim_id)
+          VALUES (current_date, ${filialId}, 'ISH_HAQI',
+                  ${(-Number(h.summa)).toFixed(2)}, ${h.valyuta}, NULL,
+                  'qayta_kesish', ${kirim.sorovId},
+                  ${'Haq bekor qilindi (8.17.5)'}, ${adminId})`;
+      }
+    }
+
+    /**
+     * TZ 10.13 · 8.17.6 — ushlanma.
+     *
+     * «Ushlanma ISH HAQI XARAJATINI KAMAYTIRADI, alohida daromad emas.»
+     */
+    if (Number(kirim.ushlanmaSumma) > 0) {
+      /**
+       * ⚠️ Usta POZITSIYADAN olinadi, haq yozuvidan emas: 10.13 ushlanma
+       *    uchun oldindan hisoblangan haqni TALAB QILMAYDI. Usta matoni
+       *    «Tugatdim» dan oldin buzgan bo'lsa haq hali yozilmagan, lekin
+       *    ushlanma baribir qo'yilishi mumkin.
+       */
+      const usta = p.usta_id;
+      if (usta === null) {
+        throw new BiznesXato('QK_USHLANMA_USTASIZ', String(kirim.sorovId));
+      }
+
+      await tx`
+        INSERT INTO xodim_harakat (xodim_id, filial_id, turi, summa, valyuta,
+                                   manba_turi, manba_id, izoh, xodim_yozdi_id)
+        VALUES (${usta}, ${filialId}, 'USHLANMA',
+                ${(-Number(kirim.ushlanmaSumma)).toFixed(2)}, 'SOM',
+                'qayta_kesish', ${kirim.sorovId},
+                ${'Brak ushlanmasi (10.13)'}, ${adminId})`;
+
+      await tx`
+        INSERT INTO xarajat (sana, filial_id, modda, summa, valyuta,
+                             kassa_yozuv_id, manba_turi, manba_id, izoh, xodim_id)
+        VALUES (current_date, ${filialId}, 'ISH_HAQI',
+                ${(-Number(kirim.ushlanmaSumma)).toFixed(2)}, 'SOM', NULL,
+                'qayta_kesish', ${kirim.sorovId},
+                ${'Ushlanma ish haqi xarajatini kamaytiradi (8.17.6)'}, ${adminId})`;
+    }
+
+    /**
+     * TZ 8.17.7 — ikkinchi marta yechilgan material ISHLAB CHIQARISH
+     * BRAKI moddasiga tushadi.
+     *
+     * ⚠️ «Chiqindi moddasiga TUSHMAYDI — chiqindi bu odatdagi kesish
+     *    qoldig'i, bu esa brak.»
+     */
+    if (chiqindiKvM > 0) {
+      const zarar = await tx<{ summa: string }[]>`
+        SELECT COALESCE(SUM(ABS(tannarx_summa)), 0)::text AS summa
+        FROM ombor_harakat
+        WHERE manba_turi = 'qayta_kesish' AND manba_id = ${kirim.sorovId}`;
+
+      await tx`
+        INSERT INTO xarajat (sana, filial_id, modda, summa, valyuta,
+                             kassa_yozuv_id, manba_turi, manba_id, izoh, xodim_id)
+        VALUES (current_date, ${filialId}, 'ISHLAB_CHIQARISH_BRAKI',
+                ${zarar[0]?.summa ?? '0'}, 'SOM', NULL,
+                'qayta_kesish', ${kirim.sorovId},
+                ${'Ikkinchi marta yechilgan material (8.17.7)'}, ${adminId})`;
+    }
 
     await tx`
       UPDATE qayta_kesish

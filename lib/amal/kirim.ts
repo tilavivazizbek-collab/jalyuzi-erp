@@ -10,8 +10,8 @@
  * Yarim bajarilish 2.1-invariantni buzadi: bo'laklar omborga tushib,
  * tannarx yozilmay qolsa hisob butunlay buziladi.
  *
- * ⚠️ Yetkazib beruvchi qarzi 5-bosqichda qo'shiladi — `yetkazib_beruvchi_harakat`
- *    jadvali o'shanda yaratiladi (QARZLAR T-05).
+ * ⚠️ Yetkazib beruvchi qarzi SHU tranzaksiyada yoziladi (T-05 yopildi,
+ *    5-bosqich). Mol kelib qarz yozilmay qolsa 2.1-invariant buziladi.
  */
 
 import type postgres from 'postgres';
@@ -23,7 +23,7 @@ import {
   type DefektTuri,
   type KirimQatori,
 } from '@/lib/domain/tannarx';
-import { nolSom, pulMatn, qosh, som, type Som } from '@/lib/domain/pul';
+import { kopaytir, nolSom, pulMatn, qosh, som, type Som } from '@/lib/domain/pul';
 import { BiznesXato } from '@/lib/xato';
 
 /** Rulon uchun har bo'lak o'z o'lchami bilan (7.9). */
@@ -152,6 +152,8 @@ export async function kirimYarat(
 
     let defektZarari = nolSom();
     let bolakSoni = 0;
+    /** T-05 · TZ 9.2 — yetkazib beruvchiga qarz (transport va bojxonasiz) */
+    let xaridSummasi = nolSom();
     const ogohlantirishlar: UstamaOgohlantirishi[] = [];
 
     for (const [i, q] of kirim.qatorlar.entries()) {
@@ -171,6 +173,10 @@ export async function kirimYarat(
         q.defektTuri,
       );
       defektZarari = qosh(defektZarari, tannarx.defektZarari);
+      xaridSummasi = qosh(
+        xaridSummasi,
+        kopaytir(som(q.narxBirlik), String(q.miqdorKirim)),
+      );
 
       const qator = await tx<{ id: number }[]>`
         INSERT INTO kirim_qator (kirim_id, material_id, miqdor_kirim, narx_birlik,
@@ -278,6 +284,26 @@ export async function kirimYarat(
       }
     }
 
+    /**
+     * T-05 · TZ 9.2 · QISM 1 §7.1 — «Kirim hujjati: bo'laklar
+     * yaratiladi + transport taqsimlanadi + **QARZ YOZILADI**.»
+     *
+     * ⚠️ O'SHA BITTA tranzaksiyada (2.1-invariant): mol kelib, qarz
+     *    yozilmay qolsa yetkazib beruvchi balansi jimgina noto'g'ri
+     *    bo'lardi va buni faqat oy oxirida sezilardi.
+     *
+     * ⚠️ Transport va bojxona qarzga KIRMAYDI — ular alohida
+     *    to'lanadi (7.9, C3 kodi) va tannarxga allaqachon qo'shilgan.
+     *    Ikkalasini ham qarzga qo'shish pulni ikki marta sanardi.
+     */
+    await tx`
+      INSERT INTO yetkazib_beruvchi_harakat
+        (yetkazib_beruvchi_id, filial_id, turi, summa, valyuta, kurs_snapshot,
+         manba_turi, manba_id, izoh, xodim_id)
+      VALUES (${kirim.yetkazibBeruvchiId}, ${kirim.filialId}, 'XARID',
+              ${pulMatn(xaridSummasi)}, ${kirim.valyuta}, ${kirim.kursSnapshot},
+              'kirim', ${kirimId}, ${`Kirim ${kirim.raqam}`}, ${xodimId})`;
+
     return { kirimId, bolakSoni, defektZarari, ogohlantirishlar };
   });
 }
@@ -360,8 +386,8 @@ export interface StornoNatijasi {
  *
  * TZ 7.12 storno UCH JOYGA birdan tegishini talab qiladi:
  *   1. Ombor — qoldiq qaytariladi          ✅ shu yerda
- *   2. Yetkazib beruvchi qarzi — kamayadi   ⏳ 5-bosqich (QARZLAR T-05)
- *   3. Kassa — balans avansga o'tadi        ⏳ 5-bosqich
+ *   2. Yetkazib beruvchi qarzi — kamayadi   ✅ teskari yozuv bilan
+ *   3. Kassa — balans avansga o'tadi        ⏳ to'lov moduli (12.5, K4)
  */
 export async function kirimniStorno(
   ulanish: postgres.Sql,
@@ -460,6 +486,29 @@ export async function kirimniStorno(
       UPDATE kirim SET holat = 'STORNO', storno_sabab = ${sabab.trim()},
                        ozgartirildi = now(), ozgartirdi_id = ${xodimId}
       WHERE id = ${kirimId}`;
+
+    /**
+     * TZ 7.12, 2-nuqta — yetkazib beruvchi qarzi kamayadi.
+     *
+     * ⚠️ Harakat jadvali o'zgarmas (§6.5), shuning uchun TESKARI YOZUV:
+     *    asl `XARID` qatori joyida qoladi va tarixda ko'rinadi.
+     */
+    const xaridlar = await tx<{ summa: string; valyuta: string; kurs: string | null }[]>`
+      SELECT summa, valyuta, kurs_snapshot AS kurs
+      FROM yetkazib_beruvchi_harakat
+      WHERE manba_turi = 'kirim' AND manba_id = ${kirimId} AND turi = 'XARID'`;
+
+    for (const x of xaridlar) {
+      await tx`
+        INSERT INTO yetkazib_beruvchi_harakat
+          (yetkazib_beruvchi_id, filial_id, turi, summa, valyuta, kurs_snapshot,
+           manba_turi, manba_id, izoh, xodim_id)
+        SELECT k.yetkazib_beruvchi_id, k.filial_id, 'XARID',
+               ${(-Number(x.summa)).toFixed(2)}, ${x.valyuta}, ${x.kurs},
+               'kirim_storno', ${kirimId},
+               ${`Storno ${hujjat.raqam} — ${sabab.trim()}`}, ${xodimId}
+        FROM kirim k WHERE k.id = ${kirimId}`;
+    }
 
     // TZ 7.12 — «Adminga xabar ketadi va audit jurnaliga yoziladi:
     // hujjat raqami, summa, kim storno qildi, sabab.»

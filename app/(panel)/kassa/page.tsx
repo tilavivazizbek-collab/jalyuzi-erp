@@ -1,0 +1,262 @@
+import { Fragment } from 'react';
+import Link from 'next/link';
+import { sahifaRuxsati } from '@/lib/kirish/joriy';
+import { ruxsatBormi } from '@/lib/ruxsat/tekshir';
+import { dollar, pulKorsat, som } from '@/lib/domain/pul';
+import {
+  kassaKitobi,
+  kassaQoldiqlari,
+  ochiqTopshiriqlar,
+  xodimBalanslari,
+} from './malumot';
+import { StornoTugmasi, TopshiriqQabulTugmasi } from './amallar';
+
+export const dynamic = 'force-dynamic';
+
+/** TZ 12.5 · 12.6 — kod → o'zbekcha nom. */
+const KOD_NOMI: Record<string, string> = {
+  K1: "Buyurtma to'lovi",
+  K2: "Buyurtma to'lovi (keyin)",
+  K3: 'Mijoz qarzini to\'lash',
+  K4: 'Mijoz avansi',
+  K5: 'Hisobdan chiqarilgan qarz qaytdi',
+  K6: "Egasi pul qo'shdi",
+  K7: 'Sotuvchidan topshiriq',
+  K8: "Boshlang'ich qoldiq",
+  K9: 'Boshqa kirim',
+  C1: "Yetkazib beruvchiga to'lov",
+  C2: 'Yetkazib beruvchiga avans',
+  C3: "Transport / bojxona to'lovi",
+  C4: "Ish haqi to'lovi",
+  C5: 'Xodimga avans',
+  C6: 'Mijozga qaytarish',
+  C7: 'Operatsion xarajat',
+  C8: 'Egasi pul oldi',
+  C9: 'Adminga topshiriq',
+  C10: 'Boshqa chiqim',
+};
+
+const pul = (summa: string, valyuta: string): string =>
+  valyuta === 'SOM' ? pulKorsat(som(summa)) : pulKorsat(dollar(summa));
+
+export default async function KassaSahifasi() {
+  const f = await sahifaRuxsati('kassa.oz.kor');
+  // TZ 12.14 — sotuvchi FAQAT o'z kassasini ko'radi
+  const barchaniKoradi = ruxsatBormi(f, 'kassa.barcha.kor');
+  const stornoQilaOladi = ruxsatBormi(f, 'kassa.storno');
+
+  const [qoldiqlar, kitob, topshiriqlar, balanslar] = await Promise.all([
+    kassaQoldiqlari(f.filialId, f.xodimId, barchaniKoradi),
+    kassaKitobi(f.filialId, f.xodimId, barchaniKoradi),
+    barchaniKoradi ? ochiqTopshiriqlar(f.filialId) : Promise.resolve([]),
+    barchaniKoradi ? xodimBalanslari(f.filialId) : Promise.resolve([]),
+  ]);
+
+  const filialKassalari = qoldiqlar.filter((k) => k.xodimId === null);
+  const xodimKassalari = qoldiqlar.filter((k) => k.xodimId !== null);
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="flex items-end justify-between gap-4">
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight">Kassa</h1>
+          <p className="mt-1 text-sm text-slate-500">
+            {barchaniKoradi
+              ? `Filial #${String(f.filialId)} — barcha kassa`
+              : "Faqat o'z kassangiz (12.14)"}
+          </p>
+        </div>
+        <Link
+          href="/kassa/kun"
+          className="rounded-lg bg-slate-900 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-slate-800"
+        >
+          Kun yopish
+        </Link>
+      </div>
+
+      {/* ── 12.16 · Qator 1: hozir kassada nima bor ── */}
+      <section className="grid gap-4 sm:grid-cols-2">
+        {filialKassalari.length > 0 && (
+          <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
+            <h2 className="mb-2 text-sm font-medium text-slate-700">Admin kassasi</h2>
+            <dl className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
+              {filialKassalari.map((k) => (
+                <Fragment key={k.id}>
+                  <dt className="text-slate-500">
+                    {k.turi === 'KARTA'
+                      ? 'Kartada'
+                      : `Naqd ${k.valyuta === 'SOM' ? "so'm" : 'dollar'}`}
+                  </dt>
+                  <dd className="raqam font-medium">{pul(k.qoldiq, k.valyuta)}</dd>
+                </Fragment>
+              ))}
+            </dl>
+          </div>
+        )}
+
+        {xodimKassalari.length > 0 && (
+          <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
+            <h2 className="mb-2 text-sm font-medium text-slate-700">
+              Sotuvchilarda
+            </h2>
+            <dl className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
+              {xodimKassalari.map((k) => (
+                <Fragment key={k.id}>
+                  <dt className="text-slate-500">
+                    {k.xodimIsmi ?? '—'}
+                    <span className="ml-1 text-xs text-slate-400">{k.valyuta}</span>
+                  </dt>
+                  <dd className="raqam font-medium">{pul(k.qoldiq, k.valyuta)}</dd>
+                </Fragment>
+              ))}
+            </dl>
+          </div>
+        )}
+      </section>
+
+      {/* ── 12.7 · Kutayotgan topshiriqlar ── */}
+      {topshiriqlar.length > 0 && (
+        <section>
+          <h2 className="mb-1 text-sm font-medium text-slate-700">
+            Kutayotgan topshiriqlar
+          </h2>
+          <p className="mb-3 text-xs text-slate-500">
+            Pul <b>qabul qilinganda</b> ko&apos;chadi, jo&apos;natilganda emas
+            (12.4).
+          </p>
+
+          <div className="overflow-x-auto rounded-xl border border-amber-200 bg-amber-50">
+            <table className="w-full text-sm">
+              <tbody className="divide-y divide-amber-100">
+                {topshiriqlar.map((t) => (
+                  <tr key={t.id}>
+                    <td className="px-4 py-2.5">{t.kimdan}</td>
+                    <td className="px-4 py-2.5 text-slate-500">→ {t.kimga}</td>
+                    <td className="raqam px-4 py-2.5 font-medium">
+                      {pul(t.summa, t.valyuta)}
+                    </td>
+                    <td className="px-4 py-2.5 text-right">
+                      <TopshiriqQabulTugmasi topshiriqId={t.id} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
+
+      {/* ── 10.4 · Xodim balanslari ── */}
+      {balanslar.length > 0 && (
+        <section>
+          <h2 className="mb-1 text-sm font-medium text-slate-700">Xodim balanslari</h2>
+          <p className="mb-3 text-xs text-slate-500">
+            Balans saqlanmaydi — harakatlar yig&apos;indisi (2.2-invariant).
+            Manfiy balans ruxsat etiladi (10.4).
+          </p>
+
+          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+            <table className="w-full text-sm">
+              <thead className="border-b border-slate-200 bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+                <tr>
+                  <th className="px-4 py-2.5 font-medium">Xodim</th>
+                  <th className="px-4 py-2.5 text-right font-medium">So&apos;m</th>
+                  <th className="px-4 py-2.5 text-right font-medium">Dollar</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {balanslar.map((b) => (
+                  <tr key={b.xodimId}>
+                    <td className="px-4 py-2.5">{b.ism}</td>
+                    <td
+                      className={`raqam px-4 py-2.5 ${Number(b.somBalans) < 0 ? 'text-red-700' : ''}`}
+                    >
+                      {pulKorsat(som(b.somBalans))}
+                    </td>
+                    <td
+                      className={`raqam px-4 py-2.5 ${Number(b.dollarBalans) < 0 ? 'text-red-700' : ''}`}
+                    >
+                      {Number(b.dollarBalans) === 0
+                        ? '—'
+                        : pulKorsat(dollar(b.dollarBalans))}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
+
+      {/* ── 12.18 · Kassa kitobi ── */}
+      <section>
+        <h2 className="mb-1 text-sm font-medium text-slate-700">Kassa kitobi</h2>
+        <p className="mb-3 text-xs text-slate-500">
+          Yozuvlar o&apos;chirilmaydi va o&apos;zgartirilmaydi (§6.5) — tuzatish
+          storno bilan.
+        </p>
+
+        {kitob.length === 0 ? (
+          <p className="rounded-xl border border-dashed border-slate-300 px-4 py-10 text-center text-sm text-slate-500">
+            Hali kassa yozuvi yo&apos;q.
+          </p>
+        ) : (
+          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+            <table className="w-full text-sm">
+              <thead className="border-b border-slate-200 bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+                <tr>
+                  <th className="px-4 py-2.5 font-medium">Sana</th>
+                  <th className="px-4 py-2.5 font-medium">Kassa</th>
+                  <th className="px-4 py-2.5 font-medium">Hodisa</th>
+                  <th className="px-4 py-2.5 font-medium">Manba</th>
+                  <th className="px-4 py-2.5 text-right font-medium">Summa</th>
+                  <th className="px-4 py-2.5 font-medium">Kim</th>
+                  {stornoQilaOladi && <th className="px-4 py-2.5 font-medium" />}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {kitob.map((y) => (
+                  <tr key={y.id} className={y.stornoQilinganmi ? 'text-slate-400' : ''}>
+                    <td className="px-4 py-2.5 text-slate-600">
+                      {y.sana.toLocaleDateString('uz-UZ')}
+                    </td>
+                    <td className="px-4 py-2.5 text-xs">{y.kassaNomi}</td>
+                    <td className="px-4 py-2.5">
+                      {KOD_NOMI[y.kod] ?? y.kod}
+                      {y.stornoMi && (
+                        <span className="ml-2 text-xs text-red-700">storno</span>
+                      )}
+                      {y.stornoQilinganmi && (
+                        <span className="ml-2 text-xs">storno qilingan</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-2.5 font-mono text-xs text-slate-500">
+                      {y.manbaTuri}#{y.manbaId}
+                    </td>
+                    <td
+                      className={`raqam px-4 py-2.5 font-medium ${
+                        Number(y.summa) < 0 ? 'text-red-700' : 'text-emerald-700'
+                      }`}
+                    >
+                      {pul(y.summa, y.valyuta)}
+                    </td>
+                    <td className="px-4 py-2.5 text-xs text-slate-500">
+                      {y.xodimIsmi}
+                    </td>
+                    {stornoQilaOladi && (
+                      <td className="px-4 py-2.5 text-right">
+                        {!y.stornoQilinganmi && !y.stornoMi && (
+                          <StornoTugmasi yozuvId={y.id} />
+                        )}
+                      </td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}

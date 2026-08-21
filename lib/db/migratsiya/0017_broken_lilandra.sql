@@ -1,0 +1,1 @@
+ALTER TABLE "buyurtma_pozitsiya" ADD COLUMN "stavka_birlik_snapshot" text;
