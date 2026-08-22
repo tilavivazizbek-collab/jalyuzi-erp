@@ -10,6 +10,7 @@ import { dollar, pulKorsat, som } from '@/lib/domain/pul';
 import { HARAKAT_NOMI, mijozQarzi } from '../qarz-malumot';
 import { tolovKassalari } from '../../buyurtma/malumot';
 import { QarzTolashFormasi } from '../qarz-forma';
+import { UmidsizQarzFormasi } from '../umidsiz-forma';
 
 export const dynamic = 'force-dynamic';
 
@@ -67,6 +68,8 @@ export default async function MijozTahrirlash({ params }: { params: Promise<{ id
 
   // TZ 6.7 · 6.8 — qarz bloki va harakatlar tarixi
   const tolovQilaOladi = ruxsatBormi(f, 'kassa.tolov');
+  // TZ 6.10 — «ADMIN qarzni hisobdan chiqara oladi»
+  const hisobdanChiqaraOladi = ruxsatBormi(f, 'kassa.storno');
   const [qarz, kassalar] = await Promise.all([
     mijozQarzi(mijozId),
     tolovQilaOladi ? tolovKassalari(f.filialId, f.xodimId) : Promise.resolve([]),
@@ -117,6 +120,17 @@ export default async function MijozTahrirlash({ params }: { params: Promise<{ id
             kassalar={kassalar}
           />
         )}
+
+        {hisobdanChiqaraOladi &&
+          (Number(qarz.som) > 0 || Number(qarz.dollar) > 0) && (
+            <div className="mt-4 flex flex-col">
+              <UmidsizQarzFormasi
+                mijozId={mijozId}
+                somQarz={qarz.som}
+                dollarQarz={qarz.dollar}
+              />
+            </div>
+          )}
       </section>
 
       {/* ── 6.8 · Qarz harakati ── */}

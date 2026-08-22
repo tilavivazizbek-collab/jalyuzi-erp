@@ -86,6 +86,34 @@ export const RUXSATLAR = {
     guruh: 'Ombor',
     band: '20.12',
   },
+  // 20.7.1 — «so'rovni BERUVCHI filial omborchisi hal qiladi»
+  'ombor.kochirish.jonat': {
+    nom: "Ko'chirishni jo'natish",
+    guruh: 'Ombor',
+    band: '20.7',
+  },
+  'ombor.kochirish.qabul': {
+    nom: "Ko'chirishni qabul qilish",
+    guruh: 'Ombor',
+    band: '20.7',
+  },
+
+  // ── Filiallararo hisob — TZ 22 ─────────────────────────────────────────
+  'filial.hisob': {
+    nom: "Filiallararo balansni ko'rish",
+    guruh: 'Filiallar',
+    band: '22.6',
+  },
+  'filial.tolov': {
+    nom: "Filial qarzini to'lash",
+    guruh: 'Filiallar',
+    band: '22.6',
+  },
+  'filial.tuzatish': {
+    nom: "Filial hisobiga qo'lda tuzatish",
+    guruh: 'Filiallar',
+    band: '22.3',
+  },
 
   // ── Buyurtma va sotuv — TZ 14.6 · 8 ────────────────────────────────────
   'buyurtma.kor': { nom: "Buyurtmalarni ko'rish", guruh: 'Sotuv', band: '8.1' },

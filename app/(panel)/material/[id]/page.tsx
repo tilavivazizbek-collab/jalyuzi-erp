@@ -5,6 +5,9 @@ import { sahifaRuxsati } from '@/lib/kirish/joriy';
 import { materialTahrirlaAmali } from '../amal';
 import type { FormaHolati } from '../holat';
 import { MaterialFormasi, type Guruh, type MaterialQiymatlari } from '../forma';
+import { filialNarxlari } from '@/lib/amal/filial-narx';
+import { ruxsatBormi } from '@/lib/ruxsat/tekshir';
+import { FilialNarxlari } from '../narx-forma';
 
 export const dynamic = 'force-dynamic';
 
@@ -34,7 +37,7 @@ export default async function MaterialTahrirlash({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  await sahifaRuxsati('material.ozgartir');
+  const f = await sahifaRuxsati('material.ozgartir');
 
   const { id } = await params;
   const materialId = Number(id);
@@ -47,6 +50,12 @@ export default async function MaterialTahrirlash({
 
   const guruhlar = await ulanish<Guruh[]>`
     SELECT id, nom FROM almashtirish_guruh WHERE faol = true ORDER BY nom`;
+
+  // 20.9 — filial narx istisnolari (Q-28)
+  const narxOzgartiraOladi = ruxsatBormi(f, 'narx.filial.ozgartir');
+  const narxlar = narxOzgartiraOladi
+    ? await filialNarxlari(ulanish, materialId)
+    : [];
 
   const qiymatlar: MaterialQiymatlari = {
     nom: material.nom,
@@ -88,6 +97,14 @@ export default async function MaterialTahrirlash({
           tugmaMatni="O'zgarishlarni saqlash"
         />
       </div>
+
+      {narxOzgartiraOladi && narxlar.length > 0 && (
+        <FilialNarxlari
+          materialId={materialId}
+          standartNarx={material.sotuv_narx}
+          qatorlar={narxlar}
+        />
+      )}
     </div>
   );
 }

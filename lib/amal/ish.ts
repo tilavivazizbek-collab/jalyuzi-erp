@@ -33,6 +33,7 @@ import {
   type PozitsiyaHolati,
 } from '@/lib/domain/buyurtma';
 import { bandniBoshatTx } from './band';
+import { tayyorMahsulotQarziYozTx } from './filial-harakat';
 import { BiznesXato } from '@/lib/xato';
 
 interface PozitsiyaQatori {
@@ -497,6 +498,16 @@ export async function pozitsiyaniTopshir(
       SET holat = 'TOPSHIRILDI', ozgartirildi = now(), ozgartirdi_id = ${xodimId}
       WHERE id = ${pozitsiyaId}`;
 
+    /**
+     * TZ 22.3.2 — filiallararo qarz AYNAN SHU YERDA tug'iladi.
+     *
+     * «Tayyor» da emas — mahsulot hali qaytishi mumkin; «Yetib keldi» da
+     * ham emas — mijoz rad etishi mumkin (8.8). Faqat mijoz olganda.
+     *
+     * Bir filial sotgan va tikkan bo'lsa hech narsa yozilmaydi (22.3.5).
+     */
+    await tayyorMahsulotQarziYozTx(tx, pozitsiyaId, xodimId);
+
     // 8.9 — barcha pozitsiya yopilgan bo'lsa buyurtma ham yopiladi
     const ochiq = await tx<{ n: number }[]>`
       SELECT COUNT(*)::int AS n FROM buyurtma_pozitsiya
@@ -521,6 +532,49 @@ export async function pozitsiyaniTopshir(
               ${null})`;
 
     return { buyurtmaYopildimi: yopildi };
+  });
+}
+
+/**
+ * TZ 20.5.1 — «"Yetib keldi" statusini SOTGAN FILIAL QO'LDA bosadi.
+ * Bosilmaguncha mahsulot yo'lda hisoblanadi.»
+ *
+ * ⚠️ 20.8 — tayyor mahsulot ko'chirishga alohida hujjat kerak emas:
+ *    pozitsiyaning o'zi kuzatiladi.
+ *
+ * ⚠️ Ombor qoldig'iga TEGILMAYDI — mato allaqachon kesilgan va
+ *    tikuvchi filial jurnalidan chiqqan. Filiallararo qarz esa
+ *    «Topshirildi» da yoziladi (22.3.2), bu yerda emas.
+ */
+export async function pozitsiyaYetibKeldi(
+  ulanish: postgres.Sql,
+  pozitsiyaId: number,
+  filialId: number,
+  xodimId: number,
+): Promise<void> {
+  return ulanish.begin(async (tx) => {
+    const p = await pozitsiyaniQulfla(tx, pozitsiyaId);
+
+    // Q-25 — qabul qilishni SOTGAN filial bosadi (20.5.1)
+    if (p.sotgan_filial_id !== filialId) {
+      throw new BiznesXato('POZITSIYA_TOPILMADI', String(pozitsiyaId));
+    }
+
+    otishniTekshir(p.holat as PozitsiyaHolati, 'YETIB_KELDI');
+
+    await tx`
+      UPDATE buyurtma_pozitsiya
+      SET holat = 'YETIB_KELDI', ozgartirildi = now(), ozgartirdi_id = ${xodimId}
+      WHERE id = ${pozitsiyaId}`;
+
+    await tx`
+      INSERT INTO audit_jurnal (xodim_id, filial_id, amal, obyekt_turi, obyekt_id,
+                                eski_qiymat, yangi_qiymat, izoh)
+      VALUES (${xodimId}, ${filialId}, 'YETIB_KELDI', 'buyurtma_pozitsiya',
+              ${pozitsiyaId},
+              ${tx.json({ holat: p.holat })},
+              ${tx.json({ holat: 'YETIB_KELDI' })},
+              ${null})`;
   });
 }
 

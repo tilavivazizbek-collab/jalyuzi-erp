@@ -17,7 +17,12 @@
 import { useActionState, useState } from 'react';
 import { Maydon, kirishUslubi } from '../maydon';
 import { pulKorsat, som } from '@/lib/domain/pul';
-import { qaytarishAmali, radEtishAmali, topshirishAmali } from './amal';
+import {
+  qaytarishAmali,
+  radEtishAmali,
+  topshirishAmali,
+  yetibKeldiAmali,
+} from './amal';
 import { BOSH_AMAL } from './holat';
 
 export interface QaytarishKassasi {
@@ -47,6 +52,35 @@ export function TopshirishTugmasi({ pozitsiyaId }: { pozitsiyaId: number }) {
         className="rounded-lg bg-emerald-700 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-emerald-800 disabled:opacity-60"
       >
         {kutilmoqda ? 'Topshirilmoqda…' : 'Topshirish'}
+      </button>
+    </form>
+  );
+}
+
+/**
+ * TZ 20.5.1 — «Yetib keldi» ni SOTGAN FILIAL qo'lda bosadi.
+ *
+ * ⚠️ Bosilmaguncha mahsulot yo'lda hisoblanadi (20.8).
+ */
+export function YetibKeldiTugmasi({ pozitsiyaId }: { pozitsiyaId: number }) {
+  const [holat, yubor, kutilmoqda] = useActionState(yetibKeldiAmali, BOSH_AMAL);
+
+  return (
+    <form action={yubor} className="flex items-center gap-2">
+      <input type="hidden" name="pozitsiyaId" value={pozitsiyaId} />
+
+      {holat.xato !== null && (
+        <span role="alert" className="text-xs text-red-700">
+          {holat.xato}
+        </span>
+      )}
+
+      <button
+        type="submit"
+        disabled={kutilmoqda}
+        className="rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-slate-800 disabled:opacity-60"
+      >
+        {kutilmoqda ? 'Belgilanmoqda…' : 'Yetib keldi'}
       </button>
     </form>
   );

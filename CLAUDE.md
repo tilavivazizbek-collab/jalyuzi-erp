@@ -163,7 +163,7 @@ Kanonik raqamlar — **birinchi haftada**:
 | Kun yopish | `3 200 000` | 12.17 |
 | Usta balansi | `1 140 000` | 13.8 |
 | Karniz narxi | `210 sm → 147 000` | Q-01 |
-| Filiallararo qarz | `312 000+57 600+154 400 = 524 000` | 22.3.1 |
+| Filiallararo qarz | `312 000+57 600+154 400 = 524 000` | 22.3.1 ✅ |
 
 **Qamrov:** `lib/domain/` 90%+ · `lib/amal/` har tranzaksiya 1 test ·
 KRITIK va JIDDIY edge case'lar.

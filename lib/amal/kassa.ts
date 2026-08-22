@@ -13,7 +13,13 @@
  */
 
 import type postgres from 'postgres';
+import Decimal from 'decimal.js';
 import { pulChiqmaydimi, xarajatgaTushadimi, type XarajatModdasi } from '@/lib/domain/balans';
+import {
+  pulTopshirishQarziniQaytarTx,
+  pulTopshirishQarziTx,
+} from './filial-harakat';
+import { yozuvKursi } from './kurs';
 import { BiznesXato } from '@/lib/xato';
 
 export interface KassaYozuvi {
@@ -252,6 +258,14 @@ export async function kassaStorno(
                 'storno', ${x.id}, ${`Storno — ${sabab.trim()}`}, ${xodimId})`;
     }
 
+    /**
+     * EC-FQ-08 — topshiriq storno qilinsa filiallararo qarz ham teskari
+     * yoziladi. Aks holda pul qaytdi, qarz esa qolib ketardi (22.5).
+     */
+    if (y.manba_turi === 'topshiriq') {
+      await pulTopshirishQarziniQaytarTx(tx, y.manba_id, xodimId, sabab);
+    }
+
     await tx`
       INSERT INTO audit_jurnal (xodim_id, filial_id, amal, obyekt_turi, obyekt_id,
                                 eski_qiymat, yangi_qiymat, izoh)
@@ -383,6 +397,41 @@ export async function topshiriqniQabulQil(
       SET holat = 'QABUL', qabul_qildi_id = ${xodimId}, qabul_qilindi = now(),
           ozgartirildi = now(), ozgartirdi_id = ${xodimId}
       WHERE id = ${topshiriqId}`;
+
+    /**
+     * TZ 22.5 (Q-29) — sotuvchi pulni BOSHQA filial adminiga topshirsa,
+     * qabul qilgan filial topshirgan filialga qarzdor bo'ladi.
+     *
+     * Kassalarning filiali shu yerda o'qiladi: `topshiriq` jadvalida
+     * filial ustuni yo'q, u kassaga tegishli.
+     */
+    const filiallar = await tx<{ id: number; filial_id: number }[]>`
+      SELECT id, filial_id FROM kassa
+      WHERE id IN (${t.kimdan_kassa_id}, ${t.kimga_kassa_id})`;
+
+    const danFilial = filiallar.find((k) => k.id === t.kimdan_kassa_id)?.filial_id;
+    const gaFilial = filiallar.find((k) => k.id === t.kimga_kassa_id)?.filial_id;
+
+    if (danFilial !== undefined && gaFilial !== undefined) {
+      await pulTopshirishQarziTx(
+        tx,
+        {
+          topshiriqId,
+          kimdanFilialId: danFilial,
+          kimgaFilialId: gaFilial,
+          // §3.2 — pul JS `number` ga o'girilmaydi
+          summa: new Decimal(t.summa).toFixed(2),
+          valyuta,
+          /**
+           * 9.6 — dollarli yozuvda kurs MAJBURIY: `filial_harakat` da
+           * `valyuta <> 'USD' OR kurs_snapshot IS NOT NULL` cheklovi bor.
+           * So'mli yozuvda `null` qaytadi.
+           */
+          kursSnapshot: await yozuvKursi(tx, valyuta),
+        },
+        xodimId,
+      );
+    }
 
     return { chiqimId, kirimId };
   });

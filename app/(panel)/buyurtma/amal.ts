@@ -12,6 +12,7 @@ import {
   pozitsiyaniBekorQil,
   pozitsiyaniRadEt,
   pozitsiyaniTopshir,
+  pozitsiyaYetibKeldi,
 } from '@/lib/amal/ish';
 import { pozitsiyaniQaytar, type OrtiqchaYol } from '@/lib/amal/qaytarish';
 import { ruxsatTalab } from '@/lib/kirish/joriy';
@@ -153,6 +154,37 @@ export async function qaytaribOlishAmali(
  * ⚠️ Topshirish pulga TEGMAYDI — to'lov alohida hodisa (12.4). Mijoz
  *    qarzga olib ketishi mumkin.
  */
+/**
+ * TZ 20.5.1 — «Yetib keldi» — tayyor mahsulot sotgan filialga keldi.
+ *
+ * ⚠️ Bosilmaguncha mahsulot YO'LDA hisoblanadi. Shu sababli u qo'lda
+ *    bosiladi: avtomatik qo'yilsa hech kim ko'rmagan mahsulot
+ *    «kelgan» bo'lib qolardi.
+ */
+export async function yetibKeldiAmali(
+  _oldingi: AmalHolati,
+  forma: FormData,
+): Promise<AmalHolati> {
+  const f = await ruxsatTalab('buyurtma.tahrirla');
+
+  const pozitsiyaId = Number(matnMaydon(forma, 'pozitsiyaId'));
+  if (!Number.isSafeInteger(pozitsiyaId) || pozitsiyaId <= 0) {
+    return { xato: 'Pozitsiya tanlanmagan', bajarildi: false };
+  }
+
+  try {
+    await pozitsiyaYetibKeldi(ulanishOl(), pozitsiyaId, f.filialId, f.xodimId);
+  } catch (x) {
+    return {
+      xato: biznesXatosimi(x) ? x.message : 'Qabul qilinmadi',
+      bajarildi: false,
+    };
+  }
+
+  revalidatePath('/buyurtma');
+  return { xato: null, bajarildi: true };
+}
+
 export async function topshirishAmali(
   _oldingi: AmalHolati,
   forma: FormData,

@@ -16,6 +16,18 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('.', import.meta.url)),
+      /**
+       * `server-only` — Next.js beradigan qo'riqchi paket: kod brauzer
+       * to'plamiga tushib qolsa qurishni yiqitadi. Ish vaqtida hech
+       * narsa qilmaydi va npm da alohida o'rnatilmagan.
+       *
+       * `ekran-sorovlari.test.ts` ekran so'rovlarini bazada sinash
+       * uchun `app/**\/malumot.ts` ni import qiladi — shuning uchun u
+       * bo'sh modulga almashtiriladi.
+       */
+      'server-only': fileURLToPath(
+        new URL('./test/integratsiya/server-only-orin.ts', import.meta.url),
+      ),
     },
   },
   test: {
@@ -33,5 +45,25 @@ export default defineConfig({
     //    Limit tarmoqqa, kodga emas, moslangan — testning o'zi qisqartirilmadi.
     testTimeout: 120_000,
     hookTimeout: 120_000,
+
+    /**
+     * ⚠️ Tarmoq uzilishi testni QAYTA yurgizadi (T-08).
+     *
+     * Baza masofada turibdi va uy tarmog'i kunda bir necha marta
+     * uziladi: `ENOTFOUND`, `ECONNRESET`, `CONNECTION_CLOSED`. Bir
+     * uzilish ~50 daqiqalik yurishni yo'q qiladi va SOG' kodni qizil
+     * ko'rsatadi.
+     *
+     * Bu xatoni YASHIRMAYDI: haqiqiy xato uch marta ham yiqiladi.
+     * Faqat o'tkinchi uzilish tuzaladi.
+     *
+     * Buni qilish mumkin, chunki QOIDALAR §6 bo'yicha har baza testi
+     * **har yurishda** o'tishi shart — qat'iy id, qat'iy nom va
+     * mutlaq `COUNT(*)` yo'q. Qayta yurgizish natijani o'zgartirmaydi.
+     *
+     * 10-bosqichda baza egasining serveriga ko'chadi va bu olib
+     * tashlanadi.
+     */
+    retry: 2,
   },
 });

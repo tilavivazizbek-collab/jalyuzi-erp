@@ -128,16 +128,16 @@ describe('kanonik ro\'yxat butunligi', () => {
   });
 
   it('qurilgan bosqichlarning raqamlari TAYYOR', () => {
-    // 5-bosqichgacha qurilgan: K-01…K-07 (ombor va sotuv) + K-09 (kassa)
-    const qurilgan = KANONIK.filter((k) => k.bosqich <= 5);
-    expect(qurilgan).toHaveLength(8);
+    // 6-bosqichgacha qurilgan: K-01…K-07 · K-09 (kassa) · K-11 (filiallararo)
+    const qurilgan = KANONIK.filter((k) => k.bosqich <= 6);
+    expect(qurilgan).toHaveLength(9);
     expect(qurilgan.every((k) => k.holat === 'TAYYOR')).toBe(true);
   });
 
   it("hali qurilmagan bosqichlar KUTILMOQDA bo'lib qoladi", () => {
-    // K-08 (11.7.5 ustama eroziyasi) va K-11 (22.3.1 filiallararo)
+    // K-08 — 11.7.5 ustama eroziyasi, 8-bosqichda (hisobotlar)
     const kutayotgan = KANONIK.filter((k) => k.holat === 'KUTILMOQDA');
-    expect(kutayotgan.map((k) => k.kod)).toEqual(['K-08', 'K-11']);
+    expect(kutayotgan.map((k) => k.kod)).toEqual(['K-08']);
   });
 
   it('kodlar takrorlanmaydi', () => {

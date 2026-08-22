@@ -27,3 +27,16 @@ export const BOSH_ISH_HAQI: IshHaqiHolati = {
   balansdan: null,
   bajarildi: false,
 };
+
+export interface AyirboshlashHolati {
+  readonly xato: string | null;
+  /** Kassaga haqiqatda kirgan summa (komissiyadan keyin) */
+  readonly kirgan: string | null;
+  readonly bajarildi: boolean;
+}
+
+export const BOSH_AYIRBOSHLASH: AyirboshlashHolati = {
+  xato: null,
+  kirgan: null,
+  bajarildi: false,
+};

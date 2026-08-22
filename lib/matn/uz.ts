@@ -106,6 +106,25 @@ export const XATO_MATNI: Record<XatoKod, string> = {
   INV_YAKUNLANGAN: "Bu inventarizatsiya allaqachon yakunlangan",
   INV_BOSH: "Sanash varaqasida bironta qator yo'q",
   BOSHLANGICH_TAKROR: "Bu material uchun boshlang'ich qoldiq allaqachon kiritilgan",
+
+  // 6-bosqich — filiallararo
+  KOCHIRISH_TOPILMADI: "Ko'chirish hujjati topilmadi",
+  KOCHIRISH_HOLAT: "Hujjatning hozirgi holatida bu amal bajarilmaydi",
+  KOCHIRISH_BOSH: "Ko'chirishga bironta ham bo'lak tanlanmagan",
+  KOCHIRISH_SABAB_KERAK: "Summa o'zgartirilsa sabab yozilishi shart",
+  KOCHIRISH_AYNI_FILIAL: "Bo'lak boshqa filialda — o'z filialingiznikini tanlang",
+  BOLAK_YOLDA: "Bo'lak yo'lda — qabul qilinmaguncha ishlatib bo'lmaydi",
+  FILIAL_BALANS_NOL: "Filial balanslari yig'indisi nolga teng emas",
+
+  // 20.2 — filial boshqaruvi
+  FILIAL_TOPILMADI: 'Filial topilmadi',
+  FILIAL_SAQLANMADI: 'Filial saqlanmadi',
+  FILIAL_ISHLAB_CHIQARUVCHI_KERAK:
+    "O'zi tikmaydigan filialga standart ishlab chiqarish filiali kerak",
+  FILIAL_OZIGA_OZI: "Filial o'ziga o'zi buyurtma yubora olmaydi",
+  FILIAL_BOSH_NOFAOL: "Bosh filialni nofaol qilib bo'lmaydi (20.2.2)",
+  FILIAL_TAYANCH:
+    "Bu filialga tayanadigan filiallar bor — avval ularning sozlamasini o'zgartiring",
 };
 
 export const BIRLIK_MATNI = {

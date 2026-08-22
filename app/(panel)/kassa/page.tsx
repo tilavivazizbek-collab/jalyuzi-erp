@@ -7,9 +7,14 @@ import {
   kassaKitobi,
   kassaQoldiqlari,
   ochiqTopshiriqlar,
+  topshirishManbalari,
+  topshirishNishonlari,
   xodimBalanslari,
 } from './malumot';
 import { StornoTugmasi, TopshiriqQabulTugmasi } from './amallar';
+import { TopshirishFormasi } from './topshirish-forma';
+// Sarlavhada `#1` emas, filial NOMI ko'rinsin
+import { filialNomi as filialNominiOl } from '../ombor/malumot';
 
 export const dynamic = 'force-dynamic';
 
@@ -45,12 +50,19 @@ export default async function KassaSahifasi() {
   const barchaniKoradi = ruxsatBormi(f, 'kassa.barcha.kor');
   const stornoQilaOladi = ruxsatBormi(f, 'kassa.storno');
 
-  const [qoldiqlar, kitob, topshiriqlar, balanslar] = await Promise.all([
-    kassaQoldiqlari(f.filialId, f.xodimId, barchaniKoradi),
-    kassaKitobi(f.filialId, f.xodimId, barchaniKoradi),
-    barchaniKoradi ? ochiqTopshiriqlar(f.filialId) : Promise.resolve([]),
-    barchaniKoradi ? xodimBalanslari(f.filialId) : Promise.resolve([]),
-  ]);
+  const [qoldiqlar, kitob, topshiriqlar, balanslar, manbalar, nishonlar] =
+    await Promise.all([
+      kassaQoldiqlari(f.filialId, f.xodimId, barchaniKoradi),
+      kassaKitobi(f.filialId, f.xodimId, barchaniKoradi),
+      barchaniKoradi ? ochiqTopshiriqlar(f.filialId) : Promise.resolve([]),
+      barchaniKoradi ? xodimBalanslari(f.filialId) : Promise.resolve([]),
+      // 12.7 — sotuvchi O'Z kassasidan topshiradi
+      topshirishManbalari(f.xodimId),
+      topshirishNishonlari(f.filialId),
+    ]);
+
+  // 22.5.2 — ogohlantirishda ham, sarlavhada ham filial NOMI turadi
+  const filialNomi = await filialNominiOl(f.filialId);
 
   const filialKassalari = qoldiqlar.filter((k) => k.xodimId === null);
   const xodimKassalari = qoldiqlar.filter((k) => k.xodimId !== null);
@@ -62,16 +74,24 @@ export default async function KassaSahifasi() {
           <h1 className="text-xl font-semibold tracking-tight">Kassa</h1>
           <p className="mt-1 text-sm text-slate-500">
             {barchaniKoradi
-              ? `Filial #${String(f.filialId)} — barcha kassa`
+              ? `${filialNomi} — barcha kassa`
               : "Faqat o'z kassangiz (12.14)"}
           </p>
         </div>
-        <Link
-          href="/kassa/kun"
-          className="rounded-lg bg-slate-900 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-slate-800"
-        >
-          Kun yopish
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/kassa/amallar-sahifa"
+            className="rounded-lg border border-slate-300 px-3.5 py-2 text-sm text-slate-700 transition hover:bg-slate-50"
+          >
+            Amallar
+          </Link>
+          <Link
+            href="/kassa/kun"
+            className="rounded-lg bg-slate-900 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-slate-800"
+          >
+            Kun yopish
+          </Link>
+        </div>
       </div>
 
       {/* ── 12.16 · Qator 1: hozir kassada nima bor ── */}
@@ -113,6 +133,18 @@ export default async function KassaSahifasi() {
           </div>
         )}
       </section>
+
+      {/* ── 12.7 · 22.5 · Sotuvchi pulni topshiradi ── */}
+      {manbalar.length > 0 && nishonlar.length > 0 && (
+        <section className="flex flex-col gap-2">
+          <h2 className="text-sm font-medium text-slate-700">Pul topshirish</h2>
+          <TopshirishFormasi
+            manbalar={manbalar}
+            nishonlar={nishonlar}
+            filialNomi={filialNomi}
+          />
+        </section>
+      )}
 
       {/* ── 12.7 · Kutayotgan topshiriqlar ── */}
       {topshiriqlar.length > 0 && (

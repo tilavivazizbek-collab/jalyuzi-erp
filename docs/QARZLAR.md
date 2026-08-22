@@ -8,14 +8,16 @@ Shuning uchun bu ro'yxat qisqa bo'lishi va bo'shab borishi kerak.
 
 | # | Qarz | Qachon yopiladi | Xavf |
 |---|---|---|---|
-| T-01 | Interfeys oqimlari avtomat sinalmagan | 2-bosqich | O'rta |
+| T-01 | Kirish oqimi va sahifa chizilishi sinalmagan (SQL ✅) | 7-bosqich | Past |
 | T-02 | `docker compose up` tekshiruvi bajarilmagan | Docker o'rnatilganda | Past |
 | T-03 | Qarorlar hujjatga ko'chirilmagan | Egasi tasdiqlagach | O'rta |
 | ~~T-04~~ | ~~`band` va `bolak` ning buyurtma tashqi kalitlari~~ | ✅ yopildi | — |
 | ~~T-05~~ | ~~Kirimda yetkazib beruvchi qarzi yozilmaydi~~ | ✅ yopildi | — |
 | ~~T-06~~ | ~~Baza testlari bir martalik edi~~ | ✅ yopildi | — |
 | T-07 | Inventarizatsiya farqlari hisoboti | 8-bosqich | Past |
-| T-08 | Masofadagi baza tarmoq uzilishlari | 10-bosqich | O'rta |
+| T-08 | Masofadagi baza tarmoq uzilishlari | 10-bosqich | **Yuqori** |
+| T-10 | Jo'natma — bir necha buyurtmani guruhlash (20.8) | 8-bosqich | Past |
+| ~~T-11~~ | ~~EC-FQ-04 — qarzi bor filial yopilishi~~ | ✅ yopildi | — |
 | ~~T-09~~ | ~~Qayta kesishda ustaning haqi bekor qilinmaydi~~ | ✅ yopildi | — |
 
 ---
@@ -36,6 +38,36 @@ qilingan token kirish ekraniga yuboradi, sahifa chizilganda cookie
 yozilmaydi.
 
 Lekin bu tekshiruv **saqlanmagan** — regressiya ushlanmaydi.
+
+### 2026-08-22 — SQL bo'shlig'i YOPILDI
+
+`test/integratsiya/ekran-sorovlari.test.ts` endi har bir ekran
+funksiyasini haqiqiy bazada bir marta chaqiradi — 41 ta so'rov, 13 ta
+test. Natija tekshirilmaydi, **yiqilmasligi** tekshiriladi: ustun nomi
+xato bo'lsa Postgres darhol aytadi.
+
+`app/**/malumot.ts` fayllari `server-only` ni import qiladi. U Next.js
+beradigan qo'riqchi paket va npm da yo'q, shuning uchun
+`vitest.baza.config.ts` uni bo'sh modulga almashtiradi
+(`test/integratsiya/server-only-orin.ts`).
+
+Bu qarzning **birinchi yarmi**: SQL endi qoplangan. Ikkinchi yarmi —
+kirish oqimi va sahifa chizilishi — hali qo'lda sinaladi, u Playwright
+bilan yopiladi.
+
+### 2026-08-22 — qarz o'z narxini ko'rsatdi
+
+`app/(panel)/sotuv/malumot.ts` da ikki so'rov `fn.narx` ustuniga
+murojaat qilardi, jadvalda esa u **`sotuv_narx`** deb ataladi (20.9,
+`material_filial_narx`). Ya'ni filial narxi ishlatilgan har bir sotuv
+so'rovi bazada yiqilardi.
+
+`tsc` buni ko'rmaydi — SQL matn ichida. Testlar ham ko'rmaydi:
+`malumot.ts` fayllari `import 'server-only'` bilan boshlanadi va
+vitest ostida umuman yuklanmaydi.
+
+Aynan shu xatoni Playwright bir bosishda topardi: «sotuv ekranini och».
+Qarz endi mavhum emas — u bir marta pul ekraniga tegdi.
 
 ### Nega hozir yopilmadi
 
@@ -239,7 +271,7 @@ farqi` moddalari birga chiqadi va omborchi kesimi shu yerdan tayyorlanadi.
 
 ## T-08 · Masofadagi baza tarmoq uzilishlari
 
-**Sana:** 2026-08-21 · **Bosqich:** 10 da yopiladi · **Xavf:** o'rta (chalg'itadi)
+**Sana:** 2026-08-21 · **Bosqich:** 10 da yopiladi · **Xavf:** yuqori (ish sur'atini yeydi)
 
 ### Holat
 
@@ -250,6 +282,31 @@ bilan**. Bir kunda kuzatilgan namuna:
 |---|---|---|
 | 1 | 11 yiqildi | `getaddrinfo ENOTFOUND`, `CONNECTION_CLOSED` |
 | 2 | 220/220 yashil | — |
+
+### 2026-08-22 — qarz o'z narxini ko'rsatdi
+
+Bir kunda **to'rt marta** uzildi. Bir yurishda 70 ta, boshqasida 52 ta
+tarmoq xatosi: 19 ta fayl bazaga umuman ulana olmadi. Kod har safar
+sog' edi — uzilishdan keyingi yurish yashil chiqdi.
+
+Har uzilish ~50 daqiqalik yurishni yo'q qiladi. Shu kuni ish
+vaqtining kattaroq qismi **kutishga va qayta yurgizishga** ketdi.
+
+Shuning uchun xavf **o'rtadan yuqoriga** ko'tarildi va ikki chora
+qo'llandi:
+
+1. **Ish tartibi** (QOIDALAR §6): to'liq to'plam endi har qadamdan
+   keyin emas, **bosqich oxirida** yuriladi.
+2. **`retry: 2`** (`vitest.baza.config.ts`): o'tkinchi uzilishda test
+   qayta yuriladi.
+
+⚠️ Qayta yurgizish xatoni **yashirmaydi** — haqiqiy xato uch marta ham
+yiqiladi. Buni qilish mumkin, chunki §6 bo'yicha har baza testi har
+yurishda o'tishi shart: qat'iy id, qat'iy nom va mutlaq `COUNT(*)`
+yo'q, shuning uchun qayta yurgizish natijani o'zgartirmaydi.
+
+10-bosqichda baza egasining serveriga ko'chadi va `retry` olib
+tashlanadi.
 
 Xatolar HAR SAFAR boshqa testlarda chiqadi va hammasi bir xil sababdan:
 baza 10-bosqichgacha **masofada** turibdi va uy tarmog'i uzilib turadi.
@@ -310,3 +367,60 @@ mumkin. Usta endi POZITSIYADAN olinadi.
 
 Testi: `test/integratsiya/qayta-kesish.test.ts` — «usta ikki marta
 ishlagan bo'lsa ham BIR MARTA oladi» (balans nolga qaytadi).
+
+
+---
+
+## T-10 · Jo'natma bo'lib guruhlash (20.8)
+
+**Bosqich:** 6 · **Tegadi:** LOYIHA.md 20.8
+
+### Holat
+
+Tayyor mahsulotni ko'chirish **ishlaydi**: pozitsiya `TAYYOR_YOLDA` ga
+o'tadi, sotgan filial «Yetib keldi» ni bosadi (20.5.1), topshirilganda
+filiallararo qarz yoziladi (22.3.2). Bularning hammasi sinalgan.
+
+Yozilmagani — **jo'natma**: bir necha buyurtmani bir ro'yxatga
+guruhlash va «butun jo'natmani bir bosishda qabul qilish».
+
+```
+Jo'natma №14 · Samarqand → Chilonzor · 12.08.2026
+  #1247 poz. 1, 2   Rollo 210×140
+  #1251 poz. 1      Plisse 180×220
+```
+
+### Nega hozir yopilmadi
+
+20.8 ning o'zi aytadi: «Qabul qilishda butun jo'natma bir bosishda
+tasdiqlanadi **yoki har pozitsiya alohida**.» Ikkinchi yo'l yozilgan va
+u yetarli — guruhlash faqat **tezlik** beradi, hisobga ta'sir qilmaydi.
+
+### Xavf
+
+Past. Kuniga o'nlab pozitsiya yo'lga chiqqanda qabul qilish zerikarli
+bo'ladi, lekin hech narsa noto'g'ri hisoblanmaydi.
+
+
+---
+
+## T-11 · EC-FQ-04 — ✅ yopildi (2026-08-22)
+
+22.8: «Filial yopildi, qarzi bor → qarz **bosh filialga o'tadi**.»
+
+`lib/amal/filial.ts` → `qarzniBoshFilialgaOtkaz()`. Filial `faol: true →
+false` bo'lganda, o'sha tranzaksiya ichida har juftlik uchun ikkita
+`QOLDA_TUZATISH` qatori yoziladi:
+
+```
+Yopilayotgan A · Samarqandga 500 000 qarzdor
+  1. Samarqand → A      500 000   ← A ning juftligi nolga tushadi
+  2. A → Bosh filial    500 000   ← qarz bosh filialga o'tdi
+```
+
+Ikkalasi bir tranzaksiyada — aks holda 11-invariant (`SUM = 0`)
+buzilardi. Eski qatorlar joyida qoladi (§6.5), balans `SUM()` dan
+chiqadi.
+
+Uch test: qarz o'tishi, yopilgan filial balansi nolga tushishi va
+qarzsiz filialda ortiqcha yozuv qo'shilmasligi.

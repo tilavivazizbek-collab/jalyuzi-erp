@@ -110,7 +110,7 @@ export const KANONIK: readonly Kanonik[] = [
     band: 'TZ 22.3.1',
     kutilgan: '312 000 + 57 600 + 154 400 = 524 000',
     bosqich: 6,
-    holat: 'KUTILMOQDA',
+    holat: 'TAYYOR',
   },
 ] as const;
 

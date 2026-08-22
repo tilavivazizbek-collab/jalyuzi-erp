@@ -23,6 +23,7 @@ import Decimal from 'decimal.js';
 import { kassaYozuviQoshTx } from './kassa';
 import { kunYopiqmi } from './kun-yopish';
 import { otishniTekshir, type PozitsiyaHolati } from '@/lib/domain/buyurtma';
+import { tayyorMahsulotQarziniQaytarTx } from './filial-harakat';
 import { BiznesXato } from '@/lib/xato';
 
 /** TZ 8.10 — ortiqcha pul qayerga ketadi. */
@@ -198,6 +199,17 @@ export async function pozitsiyaniQaytar(
                 'qaytarish', ${kirim.pozitsiyaId},
                 ${'Qaytarishdan ushlab qolindi (8.10)'}, ${xodimId})`;
     }
+
+    /**
+     * TZ 22.3.4 · EC-FQ-01 — filiallararo qarz TESKARI yoziladi.
+     * Ushlab qolingan summa ham 50/50 bo'linadi (20.17.1).
+     */
+    await tayyorMahsulotQarziniQaytarTx(
+      tx,
+      kirim.pozitsiyaId,
+      ushlab.greaterThan(0) ? ushlab.toFixed(2) : '0',
+      xodimId,
+    );
 
     await tx`
       UPDATE buyurtma_pozitsiya

@@ -235,3 +235,95 @@ bo'yicha sana:
 
 Modul tugadi deyishdan oldin `npm run test:baza` **ikki marta** ketma-ket
 yurgiziladi. Ikkinchi yurish qizil bo'lsa — modul tayyor emas.
+
+### Bir vaqtda IKKI yurish — taqiq
+
+**2026-08-22 da olingan dars.** To'liq to'plam fonda yurib turganda
+alohida bitta fayl yurgizildi. Ikkalasi bir xil masofadagi bazaga
+tegdi va qat'iy `id` li testlar (`9600`/`9601`) bir-birining qatorini
+o'chirdi:
+
+```
+insert or update on table "xodim_rol" violates foreign key constraint
+```
+
+Kodda xato yo'q edi — ikki yurish poyga qildi.
+
+**Qoida:** baza testining ikki nusxasi bir vaqtda yurmaydi. Fonda
+yurgan to'plam tugamaguncha yangi yurish boshlanmaydi; shoshilinch
+bo'lsa avvalgisi to'xtatiladi.
+
+### Tarmoq uzilishini xatodan ajratish
+
+Masofadagi baza (T-08) uzilsa test qizil bo'ladi, lekin kod sog'.
+Ajratish:
+
+```bash
+grep -cE "CONNECT_TIMEOUT|ENOTFOUND|ECONNRESET" natija.log
+```
+
+Son noldan katta bo'lsa — **tarmoq**. Ulanish tiklanganini bitta
+yengil fayl bilan tekshirib, to'plam qaytadan yurgiziladi. Tarmoq
+uzilishi «o'tdi» deb yozilmaydi va kod tuzatilmaydi.
+
+### Qachon to'liq to'plam yuriladi
+
+To'liq baza to'plami ~50 daqiqa oladi: baza masofada, har so'rov
+tarmoqdan o'tadi (T-08, P-12). Har qadamdan keyin uni ikki marta
+yurgizish vaqtning deyarli hammasini **o'zgarmagan kodni qayta
+sinashga** sarflaydi.
+
+| Qachon | Nima yuriladi | Vaqt |
+|---|---|---|
+| Har qadamdan keyin | `npm test` + o'sha qadamning test fayli | 1–3 daq |
+| **Bosqich** oxirida | to'liq baza, ikki marta | ~100 daq |
+
+Sifat pasaymaydi: o'zgarmagan kodni qayta sinash yangi xato topmaydi.
+
+### To'plam yurayotganda ishlash
+
+Kutib o'tirilmaydi — ish davom etadi. Lekin **nimaga tegilishi**
+cheklangan:
+
+| Tegiladi | Tegilmaydi |
+|---|---|
+| `app/` — ekranlar va formalar | `lib/` — mantiq va tranzaksiya |
+| `docs/` | mavjud `test/` fayllari |
+| **yangi** fayllar | `vitest.baza.config.ts` dan boshqa sozlama |
+
+Sabab: vitest test faylini **navbati kelganda** o'qiydi. Yurish
+ketayotganda `lib/` o'zgartirilsa, test yarim yozilgan kodni o'qib
+qolishi va **soxta qizil** natija berishi mumkin. `app/` ni testlar
+import qilmaydi (`server-only`), yangi faylni esa yurish ko'rmaydi —
+ular xavfsiz.
+
+Yurish ketayotganda bog'lanmagan **boshqa sohada** ishlanadi: baza
+mantiqi sinalayotganda ekran chiziladi. Aks holda natija qizil
+chiqqanda ustiga qurilgan ish ham qayta ishlanadi.
+
+---
+
+## 7. EKRAN SO'ROVLARI BAZADA SINALADI
+
+`tsc` SQL ni ko'rmaydi — u shunchaki matn. Xato ustun nomi qurishdan
+o'tadi, testlardan o'tadi va faqat **ekranni ochgan odam** oldida
+yiqiladi.
+
+Shu sabab `app/**/malumot.ts` dagi har bir eksport qilingan funksiya
+`test/integratsiya/ekran-sorovlari.test.ts` da haqiqiy bazada bir
+marta chaqiriladi. Natija tekshirilmaydi — **yiqilmasligi**
+tekshiriladi.
+
+```ts
+await expect(sotuvEkrani.sotuvTurlari(filialId)).resolves.toBeDefined();
+```
+
+Mavjud bo'lmagan id berilsa funksiya `null` yoki `[]` qaytarishi
+kerak, yiqilmasligi — bu ham shu yerda tekshiriladi.
+
+**Yangi `malumot.ts` funksiyasi yozilsa — shu testga qatori
+qo'shiladi.** Aks holda uning SQL i hech qachon sinalmaydi.
+
+⚠️ Shart bo'yicha ikki xil SQL beradigan funksiya **ikkala shart
+bilan** chaqiriladi (masalan `kassaKitobi` da admin va sotuvchi
+ko'rinishi) — aks holda yarim so'rov sinalmay qoladi.

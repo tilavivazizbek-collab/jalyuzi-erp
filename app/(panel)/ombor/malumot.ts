@@ -23,6 +23,8 @@ export interface MaterialQoldigi {
   readonly boshKvM: number;
   /** TZ 7.3 — «band» */
   readonly bandKvM: number;
+  /** TZ 20.7.4 — boshqa filialga jo'natilgan, hali qabul qilinmagan */
+  readonly yoldaKvM: number;
   readonly bolakSoni: number;
   /** DONA va CHIZIQLI uchun */
   readonly miqdor: number;
@@ -38,6 +40,7 @@ interface QoldiqQatori {
   readonly jami_kv_m: string | null;
   readonly bosh_kv_m: string | null;
   readonly band_kv_m: string | null;
+  readonly yolda_kv_m: string | null;
   readonly bolak_soni: number;
   readonly miqdor: string | null;
   readonly kam_qoldiq_chegara_m: string | null;
@@ -48,16 +51,22 @@ interface QoldiqQatori {
  *
  * `ISHLATILDI`, `BRAK`, `CHIQINDI` holatidagi bo'laklar qoldiqqa
  * kirmaydi — ular tarixda qoladi (2.1-invariant), lekin omborda yo'q.
+ *
+ * ⚠️ TZ 20.7.4 — `YOLDA` bo'lak «beruvchi filial qoldig'idan
+ *    CHIQARILGAN». Shuning uchun u «jami» ga KIRMAYDI va alohida
+ *    ustunda ko'rsatiladi: mol jismonan yo'lda, lekin omborda yo'q.
+ *    Qatorning o'zi qoladi — omborchi uni yo'qotib qo'ymasin.
  */
 export async function filialQoldigi(filialId: number): Promise<MaterialQoldigi[]> {
   const qatorlar = await ulanishOl()<QoldiqQatori[]>`
     SELECT m.id AS material_id, m.nom, m.hisob_turi, m.sarflash_birligi,
            m.kam_qoldiq_chegara_m,
-           SUM(b.eni_m * b.boyi_m)                                      AS jami_kv_m,
+           SUM(b.eni_m * b.boyi_m) FILTER (WHERE b.holat <> 'YOLDA')    AS jami_kv_m,
            SUM(b.eni_m * b.boyi_m) FILTER (WHERE b.holat = 'BOSH')      AS bosh_kv_m,
            SUM(b.eni_m * b.boyi_m) FILTER (WHERE b.holat = 'BAND')      AS band_kv_m,
-           COUNT(b.id)::int                                             AS bolak_soni,
-           SUM(b.miqdor)                                                AS miqdor
+           SUM(b.eni_m * b.boyi_m) FILTER (WHERE b.holat = 'YOLDA')     AS yolda_kv_m,
+           COUNT(b.id) FILTER (WHERE b.holat <> 'YOLDA')::int           AS bolak_soni,
+           SUM(b.miqdor) FILTER (WHERE b.holat <> 'YOLDA')              AS miqdor
     FROM bolak b
     JOIN material m ON m.id = b.material_id
     WHERE b.filial_id = ${filialId}
@@ -73,6 +82,7 @@ export async function filialQoldigi(filialId: number): Promise<MaterialQoldigi[]
     sarflashBirligi: q.sarflash_birligi,
     jamiKvM: Number(q.jami_kv_m ?? 0),
     boshKvM: Number(q.bosh_kv_m ?? 0),
+    yoldaKvM: Number(q.yolda_kv_m ?? 0),
     bandKvM: Number(q.band_kv_m ?? 0),
     bolakSoni: q.bolak_soni,
     miqdor: Number(q.miqdor ?? 0),
@@ -705,4 +715,41 @@ export async function oxirgiSanoq(
 
   const r = q[0];
   return r === undefined ? null : { sana: r.sana, kim: r.kim };
+}
+
+// ─── 20.6.2 · Barcha filiallar kesimi ─────────────────────────────────────
+
+export interface FilialQoldigi {
+  readonly filialId: number;
+  readonly filialNomi: string;
+  readonly materiallar: readonly MaterialQoldigi[];
+}
+
+/**
+ * TZ 20.6.2 — «Bosh filial admini BARCHA filiallarni bir jadvalda
+ * ko'ra oladi.»
+ *
+ * ⚠️ Ruxsat qamrovi (`BARCHA`) sahifada tekshiriladi — bu funksiya
+ *    faqat ma'lumot beradi (§9.4 naqshi).
+ */
+export async function barchaFilialQoldigi(): Promise<readonly FilialQoldigi[]> {
+  const filiallar = await ulanishOl()<{ id: number; nom: string }[]>`
+    SELECT id, nom FROM filial WHERE faol = true ORDER BY bosh DESC, nom`;
+
+  const natija: FilialQoldigi[] = [];
+  for (const f of filiallar) {
+    natija.push({
+      filialId: f.id,
+      filialNomi: f.nom,
+      materiallar: await filialQoldigi(f.id),
+    });
+  }
+  return natija;
+}
+
+/** Sarlavhada `#1` emas, filial NOMI ko'rinsin. */
+export async function filialNomi(filialId: number): Promise<string> {
+  const q = await ulanishOl()<{ nom: string }[]>`
+    SELECT nom FROM filial WHERE id = ${filialId}`;
+  return q[0]?.nom ?? `#${String(filialId)}`;
 }

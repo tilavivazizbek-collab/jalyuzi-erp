@@ -17,6 +17,7 @@ import {
   QaytarishTugmasi,
   RadEtishTugmasi,
   TopshirishTugmasi,
+  YetibKeldiTugmasi,
 } from '../hayot';
 import { TolovFormasi } from '../tolov-forma';
 
@@ -300,6 +301,8 @@ function PozitsiyaAmallari({
   kassalar: readonly { id: number; nom: string; turi: string; valyuta: string }[];
 }) {
   const bekor = bekorQilaOladi && bekorQilinadimi(holat);
+  // 20.5.1 — yo'ldagi tayyor mahsulotni sotgan filial qabul qiladi
+  const yetibKeldi = tahrirlayOladi && holat === 'TAYYOR_YOLDA';
   const qaytaribOl = tahrirlayOladi && qaytaribOlinadimi(holat);
   // 8.9 — topshirish faqat TAYYOR yoki YETIB_KELDI dan
   const topshir = tahrirlayOladi && (holat === 'TAYYOR' || holat === 'YETIB_KELDI');
@@ -308,10 +311,13 @@ function PozitsiyaAmallari({
   // 8.10 — qaytarish faqat TOPSHIRILGANDAN keyin
   const qaytar = tolovQilaOladi && holat === 'TOPSHIRILDI';
 
-  if (!bekor && !qaytaribOl && !topshir && !radEt && !qaytar) return null;
+  if (!bekor && !qaytaribOl && !topshir && !radEt && !qaytar && !yetibKeldi) {
+    return null;
+  }
 
   return (
     <div className="flex flex-wrap items-start gap-6 border-t border-slate-100 px-4 py-3">
+      {yetibKeldi && <YetibKeldiTugmasi pozitsiyaId={pozitsiyaId} />}
       {topshir && <TopshirishTugmasi pozitsiyaId={pozitsiyaId} />}
       {radEt && <RadEtishTugmasi pozitsiyaId={pozitsiyaId} />}
       {qaytar && (

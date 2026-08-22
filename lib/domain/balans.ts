@@ -161,8 +161,19 @@ export function pulChiqmaydimi(modda: XarajatModdasi): boolean {
  *   C4, C5  ish haqi to'lovi — haq allaqachon «Tugatdim» da xarajat bo'lgan
  *   C8      egasi pul oldi
  *   C9      adminga topshiriq — kassalar orasidagi ko'chish
+ *   C11     ayirboshlash (12.9) — pul boshqa kassaga o'tadi (P-31)
+ *   C12     filialga qarz to'lovi (22.6.3) — korxona ichida (P-32)
  */
-const XARAJAT_EMAS: readonly string[] = ['C1', 'C2', 'C4', 'C5', 'C8', 'C9'];
+const XARAJAT_EMAS: readonly string[] = [
+  'C1',
+  'C2',
+  'C4',
+  'C5',
+  'C8',
+  'C9',
+  'C11',
+  'C12',
+];
 
 export function xarajatgaTushadimi(kassaKodi: string): boolean {
   return !XARAJAT_EMAS.includes(kassaKodi);

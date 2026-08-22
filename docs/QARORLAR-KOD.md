@@ -28,6 +28,25 @@ ko'chiriladi. Tasdiqlanmagani `⏳` bilan belgilanadi.
 | P-17 | Brak tannarx bo'luvchisiga kirmaydi | ⏳ tasdiq kutilmoqda |
 | P-18 | `band` tashqi kalitlari 4-bosqichda | ⏳ tasdiq kutilmoqda |
 | P-19 | Band qilishda faqat bitta bo'lak qulflanadi | ⏳ tasdiq kutilmoqda |
+| P-20 | Bo'lak tannarxi 4 kasrli birlik narxida saqlanadi | ⏳ tasdiq kutilmoqda |
+| P-21 | Hisobdan chiqarishni ikki marta bekor qilib bo'lmaydi | ⏳ tasdiq kutilmoqda |
+| P-21.1 | Bekor qilingan yozuv storno yozuvidan aniqlanadi | ⏳ tasdiq kutilmoqda |
+| P-22 | Inventarizatsiyani kim o'tkazadi | ⏳ tasdiq kutilmoqda |
+| P-23 | Band qilish buyurtma tranzaksiyasi ichida | ⏳ tasdiq kutilmoqda |
+| P-24 | Band qilish uchun kesim o'lchami maydondan chiqadi | ⏳ tasdiq kutilmoqda |
+| P-25 | Qayta kesish TAYYOR pozitsiyani ishlab chiqarishga qaytaradi | ⏳ tasdiq kutilmoqda |
+| P-26 | Kassa yozuvi `qolda_manba_seq` bilan takrorlanmaydi | ⏳ tasdiq kutilmoqda |
+| P-27 | Mijoz qarzi buyurtma yaratilganda yoziladi | ⏳ tasdiq kutilmoqda |
+| P-28 | Muddati o'tgan bandlar chegara bilan bo'shatiladi | ⏳ tasdiq kutilmoqda |
+| P-29 | Topshirish, rad etish, qaytarish — uch boshqa amal | ⏳ tasdiq kutilmoqda |
+| P-30 | Qaytarishdagi pul avval qarzdan chegiriladi | ⏳ tasdiq kutilmoqda |
+| P-31 | Ayirboshlashga yangi kassa kodlari: C11 / K10 | ⏳ tasdiq kutilmoqda |
+| P-32 | Filiallararo qarz to'loviga C12 / K11 | ⏳ tasdiq kutilmoqda |
+| P-33 | Nol summali filial harakati YOZILMAYDI | ⏳ tasdiq kutilmoqda |
+| P-34 | Qaytarishda filial qarzi QAYTA hisoblanadi | ⏳ tasdiq kutilmoqda |
+| P-35 | Filial qarz to'lovi BIR BOSQICHLI | ⏳ tasdiq kutilmoqda |
+| P-36 | Filial narx istisnosi O'CHIRILADI, nol qo'yilmaydi | ⏳ tasdiq kutilmoqda |
+| P-37 | Dollarli filial harakatida kurs `kurs_tarix` dan olinadi | ⏳ tasdiq kutilmoqda |
 
 ---
 
@@ -911,7 +930,7 @@ ikkinchi chaqiruv xato beradi va `SUM(miqdor_kv_m) = 0` bo'lib qoladi.
 
 ---
 
-## P-21 — Bekor qilingan yozuv qanday aniqlanadi
+## P-21.1 — Bekor qilingan yozuv qanday aniqlanadi
 
 **Fayl:** `lib/amal/hisobdan.ts` · **Manba:** LOYIHA.md 7.10 · §6.5 · 2.2-invariant
 
@@ -1451,3 +1470,324 @@ bilmaydi.
 
 TZ 8.10 — «sotuvchi 0 ham kirita oladi». Kod nolni qabul qiladi, lekin
 **izoh majburiy** va amal audit jurnalida qoladi.
+
+---
+
+## P-31 — Ayirboshlashga O'Z kassa kodlari kerak
+
+**Fayl:** `lib/amal/ayirboshlash.ts` · **Manba:** LOYIHA.md 12.4 · 12.9
+
+### Ziddiyat
+
+12.9 ayirboshlashni tasvirlaydi, lekin **qaysi kassa kodi bilan
+yozilishini aytmaydi**. 12.4 dagi kodlar ro'yxatida ayirboshlash yo'q.
+
+Birinchi yozuvda mavjud kodlar ishlatilgan edi:
+
+| Kod | 12.4 dagi ma'nosi | Ayirboshlashda |
+|---|---|---|
+| C9 | Adminga topshiriq | chiqim |
+| K7 | Sotuvchidan topshiriq | kirim |
+
+### Nega bu xato
+
+Topshiriq (12.7) — **ikki bosqichli**, `topshiriq` jadvali bilan,
+sotuvchi va admin o'rtasida. Ayirboshlash (12.9) — bir bosqichli,
+faqat admin kassalari orasida.
+
+Kod bo'yicha guruhlanadigan joylar buzilardi:
+
+- 11.4.2 kassa oqimi hisoboti — ayirboshlash «topshiriq» bo'lib chiqardi
+- 12.17 kun yopish — sotuvchi topshirmagan pul topshirilgan ko'rinardi
+- Egasi «bugun sotuvchilar qancha topshirdi?» degan savolga
+  **noto'g'ri son** olardi
+
+### Qaror
+
+12.4 ro'yxatiga ikki yangi kod qo'shiladi:
+
+| Kod | Nima | Band |
+|---|---|---|
+| **C11** | Ayirboshlash — chiqim | 12.9 |
+| **K10** | Ayirboshlash — kirim | 12.9 |
+
+`C11` — `XARAJAT_EMAS` ro'yxatida (`lib/domain/balans.ts`): pul kassadan
+chiqadi, lekin xarajat emas — u boshqa kassaga o'tadi. **Faqat komissiya**
+xarajat, u `BANK_KOMISSIYASI` moddasi bilan alohida yoziladi (12.9).
+
+---
+
+## P-32 — Filiallararo qarz to'loviga C12 / K11
+
+**Fayl:** 6-bosqich, `lib/amal/filial-hisob.ts` · **Manba:** LOYIHA.md 12.4 · 22.9.3
+
+### Ziddiyat
+
+22.9.3 «yangi kassa kodlari» deb **K8** va **C10** ni taklif qiladi.
+Lekin 12.4 da bu kodlar allaqachon band:
+
+| Kod | 12.4 dagi ma'nosi | 22.9.3 taklifi |
+|---|---|---|
+| K8 | Boshlang'ich qoldiq (import) | Filialdan qarz to'lovi |
+| C10 | Boshqa chiqim | Filialga qarz to'lovi |
+
+22-bo'lim TZ ga keyin qo'shilgan va 12.4 ro'yxati bilan solishtirilmagan.
+
+### Qaror
+
+Filiallararo to'lovga **bo'sh** kodlar beriladi:
+
+| Kod | Nima | Band |
+|---|---|---|
+| **C12** | Filialga qarz to'lovi (chiqim) | 22.6.3 |
+| **K11** | Filialdan qarz to'lovi (kirim) | 22.6.3 |
+
+`C12` ham `XARAJAT_EMAS` — korxona ichidagi ko'chish, 22.7.3:
+«Filiallararo qarz foyda-zararga tegmaydi.»
+
+### Bo'sh kodlar ro'yxati (keyingi ish uchun)
+
+Band: K1–K11 · C1–C12. Keyingi bo'sh — **K12**, **C13**.
+
+---
+
+## P-33 — Nol summali filial harakati yozilmaydi
+
+**Fayl:** `lib/amal/kochirish.ts` · **Manba:** LOYIHA.md 22.9.1 · EC-FQ-06
+
+### Ziddiyat
+
+Ikki band bir-biriga zid:
+
+| Band | Nima deydi |
+|---|---|
+| EC-FQ-06 | «Omborchi ko'chirish summasini **0 qo'ydi** — ruxsat beriladi» |
+| 22.9.1 | `filial_harakat` da `summa <> 0` (bo'sh yozuv ma'nosiz) |
+
+Namuna sifatida bepul berilgan matoni ko'chirish bazada yiqilardi.
+
+### Qaror
+
+Qarz **0 bo'lsa `filial_harakat` yozuvi umuman yaratilmaydi.**
+
+Sabab: nol qator balansga hech narsa qo'shmaydi (2.2-invariant —
+balans `SUM()` dan chiqadi), lekin `summa <> 0` cheklovini
+kuchsizlantirardi. Cheklov kerak: u haqiqiy bo'sh yozuvni to'sadi.
+
+Ma'no jihatidan ham to'g'ri: mato bepul berilgan bo'lsa **qarz
+tug'ilmagan**. Ko'chirishning o'zi `kochirish` hujjatida va ombor
+jurnalida to'liq ko'rinadi — hujjatda `qarz_summa = 0`, `qarz_qolda =
+true` va sabab yozilgan (audit 2.4).
+
+`kochirishQabulQil()` shu sababli `filialHarakatId: number | null`
+qaytaradi.
+
+---
+
+## P-34 — Qaytarishda filial qarzi qayta hisoblanadi
+
+**Fayl:** `lib/domain/filial-hisob.ts` → `qaytarishQarzi()`
+**Manba:** LOYIHA.md 22.3.4 · 22.3.3 · 20.17.1 · 8.10
+
+### Talab
+
+TZ 22.3.4 bir jumla:
+
+> «8.10 bo'yicha qaytarilganda qarz **teskari yoziladi**. Ushlab
+>  qolingan summa ham 50/50 bo'linadi (20.17.1).»
+
+**Qanday** bo'linishi yozilmagan.
+
+### Nega sodda teskari yozuv YETMAYDI
+
+Qarzni to'liq teskari yozish (`−524 000`) noto'g'ri: mijozga hamma pul
+qaytmaydi. Ushlab qolingan summa korxonada qoladi va u 50/50 bo'linishi
+kerak.
+
+Birinchi urinishda `teskari = qarz − ushlanma/2` yozilgan edi. U ham
+noto'g'ri — tekshiruv:
+
+```
+678 400 sotildi · tannarx 312 000 · ish haqi 57 600 · qarz 524 000
+600 000 qaytarildi, 78 400 ushlab qolindi
+
+teskari = 524 000 − 39 200 = 484 800
+Sotgan filialda:  678 400 − 524 000 − 600 000 + 484 800 = 39 200
+Tikkan filialda:  524 000 − 484 800 − 369 600         = −330 400
+```
+
+Zarar `−291 200` edi, lekin tikkan filial `−330 400` ko'tardi. Bo'linish
+teng chiqmadi.
+
+### Qaror
+
+Qarz **qayta hisoblanadi**: ushlab qolingan summa yangi «tushum» bo'ladi
+va 22.3.1 formulasi 22.3.3 chegarasi bilan qayta qo'llanadi.
+
+```
+tushum = 78 400
+zarar  = 78 400 − 369 600 = −291 200 → har filialga −145 600
+formula = 312 000 + 57 600 − 145 600 = 224 000
+22.3.3: MIN(224 000, 78 400) = 78 400
+
+Teskari yozuv: 78 400 − 524 000 = −445 600
+```
+
+Nima uchun chegara bu yerda ham kerak: `224 000` bo'lsa sotgan filial
+ushlab qolgan `78 400` dan ko'p berardi — ya'ni **o'z cho'ntagidan**
+to'lardi. 22.3.3 buni aynan taqiqlaydi.
+
+Qolgan zararni tikkan filial ko'taradi, chunki xarajat unda sodir
+bo'lgan (22.3.3 ning o'z sababi). Teng bo'lish kerak bo'lsa — admin
+`QOLDA_TUZATISH` yozadi (EC-FQ-10).
+
+### Nega §2.2 buzilmadi
+
+Yangi formula yozilmadi: `qaytarishQarzi()` o'sha `tayyorMahsulotQarzi()`
+ni boshqa «tushum» bilan chaqiradi. Chegara mantig'i bitta joyda qoladi.
+
+---
+
+## P-35 — Filial qarz to'lovi bir bosqichli
+
+**Fayl:** `lib/amal/filial-hisob.ts` → `filialQarzTolovi()`
+**Manba:** LOYIHA.md 22.6.3 · 12.7 · 12.8
+
+### Ziddiyat
+
+22.6.3 o'zining ichida qarama-qarshi:
+
+> «Ikki bosqichli, `topshiriq` naqshi bilan (**12.8**): jo'natildi →
+>  qabul qilindi.»
+
+Lekin 12.8 aynan **teskarisini** aytadi:
+
+> «12.8. Admindan sotuvchiga pul berish. **Tasdiqlash yo'q — pul darhol
+>  ko'chadi.** Admin berayotganda ikkalasi bir joyda turadi, tasdiqlash
+>  ortiqcha bosqich bo'lardi.»
+
+Ikki bosqichli naqsh 12.**7** da (sotuvchi → admin), 12.8 da emas.
+
+### Qaror
+
+To'lov **bir bosqichli, atomar**: C12 chiqim + K11 kirim + `TOLOV`
+yozuvi bitta tranzaksiyada.
+
+Nega 12.7 emas, 12.8 tanlandi:
+
+| 12.7 (ikki bosqich) | 22.6.3 |
+|---|---|
+| Sotuvchi pulni sanab topshiradi, admin qayta sanaydi | Ikki **admin** o'zaro hisob qiladi |
+| Summa mos kelmasligi mumkin — rad etish kerak | Summa balansdan chiqadi, u ikkalasida ham bir xil |
+| Pul qo'ldan qo'lga o'tadi | Odatda bank yoki hisob-kitob |
+
+Ikki bosqich qo'yilsa «yo'ldagi pul» holati paydo bo'lardi (EC-FQ-07) va
+u 2.1-invariantni tekshirishni murakkablashtiradi: filial balansi
+`SUM()` dan chiqadi, yarim tugagan to'lov esa balansni noto'g'ri
+ko'rsatardi.
+
+### Keyin kerak bo'lsa
+
+Egasi ikki bosqichni xohlasa — `topshiriq` jadvali tayyor (12.7) va
+`filialQarzTolovi()` uning `qabul` qadamidan chaqiriladi. Kod
+o'zgarmaydi, faqat chaqiruv joyi ko'chadi.
+
+---
+
+## P-36 — Filial narx istisnosi o'chiriladi
+
+**Fayl:** `lib/amal/filial-narx.ts` · **Manba:** LOYIHA.md 20.9.1 · Q-28 · QISM 1 §6.5
+
+### Ziddiyat
+
+§6.5 qat'iy aytadi: «`DELETE` yo'q — `faol = false`.»
+
+Lekin 20.9.1 aytadi: «**Filial narxi bo'sh bo'lsa standart ishlaydi.**
+Bosh filialda standart o'zgarsa, o'z narxini qo'ymagan filiallarga
+avtomatik tarqaladi.»
+
+`material_filial_narx` jadvalida `faol` ustuni yo'q va u kerak ham
+emas: istisnoni «nofaol» qilish bilan «umuman yo'q» qilish orasida
+farq yo'q.
+
+### Nega nol qo'yish XATO bo'lardi
+
+`sotuv_narx = 0` — bu «bepul» degani, «standart» emas. Sotuv ekrani
+`COALESCE(fn.sotuv_narx, m.sotuv_narx)` bilan o'qiydi: nol qator
+topilsa mato **nolga** sotilardi.
+
+### Qaror
+
+Istisno olib tashlanganda **qator o'chiriladi**.
+
+Bu §6.5 ni buzmaydi: taqiq **harakat va balans** jadvallariga tegishli
+(kassa yozuvi, ombor harakati, mijoz qarzi) — u yerda o'chirilgan qator
+balansni jimgina buzadi. Narx istisnosi esa balans emas, u **joriy
+holat**. Tarix `audit_jurnal` da qoladi: har o'zgarish
+`NARX_OZGARTIRISH` amali bilan eski va yangi qiymati bilan yoziladi
+(2.4).
+
+### Bir xil narx qayta saqlansa
+
+Yozuv qilinmaydi va jurnal to'ldirilmaydi. Taqqoslash **son** bilan:
+baza `NUMERIC(14,2)` ni `113000.00` bo'lib qaytaradi, formadan
+`113000` keladi — matn taqqoslansa har saqlash «o'zgardi» bo'lib
+chiqardi.
+
+---
+
+## P-37 — Dollarli filiallararo harakatda kurs qayerdan keladi
+
+**Fayl:** `lib/amal/kurs.ts` · **Manba:** LOYIHA.md 14.5 · 22.9.1 · 9.6
+
+### Ziddiyat
+
+22.9.1 `filial_harakat` ga `kurs_snapshot` ustunini beradi va baza
+darajasida cheklov qo'yilgan:
+
+```sql
+CHECK (valyuta <> 'USD' OR kurs_snapshot IS NOT NULL)
+```
+
+Lekin **kursni qayerdan olish** hech qayerda yozilmagan. `kurs_tarix`
+jadvali 1-bosqichdan beri turibdi, lekin uni **hech qaysi kod
+o'qimasdi**.
+
+### Nima bo'lar edi
+
+Sotuvchi dollarni boshqa filial adminiga topshirsa (22.5, Q-29):
+
+```
+topshiriqniQabulQil → filial_harakat (USD, kurs_snapshot = NULL)
+                    → CHECK buzildi → tranzaksiya bekor
+```
+
+Pul ham ko'chmasdi, qarz ham yozilmasdi. Xato xabari esa baza
+cheklovining nomi bo'lardi — sotuvchi uchun ma'nosiz.
+
+Bir xil nuqson filiallararo **to'lovda** ham bor edi (22.6.3): u
+`kurs_snapshot` ustunini umuman yozmasdi.
+
+### Qaror
+
+`lib/amal/kurs.ts` — bitta joy, ikki funksiya:
+
+| Funksiya | Nima qiladi |
+|---|---|
+| `joriyKurs` | eng oxirgi sanadagi kurs yoki `null` |
+| `yozuvKursi` | dollarli yozuv uchun kurs, yo'q bo'lsa **xato** |
+
+So'mli yozuvda `null` qaytadi — cheklov ham buni talab qilmaydi.
+
+Kurs kiritilmagan bo'lsa xato **kod ichida**, tushunarli gap bilan
+beriladi: «kurs hali belgilanmagan (14.5)». Baza cheklovining nomi
+bilan emas.
+
+⚠️ §3.2 — kurs **parametr** bo'lib uzatiladi, hisob-kitob domain
+qatlamida qoladi. Bu funksiya faqat o'qiydi.
+
+### Yo'l-yo'lakay: pul `number` ga o'girilardi
+
+`topshiriqniQabulQil` da summa `Number(t.summa).toFixed(2)` bo'lib
+o'tardi — CLAUDE.md §3 dagi «**hech qachon** JavaScript `number` emas»
+qoidasining buzilishi. `Decimal` ga o'tkazildi.

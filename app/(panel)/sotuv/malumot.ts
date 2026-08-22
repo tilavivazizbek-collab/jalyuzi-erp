@@ -116,7 +116,7 @@ export async function sotuvTurlari(filialId: number): Promise<SotuvTuri[]> {
   >`
     SELECT ma.mahsulot_tur_id, ma.material_id, m.nom, m.sarflash_birligi,
            ma.formula, ma.majburiy,
-           COALESCE(fn.narx::text, m.sotuv_narx::text) AS narx
+           COALESCE(fn.sotuv_narx::text, m.sotuv_narx::text) AS narx
     FROM mahsulot_aksessuar ma
     JOIN material m ON m.id = ma.material_id
     LEFT JOIN material_filial_narx fn
@@ -164,7 +164,7 @@ export async function sotuvTurlari(filialId: number): Promise<SotuvTuri[]> {
     }[]
   >`
     SELECT m.id, m.nom, m.sarflash_birligi, m.almashtirish_guruh_id,
-           COALESCE(fn.narx::text, m.sotuv_narx::text) AS narx
+           COALESCE(fn.sotuv_narx::text, m.sotuv_narx::text) AS narx
     FROM material m
     LEFT JOIN material_filial_narx fn
            ON fn.material_id = m.id AND fn.filial_id = ${filialId}

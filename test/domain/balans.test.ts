@@ -140,6 +140,15 @@ describe('TZ 12.1 — xarajat va kassa chiqimi BOSHQA narsa', () => {
     expect(xarajatgaTushadimi('C9')).toBe(false);
   });
 
+  it("P-31 · P-32 — ichki ko'chish xarajat emas (12.9 · 22.7.3)", () => {
+    // Ayirboshlash: pul boshqa kassaga o'tdi, korxonadan chiqmadi
+    expect(xarajatgaTushadimi('C11')).toBe(false);
+    // Filiallararo qarz to'lovi: «foyda-zararga tegmaydi» (22.7.3)
+    expect(xarajatgaTushadimi('C12')).toBe(false);
+    // Faqat komissiya xarajat — u alohida modda bilan yoziladi
+    expect(xarajatgaTushadimi('C10')).toBe(true);
+  });
+
   it('operatsion xarajat kassadan chiqadi VA xarajat', () => {
     expect(xarajatgaTushadimi('C7')).toBe(true);
   });

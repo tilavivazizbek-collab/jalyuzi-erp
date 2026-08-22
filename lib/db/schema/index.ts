@@ -9,7 +9,8 @@
  *   2-bosqich  spravochniklar (9)       ✅
  *   3-bosqich  ombor (10)               ✅
  *   4-bosqich  buyurtma (5)             ✅
- *   5-bosqich  kassa va balanslar (9)   ← hozir
+ *   5-bosqich  kassa va balanslar (9)   ✅
+ *   6-bosqich  filiallararo (3)         ← hozir
  *   ...
  *
  * ⚠️ Yangi jadval qo'shilsa BU YERGA ham qo'shiladi. `himoya.test.ts`
@@ -24,3 +25,4 @@ export * from './spravochnik';
 export * from './ombor';
 export * from './buyurtma';
 export * from './kassa';
+export * from './filial-hisob';

@@ -487,6 +487,26 @@ E'tiroz bo'lsa: aniq qaysi stsenariy, qaysi qadam, nima chiqdi — yozma ravishd
 > Bu bosqich sinovi uchun kamida **2 ta filial** yaratilgan bo'lishi kerak:
 > biri `Sotadi ☑ Tikadi ☑`, ikkinchisi `Sotadi ☑ Tikadi ☐`.
 
+### Qaysi ekranda tekshiriladi
+
+| Stsenariy | Ekran |
+|---|---|
+| S5F.1 Filial rejimlari | Filiallar → Yangi |
+| S5F.2 Boshqa filialda tikiladi | Sotuv → «Kim tikadi» |
+| S5F.3 Yangi statuslar | Buyurtmalar → **Yo'ldagilar** |
+| S5F.4 Filiallararo qarz | **Filiallararo hisob** |
+| S5F.5 Material ko'chirish | Ombor → **Ko'chirish** |
+| S5F.6 Summani qo'lda o'zgartirish | Ko'chirish → Jo'natish formasi |
+| S5F.7 Pul boshqa filialga | Kassa → **Pul topshirish** |
+| S5F.8 O'zaro hisob va to'lov | Filiallararo hisob → To'lov |
+| S5F.9 Filial narxi | Materiallar → kartochka → **Filial narxlari** |
+| S5F.10 Ruxsat qamrovi | Ombor → «Barcha filiallar» |
+
+⚠️ **S5F.3 dagi «jo'natma»** — bir necha buyurtmani bir raqam ostida
+guruhlash yozilmagan (T-10). «Yo'ldagilar» ekrani ularni tikkan filial
+bo'yicha guruhlab ko'rsatadi va har pozitsiya alohida qabul qilinadi.
+20.8 shu yo'lni ochiq qoldirgan: «yoki har pozitsiya alohida».
+
 ### S5F.1. Filial rejimlari
 
 ```

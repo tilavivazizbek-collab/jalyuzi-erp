@@ -35,3 +35,10 @@ export const BOSH_QARZ: QarzHolati = {
   qolganQarz: null,
   bajarildi: false,
 };
+
+export interface UmidsizHolati {
+  readonly xato: string | null;
+  readonly bajarildi: boolean;
+}
+
+export const BOSH_UMIDSIZ: UmidsizHolati = { xato: null, bajarildi: false };

@@ -94,6 +94,17 @@ export const ROL_URUGI: readonly RolUrugi[] = [
       // ALOHIDA ruxsat: 15.1 uni to'g'ridan-to'g'ri omborchiga beradi
       // va nazoratni «farqlar hisoboti» bilan ta'minlaydi (P-22).
       ['ombor.inventarizatsiya', 'OZ_FILIALI'], // 15.1
+      /**
+       * TZ 20.7.1 — «so'rovni BERUVCHI filial OMBORCHISI hal qiladi.
+       * Admin tasdig'i kerak emas, summa chegarasi yo'q.»
+       *
+       * ⚠️ 20.12 misolidagi «ko'chirish ☐» bunga zid emas: u
+       *    SO'ROV OCHISHGA tegishli (`ombor.kochirish.yarat`), so'rovni
+       *    esa QABUL QILUVCHI filial ochadi. Jo'natish va qabul —
+       *    omborchining kundalik ishi.
+       */
+      ['ombor.kochirish.jonat', 'OZ_FILIALI'], // 20.7.1
+      ['ombor.kochirish.qabul', 'OZ_FILIALI'], // 20.7.1
       ['kassa.oz.kor', 'OZ_FILIALI'], // 12.14
       ['kassa.chiqim', 'OZ_FILIALI'], // 12.14 — yetkazib beruvchiga to'lov
       // Kirim hujjati material va yetkazib beruvchini tanlashni talab qiladi (9.2)

@@ -336,3 +336,79 @@ export async function xodimKartochkasi(
     harakatlar: h,
   };
 }
+
+// ─── 12.7 · 22.5 · Topshirish uchun kassalar ──────────────────────────────
+
+export interface TopshirishManbasi {
+  readonly id: number;
+  readonly nom: string;
+  readonly valyuta: string;
+  readonly qoldiq: string;
+}
+
+export interface TopshirishNishoni {
+  readonly id: number;
+  readonly nom: string;
+  readonly valyuta: string;
+  readonly filialId: number;
+  readonly filialNomi: string;
+  /** Q-29 — boshqa filial admini bo'lsa ogohlantirish chiqadi (22.5.2) */
+  readonly ozFilialimi: boolean;
+}
+
+/** 12.7 — sotuvchi O'Z kassasidan topshiradi. */
+export async function topshirishManbalari(
+  xodimId: number,
+): Promise<readonly TopshirishManbasi[]> {
+  const sql = ulanishOl();
+  const q = await sql<
+    { id: number; nom: string; valyuta: string; qoldiq: string }[]
+  >`
+    SELECT k.id, k.nom, k.valyuta,
+           COALESCE((SELECT SUM(summa) FROM kassa_yozuv y
+                     WHERE y.kassa_id = k.id), 0)::text AS qoldiq
+    FROM kassa k
+    WHERE k.xodim_id = ${xodimId} AND k.faol = true
+    ORDER BY k.valyuta, k.nom`;
+
+  return q.map((r) => ({
+    id: r.id,
+    nom: r.nom,
+    valyuta: r.valyuta,
+    qoldiq: r.qoldiq,
+  }));
+}
+
+/**
+ * TZ 22.5 (Q-29) — «sotuvchi pulni ISTALGAN FILIAL adminiga topshirishi
+ * mumkin». Shuning uchun ro'yxat barcha filiallarning admin kassasidan
+ * yig'iladi, o'z filiali birinchi turadi.
+ */
+export async function topshirishNishonlari(
+  filialId: number,
+): Promise<readonly TopshirishNishoni[]> {
+  const sql = ulanishOl();
+  const q = await sql<
+    {
+      id: number;
+      nom: string;
+      valyuta: string;
+      filial_id: number;
+      filial_nomi: string;
+    }[]
+  >`
+    SELECT k.id, k.nom, k.valyuta, k.filial_id, f.nom AS filial_nomi
+    FROM kassa k
+    JOIN filial f ON f.id = k.filial_id
+    WHERE k.xodim_id IS NULL AND k.faol = true AND f.faol = true
+    ORDER BY (k.filial_id = ${filialId}) DESC, f.nom, k.nom`;
+
+  return q.map((r) => ({
+    id: r.id,
+    nom: r.nom,
+    valyuta: r.valyuta,
+    filialId: r.filial_id,
+    filialNomi: r.filial_nomi,
+    ozFilialimi: r.filial_id === filialId,
+  }));
+}

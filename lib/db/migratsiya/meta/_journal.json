@@ -134,6 +134,20 @@
       "when": 1787293108637,
       "tag": "0018_qolda_manba_ketmaketligi",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1787334943403,
+      "tag": "0019_silly_swarm",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1787334943404,
+      "tag": "0020_filial_himoya",
+      "breakpoints": true
     }
   ]
 }
