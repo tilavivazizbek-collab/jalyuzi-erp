@@ -133,6 +133,13 @@ export const XATO_BAND = {
   FILIAL_OZIGA_OZI: 'TZ 20.2',
   FILIAL_BOSH_NOFAOL: 'TZ 20.2.2',
   FILIAL_TAYANCH: 'TZ 20.4.1',
+
+  // 7-bosqich — bot (TZ 13)
+  MIJOZ_ISM_KERAK: 'TZ 13.2',
+  MIJOZ_TELEFON_KERAK: 'TZ 13.2',
+  MIJOZ_TELEFON_BAND: 'TZ 13.2',
+  XABAR_SAQLANMADI: 'TZ 13.11',
+  BOT_KIRISH_YOQ: 'TZ 13.1',
 } as const;
 
 export type XatoKod = keyof typeof XATO_BAND;

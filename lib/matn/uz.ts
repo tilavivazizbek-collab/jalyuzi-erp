@@ -125,6 +125,15 @@ export const XATO_MATNI: Record<XatoKod, string> = {
   FILIAL_BOSH_NOFAOL: "Bosh filialni nofaol qilib bo'lmaydi (20.2.2)",
   FILIAL_TAYANCH:
     "Bu filialga tayanadigan filiallar bor — avval ularning sozlamasini o'zgartiring",
+
+  // 7-bosqich — bot (TZ 13)
+  MIJOZ_ISM_KERAK: 'Ism kiritilmagan',
+  MIJOZ_TELEFON_KERAK:
+    "Telefon raqam kerak — «Telefon raqamni ulashish» tugmasini bosing (13.2)",
+  MIJOZ_TELEFON_BAND:
+    "Bu telefon boshqa Telegram hisobiga bog'langan — sotuvchiga murojaat qiling",
+  XABAR_SAQLANMADI: "Xabarni navbatga qo'yib bo'lmadi",
+  BOT_KIRISH_YOQ: "Bu bo'limga kirish huquqingiz yo'q",
 };
 
 export const BIRLIK_MATNI = {
