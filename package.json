@@ -21,7 +21,8 @@
     "db:urug": "tsx --env-file=.env lib/db/urug-ishga.ts",
     "db:tozala": "tsx --env-file=.env lib/db/tozala.ts",
     "test:baza": "vitest run --config vitest.baza.config.ts",
-    "test:hammasi": "npm run test && npm run test:baza"
+    "test:hammasi": "npm run test && npm run test:baza",
+    "bot": "tsx --env-file=.env bot/ishga-tushir.ts"
   },
   "dependencies": {
     "@node-rs/argon2": "^2.1.0",
