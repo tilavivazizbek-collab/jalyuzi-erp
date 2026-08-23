@@ -134,6 +134,8 @@ export const XATO_MATNI: Record<XatoKod, string> = {
     "Bu telefon boshqa Telegram hisobiga bog'langan — sotuvchiga murojaat qiling",
   XABAR_SAQLANMADI: "Xabarni navbatga qo'yib bo'lmadi",
   BOT_KIRISH_YOQ: "Bu bo'limga kirish huquqingiz yo'q",
+  BOT_OQIM_BUZUQ: 'Buyurtma boshidan boshlansin — /start bosing',
+  BOT_OQIM_TOLIQ_EMAS: "Pozitsiya to'liq emas: mato va o'lcham kerak",
 };
 
 export const BIRLIK_MATNI = {

@@ -26,12 +26,8 @@ import {
   som,
   type Som,
 } from '@/lib/domain/pul';
-import {
-  aksessuarNarxi,
-  matoNarxi,
-  qatorSummasi,
-  type Offset,
-} from '@/lib/domain/narx';
+import { aksessuarNarxi, matoNarxi, qatorSummasi, type Offset } from '@/lib/domain/narx';
+import { pozitsiyaNarxiniHisobla } from '@/lib/domain/pozitsiya-narxi';
 import { biznesXatosimi } from '@/lib/xato';
 import { Maydon, kirishUslubi } from '../maydon';
 import { buyurtmaYaratAmali } from './amal';
@@ -176,16 +172,37 @@ export function SotuvFormasi({
               }),
             );
 
-      // TZ 3.6 — NARX tuzatilgan songa, ombor hisoblanganiga tayanadi
+      /**
+       * TZ 3.6 — NARX tuzatilgan songa, ombor hisoblanganiga tayanadi.
+       *
+       * ⚠️ Summa `lib/domain/pozitsiya-narxi.ts` dagi umumiy
+       *    funksiyadan olinadi (§2.2): bot ham AYNAN shuni chaqiradi.
+       *    Ikki joyda hisoblansa botda bir narx, saytda boshqa narx
+       *    chiqardi.
+       */
       const summa =
         narxMatn === null || hisoblangan === null
           ? nolSom()
-          : qatorSummasi({
-              nom: s.nom,
-              sarflashBirligi: birlik,
-              miqdor: (tuzatilgan ?? hisoblangan) as never,
-              narx: som(narxMatn),
-            });
+          : som(
+              pozitsiyaNarxiniHisobla({
+                eniSm,
+                boyiSm,
+                soni: 1,
+                parametrlar: qiymatlar,
+                slotlar: [
+                  {
+                    nom: s.nom,
+                    formula: s.formula,
+                    sarflashBirligi: birlik,
+                    narx: material?.narx ?? null,
+                    tuzatilganMiqdor: tuzatilgan,
+                  },
+                ],
+                aksessuarlar: [],
+                offset,
+                xizmatHaqi: null,
+              }).jami,
+            );
 
       /**
        * Q-03 · QABUL S3.4 — «Bu mato hozir yetarli emas» ogohi

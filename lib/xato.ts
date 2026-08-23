@@ -140,6 +140,8 @@ export const XATO_BAND = {
   MIJOZ_TELEFON_BAND: 'TZ 13.2',
   XABAR_SAQLANMADI: 'TZ 13.11',
   BOT_KIRISH_YOQ: 'TZ 13.1',
+  BOT_OQIM_BUZUQ: 'TZ 13.4',
+  BOT_OQIM_TOLIQ_EMAS: 'TZ 13.4',
 } as const;
 
 export type XatoKod = keyof typeof XATO_BAND;
