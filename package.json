@@ -8,6 +8,7 @@
   },
   "scripts": {
     "dev": "next dev",
+    "hammasi": "tsx ishga-tushir.ts",
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
