@@ -47,6 +47,7 @@ ko'chiriladi. Tasdiqlanmagani `⏳` bilan belgilanadi.
 | P-35 | Filial qarz to'lovi BIR BOSQICHLI | ⏳ tasdiq kutilmoqda |
 | P-36 | Filial narx istisnosi O'CHIRILADI, nol qo'yilmaydi | ⏳ tasdiq kutilmoqda |
 | P-37 | Dollarli filial harakatida kurs `kurs_tarix` dan olinadi | ⏳ tasdiq kutilmoqda |
+| P-38 | Bot buyurtmasini BOSH filial sotgan hisoblanadi | ⏳ tasdiq kutilmoqda |
 
 ---
 
@@ -1791,3 +1792,45 @@ qatlamida qoladi. Bu funksiya faqat o'qiydi.
 `topshiriqniQabulQil` da summa `Number(t.summa).toFixed(2)` bo'lib
 o'tardi — CLAUDE.md §3 dagi «**hech qachon** JavaScript `number` emas»
 qoidasining buzilishi. `Decimal` ga o'tkazildi.
+
+---
+
+## P-38 — Bot buyurtmasi qaysi filialga yoziladi
+
+**Fayl:** `bot/buyurtma-oqimi.ts` · **Manba:** LOYIHA.md 13.4 · 20.4 · Q-12
+
+### Ziddiyat
+
+20.4 har buyurtmada ikki filial borligini aytadi: **sotgan** va
+**ishlab chiqargan**. Saytda sotgan filial sotuvchidan kelib
+chiqadi.
+
+Botda sotuvchi **yo'q**. 13-bo'lim esa filial haqida bir og'iz
+gapirmaydi.
+
+### Qaror
+
+| Maydon | Qiymat |
+|---|---|
+| Sotgan filial | **bosh filial** (`filial.bosh = true`) |
+| Tikuvchi filial | bosh filial o'zi tiksa — o'zi; aks holda uning `standart_ishlab_chiqaruvchi_id` si (20.4.1) |
+
+### Nega bosh filial
+
+Bot buyurtmasi hali **tasdiqlanmagan** (Q-12: «Bot buyurtmasi
+"Tasdiq kutmoqda" bo'lib tushadi»). Uni tasdiqlaydigan sotuvchi
+buyurtmani o'z filialiga o'tkazishi mumkin — 20.4 buni ochiq
+qoldiradi.
+
+Ya'ni bosh filial **boshlang'ich joy**, yakuniy emas. Boshqa yechim
+(masalan mijozga eng yaqin filial) mijozning manzilini talab qiladi,
+botda esa u so'ralmaydi (13.2 — faqat ism va telefon).
+
+### Nima qilinmadi
+
+Filialni **mijoz tanlashi** ko'rib chiqildi va rad etildi: mijoz
+korxonaning ichki tuzilishini bilmaydi va bilishi ham shart emas.
+
+⚠️ Egasi bir nechta do'kon ochganda bu qaror qayta ko'riladi:
+   o'shanda «qaysi do'kondan olasiz?» savoli mantiqiy bo'lishi
+   mumkin.

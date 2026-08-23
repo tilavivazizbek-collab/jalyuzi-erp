@@ -102,6 +102,7 @@ export const XATO_MATNI: Record<XatoKod, string> = {
   BUYURTMA_BOSH: "Savatda bironta pozitsiya yo'q",
   BUYURTMA_MIJOZ_KERAK: "Qarzga sotishda mijoz tanlanishi shart",
   BUYURTMA_FILIAL_KERAK: "Ishlab chiqaruvchi filialni tanlang",
+  BUYURTMA_SAQLANMADI: "Buyurtmani saqlab bo'lmadi",
   INV_TOPILMADI: "Inventarizatsiya topilmadi",
   INV_YAKUNLANGAN: "Bu inventarizatsiya allaqachon yakunlangan",
   INV_BOSH: "Sanash varaqasida bironta qator yo'q",

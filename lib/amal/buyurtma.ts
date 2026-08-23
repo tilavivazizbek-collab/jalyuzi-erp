@@ -51,6 +51,23 @@ export interface AksessuarKirimi {
   readonly qoldaKiritildi: boolean;
 }
 
+/**
+ * Buyurtma raqami — `B-2026-000123`.
+ *
+ * ⚠️ Raqam SERVERDA beriladi. Ilgari bu funksiya sotuv amalining
+ *    ichida turardi; endi bot ham buyurtma yaratadi (13.4) va ikkalasi
+ *    AYNI ketma-ketlikdan olishi shart (§2.2). Aks holda bot va sayt
+ *    bir xil raqam berib qo'yishi mumkin edi.
+ */
+export async function buyurtmaRaqamiOl(soruvchi: postgres.Sql): Promise<string> {
+  const q = await soruvchi<{ raqam: string }[]>`
+    SELECT 'B-' || to_char(now(), 'YYYY') || '-' ||
+           lpad(nextval('buyurtma_raqam_seq')::text, 6, '0') AS raqam`;
+  const r = q[0]?.raqam;
+  if (r === undefined) throw new BiznesXato('BUYURTMA_SAQLANMADI', 'raqam');
+  return r;
+}
+
 export interface PozitsiyaKirimi {
   readonly mahsulotTurId: number;
   readonly eniSm: number;

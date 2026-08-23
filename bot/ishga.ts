@@ -25,6 +25,7 @@ import { xavfsiz } from './yordamchi';
 import { mijozMenyusi, mijozPaneliniUla, royxatBoshla } from './mijoz';
 import { brakSababiQabul, ustaMenyusi, ustaPaneliniUla } from './usta';
 import { adminMenyusi, adminPaneliniUla } from './admin';
+import { oqimMatniniQabulQil, oqimniUla } from './buyurtma-oqimi';
 
 export function botYarat(): Telegraf {
   const muhit = muhitOqi();
@@ -76,6 +77,16 @@ export function botYarat(): Telegraf {
     return (await botKimligi(ulanishOl(), tg)).mijozId;
   });
 
+  /**
+   * 13.4 — buyurtma oqimi. Mijoz paneli ulangandan KEYIN turadi:
+   * «📝 Buyurtma berish» tugmasini shu modul eshitadi.
+   */
+  oqimniUla(bot, async (ctx) => {
+    const tg = ctx.from?.id;
+    if (tg === undefined) return null;
+    return (await botKimligi(ulanishOl(), tg)).mijozId;
+  });
+
   ustaPaneliniUla(bot, async (ctx) => {
     const tg = ctx.from?.id;
     if (tg === undefined) return null;
@@ -106,9 +117,10 @@ export function botYarat(): Telegraf {
       const tg = ctx.from.id;
       const sessiya = await sessiyaOl(ulanishOl(), tg);
 
+      const kim = await botKimligi(ulanishOl(), tg);
+
       // 13.8 — qayta kesish sababi kutilmoqda
       if (sessiya.qadam === 'IZOH' && 'brakPozitsiyaId' in sessiya.holat) {
-        const kim = await botKimligi(ulanishOl(), tg);
         if (kim.xodimId !== null) {
           const bajarildi = await brakSababiQabul(
             ctx,
@@ -118,6 +130,17 @@ export function botYarat(): Telegraf {
           );
           if (bajarildi) return;
         }
+      }
+
+      // 13.4 — o'lcham yoki izoh kutilmoqda
+      if (kim.mijozId !== null) {
+        const oqimga = await oqimMatniniQabulQil(
+          ctx,
+          tg,
+          ctx.message.text,
+          kim.mijozId,
+        );
+        if (oqimga) return;
       }
 
       await ctx.reply(MATN.tushunmadim);

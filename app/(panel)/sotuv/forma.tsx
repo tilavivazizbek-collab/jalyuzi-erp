@@ -26,8 +26,9 @@ import {
   som,
   type Som,
 } from '@/lib/domain/pul';
-import { aksessuarNarxi, matoNarxi, qatorSummasi, type Offset } from '@/lib/domain/narx';
+import { aksessuarNarxi, matoNarxi, qatorSummasi } from '@/lib/domain/narx';
 import { pozitsiyaNarxiniHisobla } from '@/lib/domain/pozitsiya-narxi';
+import { mijozOffseti } from '@/lib/domain/mijoz';
 import { biznesXatosimi } from '@/lib/xato';
 import { Maydon, kirishUslubi } from '../maydon';
 import { buyurtmaYaratAmali } from './amal';
@@ -78,12 +79,6 @@ let keyingiKalit = 0;
  *    sotuvchiga ochiq aytiladi — jimgina noto'g'ri narx chiqarishdan
  *    ko'ra ko'rinadigan cheklov yaxshi.
  */
-function mijozOffseti(m: SotuvMijozi | null): Offset | null {
-  if (m === null || m.offsetTuri === null || m.offsetQiymat === null) return null;
-  if (m.offsetTuri === 'FOIZ') return { turi: 'FOIZ', foiz: Number(m.offsetQiymat) };
-  if (m.offsetTuri === 'SOM') return { turi: 'SOM', summa: som(m.offsetQiymat) };
-  return null; // USD — kurs kerak (6.3)
-}
 
 const son = (x: string): number | null => {
   const t = x.trim();

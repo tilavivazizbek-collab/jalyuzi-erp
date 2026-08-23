@@ -12,10 +12,12 @@ import {
   nolmi,
   ogir,
   qosh,
+  som,
   type Dollar,
   type Kurs,
   type Som,
 } from '@/lib/domain/pul';
+import type { Offset } from '@/lib/domain/narx';
 import { telefonTeng } from '@/lib/domain/telefon';
 
 export const MIJOZ_TURLARI = ['ODDIY', 'B2B'] as const;
@@ -193,3 +195,27 @@ export function bittaValyutamiTekshir(valyutalar: readonly string[]): boolean {
  * bunday mijozga bildirishnoma yuborib bo'lmaydi.»
  */
 export const xabarYuborilsinmi = (telegramId: number | null): boolean => telegramId !== null;
+
+// ─── 6.3 · Mijoz offseti ──────────────────────────────────────────────────
+
+/**
+ * TZ 6.3 — mijoz kartochkasidagi offsetni narx turiga o'giradi.
+ *
+ * ⚠️ Bu yerda turgani bejiz emas: offsetni sotuv ekrani ham, bot ham
+ *    qo'llaydi (13.5). Ikki joyda yozilsa mijoz saytda bir narx,
+ *    botda boshqa narx ko'rardi (§2.2).
+ *
+ * ⚠️ `USD` offseti **qo'llanmaydi**: u kursni talab qiladi va kurs
+ *    parametr bo'lib kelishi shart (§3.2). Sotuvchiga ochiq
+ *    aytiladi — jimgina noto'g'ri narx chiqarishdan ko'ra
+ *    ko'rinadigan cheklov yaxshi.
+ */
+export function mijozOffseti(m: {
+  readonly offsetTuri: string | null;
+  readonly offsetQiymat: string | null;
+} | null): Offset | null {
+  if (m === null || m.offsetTuri === null || m.offsetQiymat === null) return null;
+  if (m.offsetTuri === 'FOIZ') return { turi: 'FOIZ', foiz: Number(m.offsetQiymat) };
+  if (m.offsetTuri === 'SOM') return { turi: 'SOM', summa: som(m.offsetQiymat) };
+  return null; // USD — kurs kerak (6.3)
+}

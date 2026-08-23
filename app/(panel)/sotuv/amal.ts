@@ -11,7 +11,11 @@
 
 import { revalidatePath } from 'next/cache';
 import { ulanishOl } from '@/lib/db';
-import { buyurtmaYarat, type PozitsiyaKirimi } from '@/lib/amal/buyurtma';
+import {
+  buyurtmaRaqamiOl,
+  buyurtmaYarat,
+  type PozitsiyaKirimi,
+} from '@/lib/amal/buyurtma';
 import { kesimOlchami } from '@/lib/domain/kesish';
 import { ruxsatTalab } from '@/lib/kirish/joriy';
 import { sotuvSxema } from '@/lib/sxema/sotuv';
@@ -27,16 +31,6 @@ function jsonOqi(forma: FormData, nom: string): unknown {
   } catch {
     return null;
   }
-}
-
-/** Buyurtma raqami — `B-2026-000123`. */
-async function raqamOl(sql: ReturnType<typeof ulanishOl>): Promise<string> {
-  const q = await sql<{ raqam: string }[]>`
-    SELECT 'B-' || to_char(now(), 'YYYY') || '-' ||
-           lpad(nextval('buyurtma_raqam_seq')::text, 6, '0') AS raqam`;
-  const r = q[0]?.raqam;
-  if (r === undefined) throw new Error('buyurtma raqami olinmadi');
-  return r;
 }
 
 export async function buyurtmaYaratAmali(
@@ -89,7 +83,7 @@ export async function buyurtmaYaratAmali(
   }));
 
   try {
-    const raqam = await raqamOl(sql);
+    const raqam = await buyurtmaRaqamiOl(sql);
 
     const n = await buyurtmaYarat(
       sql,
