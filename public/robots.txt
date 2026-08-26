@@ -1,0 +1,3 @@
+# Jalyuzi ERP — ichki tizim, qidiruv tizimlariga ochilmaydi.
+User-agent: *
+Disallow: /

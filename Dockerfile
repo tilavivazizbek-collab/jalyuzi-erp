@@ -22,6 +22,9 @@ ENV TZ=Asia/Tashkent
 
 RUN addgroup -g 1001 -S erp && adduser -u 1001 -S erp -G erp
 
+# ⚠️ `public/` bo'sh bo'lsa ham MAVJUD bo'lishi shart: Docker
+#    yo'q papkani ko'chira olmaydi va qurish yiqiladi. Shuning
+#    uchun omborda `public/.gitkeep` turadi.
 COPY --from=quruvchi /dastur/public ./public
 COPY --from=quruvchi --chown=erp:erp /dastur/.next/standalone ./
 COPY --from=quruvchi --chown=erp:erp /dastur/.next/static ./.next/static
