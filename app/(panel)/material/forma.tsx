@@ -75,7 +75,10 @@ export function MaterialFormasi({
   return (
     <form action={yubor} className="flex flex-col gap-6">
       {holat.xato !== null && (
-        <p role="alert" className="rounded-lg bg-red-50 px-3 py-2.5 text-sm text-red-800 ring-1 ring-red-200">
+        <p
+          role="alert"
+          className="rounded-maydon bg-belgi-qizil-fon px-3 py-2.5 text-sm text-belgi-qizil "
+        >
           {holat.xato}
         </p>
       )}
@@ -83,12 +86,23 @@ export function MaterialFormasi({
       <section className="grid gap-4 sm:grid-cols-2">
         <div className="sm:col-span-2">
           <Maydon nom="nom" yorliq="Nomi" xato={x('nom')}>
-            <input id="nom" name="nom" defaultValue={qiymatlar.nom} required className={chegara('nom')} />
+            <input
+              id="nom"
+              name="nom"
+              defaultValue={qiymatlar.nom}
+              required
+              className={chegara('nom')}
+            />
           </Maydon>
         </div>
 
         <Maydon nom="hisobTuri" yorliq="Hisob turi" izoh="TZ 5.2" xato={x('hisobTuri')}>
-          <select id="hisobTuri" name="hisobTuri" defaultValue={qiymatlar.hisobTuri} className={chegara('hisobTuri')}>
+          <select
+            id="hisobTuri"
+            name="hisobTuri"
+            defaultValue={qiymatlar.hisobTuri}
+            className={chegara('hisobTuri')}
+          >
             {HISOB_TURLARI.map((t) => (
               <option key={t} value={t}>
                 {HISOB_TURI_NOMI[t]}
@@ -97,7 +111,11 @@ export function MaterialFormasi({
           </select>
         </Maydon>
 
-        <Maydon nom="almashtirishGuruhId" yorliq="Almashtirish guruhi" izoh="TZ 5.6 — sotuvda shu guruh chiqadi">
+        <Maydon
+          nom="almashtirishGuruhId"
+          yorliq="Almashtirish guruhi"
+          izoh="TZ 5.6 — sotuvda shu guruh chiqadi"
+        >
           <select
             id="almashtirishGuruhId"
             name="almashtirishGuruhId"
@@ -113,12 +131,19 @@ export function MaterialFormasi({
           </select>
         </Maydon>
 
-        <Maydon nom="kirimBirligi" yorliq="Kirim birligi" izoh="ombor qanday qabul qiladi" xato={x('kirimBirligi')}>
+        <Maydon
+          nom="kirimBirligi"
+          yorliq="Kirim birligi"
+          izoh="ombor qanday qabul qiladi"
+          xato={x('kirimBirligi')}
+        >
           <input
             id="kirimBirligi"
             name="kirimBirligi"
             defaultValue={qiymatlar.kirimBirligi}
-            onChange={(e) => { setKirimBirligi(e.target.value); }}
+            onChange={(e) => {
+              setKirimBirligi(e.target.value);
+            }}
             required
             className={chegara('kirimBirligi')}
           />
@@ -129,7 +154,9 @@ export function MaterialFormasi({
             id="sarflashBirligi"
             name="sarflashBirligi"
             defaultValue={qiymatlar.sarflashBirligi}
-            onChange={(e) => { setSarflash(e.target.value as SarflashBirligi); }}
+            onChange={(e) => {
+              setSarflash(e.target.value as SarflashBirligi);
+            }}
             className={chegara('sarflashBirligi')}
           >
             {SARFLASH_BIRLIKLARI.map((b) => (
@@ -160,7 +187,7 @@ export function MaterialFormasi({
       </section>
 
       <section>
-        <h2 className="mb-3 text-sm font-semibold text-slate-900">Narx</h2>
+        <h2 className="mb-3 text-sm font-semibold text-matn">Narx</h2>
         <div className="grid gap-4 sm:grid-cols-3">
           <Maydon
             nom="sotuvNarx"
@@ -168,46 +195,107 @@ export function MaterialFormasi({
             izoh={`1 ${SARFLASH_BIRLIGI_NOMI[sarflash === 'SM' ? 'SM' : sarflash]} uchun`}
             xato={x('sotuvNarx')}
           >
-            <input id="sotuvNarx" name="sotuvNarx" defaultValue={qiymatlar.sotuvNarx} inputMode="decimal" className={chegara('sotuvNarx')} />
+            <input
+              id="sotuvNarx"
+              name="sotuvNarx"
+              defaultValue={qiymatlar.sotuvNarx}
+              inputMode="decimal"
+              className={chegara('sotuvNarx')}
+            />
           </Maydon>
 
           <Maydon nom="sotuvValyuta" yorliq="Valyuta">
-            <select id="sotuvValyuta" name="sotuvValyuta" defaultValue={qiymatlar.sotuvValyuta} className={chegara('sotuvValyuta')}>
+            <select
+              id="sotuvValyuta"
+              name="sotuvValyuta"
+              defaultValue={qiymatlar.sotuvValyuta}
+              className={chegara('sotuvValyuta')}
+            >
               <option value="SOM">so&apos;m</option>
               <option value="USD">dollar</option>
             </select>
           </Maydon>
 
-          <Maydon nom="minUstamaFoiz" yorliq="Min. ustama %" izoh="bo'sh → sozlamadagi standart" xato={x('minUstamaFoiz')}>
-            <input id="minUstamaFoiz" name="minUstamaFoiz" defaultValue={qiymatlar.minUstamaFoiz} inputMode="decimal" className={chegara('minUstamaFoiz')} />
+          <Maydon
+            nom="minUstamaFoiz"
+            yorliq="Min. ustama %"
+            izoh="bo'sh → sozlamadagi standart"
+            xato={x('minUstamaFoiz')}
+          >
+            <input
+              id="minUstamaFoiz"
+              name="minUstamaFoiz"
+              defaultValue={qiymatlar.minUstamaFoiz}
+              inputMode="decimal"
+              className={chegara('minUstamaFoiz')}
+            />
           </Maydon>
         </div>
         {sarflash === 'SM' && (
-          <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-900 ring-1 ring-amber-200">
-            Chiziqli material <b>santimetrda</b> sarflanadi, narxi esa <b>1 metr</b> uchun
-            yoziladi. Tizim o&apos;zi ÷100 qiladi (Q-01).
+          <p className="mt-2 rounded-maydon bg-belgi-sariq-fon px-3 py-2 text-xs text-belgi-sariq ">
+            Chiziqli material <b>santimetrda</b> sarflanadi, narxi esa <b>1 metr</b> uchun yoziladi.
+            Tizim o&apos;zi ÷100 qiladi (Q-01).
           </p>
         )}
       </section>
 
       <section>
-        <h2 className="mb-1 text-sm font-semibold text-slate-900">Chegaralar</h2>
-        <p className="mb-3 text-xs text-slate-500">
-          Ostatka chegaralari <b>eni bo&apos;yicha, metrda</b> (5.5). Kam qoldiq chegarasi —
-          uzunlik bo&apos;yicha (Q-10).
+        <h2 className="mb-1 text-sm font-semibold text-matn">Chegaralar</h2>
+        <p className="mb-3 text-xs text-matn-kuchsiz">
+          Ostatka chegaralari <b>eni bo&apos;yicha, metrda</b> (5.5). Kam qoldiq chegarasi — uzunlik
+          bo&apos;yicha (Q-10).
         </p>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Maydon nom="yaroqsizChegaraM" yorliq="Yaroqsiz (m)" izoh="standart 0.5" xato={x('yaroqsizChegaraM')}>
-            <input id="yaroqsizChegaraM" name="yaroqsizChegaraM" defaultValue={qiymatlar.yaroqsizChegaraM} inputMode="decimal" className={chegara('yaroqsizChegaraM')} />
+          <Maydon
+            nom="yaroqsizChegaraM"
+            yorliq="Yaroqsiz (m)"
+            izoh="standart 0.5"
+            xato={x('yaroqsizChegaraM')}
+          >
+            <input
+              id="yaroqsizChegaraM"
+              name="yaroqsizChegaraM"
+              defaultValue={qiymatlar.yaroqsizChegaraM}
+              inputMode="decimal"
+              className={chegara('yaroqsizChegaraM')}
+            />
           </Maydon>
-          <Maydon nom="kamIshlatiladiganM" yorliq="Kam ishlatiladigan (m)" izoh="standart 1.0" xato={x('kamIshlatiladiganM')}>
-            <input id="kamIshlatiladiganM" name="kamIshlatiladiganM" defaultValue={qiymatlar.kamIshlatiladiganM} inputMode="decimal" className={chegara('kamIshlatiladiganM')} />
+          <Maydon
+            nom="kamIshlatiladiganM"
+            yorliq="Kam ishlatiladigan (m)"
+            izoh="standart 1.0"
+            xato={x('kamIshlatiladiganM')}
+          >
+            <input
+              id="kamIshlatiladiganM"
+              name="kamIshlatiladiganM"
+              defaultValue={qiymatlar.kamIshlatiladiganM}
+              inputMode="decimal"
+              className={chegara('kamIshlatiladiganM')}
+            />
           </Maydon>
           <Maydon nom="kamQoldiqChegaraM" yorliq="Kam qoldiq (m)" xato={x('kamQoldiqChegaraM')}>
-            <input id="kamQoldiqChegaraM" name="kamQoldiqChegaraM" defaultValue={qiymatlar.kamQoldiqChegaraM} inputMode="decimal" className={chegara('kamQoldiqChegaraM')} />
+            <input
+              id="kamQoldiqChegaraM"
+              name="kamQoldiqChegaraM"
+              defaultValue={qiymatlar.kamQoldiqChegaraM}
+              inputMode="decimal"
+              className={chegara('kamQoldiqChegaraM')}
+            />
           </Maydon>
-          <Maydon nom="standartRulonEniM" yorliq="Standart rulon eni (m)" izoh="bo'sh → oxirgi kirimdan" xato={x('standartRulonEniM')}>
-            <input id="standartRulonEniM" name="standartRulonEniM" defaultValue={qiymatlar.standartRulonEniM} inputMode="decimal" className={chegara('standartRulonEniM')} />
+          <Maydon
+            nom="standartRulonEniM"
+            yorliq="Standart rulon eni (m)"
+            izoh="bo'sh → oxirgi kirimdan"
+            xato={x('standartRulonEniM')}
+          >
+            <input
+              id="standartRulonEniM"
+              name="standartRulonEniM"
+              defaultValue={qiymatlar.standartRulonEniM}
+              inputMode="decimal"
+              className={chegara('standartRulonEniM')}
+            />
           </Maydon>
         </div>
       </section>
@@ -216,11 +304,11 @@ export function MaterialFormasi({
         <button
           type="submit"
           disabled={kutilmoqda}
-          className="rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-slate-800 disabled:opacity-60"
+          className="rounded-maydon bg-amal px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-amal-hover disabled:opacity-60"
         >
           {kutilmoqda ? 'Saqlanmoqda…' : tugmaMatni}
         </button>
-        <Link href="/material" className="text-sm text-slate-600 hover:text-slate-900">
+        <Link href="/material" className="text-sm text-matn-ikki hover:text-matn">
           Bekor qilish
         </Link>
       </div>

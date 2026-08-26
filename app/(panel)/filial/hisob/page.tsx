@@ -2,12 +2,7 @@ import Link from 'next/link';
 import { sahifaRuxsati } from '@/lib/kirish/joriy';
 import { ruxsatBormi } from '@/lib/ruxsat/tekshir';
 import { pulKorsat, som } from '@/lib/domain/pul';
-import {
-  adminKassalari,
-  faolFiliallar,
-  filialHarakatRoyxati,
-  filialHisobi,
-} from '../malumot';
+import { adminKassalari, faolFiliallar, filialHarakatRoyxati, filialHisobi } from '../malumot';
 import { TolovFormasi, TuzatishFormasi } from '../hisob-forma';
 
 export const dynamic = 'force-dynamic';
@@ -38,43 +33,43 @@ export default async function FilialHisobi() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <Link href="/kassa" className="text-sm text-slate-500 hover:text-slate-900">
+        <Link href="/kassa" className="text-sm text-matn-kuchsiz hover:text-matn">
           ← Kassa
         </Link>
-        <h1 className="mt-2 text-xl font-semibold tracking-tight">
+        <h1 className="mt-2 text-[22px] font-semibold tracking-[-0.02em] text-matn">
           Filiallararo hisob-kitob
         </h1>
-        <p className="mt-1 text-sm text-slate-500">
+        <p className="mt-1 text-sm text-matn-kuchsiz">
           Manfiy — biz qarzdormiz, musbat — bizga qarzdor (22.6.1)
         </p>
       </div>
 
       {hisob.juftlar.length === 0 ? (
-        <p className="rounded-xl border border-dashed border-slate-300 px-4 py-10 text-center text-sm text-slate-500">
+        <p className="rounded-karta border border-dashed border-chegara-quyuq px-4 py-10 text-center text-sm text-matn-kuchsiz">
           Boshqa filiallar bilan hisob-kitob yo&apos;q.
         </p>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+        <div className="overflow-x-auto rounded-karta border border-chegara bg-sirt">
           <table className="w-full text-sm">
-            <thead className="border-b border-slate-200 bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+            <thead className="border-b border-chegara bg-fon text-left text-xs uppercase tracking-wide text-matn-kuchsiz">
               <tr>
                 <th className="px-4 py-2.5 font-medium">Filial</th>
                 <th className="px-4 py-2.5 text-right font-medium">Balans</th>
                 <th className="px-4 py-2.5 font-medium">Kim qarzdor</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-chegara">
               {hisob.juftlar.map((j) => (
                 <tr key={j.filialId}>
                   <td className="px-4 py-2.5">{j.nom}</td>
                   <td
                     className={`raqam px-4 py-2.5 text-right ${
-                      Number(j.balans) < 0 ? 'text-red-700' : 'text-emerald-800'
+                      Number(j.balans) < 0 ? 'text-belgi-qizil' : 'text-belgi-yashil'
                     }`}
                   >
                     {pulKorsat(som(j.balans))}
                   </td>
-                  <td className="px-4 py-2.5 text-slate-500">
+                  <td className="px-4 py-2.5 text-matn-kuchsiz">
                     {Number(j.balans) === 0
                       ? '—'
                       : Number(j.balans) < 0
@@ -83,11 +78,11 @@ export default async function FilialHisobi() {
                   </td>
                 </tr>
               ))}
-              <tr className="bg-slate-50 font-medium">
+              <tr className="bg-fon font-medium">
                 <td className="px-4 py-2.5">Sof balans</td>
                 <td
                   className={`raqam px-4 py-2.5 text-right ${
-                    Number(hisob.sof) < 0 ? 'text-red-700' : 'text-emerald-800'
+                    Number(hisob.sof) < 0 ? 'text-belgi-qizil' : 'text-belgi-yashil'
                   }`}
                 >
                   {pulKorsat(som(hisob.sof))}
@@ -101,22 +96,20 @@ export default async function FilialHisobi() {
 
       <div className="flex flex-col gap-3">
         {tolayOladi && kassalar.length >= 2 && <TolovFormasi kassalar={kassalar} />}
-        {tuzataOladi && filiallar.length >= 2 && (
-          <TuzatishFormasi filiallar={filiallar} />
-        )}
+        {tuzataOladi && filiallar.length >= 2 && <TuzatishFormasi filiallar={filiallar} />}
       </div>
 
       <section className="flex flex-col gap-3">
         <h2 className="text-sm font-semibold">Harakatlar (22.7.2)</h2>
 
         {harakatlar.length === 0 ? (
-          <p className="rounded-xl border border-dashed border-slate-300 px-4 py-8 text-center text-sm text-slate-500">
+          <p className="rounded-karta border border-dashed border-chegara-quyuq px-4 py-8 text-center text-sm text-matn-kuchsiz">
             Hali harakat yo&apos;q.
           </p>
         ) : (
-          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+          <div className="overflow-x-auto rounded-karta border border-chegara bg-sirt">
             <table className="w-full text-sm">
-              <thead className="border-b border-slate-200 bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+              <thead className="border-b border-chegara bg-fon text-left text-xs uppercase tracking-wide text-matn-kuchsiz">
                 <tr>
                   <th className="px-4 py-2.5 font-medium">Sana</th>
                   <th className="px-4 py-2.5 font-medium">Sabab</th>
@@ -124,29 +117,23 @@ export default async function FilialHisobi() {
                   <th className="px-4 py-2.5 text-right font-medium">Summa</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-chegara">
                 {harakatlar.map((h) => (
                   <tr key={h.id}>
-                    <td className="px-4 py-2.5">
-                      {h.sana.toLocaleDateString('uz-UZ')}
-                    </td>
+                    <td className="px-4 py-2.5">{h.sana.toLocaleDateString('uz-UZ')}</td>
                     <td className="px-4 py-2.5">
                       {TUR_NOMI[h.turi] ?? h.turi}
                       {h.qoldaOzgartirildi && (
-                        <span className="ml-1 text-amber-700" title="Qo'lda">
+                        <span className="ml-1 text-belgi-sariq" title="Qo'lda">
                           ⚠️
                         </span>
                       )}
-                      {h.izoh !== null && (
-                        <div className="text-xs text-slate-500">{h.izoh}</div>
-                      )}
+                      {h.izoh !== null && <div className="text-xs text-matn-kuchsiz">{h.izoh}</div>}
                     </td>
-                    <td className="px-4 py-2.5 text-slate-600">
+                    <td className="px-4 py-2.5 text-matn-ikki">
                       {h.kimdanNom} → {h.kimgaNom}
                     </td>
-                    <td className="raqam px-4 py-2.5 text-right">
-                      {pulKorsat(som(h.summa))}
-                    </td>
+                    <td className="raqam px-4 py-2.5 text-right">{pulKorsat(som(h.summa))}</td>
                   </tr>
                 ))}
               </tbody>
@@ -154,9 +141,8 @@ export default async function FilialHisobi() {
           </div>
         )}
 
-        <p className="text-xs text-slate-500">
-          Filiallararo qarz foyda-zararga tegmaydi — bu korxona ichidagi
-          harakat (22.7.3).
+        <p className="text-xs text-matn-kuchsiz">
+          Filiallararo qarz foyda-zararga tegmaydi — bu korxona ichidagi harakat (22.7.3).
         </p>
       </section>
     </div>

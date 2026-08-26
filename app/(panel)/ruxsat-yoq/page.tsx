@@ -19,9 +19,9 @@ export default async function RuxsatYoq({
 
   return (
     <div className="mx-auto max-w-md py-16 text-center">
-      <h1 className="text-lg font-semibold text-slate-900">Bu bo&apos;limga ruxsatingiz yo&apos;q</h1>
+      <h1 className="text-lg font-semibold text-matn">Bu bo&apos;limga ruxsatingiz yo&apos;q</h1>
 
-      <p className="mt-2 text-sm leading-relaxed text-slate-600">
+      <p className="mt-2 text-sm leading-relaxed text-matn-ikki">
         {nom === null ? (
           <>Bu amalni bajarish uchun huquqingiz yetmaydi.</>
         ) : (
@@ -35,7 +35,7 @@ export default async function RuxsatYoq({
 
       <Link
         href="/boshqaruv"
-        className="mt-6 inline-block rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800"
+        className="mt-6 inline-block rounded-maydon bg-amal px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-amal-hover"
       >
         Boshqaruvga qaytish
       </Link>

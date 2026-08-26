@@ -28,13 +28,10 @@ export function Eslatmalar({ xabarlar }: { xabarlar: readonly YetmaganXabar[] })
 
   return (
     <section className="flex flex-col gap-2">
-      <h2 className="text-sm font-semibold text-red-800">
-        Yetib bormagan xabarlar
-      </h2>
-      <p className="text-xs text-slate-500">
-        Mijoz bu xabarni <b>olmagan</b> — botni bloklagan yoki
-        o&apos;chirgan bo&apos;lishi mumkin. Qo&apos;ng&apos;iroq qiling
-        yoki qayta yuboring (13.11).
+      <h2 className="text-sm font-semibold text-belgi-qizil">Yetib bormagan xabarlar</h2>
+      <p className="text-xs text-matn-kuchsiz">
+        Mijoz bu xabarni <b>olmagan</b> — botni bloklagan yoki o&apos;chirgan bo&apos;lishi mumkin.
+        Qo&apos;ng&apos;iroq qiling yoki qayta yuboring (13.11).
       </p>
 
       <div className="flex flex-col gap-2">
@@ -47,28 +44,25 @@ export function Eslatmalar({ xabarlar }: { xabarlar: readonly YetmaganXabar[] })
 }
 
 function XabarQatori({ xabar }: { xabar: YetmaganXabar }) {
-  const [holat, yubor, kutilmoqda] = useActionState(
-    xabarniQaytaYuborAmali,
-    BOSH_AMAL,
-  );
+  const [holat, yubor, kutilmoqda] = useActionState(xabarniQaytaYuborAmali, BOSH_AMAL);
 
   return (
-    <div className="rounded-lg bg-red-50 px-3 py-2.5 text-sm ring-1 ring-red-200">
-      <p className="whitespace-pre-wrap text-red-900">{xabar.matn}</p>
+    <div className="rounded-maydon bg-belgi-qizil-fon px-3 py-2.5 text-sm ">
+      <p className="whitespace-pre-wrap text-belgi-qizil">{xabar.matn}</p>
 
-      <p className="mt-1.5 text-xs text-red-700">
+      <p className="mt-1.5 text-xs text-belgi-qizil">
         {xabar.sabab ?? 'Sabab nomaʼlum'}
         {xabar.urinishlar > 1 && ` · ${String(xabar.urinishlar)} marta urinildi`}
       </p>
 
       {holat.xato !== null && (
-        <p role="alert" className="mt-1 text-xs text-red-800">
+        <p role="alert" className="mt-1 text-xs text-belgi-qizil">
           {holat.xato}
         </p>
       )}
 
       {holat.bajarildi ? (
-        <p className="mt-1.5 text-xs text-emerald-800">
+        <p className="mt-1.5 text-xs text-belgi-yashil">
           Navbatga qo&apos;yildi — bot yaqin daqiqalarda yuboradi.
         </p>
       ) : (
@@ -77,7 +71,7 @@ function XabarQatori({ xabar }: { xabar: YetmaganXabar }) {
           <button
             type="submit"
             disabled={kutilmoqda}
-            className="rounded-lg border border-red-300 bg-white px-2.5 py-1 text-xs font-medium text-red-800 transition hover:bg-red-100 disabled:opacity-60"
+            className="rounded-maydon border border-belgi-qizil/30 bg-sirt px-2.5 py-1 text-xs font-medium text-belgi-qizil transition-colors hover:bg-belgi-qizil-fon disabled:opacity-60"
           >
             {kutilmoqda ? 'Yuborilmoqda…' : 'Qayta yuborish'}
           </button>

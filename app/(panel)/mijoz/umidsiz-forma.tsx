@@ -35,7 +35,7 @@ export function UmidsizQarzFormasi({
         onClick={() => {
           ochiqniOzgartir(true);
         }}
-        className="self-start text-xs text-slate-500 underline underline-offset-2 hover:text-red-700"
+        className="self-start text-xs text-matn-kuchsiz underline underline-offset-2 hover:text-belgi-qizil"
       >
         Qarzni hisobdan chiqarish
       </button>
@@ -48,22 +48,21 @@ export function UmidsizQarzFormasi({
       <input type="hidden" name="valyuta" value={valyuta} />
 
       {holat.xato !== null && (
-        <p role="alert" className="text-sm text-red-700">
+        <p role="alert" className="text-sm text-belgi-qizil">
           {holat.xato}
         </p>
       )}
 
       {holat.bajarildi && (
-        <p className="rounded-lg bg-emerald-50 px-3 py-2.5 text-sm text-emerald-900 ring-1 ring-emerald-200">
+        <p className="rounded-maydon bg-belgi-yashil-fon px-3 py-2.5 text-sm text-belgi-yashil ">
           Qarz hisobdan chiqarildi.
         </p>
       )}
 
-      <p className="rounded-lg bg-amber-50 px-3 py-2.5 text-xs text-amber-900 ring-1 ring-amber-200">
-        Bu <b>haqiqiy xarajat</b>: pul kelmadi, lekin qarz yopiladi va
-        foyda-zararga «umidsiz qarz» bo&apos;lib tushadi (12.1). Mijoz keyin
-        kelib to&apos;lasa — pul «boshqa kirim» bo&apos;lib kiritiladi, balansga
-        qo&apos;shilmaydi (6.10).
+      <p className="rounded-maydon bg-belgi-sariq-fon px-3 py-2.5 text-xs text-belgi-sariq ">
+        Bu <b>haqiqiy xarajat</b>: pul kelmadi, lekin qarz yopiladi va foyda-zararga «umidsiz qarz»
+        bo&apos;lib tushadi (12.1). Mijoz keyin kelib to&apos;lasa — pul «boshqa kirim» bo&apos;lib
+        kiritiladi, balansga qo&apos;shilmaydi (6.10).
       </p>
 
       <div className="flex flex-wrap items-end gap-3">
@@ -105,7 +104,7 @@ export function UmidsizQarzFormasi({
         <button
           type="submit"
           disabled={kutilmoqda}
-          className="rounded-lg bg-red-700 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-red-800 disabled:opacity-60"
+          className="rounded-maydon bg-belgi-qizil px-3 py-1.5 text-xs font-medium text-white transition-colors hover:brightness-95 disabled:opacity-60"
         >
           {kutilmoqda ? 'Bajarilmoqda…' : 'Hisobdan chiqarish'}
         </button>
@@ -114,7 +113,7 @@ export function UmidsizQarzFormasi({
           onClick={() => {
             ochiqniOzgartir(false);
           }}
-          className="text-xs text-slate-500 hover:text-slate-900"
+          className="text-xs text-matn-kuchsiz hover:text-matn"
         >
           Yopish
         </button>

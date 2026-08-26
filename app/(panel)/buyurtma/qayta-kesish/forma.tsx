@@ -15,25 +15,17 @@ import type { QaytaKesishSababi } from '@/lib/amal/qayta-kesish';
 import { qaytaKesishHalAmali } from '../qayta-kesish-amal';
 import { BOSH_AMAL } from '../holat';
 
-export function HalQilishFormasi({
-  sorovId,
-  sabab,
-}: {
-  sorovId: number;
-  sabab: string;
-}) {
+export function HalQilishFormasi({ sorovId, sabab }: { sorovId: number; sabab: string }) {
   const [holat, yubor, kutilmoqda] = useActionState(qaytaKesishHalAmali, BOSH_AMAL);
-  const [haq, haqniOzgartir] = useState(
-    haqSaqlanishiMumkinmi(sabab as QaytaKesishSababi),
-  );
+  const [haq, haqniOzgartir] = useState(haqSaqlanishiMumkinmi(sabab as QaytaKesishSababi));
 
   return (
-    <form action={yubor} className="flex flex-col gap-3 border-t border-slate-100 px-4 py-3">
+    <form action={yubor} className="flex flex-col gap-3 border-t border-chegara px-4 py-3">
       <input type="hidden" name="sorovId" value={sorovId} />
       <input type="hidden" name="haqSaqlandi" value={haq ? 'ha' : 'yoq'} />
 
       {holat.xato !== null && (
-        <p role="alert" className="text-sm text-red-700">
+        <p role="alert" className="text-sm text-belgi-qizil">
           {holat.xato}
         </p>
       )}
@@ -63,7 +55,7 @@ export function HalQilishFormasi({
       </div>
 
       {/* TZ 8.17.5.1 — Q-15 ning istisnosi */}
-      <label className="flex items-start gap-2.5 rounded-lg bg-slate-50 px-3 py-2.5 text-sm ring-1 ring-slate-200">
+      <label className="flex items-start gap-2.5 rounded-maydon bg-fon px-3 py-2.5 text-sm ">
         <input
           type="checkbox"
           checked={haq}
@@ -74,10 +66,10 @@ export function HalQilishFormasi({
         />
         <span>
           <b>Ustaning aybi emas — haq saqlansin</b>
-          <span className="mt-0.5 block text-xs text-slate-600">
-            Standart holatda haq <b>bekor qilinadi</b> (Q-15): usta ikki marta
-            ishlagan bo'lsa ham bir marta oladi. Material defekti bo'lsa (mato
-            yirtildi, mexanizm nosoz) istisno qo&apos;llanadi (8.17.5.1).
+          <span className="mt-0.5 block text-xs text-matn-ikki">
+            Standart holatda haq <b>bekor qilinadi</b> (Q-15): usta ikki marta ishlagan bo'lsa ham
+            bir marta oladi. Material defekti bo'lsa (mato yirtildi, mexanizm nosoz) istisno
+            qo&apos;llanadi (8.17.5.1).
           </span>
         </span>
       </label>
@@ -88,7 +80,7 @@ export function HalQilishFormasi({
           name="qaror"
           value="TASDIQ"
           disabled={kutilmoqda}
-          className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800 disabled:opacity-60"
+          className="rounded-maydon bg-amal px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-amal-hover disabled:opacity-60"
         >
           Tasdiqlash — material qayta yechilsin
         </button>
@@ -97,16 +89,16 @@ export function HalQilishFormasi({
           name="qaror"
           value="RAD"
           disabled={kutilmoqda}
-          className="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
+          className="rounded-maydon border border-chegara-quyuq px-4 py-2 text-sm text-matn-ikki transition-colors hover:bg-fon disabled:opacity-60"
         >
           Rad etish
         </button>
       </div>
 
-      <p className="text-xs text-slate-500">
-        Tasdiqlansa: birinchi bo&apos;lak chiqindiga ketadi, yangisi band
-        qilinadi va pozitsiya «Ishlab chiqarilmoqda» ga qaytadi (8.17.2). Rad
-        etilsa pozitsiya o&apos;z holida qoladi (EC-BRK-01).
+      <p className="text-xs text-matn-kuchsiz">
+        Tasdiqlansa: birinchi bo&apos;lak chiqindiga ketadi, yangisi band qilinadi va pozitsiya
+        «Ishlab chiqarilmoqda» ga qaytadi (8.17.2). Rad etilsa pozitsiya o&apos;z holida qoladi
+        (EC-BRK-01).
       </p>
     </form>
   );

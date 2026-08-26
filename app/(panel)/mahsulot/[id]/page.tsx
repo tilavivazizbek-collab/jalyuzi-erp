@@ -15,11 +15,7 @@ import { guruhlarniOl, materiallarniOl } from '../malumot';
 
 export const dynamic = 'force-dynamic';
 
-export default async function MahsulotTahrirlash({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export default async function MahsulotTahrirlash({ params }: { params: Promise<{ id: string }> }) {
   await sahifaRuxsati('mahsulot.ozgartir');
 
   const { id } = await params;
@@ -62,39 +58,29 @@ export default async function MahsulotTahrirlash({
 
   const qiymatlar: MahsulotQiymatlari = {
     nom: tur.nom,
-    xizmatHaqi:
-      tur.xizmat_haqi === null || Number(tur.xizmat_haqi) === 0 ? '' : tur.xizmat_haqi,
+    xizmatHaqi: tur.xizmat_haqi === null || Number(tur.xizmat_haqi) === 0 ? '' : tur.xizmat_haqi,
     tartib: String(tur.tartib),
     oynadaKorinadi: tur.oynada_korinadi,
     botdaKorinadi: tur.botda_korinadi,
-    slotlar: slotlar.map(
-      (s): SlotQatori => ({
-        nom: s.nom,
-        formula: s.formula,
-        majburiy: s.majburiy,
-        almashtirishGuruhId: s.almashtirish_guruh_id,
-      }),
-    ),
-    parametrlar: parametrlar.map(
-      (p): ParametrQatori => ({
-        kod: p.kod,
-        nom: p.nom,
-        standartQiymat: p.standart_qiymat ?? '0',
-      }),
-    ),
-    aksessuarlar: aksessuarlar.map(
-      (a): AksessuarQatori => ({
-        materialId: a.material_id,
-        formula: a.formula,
-        majburiy: a.majburiy,
-      }),
-    ),
+    slotlar: slotlar.map((s): SlotQatori => ({
+      nom: s.nom,
+      formula: s.formula,
+      majburiy: s.majburiy,
+      almashtirishGuruhId: s.almashtirish_guruh_id,
+    })),
+    parametrlar: parametrlar.map((p): ParametrQatori => ({
+      kod: p.kod,
+      nom: p.nom,
+      standartQiymat: p.standart_qiymat ?? '0',
+    })),
+    aksessuarlar: aksessuarlar.map((a): AksessuarQatori => ({
+      materialId: a.material_id,
+      formula: a.formula,
+      majburiy: a.majburiy,
+    })),
   };
 
-  const amal = async (
-    holat: KonstruktorHolati,
-    forma: FormData,
-  ): Promise<KonstruktorHolati> => {
+  const amal = async (holat: KonstruktorHolati, forma: FormData): Promise<KonstruktorHolati> => {
     'use server';
     return mahsulotTahrirlaAmali(turId, holat, forma);
   };
@@ -102,13 +88,13 @@ export default async function MahsulotTahrirlash({
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <Link href="/mahsulot" className="text-sm text-slate-500 hover:text-slate-900">
+        <Link href="/mahsulot" className="text-sm text-matn-kuchsiz hover:text-matn">
           ← Mahsulot turlari
         </Link>
-        <h1 className="mt-2 text-xl font-semibold tracking-tight">{tur.nom}</h1>
-        <p className="mt-1 text-xs text-slate-500">
-          Tahrirlansa eski buyurtmalar o&apos;zgarmaydi — ular o&apos;z formulasi bilan
-          qotib qolgan (4.10, 2.3-invariant).
+        <h1 className="mt-2 text-[22px] font-semibold tracking-[-0.02em] text-matn">{tur.nom}</h1>
+        <p className="mt-1 text-xs text-matn-kuchsiz">
+          Tahrirlansa eski buyurtmalar o&apos;zgarmaydi — ular o&apos;z formulasi bilan qotib qolgan
+          (4.10, 2.3-invariant).
         </p>
       </div>
 

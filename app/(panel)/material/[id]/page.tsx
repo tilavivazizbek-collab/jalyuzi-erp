@@ -32,11 +32,7 @@ interface Qator {
 /** `NUMERIC` bazadan matn bo'lib keladi; bo'sh maydon formada '' bo'ladi. */
 const m = (x: string | null): string => x ?? '';
 
-export default async function MaterialTahrirlash({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export default async function MaterialTahrirlash({ params }: { params: Promise<{ id: string }> }) {
   const f = await sahifaRuxsati('material.ozgartir');
 
   const { id } = await params;
@@ -53,9 +49,7 @@ export default async function MaterialTahrirlash({
 
   // 20.9 — filial narx istisnolari (Q-28)
   const narxOzgartiraOladi = ruxsatBormi(f, 'narx.filial.ozgartir');
-  const narxlar = narxOzgartiraOladi
-    ? await filialNarxlari(ulanish, materialId)
-    : [];
+  const narxlar = narxOzgartiraOladi ? await filialNarxlari(ulanish, materialId) : [];
 
   const qiymatlar: MaterialQiymatlari = {
     nom: material.nom,
@@ -83,13 +77,15 @@ export default async function MaterialTahrirlash({
   return (
     <div className="flex max-w-3xl flex-col gap-6">
       <div>
-        <Link href="/material" className="text-sm text-slate-500 hover:text-slate-900">
+        <Link href="/material" className="text-sm text-matn-kuchsiz hover:text-matn">
           ← Materiallar
         </Link>
-        <h1 className="mt-2 text-xl font-semibold tracking-tight">{material.nom}</h1>
+        <h1 className="mt-2 text-[22px] font-semibold tracking-[-0.02em] text-matn">
+          {material.nom}
+        </h1>
       </div>
 
-      <div className="rounded-xl border border-slate-200 bg-white p-6">
+      <div className="rounded-karta border border-chegara bg-sirt p-6">
         <MaterialFormasi
           amal={amal}
           qiymatlar={qiymatlar}

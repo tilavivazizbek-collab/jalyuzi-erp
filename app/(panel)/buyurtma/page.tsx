@@ -72,12 +72,8 @@ export default async function BuyurtmalarRoyxati({
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-[22px] font-semibold tracking-[-0.02em] text-matn">
-            Sotuv tarixi
-          </h1>
-          <p className="mt-0.5 text-[13px] text-matn-ikki">
-            Holat har pozitsiyada alohida (8.2)
-          </p>
+          <h1 className="text-[22px] font-semibold tracking-[-0.02em] text-matn">Sotuv tarixi</h1>
+          <p className="mt-0.5 text-[13px] text-matn-ikki">Holat har pozitsiyada alohida (8.2)</p>
         </div>
 
         {sotaOladi && (
@@ -206,9 +202,7 @@ export default async function BuyurtmalarRoyxati({
                     </td>
 
                     <td className="px-4 py-3 whitespace-nowrap text-matn-ikki">
-                      {b.tayyorlikSana ?? (
-                        <span className="text-matn-kuchsiz">—</span>
-                      )}
+                      {b.tayyorlikSana ?? <span className="text-matn-kuchsiz">—</span>}
                     </td>
                   </tr>
                 );

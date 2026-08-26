@@ -48,14 +48,14 @@ export function JonatishFormasi({
       {qoldaMi && <input type="hidden" name="qarzSumma" value={qarzSumma} />}
 
       {holat.xato !== null && (
-        <p role="alert" className="text-sm text-red-700">
+        <p role="alert" className="text-sm text-belgi-qizil">
           {holat.xato}
         </p>
       )}
 
-      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+      <div className="overflow-x-auto rounded-karta border border-chegara bg-sirt">
         <table className="w-full text-sm">
-          <thead className="border-b border-slate-200 bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+          <thead className="border-b border-chegara bg-fon text-left text-xs uppercase tracking-wide text-matn-kuchsiz">
             <tr>
               <th className="w-10 px-4 py-2.5" />
               <th className="px-4 py-2.5 font-medium">Kod</th>
@@ -64,9 +64,9 @@ export function JonatishFormasi({
               <th className="px-4 py-2.5 text-right font-medium">Tannarx</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-chegara">
             {bolaklar.map((b) => (
-              <tr key={b.id} className={tanlangan.includes(b.id) ? 'bg-slate-50' : ''}>
+              <tr key={b.id} className={tanlangan.includes(b.id) ? 'bg-fon' : ''}>
                 <td className="px-4 py-2.5">
                   <input
                     type="checkbox"
@@ -80,22 +80,19 @@ export function JonatishFormasi({
                 <td className="raqam px-4 py-2.5">{b.kod}</td>
                 <td className="px-4 py-2.5">{b.materialNomi}</td>
                 <td className="raqam px-4 py-2.5">{b.olcham}</td>
-                <td className="raqam px-4 py-2.5 text-right">
-                  {pulKorsat(som(b.tannarxSumma))}
-                </td>
+                <td className="raqam px-4 py-2.5 text-right">{pulKorsat(som(b.tannarxSumma))}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
 
-      <div className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-white p-4">
+      <div className="flex flex-col gap-2 rounded-karta border border-chegara bg-sirt p-4">
         <p className="raqam text-sm">
-          Tannarx bo&apos;yicha:{' '}
-          <b>{pulKorsat(som(tannarxJami.toFixed(2)))}</b>
+          Tannarx bo&apos;yicha: <b>{pulKorsat(som(tannarxJami.toFixed(2)))}</b>
         </p>
 
-        <label className="flex items-center gap-2 text-sm text-slate-600">
+        <label className="flex items-center gap-2 text-sm text-matn-ikki">
           <input
             type="checkbox"
             checked={qoldaMi}
@@ -111,11 +108,7 @@ export function JonatishFormasi({
 
         {qoldaMi && (
           <div className="mt-2 flex flex-wrap items-end gap-3">
-            <Maydon
-              nom="qarz-summa"
-              yorliq="Qarz summasi"
-              xato={holat.maydonlar['qarzSumma']}
-            >
+            <Maydon nom="qarz-summa" yorliq="Qarz summasi" xato={holat.maydonlar['qarzSumma']}>
               <input
                 id="qarz-summa"
                 value={qarzSumma}
@@ -127,11 +120,7 @@ export function JonatishFormasi({
               />
             </Maydon>
 
-            <Maydon
-              nom="qarzSabab"
-              yorliq="Sabab (majburiy)"
-              xato={holat.maydonlar['qarzSabab']}
-            >
+            <Maydon nom="qarzSabab" yorliq="Sabab (majburiy)" xato={holat.maydonlar['qarzSabab']}>
               <input
                 id="qarzSabab"
                 name="qarzSabab"
@@ -142,21 +131,18 @@ export function JonatishFormasi({
           </div>
         )}
 
-        <p className="mt-1 text-xs text-slate-500">
-          Ichki ustama qo&apos;yilmaydi: aks holda mato hali sotilmagan
-          bo&apos;lsa ham korxona darajasida soxta foyda paydo bo&apos;ladi
-          (22.4.2).
+        <p className="mt-1 text-xs text-matn-kuchsiz">
+          Ichki ustama qo&apos;yilmaydi: aks holda mato hali sotilmagan bo&apos;lsa ham korxona
+          darajasida soxta foyda paydo bo&apos;ladi (22.4.2).
         </p>
       </div>
 
       <button
         type="submit"
         disabled={kutilmoqda || tanlangan.length === 0}
-        className="self-start rounded-lg bg-slate-900 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-slate-800 disabled:opacity-60"
+        className="self-start rounded-maydon bg-amal px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-amal-hover disabled:opacity-60"
       >
-        {kutilmoqda
-          ? "Jo'natilmoqda…"
-          : `Jo'natish (${String(tanlangan.length)} bo'lak)`}
+        {kutilmoqda ? "Jo'natilmoqda…" : `Jo'natish (${String(tanlangan.length)} bo'lak)`}
       </button>
     </form>
   );

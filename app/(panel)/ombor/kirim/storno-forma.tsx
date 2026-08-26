@@ -35,7 +35,7 @@ export function StornoFormasi({
         onClick={() => {
           ochiqniOzgartir(true);
         }}
-        className="rounded-lg border border-red-300 px-3.5 py-2 text-sm font-medium text-red-700 transition hover:bg-red-50"
+        className="rounded-maydon border border-belgi-qizil/30 px-3.5 py-2 text-sm font-medium text-belgi-qizil transition-colors hover:bg-belgi-qizil-fon"
       >
         Storno qilish
       </button>
@@ -49,26 +49,25 @@ export function StornoFormasi({
       {holat.xato !== null && (
         <p
           role="alert"
-          className="rounded-lg bg-red-50 px-3 py-2.5 text-sm text-red-800 ring-1 ring-red-200"
+          className="rounded-maydon bg-belgi-qizil-fon px-3 py-2.5 text-sm text-belgi-qizil "
         >
           {holat.xato}
         </p>
       )}
 
-      <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900">
+      <div className="rounded-karta border border-belgi-qizil/25 bg-belgi-qizil-fon px-4 py-3 text-sm text-belgi-qizil">
         <b>{raqam}</b> to&apos;liq storno qilinadi.
         <ul className="mt-2 list-disc space-y-1 pl-5 text-xs">
           <li>Omborda turgan {omborda} ta bo&apos;lak chiqariladi</li>
           {ishlatilgan > 0 && (
             <li>
-              {ishlatilgan} ta bo&apos;lak allaqachon ishlatilgan — qoldiq{' '}
-              <b>manfiyga tushadi</b> va admin tuzatgunicha shunday turadi
-              (2.5-invariant)
+              {ishlatilgan} ta bo&apos;lak allaqachon ishlatilgan — qoldiq <b>manfiyga tushadi</b>{' '}
+              va admin tuzatgunicha shunday turadi (2.5-invariant)
             </li>
           )}
           <li>
-            Kesilgan buyurtmalarga <b>tegilmaydi</b> — ular o&apos;z tannarxi
-            bilan qotgan (2.3-invariant)
+            Kesilgan buyurtmalarga <b>tegilmaydi</b> — ular o&apos;z tannarxi bilan qotgan
+            (2.3-invariant)
           </li>
         </ul>
       </div>
@@ -91,7 +90,7 @@ export function StornoFormasi({
         <button
           type="submit"
           disabled={kutilmoqda}
-          className="rounded-lg bg-red-700 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-800 disabled:opacity-60"
+          className="rounded-maydon bg-belgi-qizil px-4 py-2 text-sm font-medium text-white transition-colors hover:brightness-95 disabled:opacity-60"
         >
           {kutilmoqda ? 'Storno qilinmoqda…' : 'Ha, storno qilinsin'}
         </button>
@@ -100,7 +99,7 @@ export function StornoFormasi({
           onClick={() => {
             ochiqniOzgartir(false);
           }}
-          className="text-sm text-slate-500 hover:text-slate-900"
+          className="text-sm text-matn-kuchsiz hover:text-matn"
         >
           Bekor qilish
         </button>

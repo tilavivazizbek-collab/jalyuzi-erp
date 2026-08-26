@@ -21,9 +21,7 @@ export default async function KirishSahifasi() {
           <div className="mb-8 flex flex-col items-center gap-3">
             <BrendBelgisi olcham={44} />
             <div className="text-center">
-              <h1 className="text-2xl font-semibold tracking-[-0.02em] text-matn">
-                Jalyuzi ERP
-              </h1>
+              <h1 className="text-2xl font-semibold tracking-[-0.02em] text-matn">Jalyuzi ERP</h1>
               <p className="mt-1 text-[13px] text-matn-ikki">
                 Ishlab chiqarish va savdo boshqaruvi
               </p>
@@ -33,13 +31,10 @@ export default async function KirishSahifasi() {
           <div className="rounded-[10px] border border-chegara bg-sirt p-6 shadow-[0_1px_2px_rgba(15,23,42,0.06)]">
             <KirishFormasi />
           </div>
-
         </div>
       </div>
 
-      <footer className="pb-6 text-center text-xs text-matn-kuchsiz">
-        Jalyuzi ERP
-      </footer>
+      <footer className="pb-6 text-center text-xs text-matn-kuchsiz">Jalyuzi ERP</footer>
     </main>
   );
 }

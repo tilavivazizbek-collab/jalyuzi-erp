@@ -83,31 +83,27 @@ export default async function MijozTahrirlash({ params }: { params: Promise<{ id
   return (
     <div className="flex max-w-3xl flex-col gap-6">
       <div>
-        <Link href="/mijoz" className="text-sm text-slate-500 hover:text-slate-900">
+        <Link href="/mijoz" className="text-sm text-matn-kuchsiz hover:text-matn">
           ← Mijozlar
         </Link>
-        <h1 className="mt-2 text-xl font-semibold tracking-tight">{mijoz.ism}</h1>
+        <h1 className="mt-2 text-[22px] font-semibold tracking-[-0.02em] text-matn">{mijoz.ism}</h1>
       </div>
 
       {/* ── 6.7 · Qarz bloki ── */}
       <section>
-        <h2 className="mb-1 text-sm font-medium text-slate-700">Qarz</h2>
-        <p className="mb-3 text-xs text-slate-500">
-          Qarz saqlanmaydi — harakatlar yig&apos;indisi (2.2-invariant).
-          So&apos;m va dollar alohida yuritiladi (1.3).
+        <h2 className="mb-1 text-sm font-medium text-matn-ikki">Qarz</h2>
+        <p className="mb-3 text-xs text-matn-kuchsiz">
+          Qarz saqlanmaydi — harakatlar yig&apos;indisi (2.2-invariant). So&apos;m va dollar alohida
+          yuritiladi (1.3).
         </p>
 
-        <dl className="mb-4 grid max-w-xs grid-cols-2 gap-x-4 gap-y-1 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
-          <dt className="text-slate-500">So&apos;m</dt>
-          <dd
-            className={`raqam font-medium ${Number(qarz.som) > 0 ? 'text-amber-800' : ''}`}
-          >
+        <dl className="mb-4 grid max-w-xs grid-cols-2 gap-x-4 gap-y-1 rounded-karta border border-chegara bg-fon px-4 py-3 text-sm">
+          <dt className="text-matn-kuchsiz">So&apos;m</dt>
+          <dd className={`raqam font-medium ${Number(qarz.som) > 0 ? 'text-belgi-sariq' : ''}`}>
             {pulKorsat(som(qarz.som))}
           </dd>
-          <dt className="text-slate-500">Dollar</dt>
-          <dd
-            className={`raqam font-medium ${Number(qarz.dollar) > 0 ? 'text-amber-800' : ''}`}
-          >
+          <dt className="text-matn-kuchsiz">Dollar</dt>
+          <dd className={`raqam font-medium ${Number(qarz.dollar) > 0 ? 'text-belgi-sariq' : ''}`}>
             {pulKorsat(dollar(qarz.dollar))}
           </dd>
         </dl>
@@ -121,25 +117,20 @@ export default async function MijozTahrirlash({ params }: { params: Promise<{ id
           />
         )}
 
-        {hisobdanChiqaraOladi &&
-          (Number(qarz.som) > 0 || Number(qarz.dollar) > 0) && (
-            <div className="mt-4 flex flex-col">
-              <UmidsizQarzFormasi
-                mijozId={mijozId}
-                somQarz={qarz.som}
-                dollarQarz={qarz.dollar}
-              />
-            </div>
-          )}
+        {hisobdanChiqaraOladi && (Number(qarz.som) > 0 || Number(qarz.dollar) > 0) && (
+          <div className="mt-4 flex flex-col">
+            <UmidsizQarzFormasi mijozId={mijozId} somQarz={qarz.som} dollarQarz={qarz.dollar} />
+          </div>
+        )}
       </section>
 
       {/* ── 6.8 · Qarz harakati ── */}
       {qarz.harakatlar.length > 0 && (
         <section>
-          <h2 className="mb-2 text-sm font-medium text-slate-700">Qarz harakati</h2>
-          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+          <h2 className="mb-2 text-sm font-medium text-matn-ikki">Qarz harakati</h2>
+          <div className="overflow-x-auto rounded-karta border border-chegara bg-sirt">
             <table className="w-full text-sm">
-              <thead className="border-b border-slate-200 bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+              <thead className="border-b border-chegara bg-fon text-left text-xs uppercase tracking-wide text-matn-kuchsiz">
                 <tr>
                   <th className="px-4 py-2.5 font-medium">Sana</th>
                   <th className="px-4 py-2.5 font-medium">Sabab</th>
@@ -147,30 +138,26 @@ export default async function MijozTahrirlash({ params }: { params: Promise<{ id
                   <th className="px-4 py-2.5 font-medium">Kim</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-chegara">
                 {qarz.harakatlar.map((h) => (
                   <tr key={h.id}>
-                    <td className="px-4 py-2.5 text-slate-600">
+                    <td className="px-4 py-2.5 text-matn-ikki">
                       {h.sana.toLocaleDateString('uz-UZ')}
                     </td>
                     <td className="px-4 py-2.5">
                       {HARAKAT_NOMI[h.turi] ?? h.turi}
                       {h.izoh !== null && (
-                        <span className="ml-2 text-xs text-slate-400">{h.izoh}</span>
+                        <span className="ml-2 text-xs text-matn-kuchsiz">{h.izoh}</span>
                       )}
                     </td>
                     <td
                       className={`raqam px-4 py-2.5 font-medium ${
-                        Number(h.summa) < 0 ? 'text-emerald-700' : 'text-slate-700'
+                        Number(h.summa) < 0 ? 'text-belgi-yashil' : 'text-matn-ikki'
                       }`}
                     >
-                      {h.valyuta === 'SOM'
-                        ? pulKorsat(som(h.summa))
-                        : pulKorsat(dollar(h.summa))}
+                      {h.valyuta === 'SOM' ? pulKorsat(som(h.summa)) : pulKorsat(dollar(h.summa))}
                     </td>
-                    <td className="px-4 py-2.5 text-xs text-slate-500">
-                      {h.xodimIsmi}
-                    </td>
+                    <td className="px-4 py-2.5 text-xs text-matn-kuchsiz">{h.xodimIsmi}</td>
                   </tr>
                 ))}
               </tbody>
@@ -179,7 +166,7 @@ export default async function MijozTahrirlash({ params }: { params: Promise<{ id
         </section>
       )}
 
-      <div className="rounded-xl border border-slate-200 bg-white p-6">
+      <div className="rounded-karta border border-chegara bg-sirt p-6">
         <MijozFormasi amal={amal} qiymatlar={qiymatlar} tugmaMatni="O'zgarishlarni saqlash" />
       </div>
     </div>

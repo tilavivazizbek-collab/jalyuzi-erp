@@ -2,12 +2,7 @@ import Link from 'next/link';
 import { sahifaRuxsati } from '@/lib/kirish/joriy';
 import { ruxsatBormi, yigindiQamrov } from '@/lib/ruxsat/tekshir';
 import { SARFLASH_BIRLIGI_NOMI, type SarflashBirligi } from '@/lib/sxema/material';
-import {
-  barchaFilialQoldigi,
-  filialNomi,
-  filialQoldigi,
-  type FilialQoldigi,
-} from './malumot';
+import { barchaFilialQoldigi, filialNomi, filialQoldigi, type FilialQoldigi } from './malumot';
 
 export const dynamic = 'force-dynamic';
 
@@ -42,31 +37,32 @@ export default async function OmborQoldigi({
     <div className="flex flex-col gap-6">
       <div className="flex items-end justify-between gap-4">
         <div>
-          <h1 className="text-xl font-semibold tracking-tight">Ombor qoldig&apos;i</h1>
-          <p className="mt-1 text-sm text-slate-500">
-            {barchasimi ? 'Barcha filiallar' : nomi} · har filialda o&apos;z
-            ombori (Q-25)
+          <h1 className="text-[22px] font-semibold tracking-[-0.02em] text-matn">
+            Ombor qoldig&apos;i
+          </h1>
+          <p className="mt-1 text-sm text-matn-kuchsiz">
+            {barchasimi ? 'Barcha filiallar' : nomi} · har filialda o&apos;z ombori (Q-25)
           </p>
         </div>
         <div className="flex items-center gap-3">
           {barchasiniKoradi && (
             <Link
               href={barchasimi ? '/ombor' : '/ombor?filial=barcha'}
-              className="rounded-lg border border-slate-300 px-3.5 py-2 text-sm text-slate-700 transition hover:bg-slate-50"
+              className="rounded-maydon border border-chegara-quyuq px-3.5 py-2 text-sm text-matn-ikki transition-colors hover:bg-fon"
             >
               {barchasimi ? nomi : 'Barcha filiallar'}
             </Link>
           )}
           <Link
             href="/ombor/kirim"
-            className="rounded-lg border border-slate-300 px-3.5 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+            className="rounded-maydon border border-chegara-quyuq px-3.5 py-2 text-sm font-medium text-matn-ikki transition-colors hover:bg-fon"
           >
             Kirim hujjatlari
           </Link>
           {kirimQilaOladi && (
             <Link
               href="/ombor/kirim/yangi"
-              className="rounded-lg bg-slate-900 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-slate-800"
+              className="rounded-maydon bg-amal px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-amal-hover"
             >
               Yangi kirim
             </Link>
@@ -77,60 +73,58 @@ export default async function OmborQoldigi({
       {barchasimi ? (
         <BarchaFiliallar filiallar={filiallar} />
       ) : qoldiq.length === 0 ? (
-        <p className="rounded-xl border border-dashed border-slate-300 px-4 py-10 text-center text-sm text-slate-500">
+        <p className="rounded-karta border border-dashed border-chegara-quyuq px-4 py-10 text-center text-sm text-matn-kuchsiz">
           Omborda hali material yo&apos;q. Kirim hujjati bilan boshlanadi.
         </p>
       ) : (
         <>
           {olchamli.length > 0 && (
             <section>
-              <h2 className="mb-2 text-sm font-medium text-slate-700">
-                Rulon va qoldiq kesma
-              </h2>
-              <p className="mb-3 text-xs text-slate-500">
-                Qoldiq <b>eni × bo&apos;yi</b> bilan saqlanadi, kv.m hisoblanadi (Q-05).
-                Band — pozitsiyaga biriktirilgan, hali kesilmagan (7.3).
+              <h2 className="mb-2 text-sm font-medium text-matn-ikki">Rulon va qoldiq kesma</h2>
+              <p className="mb-3 text-xs text-matn-kuchsiz">
+                Qoldiq <b>eni × bo&apos;yi</b> bilan saqlanadi, kv.m hisoblanadi (Q-05). Band —
+                pozitsiyaga biriktirilgan, hali kesilmagan (7.3).
               </p>
 
-              <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+              <div className="overflow-x-auto rounded-karta border border-chegara bg-sirt">
                 <table className="w-full text-sm">
-                  <thead className="border-b border-slate-200 bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+                  <thead className="border-b border-chegara bg-fon text-left text-xs uppercase tracking-wide text-matn-kuchsiz">
                     <tr>
                       <th className="px-4 py-2.5 font-medium">Material</th>
                       <th className="px-4 py-2.5 text-right font-medium">Jami</th>
                       <th className="px-4 py-2.5 text-right font-medium">Bo&apos;sh</th>
                       <th className="px-4 py-2.5 text-right font-medium">Band</th>
-                      <th className="px-4 py-2.5 text-right font-medium">
-                        Yo&apos;lda
-                      </th>
+                      <th className="px-4 py-2.5 text-right font-medium">Yo&apos;lda</th>
                       <th className="px-4 py-2.5 text-right font-medium">Bo&apos;lak</th>
                       <th className="px-4 py-2.5" />
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody className="divide-y divide-chegara">
                     {olchamli.map((q) => (
                       <tr key={q.materialId}>
                         <td className="px-4 py-2.5 font-medium">{q.nom}</td>
                         <td className="raqam px-4 py-2.5">{kvM(q.jamiKvM)}</td>
-                        <td className="raqam px-4 py-2.5 text-emerald-700">
-                          {kvM(q.boshKvM)}
-                        </td>
-                        <td className="raqam px-4 py-2.5 text-amber-700">
-                          {q.bandKvM > 0 ? kvM(q.bandKvM) : <span className="text-slate-300">—</span>}
+                        <td className="raqam px-4 py-2.5 text-belgi-yashil">{kvM(q.boshKvM)}</td>
+                        <td className="raqam px-4 py-2.5 text-belgi-sariq">
+                          {q.bandKvM > 0 ? (
+                            kvM(q.bandKvM)
+                          ) : (
+                            <span className="text-matn-kuchsiz">—</span>
+                          )}
                         </td>
                         {/* 20.7.4 — jo'natilgan, hali qabul qilinmagan */}
-                        <td className="raqam px-4 py-2.5 text-sky-700">
+                        <td className="raqam px-4 py-2.5 text-brend">
                           {q.yoldaKvM > 0 ? (
                             kvM(q.yoldaKvM)
                           ) : (
-                            <span className="text-slate-300">—</span>
+                            <span className="text-matn-kuchsiz">—</span>
                           )}
                         </td>
-                        <td className="raqam px-4 py-2.5 text-slate-500">{q.bolakSoni}</td>
+                        <td className="raqam px-4 py-2.5 text-matn-kuchsiz">{q.bolakSoni}</td>
                         <td className="px-4 py-2.5 text-right">
                           <Link
                             href={`/ombor/${String(q.materialId)}`}
-                            className="text-slate-600 hover:text-slate-900"
+                            className="text-matn-ikki hover:text-matn"
                           >
                             Kartochka
                           </Link>
@@ -140,18 +134,16 @@ export default async function OmborQoldigi({
                   </tbody>
                 </table>
               </div>
-              <p className="mt-2 text-xs text-slate-400">Barcha son — kv.m</p>
+              <p className="mt-2 text-xs text-matn-kuchsiz">Barcha son — kv.m</p>
             </section>
           )}
 
           {donali.length > 0 && (
             <section>
-              <h2 className="mb-2 text-sm font-medium text-slate-700">
-                Chiziqli va dona material
-              </h2>
-              <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+              <h2 className="mb-2 text-sm font-medium text-matn-ikki">Chiziqli va dona material</h2>
+              <div className="overflow-x-auto rounded-karta border border-chegara bg-sirt">
                 <table className="w-full text-sm">
-                  <thead className="border-b border-slate-200 bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+                  <thead className="border-b border-chegara bg-fon text-left text-xs uppercase tracking-wide text-matn-kuchsiz">
                     <tr>
                       <th className="px-4 py-2.5 font-medium">Material</th>
                       <th className="px-4 py-2.5 text-right font-medium">Qoldiq</th>
@@ -159,7 +151,7 @@ export default async function OmborQoldigi({
                       <th className="px-4 py-2.5" />
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody className="divide-y divide-chegara">
                     {donali.map((q) => {
                       const birlik = q.sarflashBirligi as SarflashBirligi;
                       // Q-01 — chiziqli material smda saqlanadi, metrda ko'rsatiladi
@@ -179,16 +171,18 @@ export default async function OmborQoldigi({
                           <td className="raqam px-4 py-2.5">
                             {korinish}
                             {kamqoldiq && (
-                              <span className="ml-2 text-xs text-amber-700">kam qoldiq</span>
+                              <span className="ml-2 text-xs text-belgi-sariq">kam qoldiq</span>
                             )}
                           </td>
-                          <td className="px-4 py-2.5 text-slate-500">
-                            {birlik === 'SM' ? 'smda saqlanadi (Q-01)' : SARFLASH_BIRLIGI_NOMI[birlik]}
+                          <td className="px-4 py-2.5 text-matn-kuchsiz">
+                            {birlik === 'SM'
+                              ? 'smda saqlanadi (Q-01)'
+                              : SARFLASH_BIRLIGI_NOMI[birlik]}
                           </td>
                           <td className="px-4 py-2.5 text-right">
                             <Link
                               href={`/ombor/${String(q.materialId)}`}
-                              className="text-slate-600 hover:text-slate-900"
+                              className="text-matn-ikki hover:text-matn"
                             >
                               Kartochka
                             </Link>
@@ -214,11 +208,7 @@ export default async function OmborQoldigi({
  *    qoldig'ida emas, lekin korxonada bor — yig'indi shundan
  *    to'g'ri chiqadi (2.1-invariant).
  */
-function BarchaFiliallar({
-  filiallar,
-}: {
-  filiallar: readonly FilialQoldigi[];
-}) {
+function BarchaFiliallar({ filiallar }: { filiallar: readonly FilialQoldigi[] }) {
   const qatorlar = filiallar.flatMap((f) =>
     f.materiallar
       .filter((m) => m.hisobTuri === 'RULON')
@@ -227,16 +217,16 @@ function BarchaFiliallar({
 
   if (qatorlar.length === 0) {
     return (
-      <p className="rounded-xl border border-dashed border-slate-300 px-4 py-10 text-center text-sm text-slate-500">
+      <p className="rounded-karta border border-dashed border-chegara-quyuq px-4 py-10 text-center text-sm text-matn-kuchsiz">
         Hech bir filialda material yo&apos;q.
       </p>
     );
   }
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+    <div className="overflow-x-auto rounded-karta border border-chegara bg-sirt">
       <table className="w-full text-sm">
-        <thead className="border-b border-slate-200 bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+        <thead className="border-b border-chegara bg-fon text-left text-xs uppercase tracking-wide text-matn-kuchsiz">
           <tr>
             <th className="px-4 py-2.5 font-medium">Material</th>
             <th className="px-4 py-2.5 font-medium">Filial</th>
@@ -246,27 +236,25 @@ function BarchaFiliallar({
             <th className="px-4 py-2.5 text-right font-medium">Yo&apos;lda</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-100">
+        <tbody className="divide-y divide-chegara">
           {qatorlar.map((q) => (
             <tr key={`${q.filialNomi}-${String(q.material.materialId)}`}>
               <td className="px-4 py-2.5 font-medium">{q.material.nom}</td>
-              <td className="px-4 py-2.5 text-slate-600">{q.filialNomi}</td>
+              <td className="px-4 py-2.5 text-matn-ikki">{q.filialNomi}</td>
               <td className="raqam px-4 py-2.5">{kvM(q.material.jamiKvM)}</td>
-              <td className="raqam px-4 py-2.5 text-emerald-700">
-                {kvM(q.material.boshKvM)}
-              </td>
-              <td className="raqam px-4 py-2.5 text-amber-700">
+              <td className="raqam px-4 py-2.5 text-belgi-yashil">{kvM(q.material.boshKvM)}</td>
+              <td className="raqam px-4 py-2.5 text-belgi-sariq">
                 {q.material.bandKvM > 0 ? (
                   kvM(q.material.bandKvM)
                 ) : (
-                  <span className="text-slate-300">—</span>
+                  <span className="text-matn-kuchsiz">—</span>
                 )}
               </td>
-              <td className="raqam px-4 py-2.5 text-sky-700">
+              <td className="raqam px-4 py-2.5 text-brend">
                 {q.material.yoldaKvM > 0 ? (
                   kvM(q.material.yoldaKvM)
                 ) : (
-                  <span className="text-slate-300">—</span>
+                  <span className="text-matn-kuchsiz">—</span>
                 )}
               </td>
             </tr>

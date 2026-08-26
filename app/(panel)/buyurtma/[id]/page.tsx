@@ -16,23 +16,14 @@ import {
 import { buyurtmaTafsili, tolovHolati, tolovKassalari } from '../malumot';
 import { TasdiqlashTugmasi } from '../tasdiqla';
 import { BekorTugmasi, QaytaribOlishTugmasi } from '../amallar';
-import {
-  QaytarishTugmasi,
-  RadEtishTugmasi,
-  TopshirishTugmasi,
-  YetibKeldiTugmasi,
-} from '../hayot';
+import { QaytarishTugmasi, RadEtishTugmasi, TopshirishTugmasi, YetibKeldiTugmasi } from '../hayot';
 import { TolovFormasi } from '../tolov-forma';
 
 export const dynamic = 'force-dynamic';
 
 const BIRLIK: Record<string, string> = { KV_M: 'kv.m', SM: 'sm', DONA: 'dona' };
 
-export default async function BuyurtmaKartochkasi({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export default async function BuyurtmaKartochkasi({ params }: { params: Promise<{ id: string }> }) {
   const f = await sahifaRuxsati('buyurtma.kor');
   const tasdiqlayOladi = ruxsatBormi(f, 'buyurtma.tasdiqla');
   const bekorQilaOladi = ruxsatBormi(f, 'buyurtma.bekor');
@@ -48,9 +39,7 @@ export default async function BuyurtmaKartochkasi({
   const tolovQilaOladi = ruxsatBormi(f, 'kassa.tolov');
   const [tolov, kassalar] = await Promise.all([
     tolovHolati(buyurtmaId, f.filialId),
-    tolovQilaOladi
-      ? tolovKassalari(f.filialId, f.xodimId)
-      : Promise.resolve([]),
+    tolovQilaOladi ? tolovKassalari(f.filialId, f.xodimId) : Promise.resolve([]),
   ]);
 
   /**
@@ -82,11 +71,11 @@ export default async function BuyurtmaKartochkasi({
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <Link href="/buyurtma" className="text-sm text-slate-500 hover:text-slate-900">
+        <Link href="/buyurtma" className="text-sm text-matn-kuchsiz hover:text-matn">
           ← Buyurtmalar
         </Link>
-        <h1 className="mt-2 text-xl font-semibold tracking-tight">{b.raqam}</h1>
-        <p className="mt-1 text-sm text-slate-500">
+        <h1 className="mt-2 text-[22px] font-semibold tracking-[-0.02em] text-matn">{b.raqam}</h1>
+        <p className="mt-1 text-sm text-matn-kuchsiz">
           {b.sana.toLocaleDateString('uz-UZ')} · {b.sotuvchiIsmi} · {b.manba}
           {b.mijozIsmi !== null && ` · ${b.mijozIsmi}`}
           {b.mijozTelefon !== null && ` (${b.mijozTelefon})`}
@@ -94,20 +83,20 @@ export default async function BuyurtmaKartochkasi({
       </div>
 
       {/* ── 8.14 · Pul bloki ── */}
-      <dl className="grid max-w-lg grid-cols-2 gap-x-4 gap-y-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
-        <dt className="text-slate-500">Pozitsiyalar</dt>
+      <dl className="grid max-w-lg grid-cols-2 gap-x-4 gap-y-2 rounded-karta border border-chegara bg-fon px-4 py-3 text-sm">
+        <dt className="text-matn-kuchsiz">Pozitsiyalar</dt>
         <dd className="raqam">{b.pozitsiyalar.length}</dd>
-        <dt className="text-slate-500">Jami</dt>
+        <dt className="text-matn-kuchsiz">Jami</dt>
         <dd className="raqam font-semibold">{pul(pulMatn(jami))}</dd>
-        <dt className="text-slate-500">Tayyorlik sanasi</dt>
+        <dt className="text-matn-kuchsiz">Tayyorlik sanasi</dt>
         <dd>
           {b.tayyorlikSana ?? (
-            <span className="text-slate-400">kiritilmagan — kechikmaydi (3.13)</span>
+            <span className="text-matn-kuchsiz">kiritilmagan — kechikmaydi (3.13)</span>
           )}
         </dd>
         {!somda && (
           <>
-            <dt className="text-slate-500">Kurs</dt>
+            <dt className="text-matn-kuchsiz">Kurs</dt>
             <dd className="raqam">{b.kursSnapshot ?? '—'}</dd>
           </>
         )}
@@ -116,17 +105,17 @@ export default async function BuyurtmaKartochkasi({
       {/* ── 3.12 · 8.14 · To'lovlar ── */}
       {tolov !== null && (
         <section>
-          <h2 className="mb-1 text-sm font-medium text-slate-700">To&apos;lovlar</h2>
+          <h2 className="mb-1 text-sm font-medium text-matn-ikki">To&apos;lovlar</h2>
 
-          <dl className="mb-3 grid max-w-md grid-cols-2 gap-x-4 gap-y-1 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
-            <dt className="text-slate-500">Jami</dt>
+          <dl className="mb-3 grid max-w-md grid-cols-2 gap-x-4 gap-y-1 rounded-karta border border-chegara bg-fon px-4 py-3 text-sm">
+            <dt className="text-matn-kuchsiz">Jami</dt>
             <dd className="raqam">{pul(tolov.jami)}</dd>
-            <dt className="text-slate-500">To&apos;langan</dt>
-            <dd className="raqam text-emerald-700">{pul(tolov.tolangan)}</dd>
-            <dt className="border-t border-slate-200 pt-1 font-medium">Qarz</dt>
+            <dt className="text-matn-kuchsiz">To&apos;langan</dt>
+            <dd className="raqam text-belgi-yashil">{pul(tolov.tolangan)}</dd>
+            <dt className="border-t border-chegara pt-1 font-medium">Qarz</dt>
             <dd
-              className={`raqam border-t border-slate-200 pt-1 font-semibold ${
-                Number(tolov.qarz) > 0 ? 'text-amber-800' : ''
+              className={`raqam border-t border-chegara pt-1 font-semibold ${
+                Number(tolov.qarz) > 0 ? 'text-belgi-sariq' : ''
               }`}
             >
               {pul(tolov.qarz)}
@@ -134,12 +123,12 @@ export default async function BuyurtmaKartochkasi({
           </dl>
 
           {tolov.qatorlar.length > 0 && (
-            <div className="mb-3 overflow-x-auto rounded-xl border border-slate-200 bg-white">
+            <div className="mb-3 overflow-x-auto rounded-karta border border-chegara bg-sirt">
               <table className="w-full text-sm">
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-chegara">
                   {tolov.qatorlar.map((q) => (
-                    <tr key={q.id} className={q.stornoQilinganmi ? 'text-slate-400' : ''}>
-                      <td className="px-4 py-2 text-slate-600">
+                    <tr key={q.id} className={q.stornoQilinganmi ? 'text-matn-kuchsiz' : ''}>
+                      <td className="px-4 py-2 text-matn-ikki">
                         {q.sana.toLocaleDateString('uz-UZ')}
                       </td>
                       <td className="px-4 py-2">{q.kassaNomi}</td>
@@ -149,9 +138,7 @@ export default async function BuyurtmaKartochkasi({
                           <span className="ml-2 text-xs">storno qilingan</span>
                         )}
                       </td>
-                      <td className="px-4 py-2 text-xs text-slate-500">
-                        {q.xodimIsmi}
-                      </td>
+                      <td className="px-4 py-2 text-xs text-matn-kuchsiz">{q.xodimIsmi}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -171,36 +158,33 @@ export default async function BuyurtmaKartochkasi({
       )}
 
       {filiallararo && (
-        <p className="rounded-xl bg-sky-50 px-4 py-3 text-sm text-sky-900 ring-1 ring-sky-200">
-          Buyurtma <b>#{b.sotganFilialId}</b> filialda sotilgan,{' '}
-          <b>#{b.tikuvchiFilialId}</b> filialda tikiladi. Material tikuvchi filial
-          omborida band qilinadi (20.4.2).
+        <p className="rounded-karta bg-brend-fon px-4 py-3 text-sm text-brend ">
+          Buyurtma <b>#{b.sotganFilialId}</b> filialda sotilgan, <b>#{b.tikuvchiFilialId}</b>{' '}
+          filialda tikiladi. Material tikuvchi filial omborida band qilinadi (20.4.2).
         </p>
       )}
 
       {/* ── 8.14 · Pozitsiyalar tabi ── */}
       <section>
-        <h2 className="mb-1 text-sm font-medium text-slate-700">Pozitsiyalar</h2>
-        <p className="mb-3 text-xs text-slate-500">
-          Har pozitsiyaning O&apos;Z holati bor — bittasi topshirilgan
-          bo&apos;lsa ham, ikkinchisi hali tikilayotgan bo&apos;lishi mumkin (8.2).
+        <h2 className="mb-1 text-sm font-medium text-matn-ikki">Pozitsiyalar</h2>
+        <p className="mb-3 text-xs text-matn-kuchsiz">
+          Har pozitsiyaning O&apos;Z holati bor — bittasi topshirilgan bo&apos;lsa ham, ikkinchisi
+          hali tikilayotgan bo&apos;lishi mumkin (8.2).
         </p>
 
         <div className="flex flex-col gap-4">
           {b.pozitsiyalar.map((p) => (
-            <div key={p.id} className="rounded-xl border border-slate-200 bg-white">
-              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-4 py-3">
+            <div key={p.id} className="rounded-karta border border-chegara bg-sirt">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-chegara px-4 py-3">
                 <div>
                   <span className="font-medium">
                     {p.tartib}. {p.turNomi}
                   </span>
-                  <span className="raqam ml-3 text-sm text-slate-600">
+                  <span className="raqam ml-3 text-sm text-matn-ikki">
                     {p.eniSm} × {p.boyiSm} sm
                   </span>
                   {p.soni > 1 && (
-                    <span className="raqam ml-2 text-sm text-slate-500">
-                      × {p.soni}
-                    </span>
+                    <span className="raqam ml-2 text-sm text-matn-kuchsiz">× {p.soni}</span>
                   )}
                 </div>
 
@@ -208,10 +192,10 @@ export default async function BuyurtmaKartochkasi({
                   <span
                     className={`rounded px-2 py-0.5 text-xs ${
                       p.holat === 'MATERIALGA_KUTMOQDA'
-                        ? 'bg-amber-100 text-amber-900'
+                        ? 'bg-belgi-sariq-fon text-belgi-sariq'
                         : p.holat === 'TOPSHIRILDI'
-                          ? 'bg-emerald-100 text-emerald-900'
-                          : 'bg-slate-100 text-slate-700'
+                          ? 'bg-belgi-yashil-fon text-belgi-yashil'
+                          : 'bg-fon text-matn-ikki'
                     }`}
                   >
                     {HOLAT_NOMI[p.holat as PozitsiyaHolati] ?? p.holat}
@@ -226,39 +210,35 @@ export default async function BuyurtmaKartochkasi({
               </div>
 
               <table className="w-full text-sm">
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-chegara">
                   {p.materiallar.map((m) => (
                     <tr key={m.slotNomi}>
-                      <td className="px-4 py-2 text-slate-500">{m.slotNomi}</td>
+                      <td className="px-4 py-2 text-matn-kuchsiz">{m.slotNomi}</td>
                       <td className="px-4 py-2">{m.materialNomi}</td>
                       <td className="raqam px-4 py-2">
                         {m.hisoblangan.toFixed(m.birlik === 'DONA' ? 0 : 2)}{' '}
                         {BIRLIK[m.birlik] ?? m.birlik}
                         {m.tuzatilgan !== null && (
                           // TZ 3.6 — narx tuzatilganiga, ombor hisoblanganiga
-                          <span className="ml-2 text-xs text-amber-800">
+                          <span className="ml-2 text-xs text-belgi-sariq">
                             narxda {m.tuzatilgan.toFixed(2)}
                           </span>
                         )}
                       </td>
-                      <td className="px-4 py-2 font-mono text-xs text-slate-500">
-                        {m.bandKodlari.length > 0
-                          ? m.bandKodlari.join(', ')
-                          : 'band yo’q'}
+                      <td className="px-4 py-2 font-mono text-xs text-matn-kuchsiz">
+                        {m.bandKodlari.length > 0 ? m.bandKodlari.join(', ') : 'band yo’q'}
                       </td>
                     </tr>
                   ))}
 
                   {p.aksessuarlar.map((a) => (
-                    <tr key={a.nom} className="text-slate-600">
-                      <td className="px-4 py-2 text-slate-500">aksessuar</td>
+                    <tr key={a.nom} className="text-matn-ikki">
+                      <td className="px-4 py-2 text-matn-kuchsiz">aksessuar</td>
                       <td className="px-4 py-2">{a.nom}</td>
                       <td className="raqam px-4 py-2">
                         {a.soni} {BIRLIK[a.birlik] ?? a.birlik}
                         {a.qoldaKiritildi && (
-                          <span className="ml-2 text-xs text-slate-400">
-                            qo&apos;lda
-                          </span>
+                          <span className="ml-2 text-xs text-matn-kuchsiz">qo&apos;lda</span>
                         )}
                       </td>
                       <td />
@@ -268,7 +248,7 @@ export default async function BuyurtmaKartochkasi({
               </table>
 
               {p.ustaIsmi !== null && (
-                <div className="border-t border-slate-100 px-4 py-2 text-xs text-slate-500">
+                <div className="border-t border-chegara px-4 py-2 text-xs text-matn-kuchsiz">
                   Usta: {p.ustaIsmi}
                 </div>
               )}
@@ -337,21 +317,13 @@ function PozitsiyaAmallari({
   }
 
   return (
-    <div className="flex flex-wrap items-start gap-6 border-t border-slate-100 px-4 py-3">
+    <div className="flex flex-wrap items-start gap-6 border-t border-chegara px-4 py-3">
       {yetibKeldi && <YetibKeldiTugmasi pozitsiyaId={pozitsiyaId} />}
       {topshir && <TopshirishTugmasi pozitsiyaId={pozitsiyaId} />}
       {radEt && <RadEtishTugmasi pozitsiyaId={pozitsiyaId} />}
-      {qaytar && (
-        <QaytarishTugmasi
-          pozitsiyaId={pozitsiyaId}
-          narx={narx}
-          kassalar={kassalar}
-        />
-      )}
+      {qaytar && <QaytarishTugmasi pozitsiyaId={pozitsiyaId} narx={narx} kassalar={kassalar} />}
       {bekor && <BekorTugmasi pozitsiyaId={pozitsiyaId} />}
-      {qaytaribOl && (
-        <QaytaribOlishTugmasi pozitsiyaId={pozitsiyaId} ustaIsmi={ustaIsmi} />
-      )}
+      {qaytaribOl && <QaytaribOlishTugmasi pozitsiyaId={pozitsiyaId} ustaIsmi={ustaIsmi} />}
     </div>
   );
 }

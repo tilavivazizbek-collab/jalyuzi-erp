@@ -70,9 +70,9 @@ export function TolovFormasi({
 
   if (kassalar.length === 0) {
     return (
-      <p className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900 ring-1 ring-amber-200">
-        Sizning kassangiz yo&apos;q — to&apos;lov qabul qilib bo&apos;lmaydi.
-        Admin kassa ochib berishi kerak (12.2).
+      <p className="rounded-karta bg-belgi-sariq-fon px-4 py-3 text-sm text-belgi-sariq ">
+        Sizning kassangiz yo&apos;q — to&apos;lov qabul qilib bo&apos;lmaydi. Admin kassa ochib
+        berishi kerak (12.2).
       </p>
     );
   }
@@ -85,14 +85,14 @@ export function TolovFormasi({
       {holat.xato !== null && (
         <p
           role="alert"
-          className="rounded-lg bg-red-50 px-3 py-2.5 text-sm text-red-800 ring-1 ring-red-200"
+          className="rounded-maydon bg-belgi-qizil-fon px-3 py-2.5 text-sm text-belgi-qizil "
         >
           {holat.xato}
         </p>
       )}
 
       {holat.bajarildi && (
-        <p className="rounded-lg bg-emerald-50 px-3 py-2.5 text-sm text-emerald-900 ring-1 ring-emerald-200">
+        <p className="rounded-maydon bg-belgi-yashil-fon px-3 py-2.5 text-sm text-belgi-yashil ">
           To&apos;lov qabul qilindi.
           {holat.qarz !== null && Number(holat.qarz) > 0 && (
             <span className="ml-1">
@@ -139,7 +139,7 @@ export function TolovFormasi({
                 onClick={() => {
                   qatorlarniOzgartir((o) => o.filter((_, j) => j !== i));
                 }}
-                className="text-xs text-slate-400 hover:text-red-700"
+                className="text-xs text-matn-kuchsiz hover:text-belgi-qizil"
               >
                 olib tashlash
               </button>
@@ -153,20 +153,20 @@ export function TolovFormasi({
         onClick={() => {
           qatorlarniOzgartir((o) => [...o, yangiQator(String(kassalar[0]?.id ?? ''))]);
         }}
-        className="self-start text-sm text-slate-500 underline underline-offset-2 hover:text-slate-900"
+        className="self-start text-sm text-matn-kuchsiz underline underline-offset-2 hover:text-matn"
       >
         + Usul qo&apos;shish
       </button>
 
       <dl className="grid max-w-xs grid-cols-2 gap-x-4 gap-y-1 text-sm">
-        <dt className="text-slate-500">Qarz</dt>
+        <dt className="text-matn-kuchsiz">Qarz</dt>
         <dd className="raqam">{pulKorsat(som(qarz))}</dd>
-        <dt className="text-slate-500">Kiritildi</dt>
+        <dt className="text-matn-kuchsiz">Kiritildi</dt>
         <dd className="raqam">{pulKorsat(som(jami.toFixed(2)))}</dd>
-        <dt className="border-t border-slate-200 pt-1 font-medium">Qoladi</dt>
+        <dt className="border-t border-chegara pt-1 font-medium">Qoladi</dt>
         <dd
-          className={`raqam border-t border-slate-200 pt-1 font-semibold ${
-            qolgan > 0 ? 'text-amber-800' : ''
+          className={`raqam border-t border-chegara pt-1 font-semibold ${
+            qolgan > 0 ? 'text-belgi-sariq' : ''
           }`}
         >
           {pulKorsat(som(qolgan.toFixed(2)))}
@@ -174,7 +174,7 @@ export function TolovFormasi({
       </dl>
 
       {qolgan > 0 && (
-        <p className="text-xs text-amber-800">
+        <p className="text-xs text-belgi-sariq">
           To&apos;lov to&apos;liq emas — qolgan summa qarzga yoziladi (3.12).
         </p>
       )}
@@ -186,7 +186,7 @@ export function TolovFormasi({
       <button
         type="submit"
         disabled={kutilmoqda || yuborilajak.length === 0}
-        className="self-start rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800 disabled:opacity-50"
+        className="self-start rounded-maydon bg-amal px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-amal-hover disabled:opacity-50"
       >
         {kutilmoqda ? 'Saqlanmoqda…' : "To'lovni qabul qilish"}
       </button>

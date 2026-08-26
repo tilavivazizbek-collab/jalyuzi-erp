@@ -12,11 +12,13 @@ export default async function YangiFilial() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <Link href="/filial" className="text-sm text-slate-500 hover:text-slate-900">
+        <Link href="/filial" className="text-sm text-matn-kuchsiz hover:text-matn">
           ← Filiallar
         </Link>
-        <h1 className="mt-2 text-xl font-semibold tracking-tight">Yangi filial</h1>
-        <p className="mt-1 text-sm text-slate-500">
+        <h1 className="mt-2 text-[22px] font-semibold tracking-[-0.02em] text-matn">
+          Yangi filial
+        </h1>
+        <p className="mt-1 text-sm text-matn-kuchsiz">
           Filial ochilgach unga kassa va xodim biriktiriladi (12, 10)
         </p>
       </div>

@@ -34,15 +34,15 @@ export default async function MijozRoyxati() {
     <div className="flex flex-col gap-6">
       <div className="flex items-end justify-between gap-4">
         <div>
-          <h1 className="text-xl font-semibold tracking-tight">Mijozlar</h1>
-          <p className="mt-1 text-sm text-slate-500">
+          <h1 className="text-[22px] font-semibold tracking-[-0.02em] text-matn">Mijozlar</h1>
+          <p className="mt-1 text-sm text-matn-kuchsiz">
             {qatorlar.length} ta · barcha filial uchun umumiy, qarzi ham (Q-26)
           </p>
         </div>
         {yarataOladi && (
           <Link
             href="/mijoz/yangi"
-            className="rounded-lg bg-slate-900 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-slate-800"
+            className="rounded-maydon bg-amal px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-amal-hover"
           >
             Mijoz qo&apos;shish
           </Link>
@@ -50,13 +50,13 @@ export default async function MijozRoyxati() {
       </div>
 
       {qatorlar.length === 0 ? (
-        <p className="rounded-xl border border-dashed border-slate-300 px-4 py-10 text-center text-sm text-slate-500">
+        <p className="rounded-karta border border-dashed border-chegara-quyuq px-4 py-10 text-center text-sm text-matn-kuchsiz">
           Hali mijoz yo&apos;q.
         </p>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+        <div className="overflow-x-auto rounded-karta border border-chegara bg-sirt">
           <table className="w-full text-sm">
-            <thead className="border-b border-slate-200 bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+            <thead className="border-b border-chegara bg-fon text-left text-xs uppercase tracking-wide text-matn-kuchsiz">
               <tr>
                 <th className="px-4 py-2.5 font-medium">Ismi</th>
                 <th className="px-4 py-2.5 font-medium">Telefon</th>
@@ -66,22 +66,22 @@ export default async function MijozRoyxati() {
                 {ozgartiraOladi && <th className="px-4 py-2.5" />}
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-chegara">
               {qatorlar.map((m) => (
-                <tr key={m.id} className={m.faol ? '' : 'bg-slate-50 text-slate-400'}>
+                <tr key={m.id} className={m.faol ? '' : 'bg-fon text-matn-kuchsiz'}>
                   <td className="px-4 py-2.5 font-medium">
                     {m.ism}
                     {!m.faol && <span className="ml-2 text-xs">(nofaol)</span>}
                   </td>
                   <td className="px-4 py-2.5">
                     {m.telefon === null ? (
-                      <span className="text-slate-400">—</span>
+                      <span className="text-matn-kuchsiz">—</span>
                     ) : (
                       telefonKorsat(m.telefon)
                     )}
                     {/* TZ 6.11 — telegram yo'q bo'lsa xabar yuborib bo'lmaydi */}
                     {m.telegram_id === null && (
-                      <span className="ml-2 text-xs text-amber-700" title="Botga ulanmagan">
+                      <span className="ml-2 text-xs text-belgi-sariq" title="Botga ulanmagan">
                         qo&apos;ng&apos;iroq qiling
                       </span>
                     )}
@@ -91,21 +91,24 @@ export default async function MijozRoyxati() {
                   </td>
                   <td className="px-4 py-2.5">
                     {m.offset_turi === null || m.offset_qiymat === null ? (
-                      <span className="text-slate-400">—</span>
+                      <span className="text-matn-kuchsiz">—</span>
                     ) : (
                       `${String(Number(m.offset_qiymat))} · ${OFFSET_TURI_NOMI[m.offset_turi as OffsetTuri]}`
                     )}
                   </td>
                   <td className="raqam px-4 py-2.5">
                     {m.qarz_limiti === null ? (
-                      <span className="text-slate-400">—</span>
+                      <span className="text-matn-kuchsiz">—</span>
                     ) : (
                       pulKorsat(som(m.qarz_limiti))
                     )}
                   </td>
                   {ozgartiraOladi && (
                     <td className="px-4 py-2.5 text-right">
-                      <Link href={`/mijoz/${String(m.id)}`} className="text-slate-600 hover:text-slate-900">
+                      <Link
+                        href={`/mijoz/${String(m.id)}`}
+                        className="text-matn-ikki hover:text-matn"
+                      >
                         Tahrirlash
                       </Link>
                     </td>

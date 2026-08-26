@@ -85,9 +85,7 @@ export function VaraqaFormasi({
         const e = son(k.eniM);
         const b = son(k.boyiM);
         natija[s.qatorId] =
-          e === null || b === null
-            ? null
-            : e * b - (s.tizimdaEniM ?? 0) * (s.tizimdaBoyiM ?? 0);
+          e === null || b === null ? null : e * b - (s.tizimdaEniM ?? 0) * (s.tizimdaBoyiM ?? 0);
       }
     }
     return natija;
@@ -123,22 +121,22 @@ export function VaraqaFormasi({
       {holat.xato !== null && (
         <p
           role="alert"
-          className="rounded-lg bg-red-50 px-3 py-2.5 text-sm text-red-800 ring-1 ring-red-200"
+          className="rounded-maydon bg-belgi-qizil-fon px-3 py-2.5 text-sm text-belgi-qizil "
         >
           {holat.xato}
         </p>
       )}
 
       {holat.manfiyQoldiq.length > 0 && (
-        <p className="rounded-lg bg-amber-50 px-3 py-2.5 text-sm text-amber-900 ring-1 ring-amber-200">
-          Qoldiq manfiyga tushdi: <b>{holat.manfiyQoldiq.join(', ')}</b>. Bu
-          ruxsat etilgan (2.5-invariant), lekin admin tuzatgunicha qizil turadi.
+        <p className="rounded-maydon bg-belgi-sariq-fon px-3 py-2.5 text-sm text-belgi-sariq ">
+          Qoldiq manfiyga tushdi: <b>{holat.manfiyQoldiq.join(', ')}</b>. Bu ruxsat etilgan
+          (2.5-invariant), lekin admin tuzatgunicha qizil turadi.
         </p>
       )}
 
-      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+      <div className="overflow-x-auto rounded-karta border border-chegara bg-sirt">
         <table className="w-full text-sm">
-          <thead className="border-b border-slate-200 bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+          <thead className="border-b border-chegara bg-fon text-left text-xs uppercase tracking-wide text-matn-kuchsiz">
             <tr>
               <th className="px-3 py-2.5 font-medium">Material</th>
               <th className="px-3 py-2.5 font-medium">Bo&apos;lak</th>
@@ -149,7 +147,7 @@ export function VaraqaFormasi({
               <th className="px-3 py-2.5 font-medium">Sabab</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-chegara">
             {satrlar.map((s) => {
               const k = ol(s.qatorId);
               const dona = s.turi === 'DONA';
@@ -157,14 +155,14 @@ export function VaraqaFormasi({
               const birlik = dona ? (s.sarflashBirligi === 'SM' ? 'sm' : 'dona') : 'kv.m';
 
               return (
-                <tr key={s.qatorId} className={s.yolda ? 'bg-slate-50 text-slate-400' : ''}>
+                <tr key={s.qatorId} className={s.yolda ? 'bg-fon text-matn-kuchsiz' : ''}>
                   <td className="px-3 py-2">{s.materialNomi}</td>
                   <td className="px-3 py-2 font-mono text-xs">{s.kod}</td>
                   <td className="px-3 py-2 text-xs">
                     {s.yolda ? (
-                      <span className="text-slate-500">yo&apos;lda</span>
+                      <span className="text-matn-kuchsiz">yo&apos;lda</span>
                     ) : s.band ? (
-                      <span className="text-amber-700">band</span>
+                      <span className="text-belgi-sariq">band</span>
                     ) : (
                       ''
                     )}
@@ -200,7 +198,7 @@ export function VaraqaFormasi({
                           className={`${kirishUslubi(false)} w-20`}
                           placeholder="eni"
                         />
-                        <span className="text-slate-400">×</span>
+                        <span className="text-matn-kuchsiz">×</span>
                         <input
                           name={`boyi-${String(s.qatorId)}`}
                           value={k.boyiM}
@@ -211,17 +209,17 @@ export function VaraqaFormasi({
                           className={`${kirishUslubi(false)} w-20`}
                           placeholder="bo'yi"
                         />
-                        <span className="text-xs text-slate-400">m</span>
+                        <span className="text-xs text-matn-kuchsiz">m</span>
                       </span>
                     )}
                   </td>
                   <td
                     className={`raqam px-3 py-2 whitespace-nowrap ${
                       farq === null || farq === 0
-                        ? 'text-slate-400'
+                        ? 'text-matn-kuchsiz'
                         : farq < 0
-                          ? 'text-red-700'
-                          : 'text-emerald-700'
+                          ? 'text-belgi-qizil'
+                          : 'text-belgi-yashil'
                     }`}
                   >
                     {farq === null ? '—' : `${farq > 0 ? '+' : ''}${farq.toFixed(2)} ${birlik}`}
@@ -251,7 +249,7 @@ export function VaraqaFormasi({
         </table>
       </div>
 
-      <div className="flex flex-wrap items-center gap-4 text-sm text-slate-600">
+      <div className="flex flex-wrap items-center gap-4 text-sm text-matn-ikki">
         <span>
           Sanalgan: <b>{sanalgan}</b> / {satrlar.length}
         </span>
@@ -260,24 +258,21 @@ export function VaraqaFormasi({
         </span>
       </div>
 
-      <p className="rounded-lg bg-slate-50 px-3 py-2.5 text-xs text-slate-600 ring-1 ring-slate-200">
-        Bo&apos;sh qoldirilgan qator qoldiqqa <b>tegmaydi</b> — qisman sanash
-        shunday ishlaydi (15.1). Farq chiqqan qatorda sabab majburiy.
-        Yakunlangach qoldiq darhol o&apos;zgaradi va adminga xabar ketadi.
+      <p className="rounded-maydon bg-fon px-3 py-2.5 text-xs text-matn-ikki ">
+        Bo&apos;sh qoldirilgan qator qoldiqqa <b>tegmaydi</b> — qisman sanash shunday ishlaydi
+        (15.1). Farq chiqqan qatorda sabab majburiy. Yakunlangach qoldiq darhol o&apos;zgaradi va
+        adminga xabar ketadi.
       </p>
 
       <div className="flex items-center gap-3">
         <button
           type="submit"
           disabled={kutilmoqda || sanalgan === 0}
-          className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800 disabled:opacity-50"
+          className="rounded-maydon bg-amal px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-amal-hover disabled:opacity-50"
         >
           {kutilmoqda ? 'Yakunlanmoqda…' : 'Yakunlash'}
         </button>
-        <Link
-          href="/ombor/inventarizatsiya"
-          className="text-sm text-slate-500 hover:text-slate-900"
-        >
+        <Link href="/ombor/inventarizatsiya" className="text-sm text-matn-kuchsiz hover:text-matn">
           Keyinroq
         </Link>
       </div>

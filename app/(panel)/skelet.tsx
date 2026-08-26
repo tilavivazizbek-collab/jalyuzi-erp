@@ -16,12 +16,7 @@
 
 /** Bitta kulrang chiziq. */
 export function Chiziq({ kenglik = 'w-full' }: { kenglik?: string }) {
-  return (
-    <div
-      className={`h-3.5 animate-pulse rounded bg-chegara ${kenglik}`}
-      aria-hidden="true"
-    />
-  );
+  return <div className={`h-3.5 animate-pulse rounded bg-chegara ${kenglik}`} aria-hidden="true" />;
 }
 
 /** Sahifa sarlavhasi o'rni. */

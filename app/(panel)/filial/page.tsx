@@ -16,23 +16,22 @@ export default async function FilialRoyxati() {
     <div className="flex flex-col gap-6">
       <div className="flex items-end justify-between gap-4">
         <div>
-          <h1 className="text-xl font-semibold tracking-tight">Filiallar</h1>
-          <p className="mt-1 text-sm text-slate-500">
-            Rejim «Sotadi» va «Ishlab chiqaradi» bayroqlaridan kelib chiqadi
-            (20.2.1)
+          <h1 className="text-[22px] font-semibold tracking-[-0.02em] text-matn">Filiallar</h1>
+          <p className="mt-1 text-sm text-matn-kuchsiz">
+            Rejim «Sotadi» va «Ishlab chiqaradi» bayroqlaridan kelib chiqadi (20.2.1)
           </p>
         </div>
         <div className="flex items-center gap-2">
           <Link
             href="/filial/hisob"
-            className="rounded-lg border border-slate-300 px-3.5 py-2 text-sm text-slate-700 transition hover:bg-slate-50"
+            className="rounded-maydon border border-chegara-quyuq px-3.5 py-2 text-sm text-matn-ikki transition-colors hover:bg-fon"
           >
             Hisob-kitob
           </Link>
           {yarataOladi && (
             <Link
               href="/filial/yangi"
-              className="rounded-lg bg-slate-900 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-slate-800"
+              className="rounded-maydon bg-amal px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-amal-hover"
             >
               Yangi filial
             </Link>
@@ -40,9 +39,9 @@ export default async function FilialRoyxati() {
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+      <div className="overflow-x-auto rounded-karta border border-chegara bg-sirt">
         <table className="w-full text-sm">
-          <thead className="border-b border-slate-200 bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+          <thead className="border-b border-chegara bg-fon text-left text-xs uppercase tracking-wide text-matn-kuchsiz">
             <tr>
               <th className="px-4 py-2.5 font-medium">Nomi</th>
               <th className="px-4 py-2.5 font-medium">Rejim</th>
@@ -51,49 +50,39 @@ export default async function FilialRoyxati() {
               <th className="px-4 py-2.5 font-medium">Holat</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-chegara">
             {royxat.map((q) => (
-              <tr key={q.id} className={q.faol ? '' : 'text-slate-400'}>
+              <tr key={q.id} className={q.faol ? '' : 'text-matn-kuchsiz'}>
                 <td className="px-4 py-2.5">
                   <Link
                     href={`/filial/${String(q.id)}`}
-                    className="font-medium text-slate-900 hover:underline"
+                    className="font-medium text-matn hover:underline"
                   >
                     {q.nom}
                   </Link>
                   {q.bosh && (
-                    <span className="ml-2 rounded-full bg-slate-900 px-2 py-0.5 text-xs text-white">
+                    <span className="ml-2 rounded-full bg-amal px-2 py-0.5 text-xs text-white">
                       bosh
                     </span>
                   )}
-                  {q.manzil !== null && (
-                    <div className="text-xs text-slate-500">{q.manzil}</div>
-                  )}
+                  {q.manzil !== null && <div className="text-xs text-matn-kuchsiz">{q.manzil}</div>}
                 </td>
                 <td className="px-4 py-2.5">
-                  {
-                    REJIM_NOMI[
-                      rejim({ sotadi: q.sotadi, ishlabChiqaradi: q.ishlabChiqaradi })
-                    ]
-                  }
+                  {REJIM_NOMI[rejim({ sotadi: q.sotadi, ishlabChiqaradi: q.ishlabChiqaradi })]}
                 </td>
-                <td className="px-4 py-2.5 text-slate-600">
+                <td className="px-4 py-2.5 text-matn-ikki">
                   {q.ishlabChiqaradi ? (
-                    <span className="text-slate-400">o&apos;zi</span>
+                    <span className="text-matn-kuchsiz">o&apos;zi</span>
                   ) : (
-                    (q.standartNomi ?? (
-                      <span className="text-red-700">belgilanmagan</span>
-                    ))
+                    (q.standartNomi ?? <span className="text-belgi-qizil">belgilanmagan</span>)
                   )}
                 </td>
-                <td className="raqam px-4 py-2.5">
-                  {q.kassaYopilishSoati.slice(0, 5)}
-                </td>
+                <td className="raqam px-4 py-2.5">{q.kassaYopilishSoati.slice(0, 5)}</td>
                 <td className="px-4 py-2.5">
                   {q.faol ? (
-                    <span className="text-emerald-700">faol</span>
+                    <span className="text-belgi-yashil">faol</span>
                   ) : (
-                    <span className="text-slate-400">nofaol</span>
+                    <span className="text-matn-kuchsiz">nofaol</span>
                   )}
                 </td>
               </tr>

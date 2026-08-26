@@ -8,11 +8,7 @@ import { StornoFormasi } from '../storno-forma';
 
 export const dynamic = 'force-dynamic';
 
-export default async function KirimTafsili({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export default async function KirimTafsili({ params }: { params: Promise<{ id: string }> }) {
   const f = await sahifaRuxsati('ombor.qoldiq.kor');
   const stornoQilaOladi = ruxsatBormi(f, 'ombor.storno');
 
@@ -29,27 +25,27 @@ export default async function KirimTafsili({
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <Link href="/ombor/kirim" className="text-sm text-slate-500 hover:text-slate-900">
+        <Link href="/ombor/kirim" className="text-sm text-matn-kuchsiz hover:text-matn">
           ← Kirim hujjatlari
         </Link>
-        <h1 className="mt-2 text-xl font-semibold tracking-tight">{h.raqam}</h1>
-        <p className="mt-1 text-sm text-slate-500">
+        <h1 className="mt-2 text-[22px] font-semibold tracking-[-0.02em] text-matn">{h.raqam}</h1>
+        <p className="mt-1 text-sm text-matn-kuchsiz">
           {h.sana} · {h.yetkazibNomi} · {h.valyuta}
         </p>
       </div>
 
       {storno && (
-        <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-900 ring-1 ring-red-200">
-          <b>Storno qilingan.</b> {h.stornoSabab ?? ''} — hujjat tarixda qoladi,
-          o&apos;chirilmaydi (§6.5).
+        <p className="rounded-karta bg-belgi-qizil-fon px-4 py-3 text-sm text-belgi-qizil ">
+          <b>Storno qilingan.</b> {h.stornoSabab ?? ''} — hujjat tarixda qoladi, o&apos;chirilmaydi
+          (§6.5).
         </p>
       )}
 
       <section>
-        <h2 className="mb-2 text-sm font-medium text-slate-700">Qatorlar</h2>
-        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+        <h2 className="mb-2 text-sm font-medium text-matn-ikki">Qatorlar</h2>
+        <div className="overflow-x-auto rounded-karta border border-chegara bg-sirt">
           <table className="w-full text-sm">
-            <thead className="border-b border-slate-200 bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+            <thead className="border-b border-chegara bg-fon text-left text-xs uppercase tracking-wide text-matn-kuchsiz">
               <tr>
                 <th className="px-4 py-2.5 font-medium">Material</th>
                 <th className="px-4 py-2.5 text-right font-medium">Miqdor</th>
@@ -59,7 +55,7 @@ export default async function KirimTafsili({
                 <th className="px-4 py-2.5 text-right font-medium">Brak</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-chegara">
               {h.qatorlar.map((q) => (
                 <tr key={q.id}>
                   <td className="px-4 py-2.5">{q.materialNomi}</td>
@@ -75,26 +71,25 @@ export default async function KirimTafsili({
             </tbody>
           </table>
         </div>
-        <p className="mt-2 text-xs text-slate-400">
-          Tannarx = narx + transport ulushi; brak SON bo&apos;yicha bo&apos;linmaydi
-          (7.9 · P-17).
+        <p className="mt-2 text-xs text-matn-kuchsiz">
+          Tannarx = narx + transport ulushi; brak SON bo&apos;yicha bo&apos;linmaydi (7.9 · P-17).
         </p>
       </section>
 
-      <dl className="grid max-w-md grid-cols-2 gap-x-4 gap-y-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
-        <dt className="text-slate-500">Transport</dt>
+      <dl className="grid max-w-md grid-cols-2 gap-x-4 gap-y-2 rounded-karta border border-chegara bg-fon px-4 py-3 text-sm">
+        <dt className="text-matn-kuchsiz">Transport</dt>
         <dd className="raqam">{pul(h.transportSumma)}</dd>
-        <dt className="text-slate-500">Bojxona</dt>
+        <dt className="text-matn-kuchsiz">Bojxona</dt>
         <dd className="raqam">{pul(h.bojxonaSumma)}</dd>
-        <dt className="text-slate-500">Omborda turgan bo&apos;lak</dt>
+        <dt className="text-matn-kuchsiz">Omborda turgan bo&apos;lak</dt>
         <dd className="raqam">{h.omborda}</dd>
-        <dt className="text-slate-500">Ishlatilgan bo&apos;lak</dt>
+        <dt className="text-matn-kuchsiz">Ishlatilgan bo&apos;lak</dt>
         <dd className="raqam">{h.ishlatilgan}</dd>
       </dl>
 
       {stornoQilaOladi && !storno && (
         <section>
-          <h2 className="mb-2 text-sm font-medium text-slate-700">Storno (7.12)</h2>
+          <h2 className="mb-2 text-sm font-medium text-matn-ikki">Storno (7.12)</h2>
           <StornoFormasi
             kirimId={h.id}
             raqam={h.raqam}

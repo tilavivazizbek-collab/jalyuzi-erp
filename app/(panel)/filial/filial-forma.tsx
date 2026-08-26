@@ -41,13 +41,13 @@ export function FilialFormasi({
       {filial !== null && <input type="hidden" name="filialId" value={filial.id} />}
 
       {holat.xato !== null && (
-        <p role="alert" className="text-sm text-red-700">
+        <p role="alert" className="text-sm text-belgi-qizil">
           {holat.xato}
         </p>
       )}
 
       {holat.bajarildi && (
-        <p className="rounded-lg bg-emerald-50 px-3 py-2.5 text-sm text-emerald-900 ring-1 ring-emerald-200">
+        <p className="rounded-maydon bg-belgi-yashil-fon px-3 py-2.5 text-sm text-belgi-yashil ">
           Saqlandi.
         </p>
       )}
@@ -83,8 +83,8 @@ export function FilialFormasi({
       </div>
 
       {/* ── 20.2.1 · To'rt rejim ── */}
-      <fieldset className="rounded-xl border border-slate-200 bg-white p-4">
-        <legend className="px-1 text-sm font-medium text-slate-700">Rejim</legend>
+      <fieldset className="rounded-karta border border-chegara bg-sirt p-4">
+        <legend className="px-1 text-sm font-medium text-matn-ikki">Rejim</legend>
 
         <div className="flex flex-wrap gap-6">
           <label className="flex items-center gap-2 text-sm">
@@ -97,7 +97,7 @@ export function FilialFormasi({
               }}
             />
             Sotadi
-            <span className="text-xs text-slate-500">
+            <span className="text-xs text-matn-kuchsiz">
               (bu filialda buyurtma qabul qilinadimi)
             </span>
           </label>
@@ -112,13 +112,13 @@ export function FilialFormasi({
               }}
             />
             Ishlab chiqaradi
-            <span className="text-xs text-slate-500">(sex va ustalar bormi)</span>
+            <span className="text-xs text-matn-kuchsiz">(sex va ustalar bormi)</span>
           </label>
         </div>
 
-        <p className="mt-3 rounded-lg bg-slate-50 px-3 py-2 text-sm">
+        <p className="mt-3 rounded-maydon bg-fon px-3 py-2 text-sm">
           <b>{REJIM_NOMI[joriyRejim]}</b>{' '}
-          <span className="text-slate-500">— {REJIM_IZOHI[joriyRejim]}</span>
+          <span className="text-matn-kuchsiz">— {REJIM_IZOHI[joriyRejim]}</span>
         </p>
       </fieldset>
 
@@ -161,23 +161,22 @@ export function FilialFormasi({
       <label className="flex items-center gap-2 text-sm">
         <input type="checkbox" name="faol" defaultChecked={filial?.faol ?? true} />
         Faol
-        <span className="text-xs text-slate-500">
+        <span className="text-xs text-matn-kuchsiz">
           (nofaol filial yangi buyurtma qabul qilmaydi, tarixi qoladi)
         </span>
       </label>
 
       {filial?.bosh === true && (
-        <p className="rounded-lg bg-amber-50 px-3 py-2.5 text-xs text-amber-900 ring-1 ring-amber-200">
-          Bu <b>bosh filial</b>: standart narxlar, spravochniklar va
-          hisobotlar shu yerdan boshqariladi. Uni nofaol qilib bo&apos;lmaydi
-          (20.2.2).
+        <p className="rounded-maydon bg-belgi-sariq-fon px-3 py-2.5 text-xs text-belgi-sariq ">
+          Bu <b>bosh filial</b>: standart narxlar, spravochniklar va hisobotlar shu yerdan
+          boshqariladi. Uni nofaol qilib bo&apos;lmaydi (20.2.2).
         </p>
       )}
 
       <button
         type="submit"
         disabled={kutilmoqda}
-        className="self-start rounded-lg bg-slate-900 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-slate-800 disabled:opacity-60"
+        className="self-start rounded-maydon bg-amal px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-amal-hover disabled:opacity-60"
       >
         {kutilmoqda ? 'Saqlanmoqda…' : 'Saqlash'}
       </button>

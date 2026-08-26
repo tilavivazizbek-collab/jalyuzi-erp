@@ -39,34 +39,33 @@ export default async function YoldagilarSahifasi() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <Link href="/buyurtma" className="text-sm text-slate-500 hover:text-slate-900">
+        <Link href="/buyurtma" className="text-sm text-matn-kuchsiz hover:text-matn">
           ← Buyurtmalar
         </Link>
-        <h1 className="mt-2 text-xl font-semibold tracking-tight">
+        <h1 className="mt-2 text-[22px] font-semibold tracking-[-0.02em] text-matn">
           Yo&apos;ldagi mahsulotlar
         </h1>
-        <p className="mt-1 text-sm text-slate-500">
-          Boshqa filial tikdi, sizga kelmoqda. Qabul qilinganda holat
-          «Yetib keldi» bo&apos;ladi (20.5.1) — mijozga shundan keyin
-          topshiriladi.
+        <p className="mt-1 text-sm text-matn-kuchsiz">
+          Boshqa filial tikdi, sizga kelmoqda. Qabul qilinganda holat «Yetib keldi» bo&apos;ladi
+          (20.5.1) — mijozga shundan keyin topshiriladi.
         </p>
       </div>
 
       {royxat.length === 0 ? (
-        <p className="rounded-xl border border-dashed border-slate-300 px-4 py-10 text-center text-sm text-slate-500">
+        <p className="rounded-karta border border-dashed border-chegara-quyuq px-4 py-10 text-center text-sm text-matn-kuchsiz">
           Yo&apos;lda mahsulot yo&apos;q.
         </p>
       ) : (
         [...guruhlar.entries()].map(([filialNomi, qatorlar]) => (
           <section key={filialNomi} className="flex flex-col gap-2">
-            <h2 className="text-sm font-medium text-slate-700">
+            <h2 className="text-sm font-medium text-matn-ikki">
               {filialNomi} dan{' '}
-              <span className="text-slate-400">· {qatorlar.length} pozitsiya</span>
+              <span className="text-matn-kuchsiz">· {qatorlar.length} pozitsiya</span>
             </h2>
 
-            <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+            <div className="overflow-x-auto rounded-karta border border-chegara bg-sirt">
               <table className="w-full text-sm">
-                <thead className="border-b border-slate-200 bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+                <thead className="border-b border-chegara bg-fon text-left text-xs uppercase tracking-wide text-matn-kuchsiz">
                   <tr>
                     <th className="px-4 py-2.5 font-medium">Buyurtma</th>
                     <th className="px-4 py-2.5 font-medium">Mahsulot</th>
@@ -76,34 +75,28 @@ export default async function YoldagilarSahifasi() {
                     <th className="px-4 py-2.5" />
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-chegara">
                   {qatorlar.map((p) => (
                     <tr key={p.pozitsiyaId}>
                       <td className="px-4 py-2.5">
                         <Link
                           href={`/buyurtma/${String(p.buyurtmaId)}`}
-                          className="font-medium text-slate-900 hover:underline"
+                          className="font-medium text-matn hover:underline"
                         >
                           {p.buyurtmaRaqami}
                         </Link>
-                        <span className="ml-1 text-xs text-slate-400">
-                          poz. {p.tartib}
-                        </span>
+                        <span className="ml-1 text-xs text-matn-kuchsiz">poz. {p.tartib}</span>
                       </td>
                       <td className="px-4 py-2.5">{p.mahsulot}</td>
-                      <td className="raqam px-4 py-2.5 text-slate-600">
+                      <td className="raqam px-4 py-2.5 text-matn-ikki">
                         {p.eniSm}×{p.boyiSm}
                       </td>
-                      <td className="px-4 py-2.5 text-slate-600">
-                        {p.mijozIsmi ?? <span className="text-slate-300">—</span>}
+                      <td className="px-4 py-2.5 text-matn-ikki">
+                        {p.mijozIsmi ?? <span className="text-matn-kuchsiz">—</span>}
                       </td>
-                      <td className="px-4 py-2.5 text-slate-500">
-                        {sana(p.tayyorSana)}
-                      </td>
+                      <td className="px-4 py-2.5 text-matn-kuchsiz">{sana(p.tayyorSana)}</td>
                       <td className="px-4 py-2.5 text-right">
-                        {qabulQilaOladi && (
-                          <YetibKeldiTugmasi pozitsiyaId={p.pozitsiyaId} />
-                        )}
+                        {qabulQilaOladi && <YetibKeldiTugmasi pozitsiyaId={p.pozitsiyaId} />}
                       </td>
                     </tr>
                   ))}

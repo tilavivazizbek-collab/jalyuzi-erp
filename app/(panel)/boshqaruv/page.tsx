@@ -42,9 +42,7 @@ export default async function BoshqaruvSahifasi() {
       {/* ── Kim, qayerda ─────────────────────────────────────────── */}
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-[22px] font-semibold tracking-[-0.02em] text-matn">
-            {kim.ism}
-          </h1>
+          <h1 className="text-[22px] font-semibold tracking-[-0.02em] text-matn">{kim.ism}</h1>
           <p className="mt-0.5 text-[13px] text-matn-ikki">
             {kim.filialNomi}
             {f.boshFilialda && ' · bosh filial'}
@@ -101,9 +99,7 @@ export default async function BoshqaruvSahifasi() {
       {/* ── Ruxsatlar ────────────────────────────────────────────── */}
       <section className="flex flex-col gap-4">
         <div>
-          <h2 className="text-[15px] font-semibold text-matn">
-            Sizga ochiq amallar
-          </h2>
+          <h2 className="text-[15px] font-semibold text-matn">Sizga ochiq amallar</h2>
           <p className="mt-0.5 text-[13px] text-matn-ikki">
             Barcha rollaringiz yig&apos;indisi (10.3)
           </p>
@@ -111,9 +107,7 @@ export default async function BoshqaruvSahifasi() {
 
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {GURUHLAR.map((guruh) => {
-            const kodlar = RUXSAT_KODLARI.filter(
-              (x) => RUXSATLAR[x].guruh === guruh,
-            );
+            const kodlar = RUXSAT_KODLARI.filter((x) => RUXSATLAR[x].guruh === guruh);
             const natijalar = kodlar.map((x) => ({
               kod: x,
               natija: ruxsatTekshir(f, x),
@@ -140,13 +134,8 @@ export default async function BoshqaruvSahifasi() {
 
                 <ul className="flex flex-col gap-1.5 px-5 pb-4">
                   {natijalar.map(({ kod, natija }) => (
-                    <li
-                      key={kod}
-                      className="flex items-baseline justify-between gap-2 text-[13px]"
-                    >
-                      <span
-                        className={natija.ruxsat ? 'text-matn-ikki' : 'text-matn-kuchsiz'}
-                      >
+                    <li key={kod} className="flex items-baseline justify-between gap-2 text-[13px]">
+                      <span className={natija.ruxsat ? 'text-matn-ikki' : 'text-matn-kuchsiz'}>
                         {natija.ruxsat ? '' : '· '}
                         {RUXSATLAR[kod].nom}
                       </span>

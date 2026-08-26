@@ -2,7 +2,12 @@ import Link from 'next/link';
 import { ulanishOl } from '@/lib/db';
 import { sahifaRuxsati } from '@/lib/kirish/joriy';
 import { ruxsatBormi } from '@/lib/ruxsat/tekshir';
-import { HISOB_TURI_NOMI, SARFLASH_BIRLIGI_NOMI, type HisobTuri, type SarflashBirligi } from '@/lib/sxema/material';
+import {
+  HISOB_TURI_NOMI,
+  SARFLASH_BIRLIGI_NOMI,
+  type HisobTuri,
+  type SarflashBirligi,
+} from '@/lib/sxema/material';
 import { pulKorsat, som } from '@/lib/domain/pul';
 
 export const dynamic = 'force-dynamic';
@@ -42,15 +47,15 @@ export default async function MaterialRoyxati() {
     <div className="flex flex-col gap-6">
       <div className="flex items-end justify-between gap-4">
         <div>
-          <h1 className="text-xl font-semibold tracking-tight">Materiallar</h1>
-          <p className="mt-1 text-sm text-slate-500">
+          <h1 className="text-[22px] font-semibold tracking-[-0.02em] text-matn">Materiallar</h1>
+          <p className="mt-1 text-sm text-matn-kuchsiz">
             {qatorlar.length} ta · barcha filial uchun umumiy (Q-26)
           </p>
         </div>
         {yarataOladi && (
           <Link
             href="/material/yangi"
-            className="rounded-lg bg-slate-900 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-slate-800"
+            className="rounded-maydon bg-amal px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-amal-hover"
           >
             Material qo&apos;shish
           </Link>
@@ -58,13 +63,13 @@ export default async function MaterialRoyxati() {
       </div>
 
       {qatorlar.length === 0 ? (
-        <p className="rounded-xl border border-dashed border-slate-300 px-4 py-10 text-center text-sm text-slate-500">
+        <p className="rounded-karta border border-dashed border-chegara-quyuq px-4 py-10 text-center text-sm text-matn-kuchsiz">
           Hali material yo&apos;q.
         </p>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+        <div className="overflow-x-auto rounded-karta border border-chegara bg-sirt">
           <table className="w-full text-sm">
-            <thead className="border-b border-slate-200 bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+            <thead className="border-b border-chegara bg-fon text-left text-xs uppercase tracking-wide text-matn-kuchsiz">
               <tr>
                 <th className="px-4 py-2.5 font-medium">Nomi</th>
                 <th className="px-4 py-2.5 font-medium">Hisob turi</th>
@@ -74,9 +79,9 @@ export default async function MaterialRoyxati() {
                 {ozgartiraOladi && <th className="px-4 py-2.5" />}
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-chegara">
               {qatorlar.map((m) => (
-                <tr key={m.id} className={m.faol ? '' : 'bg-slate-50 text-slate-400'}>
+                <tr key={m.id} className={m.faol ? '' : 'bg-fon text-matn-kuchsiz'}>
                   <td className="px-4 py-2.5 font-medium">
                     {m.nom}
                     {!m.faol && <span className="ml-2 text-xs">(nofaol)</span>}
@@ -85,21 +90,21 @@ export default async function MaterialRoyxati() {
                     {HISOB_TURI_NOMI[m.hisob_turi as HisobTuri] ?? m.hisob_turi}
                   </td>
                   <td className="px-4 py-2.5">
-                    {m.guruh_nomi ?? <span className="text-amber-700">— yo&apos;q —</span>}
+                    {m.guruh_nomi ?? <span className="text-belgi-sariq">— yo&apos;q —</span>}
                   </td>
-                  <td className="px-4 py-2.5 text-slate-600">
+                  <td className="px-4 py-2.5 text-matn-ikki">
                     1 {m.kirim_birligi} = {Number(m.koeffitsient)}{' '}
                     {SARFLASH_BIRLIGI_NOMI[m.sarflash_birligi as SarflashBirligi]}
                   </td>
                   <td className="raqam px-4 py-2.5">
                     {m.sotuv_narx === null ? (
-                      <span className="text-slate-400">—</span>
+                      <span className="text-matn-kuchsiz">—</span>
                     ) : (
                       <>
                         {m.sotuv_valyuta === 'SOM'
                           ? pulKorsat(som(m.sotuv_narx))
                           : `${m.sotuv_narx} $`}
-                        <span className="ml-1 text-xs text-slate-400">
+                        <span className="ml-1 text-xs text-matn-kuchsiz">
                           / {narxBirligi(m.sarflash_birligi)}
                         </span>
                       </>
@@ -109,7 +114,7 @@ export default async function MaterialRoyxati() {
                     <td className="px-4 py-2.5 text-right">
                       <Link
                         href={`/material/${String(m.id)}`}
-                        className="text-slate-600 hover:text-slate-900"
+                        className="text-matn-ikki hover:text-matn"
                       >
                         Tahrirlash
                       </Link>

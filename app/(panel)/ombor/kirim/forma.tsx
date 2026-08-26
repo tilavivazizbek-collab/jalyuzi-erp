@@ -101,38 +101,40 @@ export function KirimFormasi({
       <input type="hidden" name="qatorlar" value={JSON.stringify(qatorlar)} />
 
       {holat.xato !== null && (
-        <p role="alert" className="rounded-lg bg-red-50 px-3 py-2.5 text-sm text-red-800 ring-1 ring-red-200">
+        <p
+          role="alert"
+          className="rounded-maydon bg-belgi-qizil-fon px-3 py-2.5 text-sm text-belgi-qizil "
+        >
           {holat.xato}
         </p>
       )}
 
       {/* TZ 7.9 — ustama past, lekin hujjat SAQLANGAN */}
       {holat.saqlandi && holat.ogohlantirishlar.length > 0 && (
-        <div role="alert" className="rounded-lg bg-amber-50 p-4 text-sm ring-1 ring-amber-300">
-          <p className="font-medium text-amber-900">
+        <div role="alert" className="rounded-maydon bg-belgi-sariq-fon p-4 text-sm ">
+          <p className="font-medium text-belgi-sariq">
             Hujjat saqlandi, lekin ustama chegaradan past
           </p>
-          <ul className="mt-2 flex list-disc flex-col gap-1 pl-5 text-amber-900">
+          <ul className="mt-2 flex list-disc flex-col gap-1 pl-5 text-belgi-sariq">
             {holat.ogohlantirishlar.map((o) => (
               <li key={o.materialNomi}>
-                <b>{o.materialNomi}</b> — ustama {o.ustamaFoiz.toFixed(1)}%, chegara{' '}
-                {o.chegara}%
+                <b>{o.materialNomi}</b> — ustama {o.ustamaFoiz.toFixed(1)}%, chegara {o.chegara}%
               </li>
             ))}
           </ul>
-          <p className="mt-2 text-xs text-amber-800">
+          <p className="mt-2 text-xs text-belgi-sariq">
             Bloklanmadi — mol allaqachon kelgan (7.9). Sotuv narxini ko&apos;rib chiqing.
           </p>
           <Link
             href="/ombor"
-            className="mt-3 inline-block rounded-md bg-amber-900 px-3 py-1.5 text-xs font-medium text-white"
+            className="mt-3 inline-block rounded-maydon bg-belgi-sariq px-3 py-1.5 text-xs font-medium text-white"
           >
             Omborga o&apos;tish
           </Link>
         </div>
       )}
 
-      <section className="rounded-xl border border-slate-200 bg-white p-5">
+      <section className="rounded-karta border border-chegara bg-sirt p-5">
         <h2 className="mb-4 text-sm font-semibold">Hujjat</h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <Maydon nom="raqam" yorliq="Hujjat raqami">
@@ -151,7 +153,12 @@ export function KirimFormasi({
           </Maydon>
 
           <Maydon nom="yetkazibBeruvchiId" yorliq="Yetkazib beruvchi">
-            <select id="yetkazibBeruvchiId" name="yetkazibBeruvchiId" required className={kirishUslubi(false)}>
+            <select
+              id="yetkazibBeruvchiId"
+              name="yetkazibBeruvchiId"
+              required
+              className={kirishUslubi(false)}
+            >
               <option value="">— tanlang —</option>
               {yetkazuvchilar.map((y) => (
                 <option key={y.id} value={y.id}>
@@ -166,7 +173,9 @@ export function KirimFormasi({
               id="valyuta"
               name="valyuta"
               value={valyuta}
-              onChange={(e) => { setValyuta(e.target.value); }}
+              onChange={(e) => {
+                setValyuta(e.target.value);
+              }}
               className={kirishUslubi(false)}
             >
               <option value="SOM">so&apos;m</option>
@@ -180,18 +189,29 @@ export function KirimFormasi({
               yorliq="Kurs"
               izoh="tannarx SHU kursda qotadi va keyin o'zgarmaydi (9.6)"
             >
-              <input id="kursSnapshot" name="kursSnapshot" inputMode="decimal" required className={kirishUslubi(false)} />
+              <input
+                id="kursSnapshot"
+                name="kursSnapshot"
+                inputMode="decimal"
+                required
+                className={kirishUslubi(false)}
+              />
             </Maydon>
           )}
 
           <Maydon nom="tolovMuddati" yorliq="To'lov muddati" izoh="faqat ogohlantirish uchun (9.4)">
-            <input id="tolovMuddati" name="tolovMuddati" type="date" className={kirishUslubi(false)} />
+            <input
+              id="tolovMuddati"
+              name="tolovMuddati"
+              type="date"
+              className={kirishUslubi(false)}
+            />
           </Maydon>
         </div>
       </section>
 
       {/* ── Qatorlar ── */}
-      <section className="rounded-xl border border-slate-200 bg-white p-5">
+      <section className="rounded-karta border border-chegara bg-sirt p-5">
         <div className="mb-1 flex items-center justify-between">
           <h2 className="text-sm font-semibold">Materiallar</h2>
           <button
@@ -213,18 +233,18 @@ export function KirimFormasi({
               }
             }}
             disabled={materiallar.length === 0}
-            className="rounded-md border border-slate-300 px-2.5 py-1 text-xs hover:bg-slate-50 disabled:opacity-40"
+            className="rounded-maydon border border-chegara-quyuq px-2.5 py-1 text-xs hover:bg-fon disabled:opacity-40"
           >
             + qator
           </button>
         </div>
 
         {materiallar.length === 0 ? (
-          <p className="text-sm text-amber-700">
+          <p className="text-sm text-belgi-sariq">
             Avval material qo&apos;shing — kirim qilinadigan narsa yo&apos;q.
           </p>
         ) : qatorlar.length === 0 ? (
-          <p className="text-sm text-slate-400">Qator qo&apos;shing.</p>
+          <p className="text-sm text-matn-kuchsiz">Qator qo&apos;shing.</p>
         ) : (
           <div className="flex flex-col gap-4">
             {qatorlar.map((q, i) => {
@@ -232,7 +252,7 @@ export function KirimFormasi({
               const rulonmi = m?.hisobTuri === 'RULON';
 
               return (
-                <div key={i} className="rounded-lg border border-slate-200 p-3">
+                <div key={i} className="rounded-maydon border border-chegara p-3">
                   <div className="grid gap-2 sm:grid-cols-[1fr_100px_130px_32px]">
                     <select
                       value={q.materialId}
@@ -250,7 +270,9 @@ export function KirimFormasi({
 
                     <input
                       value={q.miqdorKirim}
-                      onChange={(e) => { miqdorniYangila(i, e.target.value); }}
+                      onChange={(e) => {
+                        miqdorniYangila(i, e.target.value);
+                      }}
                       placeholder={m?.kirimBirligi ?? 'miqdor'}
                       inputMode="decimal"
                       className={kichik}
@@ -258,7 +280,9 @@ export function KirimFormasi({
 
                     <input
                       value={q.narxBirlik}
-                      onChange={(e) => { yangila(i, { narxBirlik: e.target.value }); }}
+                      onChange={(e) => {
+                        yangila(i, { narxBirlik: e.target.value });
+                      }}
                       placeholder="narx / birlik"
                       inputMode="decimal"
                       className={kichik}
@@ -266,8 +290,10 @@ export function KirimFormasi({
 
                     <button
                       type="button"
-                      onClick={() => { setQatorlar(qatorlar.filter((_, j) => j !== i)); }}
-                      className="rounded-md text-slate-400 hover:bg-red-50 hover:text-red-700"
+                      onClick={() => {
+                        setQatorlar(qatorlar.filter((_, j) => j !== i));
+                      }}
+                      className="rounded-maydon text-matn-kuchsiz hover:bg-belgi-qizil-fon hover:text-belgi-qizil"
                       aria-label="O'chirish"
                     >
                       ✕
@@ -276,15 +302,15 @@ export function KirimFormasi({
 
                   {/* TZ 7.9 — rulon uchun har birining o'lchami */}
                   {rulonmi && q.bolaklar.length > 0 && (
-                    <div className="mt-3 rounded-md bg-slate-50 p-3">
-                      <p className="mb-2 text-xs text-slate-600">
-                        Har rulon alohida bo&apos;lak bo&apos;lib tushadi — o&apos;lchamini
-                        kiriting (7.9)
+                    <div className="mt-3 rounded-maydon bg-fon p-3">
+                      <p className="mb-2 text-xs text-matn-ikki">
+                        Har rulon alohida bo&apos;lak bo&apos;lib tushadi — o&apos;lchamini kiriting
+                        (7.9)
                       </p>
                       <div className="flex flex-col gap-1.5">
                         {q.bolaklar.map((b, k) => (
                           <div key={k} className="flex items-center gap-2 text-sm">
-                            <span className="w-16 shrink-0 text-xs text-slate-500">
+                            <span className="w-16 shrink-0 text-xs text-matn-kuchsiz">
                               #{k + 1}
                             </span>
                             <input
@@ -298,7 +324,7 @@ export function KirimFormasi({
                               inputMode="decimal"
                               className={`${kichik} max-w-28`}
                             />
-                            <span className="text-slate-400">×</span>
+                            <span className="text-matn-kuchsiz">×</span>
                             <input
                               value={b.boyiM}
                               onChange={(e) => {
@@ -318,10 +344,12 @@ export function KirimFormasi({
 
                   {/* TZ 7.9 — defekt ikki yo'ldan biriga ketadi */}
                   <div className="mt-2 flex flex-wrap items-center gap-2">
-                    <span className="text-xs text-slate-500">Defekt:</span>
+                    <span className="text-xs text-matn-kuchsiz">Defekt:</span>
                     <input
                       value={q.defektMiqdor}
-                      onChange={(e) => { yangila(i, { defektMiqdor: e.target.value }); }}
+                      onChange={(e) => {
+                        yangila(i, { defektMiqdor: e.target.value });
+                      }}
                       placeholder="0"
                       inputMode="decimal"
                       className={`${kichik} max-w-20`}
@@ -355,12 +383,11 @@ export function KirimFormasi({
       </section>
 
       {/* ── Qo'shimcha xarajatlar (7.9) ── */}
-      <section className="rounded-xl border border-slate-200 bg-white p-5">
+      <section className="rounded-karta border border-chegara bg-sirt p-5">
         <h2 className="mb-1 text-sm font-semibold">Qo&apos;shimcha xarajatlar</h2>
-        <p className="mb-3 text-xs text-slate-500">
-          Summa ulushi bo&apos;yicha qatorlarga taqsimlanadi va{' '}
-          <b>tannarxga qo&apos;shiladi</b> (7.9). Brak esa taqsimlanmaydi — u
-          alohida zarar bo&apos;lib ko&apos;rinadi.
+        <p className="mb-3 text-xs text-matn-kuchsiz">
+          Summa ulushi bo&apos;yicha qatorlarga taqsimlanadi va <b>tannarxga qo&apos;shiladi</b>{' '}
+          (7.9). Brak esa taqsimlanmaydi — u alohida zarar bo&apos;lib ko&apos;rinadi.
         </p>
         <div className="grid gap-4 sm:grid-cols-2">
           <Maydon nom="transportSumma" yorliq="Transport">
@@ -368,7 +395,9 @@ export function KirimFormasi({
               id="transportSumma"
               name="transportSumma"
               value={transport}
-              onChange={(e) => { setTransport(e.target.value); }}
+              onChange={(e) => {
+                setTransport(e.target.value);
+              }}
               inputMode="decimal"
               className={kirishUslubi(false)}
             />
@@ -378,7 +407,9 @@ export function KirimFormasi({
               id="bojxonaSumma"
               name="bojxonaSumma"
               value={bojxona}
-              onChange={(e) => { setBojxona(e.target.value); }}
+              onChange={(e) => {
+                setBojxona(e.target.value);
+              }}
               inputMode="decimal"
               className={kirishUslubi(false)}
             />
@@ -391,21 +422,19 @@ export function KirimFormasi({
           <button
             type="submit"
             disabled={kutilmoqda || qatorlar.length === 0}
-            className="rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-slate-800 disabled:opacity-60"
+            className="rounded-maydon bg-amal px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-amal-hover disabled:opacity-60"
           >
             {kutilmoqda ? 'Saqlanmoqda…' : 'Kirim qilish'}
           </button>
-          <Link href="/ombor" className="text-sm text-slate-600 hover:text-slate-900">
+          <Link href="/ombor" className="text-sm text-matn-ikki hover:text-matn">
             Bekor qilish
           </Link>
         </div>
 
         <div className="text-sm">
-          <span className="text-slate-500">Jami: </span>
+          <span className="text-matn-kuchsiz">Jami: </span>
           <span className="raqam font-semibold">{pulKorsat(jami)}</span>
-          <span className="ml-1 text-xs text-slate-400">
-            {valyuta === 'USD' ? '$' : "so'm"}
-          </span>
+          <span className="ml-1 text-xs text-matn-kuchsiz">{valyuta === 'USD' ? '$' : "so'm"}</span>
         </div>
       </div>
     </form>

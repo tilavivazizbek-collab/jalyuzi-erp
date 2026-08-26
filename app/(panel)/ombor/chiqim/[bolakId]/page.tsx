@@ -32,14 +32,16 @@ export default async function HisobdanChiqarish({
   if (HOLAT_NOMI[bolak.holat] === undefined) {
     return (
       <div className="flex max-w-xl flex-col gap-4">
-        <h1 className="text-xl font-semibold tracking-tight">Hisobdan chiqarish</h1>
-        <p className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900 ring-1 ring-amber-200">
-          <b>{bolak.kod}</b> omborda emas — hozirgi holati «{bolak.holat}».
-          Bunday bo&apos;lak qayta chiqarilmaydi.
+        <h1 className="text-[22px] font-semibold tracking-[-0.02em] text-matn">
+          Hisobdan chiqarish
+        </h1>
+        <p className="rounded-karta bg-belgi-sariq-fon px-4 py-3 text-sm text-belgi-sariq ">
+          <b>{bolak.kod}</b> omborda emas — hozirgi holati «{bolak.holat}». Bunday bo&apos;lak qayta
+          chiqarilmaydi.
         </p>
         <Link
           href={`/ombor/${String(bolak.materialId)}`}
-          className="text-sm text-slate-500 hover:text-slate-900"
+          className="text-sm text-matn-kuchsiz hover:text-matn"
         >
           ← Material kartochkasi
         </Link>
@@ -58,15 +60,15 @@ export default async function HisobdanChiqarish({
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <Link href={qaytish} className="text-sm text-slate-500 hover:text-slate-900">
+        <Link href={qaytish} className="text-sm text-matn-kuchsiz hover:text-matn">
           ← {bolak.materialNomi}
         </Link>
-        <h1 className="mt-2 text-xl font-semibold tracking-tight">
+        <h1 className="mt-2 text-[22px] font-semibold tracking-[-0.02em] text-matn">
           Hisobdan chiqarish
         </h1>
-        <p className="mt-1 text-sm text-slate-500">
-          Omborda buzilgan material (7.10). Yetkazib beruvchi defekti kirimda,
-          ishlab chiqarish braki buyurtmada yuritiladi.
+        <p className="mt-1 text-sm text-matn-kuchsiz">
+          Omborda buzilgan material (7.10). Yetkazib beruvchi defekti kirimda, ishlab chiqarish
+          braki buyurtmada yuritiladi.
         </p>
       </div>
 

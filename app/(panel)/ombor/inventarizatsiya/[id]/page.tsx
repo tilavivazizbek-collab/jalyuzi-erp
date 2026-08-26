@@ -13,11 +13,7 @@ const sababNomi = (x: string | null): string => {
   return INV_SABAB_NOMI[x as InventarizatsiyaSababi] ?? x;
 };
 
-export default async function VaraqaSahifasi({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export default async function VaraqaSahifasi({ params }: { params: Promise<{ id: string }> }) {
   const f = await sahifaRuxsati('ombor.inventarizatsiya');
 
   const { id } = await params;
@@ -32,16 +28,13 @@ export default async function VaraqaSahifasi({
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <Link
-          href="/ombor/inventarizatsiya"
-          className="text-sm text-slate-500 hover:text-slate-900"
-        >
+        <Link href="/ombor/inventarizatsiya" className="text-sm text-matn-kuchsiz hover:text-matn">
           ← Inventarizatsiya
         </Link>
-        <h1 className="mt-2 text-xl font-semibold tracking-tight">
+        <h1 className="mt-2 text-[22px] font-semibold tracking-[-0.02em] text-matn">
           Sanash varaqasi — {v.sana}
         </h1>
-        <p className="mt-1 text-sm text-slate-500">
+        <p className="mt-1 text-sm text-matn-kuchsiz">
           {v.kim} · {v.satrlar.length} ta qator
           {v.izoh !== null && ` · ${v.izoh}`}
         </p>
@@ -65,26 +58,26 @@ export default async function VaraqaSahifasi({
         />
       ) : (
         <>
-          <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
+          <div className="rounded-karta border border-chegara bg-fon px-4 py-3 text-sm">
             <b>Yakunlangan.</b> Jami farq:{' '}
             <span
               className={
                 v.farqSumma !== null && Number(v.farqSumma) < 0
-                  ? 'raqam font-semibold text-red-700'
+                  ? 'raqam font-semibold text-belgi-qizil'
                   : 'raqam font-semibold'
               }
             >
               {v.farqSumma === null ? '—' : pulKorsat(som(v.farqSumma))}
             </span>
-            <span className="mt-1 block text-xs text-slate-500">
-              Farq foyda-zarar hisobotiga xarajat bo&apos;lib tushadi. Ortiqcha
-              chiqsa — daromad emas, xarajat kamayishi (15.1).
+            <span className="mt-1 block text-xs text-matn-kuchsiz">
+              Farq foyda-zarar hisobotiga xarajat bo&apos;lib tushadi. Ortiqcha chiqsa — daromad
+              emas, xarajat kamayishi (15.1).
             </span>
           </div>
 
-          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+          <div className="overflow-x-auto rounded-karta border border-chegara bg-sirt">
             <table className="w-full text-sm">
-              <thead className="border-b border-slate-200 bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+              <thead className="border-b border-chegara bg-fon text-left text-xs uppercase tracking-wide text-matn-kuchsiz">
                 <tr>
                   <th className="px-3 py-2.5 font-medium">Material</th>
                   <th className="px-3 py-2.5 font-medium">Bo&apos;lak</th>
@@ -95,25 +88,21 @@ export default async function VaraqaSahifasi({
                   <th className="px-3 py-2.5 font-medium">Sabab</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-chegara">
                 {v.satrlar.map((s) => {
                   const dona = s.turi === 'DONA';
-                  const birlik = dona
-                    ? s.sarflashBirligi === 'SM'
-                      ? 'sm'
-                      : 'dona'
-                    : 'kv.m';
+                  const birlik = dona ? (s.sarflashBirligi === 'SM' ? 'sm' : 'dona') : 'kv.m';
                   const sanaldi = dona
                     ? s.haqiqatdaMiqdor !== null
                     : s.haqiqatdaEniM !== null && s.haqiqatdaBoyiM !== null;
 
                   return (
-                    <tr key={s.qatorId} className={sanaldi ? '' : 'text-slate-400'}>
+                    <tr key={s.qatorId} className={sanaldi ? '' : 'text-matn-kuchsiz'}>
                       <td className="px-3 py-2">{s.materialNomi}</td>
                       <td className="px-3 py-2 font-mono text-xs">
                         {s.kod}
-                        {s.band && <span className="ml-2 text-amber-700">band</span>}
-                        {s.yolda && <span className="ml-2 text-slate-500">yo&apos;lda</span>}
+                        {s.band && <span className="ml-2 text-belgi-sariq">band</span>}
+                        {s.yolda && <span className="ml-2 text-matn-kuchsiz">yo&apos;lda</span>}
                       </td>
                       <td className="raqam px-3 py-2 whitespace-nowrap">
                         {dona
@@ -129,7 +118,7 @@ export default async function VaraqaSahifasi({
                       </td>
                       <td
                         className={`raqam px-3 py-2 ${
-                          s.farqKvM !== null && s.farqKvM < 0 ? 'text-red-700' : ''
+                          s.farqKvM !== null && s.farqKvM < 0 ? 'text-belgi-qizil' : ''
                         }`}
                       >
                         {s.farqKvM === null || s.farqKvM === 0
@@ -141,10 +130,10 @@ export default async function VaraqaSahifasi({
                           ? '—'
                           : pulKorsat(som(s.farqSumma))}
                       </td>
-                      <td className="px-3 py-2 text-xs text-slate-600">
+                      <td className="px-3 py-2 text-xs text-matn-ikki">
                         {sababNomi(s.sabab)}
                         {s.izoh !== null && (
-                          <span className="block text-slate-400">{s.izoh}</span>
+                          <span className="block text-matn-kuchsiz">{s.izoh}</span>
                         )}
                       </td>
                     </tr>

@@ -44,9 +44,9 @@ export function KunYopishFormasi({ kun }: { kun: KunKorinishi }) {
 
   if (kun.yopilganmi) {
     return (
-      <p className="rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-900 ring-1 ring-emerald-200">
-        <b>{kun.kassaNomi}</b> — {kun.sana} kuni yopilgan. Bu sanaga yangi yozuv
-        kiritib bo&apos;lmaydi (12.17). Kerak bo&apos;lsa admin qayta ochadi.
+      <p className="rounded-karta bg-belgi-yashil-fon px-4 py-3 text-sm text-belgi-yashil ">
+        <b>{kun.kassaNomi}</b> — {kun.sana} kuni yopilgan. Bu sanaga yangi yozuv kiritib
+        bo&apos;lmaydi (12.17). Kerak bo&apos;lsa admin qayta ochadi.
       </p>
     );
   }
@@ -59,14 +59,14 @@ export function KunYopishFormasi({ kun }: { kun: KunKorinishi }) {
       {holat.xato !== null && (
         <p
           role="alert"
-          className="rounded-lg bg-red-50 px-3 py-2.5 text-sm text-red-800 ring-1 ring-red-200"
+          className="rounded-maydon bg-belgi-qizil-fon px-3 py-2.5 text-sm text-belgi-qizil "
         >
           {holat.xato}
         </p>
       )}
 
       {holat.yopildi && (
-        <p className="rounded-lg bg-emerald-50 px-3 py-2.5 text-sm text-emerald-900 ring-1 ring-emerald-200">
+        <p className="rounded-maydon bg-belgi-yashil-fon px-3 py-2.5 text-sm text-belgi-yashil ">
           Kun yopildi.
           {holat.farq !== null && Number(holat.farq) !== 0 && (
             <span className="ml-1">
@@ -76,17 +76,15 @@ export function KunYopishFormasi({ kun }: { kun: KunKorinishi }) {
         </p>
       )}
 
-      <dl className="grid grid-cols-2 gap-x-4 gap-y-1.5 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
-        <dt className="text-slate-500">Ertalabki qoldiq</dt>
+      <dl className="grid grid-cols-2 gap-x-4 gap-y-1.5 rounded-karta border border-chegara bg-fon px-4 py-3 text-sm">
+        <dt className="text-matn-kuchsiz">Ertalabki qoldiq</dt>
         <dd className="raqam">{pulKorsat(som(kun.boshlangich))}</dd>
-        <dt className="text-slate-500">Kirim</dt>
-        <dd className="raqam text-emerald-700">{pulKorsat(som(kun.kirim))}</dd>
-        <dt className="text-slate-500">Chiqim</dt>
-        <dd className="raqam text-red-700">{pulKorsat(som(kun.chiqim))}</dd>
-        <dt className="border-t border-slate-200 pt-1.5 font-medium">
-          Tizim bo&apos;yicha
-        </dt>
-        <dd className="raqam border-t border-slate-200 pt-1.5 font-semibold">
+        <dt className="text-matn-kuchsiz">Kirim</dt>
+        <dd className="raqam text-belgi-yashil">{pulKorsat(som(kun.kirim))}</dd>
+        <dt className="text-matn-kuchsiz">Chiqim</dt>
+        <dd className="raqam text-belgi-qizil">{pulKorsat(som(kun.chiqim))}</dd>
+        <dt className="border-t border-chegara pt-1.5 font-medium">Tizim bo&apos;yicha</dt>
+        <dd className="raqam border-t border-chegara pt-1.5 font-semibold">
           {pulKorsat(som(kun.hisoblangan))}
         </dd>
       </dl>
@@ -108,11 +106,7 @@ export function KunYopishFormasi({ kun }: { kun: KunKorinishi }) {
       {farq !== null && (
         <p
           className={`raqam text-sm ${
-            farq === 0
-              ? 'text-slate-500'
-              : farq < 0
-                ? 'text-red-700'
-                : 'text-amber-800'
+            farq === 0 ? 'text-matn-kuchsiz' : farq < 0 ? 'text-belgi-qizil' : 'text-belgi-sariq'
           }`}
         >
           Farq: {pulKorsat(som(farq.toFixed(2)))}
@@ -124,11 +118,7 @@ export function KunYopishFormasi({ kun }: { kun: KunKorinishi }) {
       <Maydon
         nom="izoh"
         yorliq={izohKerak ? 'Izoh (majburiy)' : 'Izoh'}
-        izoh={
-          izohKerak
-            ? 'Farq bor — izohsiz yopilmaydi, lekin yopish bloklanmaydi'
-            : undefined
-        }
+        izoh={izohKerak ? 'Farq bor — izohsiz yopilmaydi, lekin yopish bloklanmaydi' : undefined}
       >
         <textarea id="izoh" name="izoh" rows={2} className={kirishUslubi(false)} />
       </Maydon>
@@ -136,7 +126,7 @@ export function KunYopishFormasi({ kun }: { kun: KunKorinishi }) {
       <button
         type="submit"
         disabled={kutilmoqda || s === null}
-        className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800 disabled:opacity-50"
+        className="rounded-maydon bg-amal px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-amal-hover disabled:opacity-50"
       >
         {kutilmoqda ? 'Yopilmoqda…' : 'Kunni yopish'}
       </button>

@@ -30,30 +30,30 @@ export default async function XodimKartochkasiSahifasi({
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <Link href="/kassa" className="text-sm text-slate-500 hover:text-slate-900">
+        <Link href="/kassa" className="text-sm text-matn-kuchsiz hover:text-matn">
           ← Kassa
         </Link>
-        <h1 className="mt-2 text-xl font-semibold tracking-tight">{k.ism}</h1>
+        <h1 className="mt-2 text-[22px] font-semibold tracking-[-0.02em] text-matn">{k.ism}</h1>
       </div>
 
       {/* ── 10.16 · Balans bloki ── */}
-      <dl className="grid max-w-lg grid-cols-2 gap-x-4 gap-y-1.5 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
-        <dt className="text-slate-500">Jami ishlagan</dt>
+      <dl className="grid max-w-lg grid-cols-2 gap-x-4 gap-y-1.5 rounded-karta border border-chegara bg-fon px-4 py-3 text-sm">
+        <dt className="text-matn-kuchsiz">Jami ishlagan</dt>
         <dd className="raqam">{pulKorsat(som(k.jamiIshlagan))}</dd>
-        <dt className="text-slate-500">Jami olgan</dt>
+        <dt className="text-matn-kuchsiz">Jami olgan</dt>
         <dd className="raqam">{pulKorsat(som(k.jamiOlgan))}</dd>
-        <dt className="border-t border-slate-200 pt-1.5 font-medium">Balans</dt>
+        <dt className="border-t border-chegara pt-1.5 font-medium">Balans</dt>
         <dd
-          className={`raqam border-t border-slate-200 pt-1.5 font-semibold ${
-            Number(k.somBalans) < 0 ? 'text-red-700' : ''
+          className={`raqam border-t border-chegara pt-1.5 font-semibold ${
+            Number(k.somBalans) < 0 ? 'text-belgi-qizil' : ''
           }`}
         >
           {pulKorsat(som(k.somBalans))}
         </dd>
         {Number(k.dollarBalans) !== 0 && (
           <>
-            <dt className="text-slate-500">Dollar balansi</dt>
-            <dd className={`raqam ${Number(k.dollarBalans) < 0 ? 'text-red-700' : ''}`}>
+            <dt className="text-matn-kuchsiz">Dollar balansi</dt>
+            <dd className={`raqam ${Number(k.dollarBalans) < 0 ? 'text-belgi-qizil' : ''}`}>
               {pulKorsat(dollar(k.dollarBalans))}
             </dd>
           </>
@@ -62,12 +62,10 @@ export default async function XodimKartochkasiSahifasi({
 
       {tolayOladi && (
         <section>
-          <h2 className="mb-1 text-sm font-medium text-slate-700">
-            Ish haqi to&apos;lash
-          </h2>
-          <p className="mb-3 text-xs text-slate-500">
-            Kassadan pul chiqadi, lekin xarajat yozilmaydi — haq allaqachon
-            «Tugatdim» da xarajat bo&apos;lgan (12.1).
+          <h2 className="mb-1 text-sm font-medium text-matn-ikki">Ish haqi to&apos;lash</h2>
+          <p className="mb-3 text-xs text-matn-kuchsiz">
+            Kassadan pul chiqadi, lekin xarajat yozilmaydi — haq allaqachon «Tugatdim» da xarajat
+            bo&apos;lgan (12.1).
           </p>
           <IshHaqiFormasi
             xodimId={k.xodimId}
@@ -80,15 +78,15 @@ export default async function XodimKartochkasiSahifasi({
 
       {/* ── 10.3 · Harakatlar ── */}
       <section>
-        <h2 className="mb-2 text-sm font-medium text-slate-700">Balans harakati</h2>
+        <h2 className="mb-2 text-sm font-medium text-matn-ikki">Balans harakati</h2>
         {k.harakatlar.length === 0 ? (
-          <p className="rounded-xl border border-dashed border-slate-300 px-4 py-8 text-center text-sm text-slate-500">
+          <p className="rounded-karta border border-dashed border-chegara-quyuq px-4 py-8 text-center text-sm text-matn-kuchsiz">
             Harakat yo&apos;q.
           </p>
         ) : (
-          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+          <div className="overflow-x-auto rounded-karta border border-chegara bg-sirt">
             <table className="w-full text-sm">
-              <thead className="border-b border-slate-200 bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+              <thead className="border-b border-chegara bg-fon text-left text-xs uppercase tracking-wide text-matn-kuchsiz">
                 <tr>
                   <th className="px-4 py-2.5 font-medium">Sana</th>
                   <th className="px-4 py-2.5 font-medium">Turi</th>
@@ -96,27 +94,21 @@ export default async function XodimKartochkasiSahifasi({
                   <th className="px-4 py-2.5 font-medium">Izoh</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-chegara">
                 {k.harakatlar.map((h) => (
                   <tr key={h.id}>
-                    <td className="px-4 py-2.5 text-slate-600">
+                    <td className="px-4 py-2.5 text-matn-ikki">
                       {h.sana.toLocaleDateString('uz-UZ')}
                     </td>
-                    <td className="px-4 py-2.5">
-                      {XODIM_HARAKAT_NOMI[h.turi] ?? h.turi}
-                    </td>
+                    <td className="px-4 py-2.5">{XODIM_HARAKAT_NOMI[h.turi] ?? h.turi}</td>
                     <td
                       className={`raqam px-4 py-2.5 font-medium ${
-                        Number(h.summa) < 0 ? 'text-red-700' : 'text-emerald-700'
+                        Number(h.summa) < 0 ? 'text-belgi-qizil' : 'text-belgi-yashil'
                       }`}
                     >
-                      {h.valyuta === 'SOM'
-                        ? pulKorsat(som(h.summa))
-                        : pulKorsat(dollar(h.summa))}
+                      {h.valyuta === 'SOM' ? pulKorsat(som(h.summa)) : pulKorsat(dollar(h.summa))}
                     </td>
-                    <td className="px-4 py-2.5 text-xs text-slate-500">
-                      {h.izoh ?? '—'}
-                    </td>
+                    <td className="px-4 py-2.5 text-xs text-matn-kuchsiz">{h.izoh ?? '—'}</td>
                   </tr>
                 ))}
               </tbody>

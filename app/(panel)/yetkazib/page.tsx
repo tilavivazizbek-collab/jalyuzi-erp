@@ -31,15 +31,17 @@ export default async function YetkazibRoyxati() {
     <div className="flex flex-col gap-6">
       <div className="flex items-end justify-between gap-4">
         <div>
-          <h1 className="text-xl font-semibold tracking-tight">Yetkazib beruvchilar</h1>
-          <p className="mt-1 text-sm text-slate-500">
+          <h1 className="text-[22px] font-semibold tracking-[-0.02em] text-matn">
+            Yetkazib beruvchilar
+          </h1>
+          <p className="mt-1 text-sm text-matn-kuchsiz">
             {qatorlar.length} ta · qarzi umumiy, filialga bog&apos;lanmagan (Q-26)
           </p>
         </div>
         {yarataOladi && (
           <Link
             href="/yetkazib/yangi"
-            className="rounded-lg bg-slate-900 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-slate-800"
+            className="rounded-maydon bg-amal px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-amal-hover"
           >
             Qo&apos;shish
           </Link>
@@ -47,13 +49,13 @@ export default async function YetkazibRoyxati() {
       </div>
 
       {qatorlar.length === 0 ? (
-        <p className="rounded-xl border border-dashed border-slate-300 px-4 py-10 text-center text-sm text-slate-500">
+        <p className="rounded-karta border border-dashed border-chegara-quyuq px-4 py-10 text-center text-sm text-matn-kuchsiz">
           Hali yetkazib beruvchi yo&apos;q.
         </p>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+        <div className="overflow-x-auto rounded-karta border border-chegara bg-sirt">
           <table className="w-full text-sm">
-            <thead className="border-b border-slate-200 bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+            <thead className="border-b border-chegara bg-fon text-left text-xs uppercase tracking-wide text-matn-kuchsiz">
               <tr>
                 <th className="px-4 py-2.5 font-medium">Nomi</th>
                 <th className="px-4 py-2.5 font-medium">Nima yetkazadi</th>
@@ -62,35 +64,38 @@ export default async function YetkazibRoyxati() {
                 {ozgartiraOladi && <th className="px-4 py-2.5" />}
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-chegara">
               {qatorlar.map((y) => (
-                <tr key={y.id} className={y.faol ? '' : 'bg-slate-50 text-slate-400'}>
+                <tr key={y.id} className={y.faol ? '' : 'bg-fon text-matn-kuchsiz'}>
                   <td className="px-4 py-2.5 font-medium">
                     {y.nom}
                     {!y.faol && <span className="ml-2 text-xs">(nofaol)</span>}
                   </td>
-                  <td className="px-4 py-2.5 text-slate-600">
-                    {y.nima_yetkazadi ?? <span className="text-slate-400">—</span>}
+                  <td className="px-4 py-2.5 text-matn-ikki">
+                    {y.nima_yetkazadi ?? <span className="text-matn-kuchsiz">—</span>}
                   </td>
                   <td className="px-4 py-2.5">
                     {y.kontakt_shaxs ?? ''}
                     {y.telefon !== null && (
-                      <span className="ml-2 text-slate-500">{telefonKorsat(y.telefon)}</span>
+                      <span className="ml-2 text-matn-kuchsiz">{telefonKorsat(y.telefon)}</span>
                     )}
                     {y.kontakt_shaxs === null && y.telefon === null && (
-                      <span className="text-slate-400">—</span>
+                      <span className="text-matn-kuchsiz">—</span>
                     )}
                   </td>
                   <td className="px-4 py-2.5">
                     {y.tolov_muddati_kun === null ? (
-                      <span className="text-slate-400">standart</span>
+                      <span className="text-matn-kuchsiz">standart</span>
                     ) : (
                       `${String(y.tolov_muddati_kun)} kun`
                     )}
                   </td>
                   {ozgartiraOladi && (
                     <td className="px-4 py-2.5 text-right">
-                      <Link href={`/yetkazib/${String(y.id)}`} className="text-slate-600 hover:text-slate-900">
+                      <Link
+                        href={`/yetkazib/${String(y.id)}`}
+                        className="text-matn-ikki hover:text-matn"
+                      >
                         Tahrirlash
                       </Link>
                     </td>

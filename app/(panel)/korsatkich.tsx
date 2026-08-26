@@ -50,9 +50,7 @@ export function KorsatkichKartasi({
         <p className="raqam text-left text-[22px] leading-none font-semibold tracking-[-0.02em] text-matn">
           {qiymat}
         </p>
-        {izoh !== undefined && (
-          <p className="mt-1.5 text-[12px] text-matn-kuchsiz">{izoh}</p>
-        )}
+        {izoh !== undefined && <p className="mt-1.5 text-[12px] text-matn-kuchsiz">{izoh}</p>}
       </div>
     </div>
   );

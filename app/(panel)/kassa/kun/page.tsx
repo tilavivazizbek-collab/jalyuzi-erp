@@ -33,46 +33,46 @@ export default async function KunYopishSahifasi({
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <Link href="/kassa" className="text-sm text-slate-500 hover:text-slate-900">
+        <Link href="/kassa" className="text-sm text-matn-kuchsiz hover:text-matn">
           ← Kassa
         </Link>
-        <h1 className="mt-2 text-xl font-semibold tracking-tight">Kun yopish</h1>
-        <p className="mt-1 text-sm text-slate-500">
-          {tanlangan} · faqat naqd kassa yopiladi — kartadagi pul bank hisobidan
-          tekshiriladi (12.17)
+        <h1 className="mt-2 text-[22px] font-semibold tracking-[-0.02em] text-matn">Kun yopish</h1>
+        <p className="mt-1 text-sm text-matn-kuchsiz">
+          {tanlangan} · faqat naqd kassa yopiladi — kartadagi pul bank hisobidan tekshiriladi
+          (12.17)
         </p>
       </div>
 
       <form className="flex items-end gap-3">
         <label className="flex flex-col gap-1" htmlFor="sana">
-          <span className="text-sm font-medium text-slate-700">Sana</span>
+          <span className="text-sm font-medium text-matn-ikki">Sana</span>
           <input
             id="sana"
             name="sana"
             type="date"
             defaultValue={tanlangan}
-            className="rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-slate-900/10"
+            className="rounded-maydon border border-chegara-quyuq px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brend/25"
           />
         </label>
         <button
           type="submit"
-          className="rounded-lg border border-slate-300 px-3.5 py-2 text-sm text-slate-700 transition hover:bg-slate-50"
+          className="rounded-maydon border border-chegara-quyuq px-3.5 py-2 text-sm text-matn-ikki transition-colors hover:bg-fon"
         >
           Ko&apos;rsatish
         </button>
       </form>
 
       {kunlar.length === 0 ? (
-        <p className="rounded-xl border border-dashed border-slate-300 px-4 py-10 text-center text-sm text-slate-500">
+        <p className="rounded-karta border border-dashed border-chegara-quyuq px-4 py-10 text-center text-sm text-matn-kuchsiz">
           Yopiladigan naqd kassa yo&apos;q.
         </p>
       ) : (
         <div className="flex flex-col gap-8">
           {kunlar.map((k) => (
             <section key={k.kassaId}>
-              <h2 className="mb-3 text-sm font-medium text-slate-700">
+              <h2 className="mb-3 text-sm font-medium text-matn-ikki">
                 {k.kassaNomi}
-                <span className="ml-2 text-xs text-slate-400">{k.valyuta}</span>
+                <span className="ml-2 text-xs text-matn-kuchsiz">{k.valyuta}</span>
               </h2>
               <KunYopishFormasi
                 kun={{
@@ -91,9 +91,9 @@ export default async function KunYopishSahifasi({
         </div>
       )}
 
-      <p className="text-xs text-slate-400">
-        Kun yopish majburiy emas — yopilmagan kun bo&apos;lsa ham ertasi kuni
-        ishlash mumkin (12.17).
+      <p className="text-xs text-matn-kuchsiz">
+        Kun yopish majburiy emas — yopilmagan kun bo&apos;lsa ham ertasi kuni ishlash mumkin
+        (12.17).
       </p>
     </div>
   );

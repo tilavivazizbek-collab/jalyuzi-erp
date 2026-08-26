@@ -43,7 +43,7 @@ export function VaraqaOchFormasi({
       {holat.xato !== null && (
         <p
           role="alert"
-          className="rounded-lg bg-red-50 px-3 py-2.5 text-sm text-red-800 ring-1 ring-red-200"
+          className="rounded-maydon bg-belgi-qizil-fon px-3 py-2.5 text-sm text-belgi-qizil "
         >
           {holat.xato}
         </p>
@@ -60,22 +60,22 @@ export function VaraqaOchFormasi({
       </Maydon>
 
       <div>
-        <p className="mb-1 text-sm font-medium text-slate-700">Materiallar</p>
-        <p className="mb-3 text-xs text-slate-500">
-          Hech narsa tanlanmasa — <b>butun ombor</b> sanaladi. Bir nechtasini
-          tanlab qisman ham o&apos;tkazish mumkin (15.1).
+        <p className="mb-1 text-sm font-medium text-matn-ikki">Materiallar</p>
+        <p className="mb-3 text-xs text-matn-kuchsiz">
+          Hech narsa tanlanmasa — <b>butun ombor</b> sanaladi. Bir nechtasini tanlab qisman ham
+          o&apos;tkazish mumkin (15.1).
         </p>
 
         {materiallar.length === 0 ? (
-          <p className="rounded-xl border border-dashed border-slate-300 px-4 py-6 text-center text-sm text-slate-500">
+          <p className="rounded-karta border border-dashed border-chegara-quyuq px-4 py-6 text-center text-sm text-matn-kuchsiz">
             Omborda sanaladigan bo&apos;lak yo&apos;q.
           </p>
         ) : (
-          <div className="max-h-72 overflow-y-auto rounded-xl border border-slate-200 bg-white">
+          <div className="max-h-72 overflow-y-auto rounded-karta border border-chegara bg-sirt">
             {materiallar.map((m) => (
               <label
                 key={m.id}
-                className="flex cursor-pointer items-center gap-3 border-b border-slate-100 px-4 py-2.5 text-sm last:border-b-0 hover:bg-slate-50"
+                className="flex cursor-pointer items-center gap-3 border-b border-chegara px-4 py-2.5 text-sm last:border-b-0 hover:bg-fon"
               >
                 <input
                   type="checkbox"
@@ -85,7 +85,7 @@ export function VaraqaOchFormasi({
                   }}
                 />
                 <span className="flex-1">{m.nom}</span>
-                <span className="raqam text-xs text-slate-500">
+                <span className="raqam text-xs text-matn-kuchsiz">
                   {m.bolakSoni} ta bo&apos;lak
                 </span>
               </label>
@@ -103,24 +103,20 @@ export function VaraqaOchFormasi({
         />
       </Maydon>
 
-      <p className="rounded-lg bg-slate-50 px-3 py-2.5 text-xs text-slate-600 ring-1 ring-slate-200">
-        Varaqada <b>{jamiBolak}</b> ta qator bo&apos;ladi. Har bo&apos;lak
-        o&apos;z qatorida, o&apos;lchami bilan — «48 kv.m bor» degan javob
-        hech narsani tekshirmaydi (15.1).
+      <p className="rounded-maydon bg-fon px-3 py-2.5 text-xs text-matn-ikki ">
+        Varaqada <b>{jamiBolak}</b> ta qator bo&apos;ladi. Har bo&apos;lak o&apos;z qatorida,
+        o&apos;lchami bilan — «48 kv.m bor» degan javob hech narsani tekshirmaydi (15.1).
       </p>
 
       <div className="flex items-center gap-3">
         <button
           type="submit"
           disabled={kutilmoqda || materiallar.length === 0}
-          className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800 disabled:opacity-50"
+          className="rounded-maydon bg-amal px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-amal-hover disabled:opacity-50"
         >
           {kutilmoqda ? 'Ochilmoqda…' : 'Varaqani ochish'}
         </button>
-        <Link
-          href="/ombor/inventarizatsiya"
-          className="text-sm text-slate-500 hover:text-slate-900"
-        >
+        <Link href="/ombor/inventarizatsiya" className="text-sm text-matn-kuchsiz hover:text-matn">
           Bekor qilish
         </Link>
       </div>

@@ -47,7 +47,7 @@ export function IshHaqiFormasi({
 
   if (kassalar.length === 0) {
     return (
-      <p className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900 ring-1 ring-amber-200">
+      <p className="rounded-karta bg-belgi-sariq-fon px-4 py-3 text-sm text-belgi-sariq ">
         Kassa yo&apos;q — to&apos;lov qilib bo&apos;lmaydi (12.2).
       </p>
     );
@@ -62,14 +62,14 @@ export function IshHaqiFormasi({
       {holat.xato !== null && (
         <p
           role="alert"
-          className="rounded-lg bg-red-50 px-3 py-2.5 text-sm text-red-800 ring-1 ring-red-200"
+          className="rounded-maydon bg-belgi-qizil-fon px-3 py-2.5 text-sm text-belgi-qizil "
         >
           {holat.xato}
         </p>
       )}
 
       {holat.bajarildi && (
-        <p className="rounded-lg bg-emerald-50 px-3 py-2.5 text-sm text-emerald-900 ring-1 ring-emerald-200">
+        <p className="rounded-maydon bg-belgi-yashil-fon px-3 py-2.5 text-sm text-belgi-yashil ">
           To&apos;lov saqlandi.
           {holat.balansdan !== null && kursKerak && (
             <span className="ml-1">
@@ -145,17 +145,14 @@ export function IshHaqiFormasi({
       <label className="flex items-center gap-2.5 text-sm">
         <input type="checkbox" name="avansmi" value="ha" />
         <span>
-          Avans (oy o&apos;rtasida) — balans manfiyga tushishi mumkin, bu
-          bloklanmaydi (10.15)
+          Avans (oy o&apos;rtasida) — balans manfiyga tushishi mumkin, bu bloklanmaydi (10.15)
         </span>
       </label>
 
-      <p className="raqam text-sm text-slate-600">
+      <p className="raqam text-sm text-matn-ikki">
         Joriy balans:{' '}
-        <b className={Number(balans) < 0 ? 'text-red-700' : ''}>
-          {balansValyutasi === 'SOM'
-            ? pulKorsat(som(balans))
-            : pulKorsat(dollar(balans))}
+        <b className={Number(balans) < 0 ? 'text-belgi-qizil' : ''}>
+          {balansValyutasi === 'SOM' ? pulKorsat(som(balans)) : pulKorsat(dollar(balans))}
         </b>
       </p>
 
@@ -166,7 +163,7 @@ export function IshHaqiFormasi({
       <button
         type="submit"
         disabled={kutilmoqda || summa.trim() === ''}
-        className="self-start rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800 disabled:opacity-50"
+        className="self-start rounded-maydon bg-amal px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-amal-hover disabled:opacity-50"
       >
         {kutilmoqda ? 'Saqlanmoqda…' : "To'lash"}
       </button>

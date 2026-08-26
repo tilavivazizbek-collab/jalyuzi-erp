@@ -16,21 +16,15 @@ export default async function SotuvEkrani() {
    *    Ilgari hammasi birdan yuklanardi: ~2 mln obyekt, ~230 MB
    *    JSON va sahifa bir daqiqadan ortiq ochilardi.
    */
-  const [turlar, filiallar] = await Promise.all([
-    turRoyxati(),
-    tikaOladiganFiliallar(),
-  ]);
+  const [turlar, filiallar] = await Promise.all([turRoyxati(), tikaOladiganFiliallar()]);
 
   // Ekran bo'sh ochilmasin — birinchi turning tafsiloti darhol keladi
-  const birinchiTur =
-    turlar[0] === undefined ? null : await turTafsili(turlar[0].id, f.filialId);
+  const birinchiTur = turlar[0] === undefined ? null : await turTafsili(turlar[0].id, f.filialId);
 
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-[22px] font-semibold tracking-[-0.02em] text-matn">
-          Sotuv
-        </h1>
+        <h1 className="text-[22px] font-semibold tracking-[-0.02em] text-matn">Sotuv</h1>
         {/*
           ⚠️ «Filial #1» olib tashlandi — raqam sotuvchiga hech
              narsa aytmaydi. Filial nomi sarlavha qatorida turibdi.

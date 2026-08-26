@@ -46,7 +46,7 @@ export function XarajatFormasi({ kassalar }: { kassalar: readonly QoldaKassa[] }
 
   if (kassalar.length === 0) {
     return (
-      <p className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900 ring-1 ring-amber-200">
+      <p className="rounded-karta bg-belgi-sariq-fon px-4 py-3 text-sm text-belgi-sariq ">
         Kassangiz yo&apos;q — xarajat kiritib bo&apos;lmaydi (12.2).
       </p>
     );
@@ -59,14 +59,14 @@ export function XarajatFormasi({ kassalar }: { kassalar: readonly QoldaKassa[] }
       {holat.xato !== null && (
         <p
           role="alert"
-          className="rounded-lg bg-red-50 px-3 py-2.5 text-sm text-red-800 ring-1 ring-red-200"
+          className="rounded-maydon bg-belgi-qizil-fon px-3 py-2.5 text-sm text-belgi-qizil "
         >
           {holat.xato}
         </p>
       )}
 
       {holat.bajarildi && (
-        <p className="rounded-lg bg-emerald-50 px-3 py-2.5 text-sm text-emerald-900 ring-1 ring-emerald-200">
+        <p className="rounded-maydon bg-belgi-yashil-fon px-3 py-2.5 text-sm text-belgi-yashil ">
           Xarajat saqlandi — kassadan chiqdi va foyda-zararga tushdi (12.10).
         </p>
       )}
@@ -122,7 +122,7 @@ export function XarajatFormasi({ kassalar }: { kassalar: readonly QoldaKassa[] }
       <button
         type="submit"
         disabled={kutilmoqda}
-        className="self-start rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800 disabled:opacity-50"
+        className="self-start rounded-maydon bg-amal px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-amal-hover disabled:opacity-50"
       >
         {kutilmoqda ? 'Saqlanmoqda…' : 'Xarajatni saqlash'}
       </button>
@@ -132,15 +132,8 @@ export function XarajatFormasi({ kassalar }: { kassalar: readonly QoldaKassa[] }
 
 // ─── TZ 12.9 · Ayirboshlash ───────────────────────────────────────────────
 
-export function AyirboshlashFormasi({
-  kassalar,
-}: {
-  kassalar: readonly QoldaKassa[];
-}) {
-  const [holat, yubor, kutilmoqda] = useActionState(
-    ayirboshlashAmali,
-    BOSH_AYIRBOSHLASH,
-  );
+export function AyirboshlashFormasi({ kassalar }: { kassalar: readonly QoldaKassa[] }) {
+  const [holat, yubor, kutilmoqda] = useActionState(ayirboshlashAmali, BOSH_AYIRBOSHLASH);
 
   // TZ 12.9 — faqat admin (filial) kassalari
   const adminKassalari = kassalar.filter((k) => k.xodimId === null);
@@ -171,7 +164,7 @@ export function AyirboshlashFormasi({
 
   if (adminKassalari.length < 2) {
     return (
-      <p className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900 ring-1 ring-amber-200">
+      <p className="rounded-karta bg-belgi-sariq-fon px-4 py-3 text-sm text-belgi-sariq ">
         Ayirboshlash uchun kamida ikkita admin kassasi kerak (12.9).
       </p>
     );
@@ -182,14 +175,14 @@ export function AyirboshlashFormasi({
       {holat.xato !== null && (
         <p
           role="alert"
-          className="rounded-lg bg-red-50 px-3 py-2.5 text-sm text-red-800 ring-1 ring-red-200"
+          className="rounded-maydon bg-belgi-qizil-fon px-3 py-2.5 text-sm text-belgi-qizil "
         >
           {holat.xato}
         </p>
       )}
 
       {holat.bajarildi && holat.kirgan !== null && (
-        <p className="rounded-lg bg-emerald-50 px-3 py-2.5 text-sm text-emerald-900 ring-1 ring-emerald-200">
+        <p className="rounded-maydon bg-belgi-yashil-fon px-3 py-2.5 text-sm text-belgi-yashil ">
           Ayirboshlandi. Kassaga kirdi:{' '}
           <b className="raqam">{pul(holat.kirgan, ga?.valyuta ?? 'SOM')}</b>
         </p>
@@ -250,7 +243,7 @@ export function AyirboshlashFormasi({
         <Maydon
           nom="a-kurs"
           yorliq="Kurs"
-          izoh={kursKerak ? undefined : "Bir xil valyuta — ishlatilmaydi"}
+          izoh={kursKerak ? undefined : 'Bir xil valyuta — ishlatilmaydi'}
         >
           <input
             id="a-kurs"
@@ -285,23 +278,22 @@ export function AyirboshlashFormasi({
 
       {son(summa) > 0 && (
         <dl className="grid max-w-xs grid-cols-2 gap-x-4 gap-y-1 text-sm">
-          <dt className="text-slate-500">O&apos;girildi</dt>
+          <dt className="text-matn-kuchsiz">O&apos;girildi</dt>
           <dd className="raqam">{pul(ogirilgan.toFixed(2), ga?.valyuta ?? 'SOM')}</dd>
-          <dt className="text-slate-500">Komissiya</dt>
-          <dd className="raqam text-red-700">
+          <dt className="text-matn-kuchsiz">Komissiya</dt>
+          <dd className="raqam text-belgi-qizil">
             −{pul(son(komissiya).toFixed(2), ga?.valyuta ?? 'SOM')}
           </dd>
-          <dt className="border-t border-slate-200 pt-1 font-medium">Kassaga kiradi</dt>
-          <dd className="raqam border-t border-slate-200 pt-1 font-semibold">
+          <dt className="border-t border-chegara pt-1 font-medium">Kassaga kiradi</dt>
+          <dd className="raqam border-t border-chegara pt-1 font-semibold">
             {pul(kirgan.toFixed(2), ga?.valyuta ?? 'SOM')}
           </dd>
         </dl>
       )}
 
-      <p className="rounded-lg bg-slate-50 px-3 py-2.5 text-xs text-slate-600 ring-1 ring-slate-200">
-        Ayirboshlash kirim ham, chiqim ham emas — ichki ko&apos;chish, foydaga
-        ta&apos;sir qilmaydi. Faqat <b>komissiya</b> real yo&apos;qotish va u
-        «Bank komissiyasi» moddasiga tushadi (12.9).
+      <p className="rounded-maydon bg-fon px-3 py-2.5 text-xs text-matn-ikki ">
+        Ayirboshlash kirim ham, chiqim ham emas — ichki ko&apos;chish, foydaga ta&apos;sir qilmaydi.
+        Faqat <b>komissiya</b> real yo&apos;qotish va u «Bank komissiyasi» moddasiga tushadi (12.9).
       </p>
 
       <Maydon nom="a-izoh" yorliq="Izoh">
@@ -311,7 +303,7 @@ export function AyirboshlashFormasi({
       <button
         type="submit"
         disabled={kutilmoqda || son(summa) <= 0 || kimdan === kimga}
-        className="self-start rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800 disabled:opacity-50"
+        className="self-start rounded-maydon bg-amal px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-amal-hover disabled:opacity-50"
       >
         {kutilmoqda ? 'Bajarilmoqda…' : 'Ayirboshlash'}
       </button>
@@ -347,14 +339,14 @@ export function QoldaHodisaFormasi({
       {holat.xato !== null && (
         <p
           role="alert"
-          className="rounded-lg bg-red-50 px-3 py-2.5 text-sm text-red-800 ring-1 ring-red-200"
+          className="rounded-maydon bg-belgi-qizil-fon px-3 py-2.5 text-sm text-belgi-qizil "
         >
           {holat.xato}
         </p>
       )}
 
       {holat.bajarildi && (
-        <p className="rounded-lg bg-emerald-50 px-3 py-2.5 text-sm text-emerald-900 ring-1 ring-emerald-200">
+        <p className="rounded-maydon bg-belgi-yashil-fon px-3 py-2.5 text-sm text-belgi-yashil ">
           Saqlandi.
         </p>
       )}
@@ -406,9 +398,9 @@ export function QoldaHodisaFormasi({
       </div>
 
       {egasi && (
-        <p className="text-xs text-slate-500">
-          Egasining puli <b>xarajat emas</b> — foydaga ta&apos;sir qilmaydi,
-          faqat kassa qoldig&apos;ini o&apos;zgartiradi (12.11).
+        <p className="text-xs text-matn-kuchsiz">
+          Egasining puli <b>xarajat emas</b> — foydaga ta&apos;sir qilmaydi, faqat kassa
+          qoldig&apos;ini o&apos;zgartiradi (12.11).
         </p>
       )}
 
@@ -419,7 +411,7 @@ export function QoldaHodisaFormasi({
       <button
         type="submit"
         disabled={kutilmoqda}
-        className="self-start rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800 disabled:opacity-50"
+        className="self-start rounded-maydon bg-amal px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-amal-hover disabled:opacity-50"
       >
         {kutilmoqda ? 'Saqlanmoqda…' : 'Saqlash'}
       </button>

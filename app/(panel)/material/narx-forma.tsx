@@ -38,26 +38,23 @@ export function FilialNarxlari({
     <section className="flex flex-col gap-3">
       <div>
         <h2 className="text-sm font-semibold">Filial narxlari</h2>
-        <p className="mt-1 text-xs text-slate-500">
-          Standart{' '}
-          <b>
-            {standartNarx === null ? 'belgilanmagan' : pulKorsat(som(standartNarx))}
-          </b>
-          . Bo&apos;sh qoldirilgan filial standartda qoladi — bosh filialda
-          standart o&apos;zgarsa unga avtomatik tarqaladi (20.9.1).
+        <p className="mt-1 text-xs text-matn-kuchsiz">
+          Standart <b>{standartNarx === null ? 'belgilanmagan' : pulKorsat(som(standartNarx))}</b>.
+          Bo&apos;sh qoldirilgan filial standartda qoladi — bosh filialda standart o&apos;zgarsa
+          unga avtomatik tarqaladi (20.9.1).
         </p>
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+      <div className="overflow-x-auto rounded-karta border border-chegara bg-sirt">
         <table className="w-full text-sm">
-          <thead className="border-b border-slate-200 bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+          <thead className="border-b border-chegara bg-fon text-left text-xs uppercase tracking-wide text-matn-kuchsiz">
             <tr>
               <th className="px-4 py-2.5 font-medium">Filial</th>
               <th className="px-4 py-2.5 font-medium">Narx</th>
               <th className="px-4 py-2.5" />
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-chegara">
             {qatorlar.map((q) => (
               <NarxQatori
                 key={q.filialId}
@@ -102,9 +99,7 @@ function NarxQatori({
               narxniOzgartir(e.target.value);
             }}
             inputMode="decimal"
-            placeholder={
-              standartNarx === null ? 'standart yo‘q' : `${standartNarx} (standart)`
-            }
+            placeholder={standartNarx === null ? 'standart yo‘q' : `${standartNarx} (standart)`}
             aria-label={`${qator.filialNomi} narxi`}
             className={`${kirishUslubi(false)} w-40`}
           />
@@ -112,13 +107,13 @@ function NarxQatori({
           <button
             type="submit"
             disabled={kutilmoqda}
-            className="rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-slate-800 disabled:opacity-60"
+            className="rounded-maydon bg-amal px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-amal-hover disabled:opacity-60"
           >
             {kutilmoqda ? '…' : 'Saqlash'}
           </button>
 
           {holat.xato !== null && (
-            <span role="alert" className="text-xs text-red-700">
+            <span role="alert" className="text-xs text-belgi-qizil">
               {holat.xato}
             </span>
           )}
@@ -126,9 +121,9 @@ function NarxQatori({
       </td>
       <td className="px-4 py-2.5 text-xs">
         {istisnomi ? (
-          <span className="text-amber-800">⚠️ istisno</span>
+          <span className="text-belgi-sariq">⚠️ istisno</span>
         ) : (
-          <span className="text-slate-400">standart</span>
+          <span className="text-matn-kuchsiz">standart</span>
         )}
       </td>
     </tr>

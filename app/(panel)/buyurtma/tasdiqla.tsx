@@ -20,12 +20,12 @@ export function TasdiqlashTugmasi({ pozitsiyaId }: { pozitsiyaId: number }) {
       <input type="hidden" name="pozitsiyaId" value={pozitsiyaId} />
 
       {holat.xato !== null && (
-        <span role="alert" className="text-xs text-red-700">
+        <span role="alert" className="text-xs text-belgi-qizil">
           {holat.xato}
         </span>
       )}
       {holat.materialgaKutmoqda && (
-        <span className="text-xs text-amber-800">
+        <span className="text-xs text-belgi-sariq">
           material topilmadi — navbatga qaytadi (8.12)
         </span>
       )}
@@ -33,7 +33,7 @@ export function TasdiqlashTugmasi({ pozitsiyaId }: { pozitsiyaId: number }) {
       <button
         type="submit"
         disabled={kutilmoqda}
-        className="rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-slate-800 disabled:opacity-60"
+        className="rounded-maydon bg-amal px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-amal-hover disabled:opacity-60"
       >
         {kutilmoqda ? 'Tasdiqlanmoqda…' : 'Tasdiqlash'}
       </button>

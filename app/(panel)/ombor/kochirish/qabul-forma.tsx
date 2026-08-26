@@ -55,14 +55,14 @@ export function QabulFormasi({
       <input type="hidden" name="tuzatishlar" value={JSON.stringify(tuzatishlar)} />
 
       {holat.xato !== null && (
-        <p role="alert" className="text-sm text-red-700">
+        <p role="alert" className="text-sm text-belgi-qizil">
           {holat.xato}
         </p>
       )}
 
-      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+      <div className="overflow-x-auto rounded-karta border border-chegara bg-sirt">
         <table className="w-full text-sm">
-          <thead className="border-b border-slate-200 bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+          <thead className="border-b border-chegara bg-fon text-left text-xs uppercase tracking-wide text-matn-kuchsiz">
             <tr>
               <th className="px-4 py-2.5 font-medium">Kod</th>
               <th className="px-4 py-2.5 font-medium">Material</th>
@@ -71,15 +71,13 @@ export function QabulFormasi({
               <th className="px-4 py-2.5 text-right font-medium">Tannarx</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-chegara">
             {qatorlar.map((q) => (
               <tr key={q.bolakId}>
                 <td className="raqam px-4 py-2.5">{q.kod}</td>
                 <td className="px-4 py-2.5">{q.materialNomi}</td>
                 <td className="raqam px-4 py-2.5">
-                  {q.turi === 'DONA'
-                    ? (q.miqdor ?? '—')
-                    : `${q.eniM ?? '—'} × ${q.boyiM ?? '—'} m`}
+                  {q.turi === 'DONA' ? (q.miqdor ?? '—') : `${q.eniM ?? '—'} × ${q.boyiM ?? '—'} m`}
                 </td>
                 <td className="px-4 py-2.5">
                   <div className="flex flex-wrap items-center gap-1.5">
@@ -108,7 +106,7 @@ export function QabulFormasi({
                             });
                           }}
                         />
-                        <span className="text-xs text-slate-400">×</span>
+                        <span className="text-xs text-matn-kuchsiz">×</span>
                         <input
                           aria-label={`${q.kod} bo'yi`}
                           placeholder={q.boyiM ?? ''}
@@ -132,25 +130,22 @@ export function QabulFormasi({
                     />
                   </div>
                 </td>
-                <td className="raqam px-4 py-2.5 text-right">
-                  {pulKorsat(som(q.tannarxSumma))}
-                </td>
+                <td className="raqam px-4 py-2.5 text-right">{pulKorsat(som(q.tannarxSumma))}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
 
-      <p className="rounded-lg bg-slate-50 px-3 py-2.5 text-xs text-slate-600">
-        O&apos;lchov faqat <b>farq bo&apos;lsa</b> kiritiladi — izoh yozilmasa
-        tuzatish hisobga olinmaydi. Qabul qilinganda filiallararo qarz
-        yoziladi (22.4.4).
+      <p className="rounded-maydon bg-fon px-3 py-2.5 text-xs text-matn-ikki">
+        O&apos;lchov faqat <b>farq bo&apos;lsa</b> kiritiladi — izoh yozilmasa tuzatish hisobga
+        olinmaydi. Qabul qilinganda filiallararo qarz yoziladi (22.4.4).
       </p>
 
       <button
         type="submit"
         disabled={kutilmoqda}
-        className="self-start rounded-lg bg-emerald-700 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-emerald-800 disabled:opacity-60"
+        className="self-start rounded-maydon bg-belgi-yashil px-3.5 py-2 text-sm font-medium text-white transition-colors hover:brightness-95 disabled:opacity-60"
       >
         {kutilmoqda ? 'Qabul qilinmoqda…' : 'Qabul qilish'}
       </button>
@@ -170,7 +165,7 @@ export function BekorFormasi({ kochirishId }: { kochirishId: number }) {
         onClick={() => {
           ochiqniOzgartir(true);
         }}
-        className="self-start text-xs text-slate-500 underline underline-offset-2 hover:text-red-700"
+        className="self-start text-xs text-matn-kuchsiz underline underline-offset-2 hover:text-belgi-qizil"
       >
         Bekor qilish
       </button>
@@ -182,7 +177,7 @@ export function BekorFormasi({ kochirishId }: { kochirishId: number }) {
       <input type="hidden" name="kochirishId" value={kochirishId} />
 
       {holat.xato !== null && (
-        <p role="alert" className="text-sm text-red-700">
+        <p role="alert" className="text-sm text-belgi-qizil">
           {holat.xato}
         </p>
       )}
@@ -196,16 +191,15 @@ export function BekorFormasi({ kochirishId }: { kochirishId: number }) {
         />
       </Maydon>
 
-      <p className="text-xs text-slate-500">
-        Yo&apos;ldagi bo&apos;laklar beruvchi filialga qaytadi, qarz
-        yozilmaydi (EC-FQ-02).
+      <p className="text-xs text-matn-kuchsiz">
+        Yo&apos;ldagi bo&apos;laklar beruvchi filialga qaytadi, qarz yozilmaydi (EC-FQ-02).
       </p>
 
       <div className="flex items-center gap-3">
         <button
           type="submit"
           disabled={kutilmoqda}
-          className="rounded-lg bg-red-700 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-red-800 disabled:opacity-60"
+          className="rounded-maydon bg-belgi-qizil px-3 py-1.5 text-xs font-medium text-white transition-colors hover:brightness-95 disabled:opacity-60"
         >
           {kutilmoqda ? 'Bekor qilinmoqda…' : 'Bekor qilish'}
         </button>
@@ -214,7 +208,7 @@ export function BekorFormasi({ kochirishId }: { kochirishId: number }) {
           onClick={() => {
             ochiqniOzgartir(false);
           }}
-          className="text-xs text-slate-500 hover:text-slate-900"
+          className="text-xs text-matn-kuchsiz hover:text-matn"
         >
           Yopish
         </button>

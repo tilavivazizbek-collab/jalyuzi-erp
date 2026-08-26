@@ -18,14 +18,7 @@
 import { useActionState, useMemo, useState } from 'react';
 import { sarflashHisobla, standartQiymatlar } from '@/lib/domain/formula';
 import { sm, type SarflashBirligi } from '@/lib/domain/birlik';
-import {
-  nolSom,
-  pulKorsat,
-  pulMatn,
-  qosh,
-  som,
-  type Som,
-} from '@/lib/domain/pul';
+import { nolSom, pulKorsat, pulMatn, qosh, som, type Som } from '@/lib/domain/pul';
 import { aksessuarNarxi, matoNarxi, qatorSummasi } from '@/lib/domain/narx';
 import { pozitsiyaNarxiniHisobla } from '@/lib/domain/pozitsiya-narxi';
 import { mijozOffseti } from '@/lib/domain/mijoz';
@@ -115,9 +108,7 @@ export function SotuvFormasi({
   const [boyi, boyiniOzgartir] = useState('140');
   const [parametrlar, parametrlarniOzgartir] = useState<Record<string, string>>({});
   const [slotlar, slotlarniOzgartir] = useState<Record<number, SlotTanlovi>>({});
-  const [aksessuarlar, aksessuarlarniOzgartir] = useState<
-    Record<number, AksessuarTanlovi>
-  >({});
+  const [aksessuarlar, aksessuarlarniOzgartir] = useState<Record<number, AksessuarTanlovi>>({});
   const [savat, savatniOzgartir] = useState<readonly SavatQatori[]>([]);
   const [mijoz, mijozniOzgartir] = useState<SotuvMijozi | null>(null);
   const [tikuvchi, tikuvchiniOzgartir] = useState(ozFilialId);
@@ -227,8 +218,15 @@ export function SotuvFormasi({
             : material.boshDona >= hisoblangan;
 
       return {
-        slot: s, material, birlik, hisoblangan, tuzatilgan, summa, xato,
-        narxMatn, yetarlimi,
+        slot: s,
+        material,
+        birlik,
+        hisoblangan,
+        tuzatilgan,
+        summa,
+        xato,
+        narxMatn,
+        yetarlimi,
       };
     });
 
@@ -270,10 +268,7 @@ export function SotuvFormasi({
 
     const xizmat = tur.xizmatHaqi === null ? nolSom() : som(tur.xizmatHaqi);
 
-    const jami = [...qatorlar, ...aksQatorlar].reduce<Som>(
-      (y, q) => qosh(y, q.summa),
-      xizmat,
-    );
+    const jami = [...qatorlar, ...aksQatorlar].reduce<Som>((y, q) => qosh(y, q.summa), xizmat);
 
     return { qatorlar, aksQatorlar, xizmat, jami, eniSm, boyiSm };
   }, [tur, eni, boyi, parametrlar, slotlar, aksessuarlar, offset]);
@@ -286,9 +281,7 @@ export function SotuvFormasi({
   const savatgaQoshilsinmi =
     hisob !== null &&
     tur !== null &&
-    tur.slotlar
-      .filter((s) => s.majburiy)
-      .every((s) => (slotlar[s.id]?.materialId ?? '') !== '');
+    tur.slotlar.filter((s) => s.majburiy).every((s) => (slotlar[s.id]?.materialId ?? '') !== '');
 
   function savatgaQosh(): void {
     if (hisob === null || tur === null) return;
@@ -348,10 +341,7 @@ export function SotuvFormasi({
   }
 
   const kelishilganSom = son(kelishilgan);
-  const chegirma =
-    kelishilganSom === null
-      ? null
-      : Number(pulMatn(savatJami)) - kelishilganSom;
+  const chegirma = kelishilganSom === null ? null : Number(pulMatn(savatJami)) - kelishilganSom;
 
   const yuborilajak = {
     mijozId: mijoz?.id ?? null,
@@ -378,486 +368,469 @@ export function SotuvFormasi({
 
       {/* Xabarlar ikki ustunning USTIDA — ko'zdan qochmasin */}
       <div className="contents xl:col-span-2">
-      {holat.xato !== null && (
-        <p
-          role="alert"
-          className="rounded-maydon bg-red-50 px-3 py-2.5 text-sm text-red-800 ring-1 ring-red-200"
-        >
-          {holat.xato}
-        </p>
-      )}
+        {holat.xato !== null && (
+          <p
+            role="alert"
+            className="rounded-maydon bg-belgi-qizil-fon px-3 py-2.5 text-sm text-belgi-qizil "
+          >
+            {holat.xato}
+          </p>
+        )}
 
-      {holat.buyurtmaRaqam !== null && (
-        <div className="rounded-karta bg-belgi-yashil-fon px-4 py-3 text-sm text-belgi-yashil ring-1 ring-belgi-yashil/20">
-          <b>{holat.buyurtmaRaqam}</b> saqlandi.
-          {holat.materialgaKutmoqda.length > 0 && (
-            <span className="mt-1 block text-belgi-sariq">
-              {holat.materialgaKutmoqda.join(', ')}-pozitsiya uchun mos material
-              topilmadi — «Materialga kutmoqda» holatida turibdi (Q-03). Kirim
-              bo&apos;lgach avtomatik navbatga qaytadi (8.12).
-            </span>
-          )}
-        </div>
-      )}
-
+        {holat.buyurtmaRaqam !== null && (
+          <div className="rounded-karta bg-belgi-yashil-fon px-4 py-3 text-sm text-belgi-yashil ring-1 ring-belgi-yashil/20">
+            <b>{holat.buyurtmaRaqam}</b> saqlandi.
+            {holat.materialgaKutmoqda.length > 0 && (
+              <span className="mt-1 block text-belgi-sariq">
+                {holat.materialgaKutmoqda.join(', ')}-pozitsiya uchun mos material topilmadi —
+                «Materialga kutmoqda» holatida turibdi (Q-03). Kirim bo&apos;lgach avtomatik
+                navbatga qaytadi (8.12).
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       {/* ═══ CHAP USTUN — pozitsiya yig'iladi ═══════════════════ */}
       <div className="flex flex-col gap-6">
-      {/* ── 3.2 · Mahsulot turlari ── */}
-      <section>
-        <h2 className="mb-2 text-sm font-medium text-matn-ikki">Mahsulot turi</h2>
-        {turlar.length === 0 ? (
-          <p className="rounded-karta border border-dashed border-chegara-quyuq px-4 py-6 text-center text-sm text-matn-kuchsiz">
-            Faol mahsulot turi yo&apos;q. Avval konstruktorda tur qo&apos;shing.
-          </p>
-        ) : (
-          <div className="flex flex-wrap gap-2">
-            {turlar.map((t) => (
-              <button
-                key={t.id}
-                type="button"
-                onClick={() => {
-                  if (t.id === turId) return;
-                  turniOzgartir(t.id);
-                  slotlarniOzgartir({});
-                  aksessuarlarniOzgartir({});
-                  yuklanishniOzgartir(true);
+        {/* ── 3.2 · Mahsulot turlari ── */}
+        <section>
+          <h2 className="mb-2 text-sm font-medium text-matn-ikki">Mahsulot turi</h2>
+          {turlar.length === 0 ? (
+            <p className="rounded-karta border border-dashed border-chegara-quyuq px-4 py-6 text-center text-sm text-matn-kuchsiz">
+              Faol mahsulot turi yo&apos;q. Avval konstruktorda tur qo&apos;shing.
+            </p>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {turlar.map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => {
+                    if (t.id === turId) return;
+                    turniOzgartir(t.id);
+                    slotlarniOzgartir({});
+                    aksessuarlarniOzgartir({});
+                    yuklanishniOzgartir(true);
 
-                  void turTafsiliAmali(t.id)
-                    .then((x) => {
-                      turniYukla(x);
-                    })
-                    .finally(() => {
-                      yuklanishniOzgartir(false);
-                    });
-                }}
-                disabled={turYuklanmoqda}
-                /**
-                 * ⚠️ Faol tur BREND rangida, qora emas. Ekranda 15–20
-                 *    amal bor; qora fon eng kuchli signal va u
-                 *    «Buyurtmani saqlash» tugmasiga tegishli.
-                 */
-                className={`rounded-full px-3.5 py-1.5 text-[13px] font-medium transition-colors ${
-                  t.id === turId
-                    ? 'bg-brend text-white'
-                    : 'border border-chegara bg-sirt text-matn-ikki hover:border-chegara-quyuq hover:text-matn'
-                } ${turYuklanmoqda ? 'opacity-60' : ''}`}
-              >
-                {t.nom}
-              </button>
-            ))}
-          </div>
-        )}
-      </section>
-
-      {tur !== null && (
-        <>
-          {/* ── 3.4 · O'lcham ── */}
-          <section className="flex flex-wrap items-end gap-4">
-            <Maydon nom="eni" yorliq="Eni (sm)">
-              <input
-                id="eni"
-                value={eni}
-                onChange={(e) => {
-                  eniniOzgartir(e.target.value);
-                }}
-                inputMode="numeric"
-                className={`${kirishUslubi(false)} w-28`}
-              />
-            </Maydon>
-            <Maydon nom="boyi" yorliq="Bo'yi (sm)">
-              <input
-                id="boyi"
-                value={boyi}
-                onChange={(e) => {
-                  boyiniOzgartir(e.target.value);
-                }}
-                inputMode="numeric"
-                className={`${kirishUslubi(false)} w-28`}
-              />
-            </Maydon>
-
-            {tur.parametrlar.map((p) => (
-              <Maydon key={p.kod} nom={`p-${p.kod}`} yorliq={`${p.nom} (sm)`}>
-                <input
-                  id={`p-${p.kod}`}
-                  value={parametrlar[p.kod] ?? p.standartQiymat ?? ''}
-                  onChange={(e) => {
-                    parametrlarniOzgartir((o) => ({ ...o, [p.kod]: e.target.value }));
+                    void turTafsiliAmali(t.id)
+                      .then((x) => {
+                        turniYukla(x);
+                      })
+                      .finally(() => {
+                        yuklanishniOzgartir(false);
+                      });
                   }}
-                  inputMode="decimal"
-                  className={`${kirishUslubi(false)} w-24`}
+                  disabled={turYuklanmoqda}
+                  /**
+                   * ⚠️ Faol tur BREND rangida, qora emas. Ekranda 15–20
+                   *    amal bor; qora fon eng kuchli signal va u
+                   *    «Buyurtmani saqlash» tugmasiga tegishli.
+                   */
+                  className={`rounded-full px-3.5 py-1.5 text-[13px] font-medium transition-colors ${
+                    t.id === turId
+                      ? 'bg-brend text-white'
+                      : 'border border-chegara bg-sirt text-matn-ikki hover:border-chegara-quyuq hover:text-matn'
+                  } ${turYuklanmoqda ? 'opacity-60' : ''}`}
+                >
+                  {t.nom}
+                </button>
+              ))}
+            </div>
+          )}
+        </section>
+
+        {tur !== null && (
+          <>
+            {/* ── 3.4 · O'lcham ── */}
+            <section className="flex flex-wrap items-end gap-4">
+              <Maydon nom="eni" yorliq="Eni (sm)">
+                <input
+                  id="eni"
+                  value={eni}
+                  onChange={(e) => {
+                    eniniOzgartir(e.target.value);
+                  }}
+                  inputMode="numeric"
+                  className={`${kirishUslubi(false)} w-28`}
                 />
               </Maydon>
-            ))}
-          </section>
+              <Maydon nom="boyi" yorliq="Bo'yi (sm)">
+                <input
+                  id="boyi"
+                  value={boyi}
+                  onChange={(e) => {
+                    boyiniOzgartir(e.target.value);
+                  }}
+                  inputMode="numeric"
+                  className={`${kirishUslubi(false)} w-28`}
+                />
+              </Maydon>
 
-          {/* ── 3.3 · 3.5 · Slotlar ── */}
-          <section>
-            <h2 className="mb-1 text-sm font-medium text-matn-ikki">Matolar</h2>
-            <p className="mb-3 text-xs text-matn-kuchsiz">
-              Har slotda faqat o&apos;sha slotga bog&apos;langan matolar chiqadi
-              (3.3). Hisoblangan son yonidagi maydonga o&apos;zgacha kelishilsa
-              yozing — <b>narx shunga</b>, ombordan esa hisoblangani yechiladi
-              (3.6).
-            </p>
+              {tur.parametrlar.map((p) => (
+                <Maydon key={p.kod} nom={`p-${p.kod}`} yorliq={`${p.nom} (sm)`}>
+                  <input
+                    id={`p-${p.kod}`}
+                    value={parametrlar[p.kod] ?? p.standartQiymat ?? ''}
+                    onChange={(e) => {
+                      parametrlarniOzgartir((o) => ({ ...o, [p.kod]: e.target.value }));
+                    }}
+                    inputMode="decimal"
+                    className={`${kirishUslubi(false)} w-24`}
+                  />
+                </Maydon>
+              ))}
+            </section>
 
-            <div className="overflow-x-auto rounded-karta border border-chegara bg-white">
-              <table className="w-full text-sm">
-                <thead className="border-b border-chegara bg-fon text-left text-xs uppercase tracking-wide text-matn-kuchsiz">
-                  <tr>
-                    <th className="px-3 py-2.5 font-medium">Slot</th>
-                    <th className="px-3 py-2.5 font-medium">Mato</th>
-                    <th className="px-3 py-2.5 text-right font-medium">Hisoblangan</th>
-                    <th className="px-3 py-2.5 font-medium">Kelishilgan</th>
-                    <th className="px-3 py-2.5 text-right font-medium">Narx</th>
-                    <th className="px-3 py-2.5 text-right font-medium">Summa</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-chegara">
-                  {(hisob?.qatorlar ?? []).map((q) => (
-                    <tr key={q.slot.id}>
-                      <td className="px-3 py-2">
-                        {q.slot.nom}
-                        {!q.slot.majburiy && (
-                          <span className="ml-2 text-xs text-matn-kuchsiz">ixtiyoriy</span>
-                        )}
-                      </td>
-                      <td className="px-3 py-2">
-                        <select
-                          value={slotlar[q.slot.id]?.materialId ?? ''}
-                          onChange={(e) => {
-                            slotlarniOzgartir((o) => ({
-                              ...o,
-                              [q.slot.id]: {
-                                materialId: e.target.value,
-                                tuzatilgan: o[q.slot.id]?.tuzatilgan ?? '',
-                              },
-                            }));
-                          }}
-                          className={`${kirishUslubi(false)} w-56`}
-                        >
-                          <option value="">— tanlang —</option>
-                          {q.slot.materiallar.map((m) => (
-                            <option key={m.id} value={m.id}>
-                              {m.nom}
-                              {m.sarflashBirligi === 'KV_M'
-                                ? ` · ${m.boshKvM.toFixed(2)} kv.m`
-                                : ` · ${String(m.boshDona)}`}
-                            </option>
-                          ))}
-                        </select>
-                      </td>
-                      <td className="raqam px-3 py-2">
-                        {q.xato !== null ? (
-                          <span className="text-red-700">{q.xato}</span>
-                        ) : q.hisoblangan === null ? (
-                          '—'
-                        ) : (
-                          `${q.hisoblangan.toFixed(q.birlik === 'DONA' ? 0 : 2)} ${BIRLIK_MATNI[q.birlik]}`
-                        )}
-                      </td>
-                      <td className="px-3 py-2">
-                        <input
-                          value={slotlar[q.slot.id]?.tuzatilgan ?? ''}
-                          onChange={(e) => {
-                            slotlarniOzgartir((o) => ({
-                              ...o,
-                              [q.slot.id]: {
-                                materialId: o[q.slot.id]?.materialId ?? '',
-                                tuzatilgan: e.target.value,
-                              },
-                            }));
-                          }}
-                          inputMode="decimal"
-                          placeholder={
-                            q.hisoblangan === null ? '' : q.hisoblangan.toFixed(2)
-                          }
-                          className={`${kirishUslubi(false)} w-24`}
-                        />
-                      </td>
-                      <td className="raqam px-3 py-2">
-                        {q.narxMatn === null ? '—' : pulKorsat(som(q.narxMatn))}
-                      </td>
-                      <td className="raqam px-3 py-2 font-medium">
-                        {pulKorsat(q.summa)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
-
-          {/* ── 3.7 · Aksessuarlar ── */}
-          {tur.aksessuarlar.length > 0 && (
+            {/* ── 3.3 · 3.5 · Slotlar ── */}
             <section>
-              <h2 className="mb-1 text-sm font-medium text-matn-ikki">Aksessuarlar</h2>
+              <h2 className="mb-1 text-sm font-medium text-matn-ikki">Matolar</h2>
               <p className="mb-3 text-xs text-matn-kuchsiz">
-                Komplekt avtomatik tushadi. Sonini qo&apos;lda o&apos;zgartirsangiz
-                — o&apos;lcham keyin o&apos;zgarsa ham formula uni{' '}
-                <b>ustidan yozmaydi</b> (3.7).
+                Har slotda faqat o&apos;sha slotga bog&apos;langan matolar chiqadi (3.3).
+                Hisoblangan son yonidagi maydonga o&apos;zgacha kelishilsa yozing —{' '}
+                <b>narx shunga</b>, ombordan esa hisoblangani yechiladi (3.6).
               </p>
 
-              <div className="overflow-x-auto rounded-karta border border-chegara bg-white">
+              <div className="overflow-x-auto rounded-karta border border-chegara bg-sirt">
                 <table className="w-full text-sm">
+                  <thead className="border-b border-chegara bg-fon text-left text-xs uppercase tracking-wide text-matn-kuchsiz">
+                    <tr>
+                      <th className="px-3 py-2.5 font-medium">Slot</th>
+                      <th className="px-3 py-2.5 font-medium">Mato</th>
+                      <th className="px-3 py-2.5 text-right font-medium">Hisoblangan</th>
+                      <th className="px-3 py-2.5 font-medium">Kelishilgan</th>
+                      <th className="px-3 py-2.5 text-right font-medium">Narx</th>
+                      <th className="px-3 py-2.5 text-right font-medium">Summa</th>
+                    </tr>
+                  </thead>
                   <tbody className="divide-y divide-chegara">
-                    {(hisob?.aksQatorlar ?? []).map((a) => (
-                      <tr key={a.aksessuar.materialId}>
-                        <td className="px-3 py-2">{a.aksessuar.nom}</td>
+                    {(hisob?.qatorlar ?? []).map((q) => (
+                      <tr key={q.slot.id}>
+                        <td className="px-3 py-2">
+                          {q.slot.nom}
+                          {!q.slot.majburiy && (
+                            <span className="ml-2 text-xs text-matn-kuchsiz">ixtiyoriy</span>
+                          )}
+                        </td>
+                        <td className="px-3 py-2">
+                          <select
+                            value={slotlar[q.slot.id]?.materialId ?? ''}
+                            onChange={(e) => {
+                              slotlarniOzgartir((o) => ({
+                                ...o,
+                                [q.slot.id]: {
+                                  materialId: e.target.value,
+                                  tuzatilgan: o[q.slot.id]?.tuzatilgan ?? '',
+                                },
+                              }));
+                            }}
+                            className={`${kirishUslubi(false)} w-56`}
+                          >
+                            <option value="">— tanlang —</option>
+                            {q.slot.materiallar.map((m) => (
+                              <option key={m.id} value={m.id}>
+                                {m.nom}
+                                {m.sarflashBirligi === 'KV_M'
+                                  ? ` · ${m.boshKvM.toFixed(2)} kv.m`
+                                  : ` · ${String(m.boshDona)}`}
+                              </option>
+                            ))}
+                          </select>
+                        </td>
+                        <td className="raqam px-3 py-2">
+                          {q.xato !== null ? (
+                            <span className="text-belgi-qizil">{q.xato}</span>
+                          ) : q.hisoblangan === null ? (
+                            '—'
+                          ) : (
+                            `${q.hisoblangan.toFixed(q.birlik === 'DONA' ? 0 : 2)} ${BIRLIK_MATNI[q.birlik]}`
+                          )}
+                        </td>
                         <td className="px-3 py-2">
                           <input
-                            value={
-                              aksessuarlar[a.aksessuar.materialId]?.qoldaKiritildi ===
-                              true
-                                ? (aksessuarlar[a.aksessuar.materialId]?.soni ?? '')
-                                : String(a.soni)
-                            }
+                            value={slotlar[q.slot.id]?.tuzatilgan ?? ''}
                             onChange={(e) => {
-                              aksessuarlarniOzgartir((o) => ({
+                              slotlarniOzgartir((o) => ({
                                 ...o,
-                                [a.aksessuar.materialId]: {
-                                  materialId: a.aksessuar.materialId,
-                                  soni: e.target.value,
-                                  qoldaKiritildi: true,
-                                  ochirilgan: false,
+                                [q.slot.id]: {
+                                  materialId: o[q.slot.id]?.materialId ?? '',
+                                  tuzatilgan: e.target.value,
                                 },
                               }));
                             }}
                             inputMode="decimal"
-                            className={`${kirishUslubi(false)} w-20`}
+                            placeholder={q.hisoblangan === null ? '' : q.hisoblangan.toFixed(2)}
+                            className={`${kirishUslubi(false)} w-24`}
                           />
                         </td>
-                        <td className="px-3 py-2 text-xs text-matn-kuchsiz">
-                          {BIRLIK_MATNI[a.birlik]}
-                        </td>
                         <td className="raqam px-3 py-2">
-                          {a.narx === null ? '—' : pulKorsat(a.narx)}
+                          {q.narxMatn === null ? '—' : pulKorsat(som(q.narxMatn))}
                         </td>
-                        <td className="raqam px-3 py-2 font-medium">
-                          {pulKorsat(a.summa)}
-                        </td>
-                        <td className="px-3 py-2 text-right">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              aksessuarlarniOzgartir((o) => ({
-                                ...o,
-                                [a.aksessuar.materialId]: {
-                                  materialId: a.aksessuar.materialId,
-                                  soni: '0',
-                                  qoldaKiritildi: false,
-                                  ochirilgan: true,
-                                },
-                              }));
-                            }}
-                            className="text-xs text-matn-kuchsiz hover:text-belgi-qizil"
-                          >
-                            olib tashlash
-                          </button>
-                        </td>
+                        <td className="raqam px-3 py-2 font-medium">{pulKorsat(q.summa)}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
             </section>
-          )}
 
-          {/* Q-03 · QABUL S3.4 — yetishmovchilik OGOHI, bloklamaydi */}
-          {yetmaydiganlar.length > 0 && (
-            <div className="rounded-karta border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-belgi-sariq">
-              <b>Bu mato hozir yetarli emas:</b>
-              <ul className="mt-1 list-disc space-y-0.5 pl-5 text-xs">
-                {yetmaydiganlar.map((q) => (
-                  <li key={q.slot.id}>
-                    {q.material?.nom ?? q.slot.nom} — kerak{' '}
-                    {(q.hisoblangan ?? 0).toFixed(2)} {BIRLIK_MATNI[q.birlik]}, bo&apos;sh{' '}
-                    {q.birlik === 'KV_M'
-                      ? (q.material?.boshKvM ?? 0).toFixed(2)
-                      : String(q.material?.boshDona ?? 0)}{' '}
-                    {BIRLIK_MATNI[q.birlik]}
-                  </li>
-                ))}
-              </ul>
-              <p className="mt-2 text-xs">
-                Davom etsangiz buyurtma <b>saqlanadi</b>, pozitsiya «Materialga
-                kutmoqda» holatiga tushadi va kirim bo&apos;lgach avtomatik
-                navbatga qaytadi (8.12). Yoki yuqoridan <b>boshqa mato</b>
-                &nbsp;tanlang.
-              </p>
+            {/* ── 3.7 · Aksessuarlar ── */}
+            {tur.aksessuarlar.length > 0 && (
+              <section>
+                <h2 className="mb-1 text-sm font-medium text-matn-ikki">Aksessuarlar</h2>
+                <p className="mb-3 text-xs text-matn-kuchsiz">
+                  Komplekt avtomatik tushadi. Sonini qo&apos;lda o&apos;zgartirsangiz — o&apos;lcham
+                  keyin o&apos;zgarsa ham formula uni <b>ustidan yozmaydi</b> (3.7).
+                </p>
+
+                <div className="overflow-x-auto rounded-karta border border-chegara bg-sirt">
+                  <table className="w-full text-sm">
+                    <tbody className="divide-y divide-chegara">
+                      {(hisob?.aksQatorlar ?? []).map((a) => (
+                        <tr key={a.aksessuar.materialId}>
+                          <td className="px-3 py-2">{a.aksessuar.nom}</td>
+                          <td className="px-3 py-2">
+                            <input
+                              value={
+                                aksessuarlar[a.aksessuar.materialId]?.qoldaKiritildi === true
+                                  ? (aksessuarlar[a.aksessuar.materialId]?.soni ?? '')
+                                  : String(a.soni)
+                              }
+                              onChange={(e) => {
+                                aksessuarlarniOzgartir((o) => ({
+                                  ...o,
+                                  [a.aksessuar.materialId]: {
+                                    materialId: a.aksessuar.materialId,
+                                    soni: e.target.value,
+                                    qoldaKiritildi: true,
+                                    ochirilgan: false,
+                                  },
+                                }));
+                              }}
+                              inputMode="decimal"
+                              className={`${kirishUslubi(false)} w-20`}
+                            />
+                          </td>
+                          <td className="px-3 py-2 text-xs text-matn-kuchsiz">
+                            {BIRLIK_MATNI[a.birlik]}
+                          </td>
+                          <td className="raqam px-3 py-2">
+                            {a.narx === null ? '—' : pulKorsat(a.narx)}
+                          </td>
+                          <td className="raqam px-3 py-2 font-medium">{pulKorsat(a.summa)}</td>
+                          <td className="px-3 py-2 text-right">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                aksessuarlarniOzgartir((o) => ({
+                                  ...o,
+                                  [a.aksessuar.materialId]: {
+                                    materialId: a.aksessuar.materialId,
+                                    soni: '0',
+                                    qoldaKiritildi: false,
+                                    ochirilgan: true,
+                                  },
+                                }));
+                              }}
+                              className="text-xs text-matn-kuchsiz hover:text-belgi-qizil"
+                            >
+                              olib tashlash
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+            )}
+
+            {/* Q-03 · QABUL S3.4 — yetishmovchilik OGOHI, bloklamaydi */}
+            {yetmaydiganlar.length > 0 && (
+              <div className="rounded-karta border border-belgi-sariq/20 bg-belgi-sariq-fon px-4 py-3 text-sm text-belgi-sariq">
+                <b>Bu mato hozir yetarli emas:</b>
+                <ul className="mt-1 list-disc space-y-0.5 pl-5 text-xs">
+                  {yetmaydiganlar.map((q) => (
+                    <li key={q.slot.id}>
+                      {q.material?.nom ?? q.slot.nom} — kerak {(q.hisoblangan ?? 0).toFixed(2)}{' '}
+                      {BIRLIK_MATNI[q.birlik]}, bo&apos;sh{' '}
+                      {q.birlik === 'KV_M'
+                        ? (q.material?.boshKvM ?? 0).toFixed(2)
+                        : String(q.material?.boshDona ?? 0)}{' '}
+                      {BIRLIK_MATNI[q.birlik]}
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-2 text-xs">
+                  Davom etsangiz buyurtma <b>saqlanadi</b>, pozitsiya «Materialga kutmoqda» holatiga
+                  tushadi va kirim bo&apos;lgach avtomatik navbatga qaytadi (8.12). Yoki yuqoridan{' '}
+                  <b>boshqa mato</b>
+                  &nbsp;tanlang.
+                </p>
+              </div>
+            )}
+
+            {/* ── 3.8 · Pozitsiya narxi ── */}
+            <div className="flex flex-wrap items-center justify-between gap-4 rounded-karta border border-chegara bg-sirt px-5 py-4">
+              <div>
+                <p className="text-[12px] tracking-[0.03em] text-matn-kuchsiz uppercase">
+                  Pozitsiya narxi
+                </p>
+                <b className="raqam block text-[20px] leading-tight font-semibold tracking-[-0.02em]">
+                  {pulKorsat(hisob?.jami ?? nolSom())}
+                </b>
+                {tur.xizmatHaqi !== null && Number(tur.xizmatHaqi) > 0 && (
+                  <span className="mt-0.5 block text-[12px] text-matn-kuchsiz">
+                    xizmat haqi {pulKorsat(som(tur.xizmatHaqi))} bilan
+                  </span>
+                )}
+              </div>
+              <button
+                type="button"
+                disabled={!savatgaQoshilsinmi}
+                onClick={savatgaQosh}
+                className="rounded-maydon bg-brend px-4 py-2.5 text-[13px] font-medium text-white transition-colors hover:bg-brend-quyuq disabled:opacity-50"
+              >
+                Savatga qo&apos;shish
+              </button>
             </div>
-          )}
-
-          {/* ── 3.8 · Pozitsiya narxi ── */}
-          <div className="flex flex-wrap items-center justify-between gap-4 rounded-karta border border-chegara bg-sirt px-5 py-4">
-            <div>
-              <p className="text-[12px] tracking-[0.03em] text-matn-kuchsiz uppercase">
-                Pozitsiya narxi
-              </p>
-              <b className="raqam block text-[20px] leading-tight font-semibold tracking-[-0.02em]">
-                {pulKorsat(hisob?.jami ?? nolSom())}
-              </b>
-              {tur.xizmatHaqi !== null && Number(tur.xizmatHaqi) > 0 && (
-                <span className="mt-0.5 block text-[12px] text-matn-kuchsiz">
-                  xizmat haqi {pulKorsat(som(tur.xizmatHaqi))} bilan
-                </span>
-              )}
-            </div>
-            <button
-              type="button"
-              disabled={!savatgaQoshilsinmi}
-              onClick={savatgaQosh}
-              className="rounded-maydon bg-brend px-4 py-2.5 text-[13px] font-medium text-white transition-colors hover:bg-brend-quyuq disabled:opacity-50"
-            >
-              Savatga qo&apos;shish
-            </button>
-          </div>
-        </>
-      )}
-
+          </>
+        )}
       </div>
 
       {/* ═══ O'NG USTUN — narx doim ko'z oldida ══════════════════ */}
       <aside className="flex flex-col gap-4 xl:sticky xl:top-20 xl:self-start">
-      {/* ── 3.9 · Savat ── */}
-      <section>
-        <h2 className="mb-2 text-sm font-medium text-matn-ikki">
-          Savat ({savat.length})
-        </h2>
+        {/* ── 3.9 · Savat ── */}
+        <section>
+          <h2 className="mb-2 text-sm font-medium text-matn-ikki">Savat ({savat.length})</h2>
 
-        {savat.length === 0 ? (
-          <p className="rounded-karta border border-dashed border-chegara-quyuq px-4 py-8 text-center text-[13px] text-matn-kuchsiz">
-            Savat bo&apos;sh.
-            <span className="mt-1 block">
-              Bitta buyurtmada bir nechta xona bo&apos;lishi mumkin.
-            </span>
-          </p>
-        ) : (
-          <div className="overflow-hidden rounded-karta border border-chegara bg-sirt">
-            <table className="w-full text-[13px]">
-              <tbody className="divide-y divide-chegara">
-                {savat.map((q) => (
-                  <tr key={q.kalit}>
-                    <td className="px-3 py-2.5">
-                      <span className="font-medium text-matn">{q.turNomi}</span>
-                      <span className="raqam mt-0.5 block text-left text-[12px] text-matn-kuchsiz">
-                        {q.eniSm} × {q.boyiSm} sm
-                      </span>
-                    </td>
-                    <td className="raqam px-3 py-2.5 font-medium">
-                      {pulKorsat(som(q.narx))}
-                    </td>
-                    <td className="px-2 py-2.5 text-right">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          savatniOzgartir((s) => s.filter((x) => x.kalit !== q.kalit));
-                        }}
-                        aria-label="Olib tashlash"
-                        className="fokus rounded-maydon px-1.5 py-1 text-matn-kuchsiz transition-colors hover:bg-belgi-qizil-fon hover:text-belgi-qizil"
-                      >
-                        ✕
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
+          {savat.length === 0 ? (
+            <p className="rounded-karta border border-dashed border-chegara-quyuq px-4 py-8 text-center text-[13px] text-matn-kuchsiz">
+              Savat bo&apos;sh.
+              <span className="mt-1 block">
+                Bitta buyurtmada bir nechta xona bo&apos;lishi mumkin.
+              </span>
+            </p>
+          ) : (
+            <div className="overflow-hidden rounded-karta border border-chegara bg-sirt">
+              <table className="w-full text-[13px]">
+                <tbody className="divide-y divide-chegara">
+                  {savat.map((q) => (
+                    <tr key={q.kalit}>
+                      <td className="px-3 py-2.5">
+                        <span className="font-medium text-matn">{q.turNomi}</span>
+                        <span className="raqam mt-0.5 block text-left text-[12px] text-matn-kuchsiz">
+                          {q.eniSm} × {q.boyiSm} sm
+                        </span>
+                      </td>
+                      <td className="raqam px-3 py-2.5 font-medium">{pulKorsat(som(q.narx))}</td>
+                      <td className="px-2 py-2.5 text-right">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            savatniOzgartir((s) => s.filter((x) => x.kalit !== q.kalit));
+                          }}
+                          aria-label="Olib tashlash"
+                          className="fokus rounded-maydon px-1.5 py-1 text-matn-kuchsiz transition-colors hover:bg-belgi-qizil-fon hover:text-belgi-qizil"
+                        >
+                          ✕
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
 
-      {/* ── 3.10 · 3.11 · 3.13 · 20.4 ── */}
-      <section className="grid gap-4 sm:grid-cols-2">
-        <MijozTanlash tanlangan={mijoz} ozgartir={mijozniOzgartir} />
+        {/* ── 3.10 · 3.11 · 3.13 · 20.4 ── */}
+        <section className="grid gap-4 sm:grid-cols-2">
+          <MijozTanlash tanlangan={mijoz} ozgartir={mijozniOzgartir} />
 
-        <Maydon
-          nom="tikuvchi"
-          yorliq="Ishlab chiqaruvchi filial"
-          izoh="Material shu filial omborida tekshiriladi (20.4.2)"
-        >
-          <select
-            id="tikuvchi"
-            value={tikuvchi}
-            onChange={(e) => {
-              tikuvchiniOzgartir(Number(e.target.value));
-            }}
-            className={kirishUslubi(false)}
+          <Maydon
+            nom="tikuvchi"
+            yorliq="Ishlab chiqaruvchi filial"
+            izoh="Material shu filial omborida tekshiriladi (20.4.2)"
           >
-            {filiallar.map((f) => (
-              <option key={f.id} value={f.id}>
-                {f.nom}
-              </option>
-            ))}
-          </select>
-        </Maydon>
+            <select
+              id="tikuvchi"
+              value={tikuvchi}
+              onChange={(e) => {
+                tikuvchiniOzgartir(Number(e.target.value));
+              }}
+              className={kirishUslubi(false)}
+            >
+              {filiallar.map((f) => (
+                <option key={f.id} value={f.id}>
+                  {f.nom}
+                </option>
+              ))}
+            </select>
+          </Maydon>
 
-        <Maydon
-          nom="tayyorlik"
-          yorliq="Tayyorlik sanasi"
-          izoh="Ixtiyoriy — kiritilmasa buyurtma «kechikkan» hisoblanmaydi (3.13)"
-        >
-          <input
-            id="tayyorlik"
-            type="date"
-            value={tayyorlik}
-            onChange={(e) => {
-              tayyorlikniOzgartir(e.target.value);
-            }}
-            className={kirishUslubi(false)}
-          />
-        </Maydon>
+          <Maydon
+            nom="tayyorlik"
+            yorliq="Tayyorlik sanasi"
+            izoh="Ixtiyoriy — kiritilmasa buyurtma «kechikkan» hisoblanmaydi (3.13)"
+          >
+            <input
+              id="tayyorlik"
+              type="date"
+              value={tayyorlik}
+              onChange={(e) => {
+                tayyorlikniOzgartir(e.target.value);
+              }}
+              className={kirishUslubi(false)}
+            />
+          </Maydon>
 
-        <Maydon
-          nom="kelishilgan"
-          yorliq="Kelishilgan summa"
-          izoh="Bo'sh qoldirilsa hisoblangan summa olinadi"
-        >
-          <input
-            id="kelishilgan"
-            value={kelishilgan}
-            onChange={(e) => {
-              kelishilganniOzgartir(e.target.value);
-            }}
-            inputMode="decimal"
-            placeholder={pulMatn(savatJami)}
-            className={kirishUslubi(false)}
-          />
-        </Maydon>
-      </section>
+          <Maydon
+            nom="kelishilgan"
+            yorliq="Kelishilgan summa"
+            izoh="Bo'sh qoldirilsa hisoblangan summa olinadi"
+          >
+            <input
+              id="kelishilgan"
+              value={kelishilgan}
+              onChange={(e) => {
+                kelishilganniOzgartir(e.target.value);
+              }}
+              inputMode="decimal"
+              placeholder={pulMatn(savatJami)}
+              className={kirishUslubi(false)}
+            />
+          </Maydon>
+        </section>
 
-      {/*
+        {/*
         ⚠️ Jami va saqlash tugmasi O'NG USTUN PASTIDA, yopishib
            turadi. Sotuvchi mijozga narx aytayotganda uni ko'rib
            turishi kerak — pastga tushib qidirmasin.
       */}
-      <div className="flex flex-col gap-3 rounded-karta border border-chegara bg-sirt px-5 py-4">
-        <div>
-          <div className="text-[12px] tracking-[0.03em] text-matn-kuchsiz uppercase">
-            Jami
-          </div>
-          <div className="raqam text-left text-[24px] leading-tight font-semibold tracking-[-0.02em]">
-            {pulKorsat(savatJami)}
-          </div>
-          {chegirma !== null && chegirma !== 0 && (
-            <div className="mt-1 text-[12px] text-belgi-sariq">
-              {chegirma > 0
-                ? `chegirma ${pulKorsat(som(chegirma.toFixed(2)))}`
-                : `qo'shimcha haq ${pulKorsat(som(Math.abs(chegirma).toFixed(2)))}`}
+        <div className="flex flex-col gap-3 rounded-karta border border-chegara bg-sirt px-5 py-4">
+          <div>
+            <div className="text-[12px] tracking-[0.03em] text-matn-kuchsiz uppercase">Jami</div>
+            <div className="raqam text-left text-[24px] leading-tight font-semibold tracking-[-0.02em]">
+              {pulKorsat(savatJami)}
             </div>
-          )}
-        </div>
+            {chegirma !== null && chegirma !== 0 && (
+              <div className="mt-1 text-[12px] text-belgi-sariq">
+                {chegirma > 0
+                  ? `chegirma ${pulKorsat(som(chegirma.toFixed(2)))}`
+                  : `qo'shimcha haq ${pulKorsat(som(Math.abs(chegirma).toFixed(2)))}`}
+              </div>
+            )}
+          </div>
 
-        <button
-          type="submit"
-          disabled={kutilmoqda || savat.length === 0}
-          className="fokus w-full rounded-maydon bg-amal px-5 py-3 text-[14px] font-medium text-white transition-colors hover:bg-amal-hover disabled:opacity-50"
-        >
-          {kutilmoqda ? 'Saqlanmoqda…' : 'Buyurtmani saqlash'}
-        </button>
-      </div>
+          <button
+            type="submit"
+            disabled={kutilmoqda || savat.length === 0}
+            className="fokus w-full rounded-maydon bg-amal px-5 py-3 text-[14px] font-medium text-white transition-colors hover:bg-amal-hover disabled:opacity-50"
+          >
+            {kutilmoqda ? 'Saqlanmoqda…' : 'Buyurtmani saqlash'}
+          </button>
+        </div>
       </aside>
     </form>
   );
@@ -927,7 +900,7 @@ function MijozTanlash({
       />
       {qidirilmoqda && <span className="text-xs text-matn-kuchsiz">qidirilmoqda…</span>}
       {topilgan.length > 0 && (
-        <div className="mt-1 max-h-40 overflow-y-auto rounded-maydon border border-chegara bg-white">
+        <div className="mt-1 max-h-40 overflow-y-auto rounded-maydon border border-chegara bg-sirt">
           {topilgan.map((m) => (
             <button
               key={m.id}

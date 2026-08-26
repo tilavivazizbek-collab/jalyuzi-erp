@@ -19,16 +19,12 @@ export function SorovFormasi({ filiallar }: { filiallar: readonly FilialTanlovi[
   return (
     <form action={yubor} className="flex max-w-lg flex-col gap-4">
       {holat.xato !== null && (
-        <p role="alert" className="text-sm text-red-700">
+        <p role="alert" className="text-sm text-belgi-qizil">
           {holat.xato}
         </p>
       )}
 
-      <Maydon
-        nom="kimgaFilialId"
-        yorliq="Qaysi filialdan"
-        xato={holat.maydonlar['kimgaFilialId']}
-      >
+      <Maydon nom="kimgaFilialId" yorliq="Qaysi filialdan" xato={holat.maydonlar['kimgaFilialId']}>
         <select id="kimgaFilialId" name="kimgaFilialId" className={kirishUslubi(false)}>
           {filiallar.map((f) => (
             <option key={f.id} value={f.id}>
@@ -47,16 +43,15 @@ export function SorovFormasi({ filiallar }: { filiallar: readonly FilialTanlovi[
         />
       </Maydon>
 
-      <p className="rounded-lg bg-slate-50 px-3 py-2.5 text-xs text-slate-600">
-        So&apos;rovni <b>beruvchi filial omborchisi</b> hal qiladi — admin
-        tasdig&apos;i kerak emas, summa chegarasi yo&apos;q (20.7.1). Har
-        ko&apos;chirish audit jurnaliga tushadi.
+      <p className="rounded-maydon bg-fon px-3 py-2.5 text-xs text-matn-ikki">
+        So&apos;rovni <b>beruvchi filial omborchisi</b> hal qiladi — admin tasdig&apos;i kerak emas,
+        summa chegarasi yo&apos;q (20.7.1). Har ko&apos;chirish audit jurnaliga tushadi.
       </p>
 
       <button
         type="submit"
         disabled={kutilmoqda}
-        className="self-start rounded-lg bg-slate-900 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-slate-800 disabled:opacity-60"
+        className="self-start rounded-maydon bg-amal px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-amal-hover disabled:opacity-60"
       >
         {kutilmoqda ? 'Yaratilmoqda…' : "So'rov yaratish"}
       </button>

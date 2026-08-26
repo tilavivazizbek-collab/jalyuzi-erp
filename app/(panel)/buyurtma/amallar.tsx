@@ -25,7 +25,7 @@ export function BekorTugmasi({ pozitsiyaId }: { pozitsiyaId: number }) {
         onClick={() => {
           ochiqniOzgartir(true);
         }}
-        className="text-xs text-slate-500 underline underline-offset-2 hover:text-red-700"
+        className="text-xs text-matn-kuchsiz underline underline-offset-2 hover:text-belgi-qizil"
       >
         Bekor qilish
       </button>
@@ -37,7 +37,7 @@ export function BekorTugmasi({ pozitsiyaId }: { pozitsiyaId: number }) {
       <input type="hidden" name="pozitsiyaId" value={pozitsiyaId} />
 
       {holat.xato !== null && (
-        <span role="alert" className="text-xs text-red-700">
+        <span role="alert" className="text-xs text-belgi-qizil">
           {holat.xato}
         </span>
       )}
@@ -51,7 +51,7 @@ export function BekorTugmasi({ pozitsiyaId }: { pozitsiyaId: number }) {
         />
       </Maydon>
 
-      <p className="text-xs text-slate-500">
+      <p className="text-xs text-matn-kuchsiz">
         Band qilingan material omborga qaytadi (7.3 · Q-06).
       </p>
 
@@ -59,7 +59,7 @@ export function BekorTugmasi({ pozitsiyaId }: { pozitsiyaId: number }) {
         <button
           type="submit"
           disabled={kutilmoqda}
-          className="rounded-lg bg-red-700 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-red-800 disabled:opacity-60"
+          className="rounded-maydon bg-belgi-qizil px-3 py-1.5 text-xs font-medium text-white transition-colors hover:brightness-95 disabled:opacity-60"
         >
           {kutilmoqda ? 'Bekor qilinmoqda…' : 'Ha, bekor qilinsin'}
         </button>
@@ -68,7 +68,7 @@ export function BekorTugmasi({ pozitsiyaId }: { pozitsiyaId: number }) {
           onClick={() => {
             ochiqniOzgartir(false);
           }}
-          className="text-xs text-slate-500 hover:text-slate-900"
+          className="text-xs text-matn-kuchsiz hover:text-matn"
         >
           Yopish
         </button>
@@ -95,7 +95,7 @@ export function QaytaribOlishTugmasi({
         onClick={() => {
           ochiqniOzgartir(true);
         }}
-        className="text-xs text-slate-500 underline underline-offset-2 hover:text-slate-900"
+        className="text-xs text-matn-kuchsiz underline underline-offset-2 hover:text-matn"
       >
         Ishni qaytarib olish
       </button>
@@ -107,14 +107,14 @@ export function QaytaribOlishTugmasi({
       <input type="hidden" name="pozitsiyaId" value={pozitsiyaId} />
 
       {holat.xato !== null && (
-        <span role="alert" className="text-xs text-red-700">
+        <span role="alert" className="text-xs text-belgi-qizil">
           {holat.xato}
         </span>
       )}
 
-      <p className="text-xs text-slate-600">
-        {ustaIsmi ?? 'Usta'} ishning bir qismini bajargan bo&apos;lishi mumkin —
-        to&apos;lanadigan summani <b>o&apos;zingiz</b> kiritasiz (8.6).
+      <p className="text-xs text-matn-ikki">
+        {ustaIsmi ?? 'Usta'} ishning bir qismini bajargan bo&apos;lishi mumkin — to&apos;lanadigan
+        summani <b>o&apos;zingiz</b> kiritasiz (8.6).
       </p>
 
       <Maydon nom={`stavka-${String(pozitsiyaId)}`} yorliq="To'lanadigan summa">
@@ -140,7 +140,7 @@ export function QaytaribOlishTugmasi({
         <button
           type="submit"
           disabled={kutilmoqda}
-          className="rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-slate-800 disabled:opacity-60"
+          className="rounded-maydon bg-amal px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-amal-hover disabled:opacity-60"
         >
           {kutilmoqda ? 'Qaytarilmoqda…' : 'Navbatga qaytarish'}
         </button>
@@ -149,7 +149,7 @@ export function QaytaribOlishTugmasi({
           onClick={() => {
             ochiqniOzgartir(false);
           }}
-          className="text-xs text-slate-500 hover:text-slate-900"
+          className="text-xs text-matn-kuchsiz hover:text-matn"
         >
           Yopish
         </button>

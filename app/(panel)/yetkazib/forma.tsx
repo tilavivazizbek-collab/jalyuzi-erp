@@ -54,7 +54,10 @@ export function YetkazibFormasi({
   return (
     <form action={yubor} className="flex flex-col gap-6">
       {holat.xato !== null && (
-        <p role="alert" className="rounded-lg bg-red-50 px-3 py-2.5 text-sm text-red-800 ring-1 ring-red-200">
+        <p
+          role="alert"
+          className="rounded-maydon bg-belgi-qizil-fon px-3 py-2.5 text-sm text-belgi-qizil "
+        >
           {holat.xato}
         </p>
       )}
@@ -64,37 +67,77 @@ export function YetkazibFormasi({
           <input id="nom" name="nom" defaultValue={qiymatlar.nom} required className={ch('nom')} />
         </Maydon>
         <Maydon nom="nimaYetkazadi" yorliq="Nima yetkazadi" izoh="mato, mexanizm, karniz…">
-          <input id="nimaYetkazadi" name="nimaYetkazadi" defaultValue={qiymatlar.nimaYetkazadi} className={ch('nimaYetkazadi')} />
+          <input
+            id="nimaYetkazadi"
+            name="nimaYetkazadi"
+            defaultValue={qiymatlar.nimaYetkazadi}
+            className={ch('nimaYetkazadi')}
+          />
         </Maydon>
       </section>
 
       <section>
-        <h2 className="mb-3 text-sm font-semibold text-slate-900">Aloqa</h2>
+        <h2 className="mb-3 text-sm font-semibold text-matn">Aloqa</h2>
         <div className="grid gap-4 sm:grid-cols-2">
           <Maydon nom="kontaktShaxs" yorliq="Kontakt shaxs">
-            <input id="kontaktShaxs" name="kontaktShaxs" defaultValue={qiymatlar.kontaktShaxs} className={ch('kontaktShaxs')} />
+            <input
+              id="kontaktShaxs"
+              name="kontaktShaxs"
+              defaultValue={qiymatlar.kontaktShaxs}
+              className={ch('kontaktShaxs')}
+            />
           </Maydon>
           <Maydon nom="manzil" yorliq="Manzil">
-            <input id="manzil" name="manzil" defaultValue={qiymatlar.manzil} className={ch('manzil')} />
+            <input
+              id="manzil"
+              name="manzil"
+              defaultValue={qiymatlar.manzil}
+              className={ch('manzil')}
+            />
           </Maydon>
           <Maydon nom="telefon" yorliq="Telefon" xato={x('telefon')}>
-            <input id="telefon" name="telefon" type="tel" defaultValue={qiymatlar.telefon} placeholder="+998 90 123 45 67" className={ch('telefon')} />
+            <input
+              id="telefon"
+              name="telefon"
+              type="tel"
+              defaultValue={qiymatlar.telefon}
+              placeholder="+998 90 123 45 67"
+              className={ch('telefon')}
+            />
           </Maydon>
           <Maydon nom="qoshimchaTelefon" yorliq="Qo'shimcha telefon" xato={x('qoshimchaTelefon')}>
-            <input id="qoshimchaTelefon" name="qoshimchaTelefon" type="tel" defaultValue={qiymatlar.qoshimchaTelefon} className={ch('qoshimchaTelefon')} />
+            <input
+              id="qoshimchaTelefon"
+              name="qoshimchaTelefon"
+              type="tel"
+              defaultValue={qiymatlar.qoshimchaTelefon}
+              className={ch('qoshimchaTelefon')}
+            />
           </Maydon>
         </div>
       </section>
 
       <section>
-        <h2 className="mb-1 text-sm font-semibold text-slate-900">To&apos;lov rekvizitlari</h2>
-        <p className="mb-3 text-xs text-slate-500">To&apos;lov oynasida avtomatik chiqadi (9.3).</p>
+        <h2 className="mb-1 text-sm font-semibold text-matn">To&apos;lov rekvizitlari</h2>
+        <p className="mb-3 text-xs text-matn-kuchsiz">
+          To&apos;lov oynasida avtomatik chiqadi (9.3).
+        </p>
         <div className="grid gap-4 sm:grid-cols-2">
           <Maydon nom="bankNomi" yorliq="Bank">
-            <input id="bankNomi" name="bankNomi" defaultValue={qiymatlar.bankNomi} className={ch('bankNomi')} />
+            <input
+              id="bankNomi"
+              name="bankNomi"
+              defaultValue={qiymatlar.bankNomi}
+              className={ch('bankNomi')}
+            />
           </Maydon>
           <Maydon nom="hisobRaqam" yorliq="Hisob raqami">
-            <input id="hisobRaqam" name="hisobRaqam" defaultValue={qiymatlar.hisobRaqam} className={ch('hisobRaqam')} />
+            <input
+              id="hisobRaqam"
+              name="hisobRaqam"
+              defaultValue={qiymatlar.hisobRaqam}
+              className={ch('hisobRaqam')}
+            />
           </Maydon>
           <Maydon nom="inn" yorliq="INN / STIR">
             <input id="inn" name="inn" defaultValue={qiymatlar.inn} className={ch('inn')} />
@@ -106,7 +149,7 @@ export function YetkazibFormasi({
       </section>
 
       <section>
-        <h2 className="mb-3 text-sm font-semibold text-slate-900">To&apos;lov shartlari</h2>
+        <h2 className="mb-3 text-sm font-semibold text-matn">To&apos;lov shartlari</h2>
         <div className="grid gap-4 sm:grid-cols-2">
           <Maydon
             nom="tolovMuddatiKun"
@@ -114,25 +157,42 @@ export function YetkazibFormasi({
             izoh="kirim hujjatiga avtomatik qo'yiladi · bo'sh → standart"
             xato={x('tolovMuddatiKun')}
           >
-            <input id="tolovMuddatiKun" name="tolovMuddatiKun" inputMode="numeric" defaultValue={qiymatlar.tolovMuddatiKun} className={ch('tolovMuddatiKun')} />
+            <input
+              id="tolovMuddatiKun"
+              name="tolovMuddatiKun"
+              inputMode="numeric"
+              defaultValue={qiymatlar.tolovMuddatiKun}
+              className={ch('tolovMuddatiKun')}
+            />
           </Maydon>
           <Maydon nom="valyuta" yorliq="Standart valyuta" izoh="yangi kirim hujjati uchun">
-            <select id="valyuta" name="valyuta" defaultValue={qiymatlar.valyuta} className={ch('valyuta')}>
+            <select
+              id="valyuta"
+              name="valyuta"
+              defaultValue={qiymatlar.valyuta}
+              className={ch('valyuta')}
+            >
               <option value="SOM">so&apos;m</option>
               <option value="USD">dollar</option>
             </select>
           </Maydon>
         </div>
-        <p className="mt-2 rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-600 ring-1 ring-slate-200">
-          Qarz <b>valyuta bo&apos;yicha alohida</b> yuritiladi — bitta yetkazib
-          beruvchida so&apos;m ham, dollar ham qarz bo&apos;lishi mumkin (9.2).
-          Bu maydon faqat yangi hujjatga qo&apos;yiladigan standart.
+        <p className="mt-2 rounded-maydon bg-fon px-3 py-2 text-xs text-matn-ikki ">
+          Qarz <b>valyuta bo&apos;yicha alohida</b> yuritiladi — bitta yetkazib beruvchida so&apos;m
+          ham, dollar ham qarz bo&apos;lishi mumkin (9.2). Bu maydon faqat yangi hujjatga
+          qo&apos;yiladigan standart.
         </p>
       </section>
 
       <section>
         <Maydon nom="eslatma" yorliq="Izoh">
-          <textarea id="eslatma" name="eslatma" rows={2} defaultValue={qiymatlar.eslatma} className={ch('eslatma')} />
+          <textarea
+            id="eslatma"
+            name="eslatma"
+            rows={2}
+            defaultValue={qiymatlar.eslatma}
+            className={ch('eslatma')}
+          />
         </Maydon>
       </section>
 
@@ -140,11 +200,11 @@ export function YetkazibFormasi({
         <button
           type="submit"
           disabled={kutilmoqda}
-          className="rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-slate-800 disabled:opacity-60"
+          className="rounded-maydon bg-amal px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-amal-hover disabled:opacity-60"
         >
           {kutilmoqda ? 'Saqlanmoqda…' : tugmaMatni}
         </button>
-        <Link href="/yetkazib" className="text-sm text-slate-600 hover:text-slate-900">
+        <Link href="/yetkazib" className="text-sm text-matn-ikki hover:text-matn">
           Bekor qilish
         </Link>
       </div>

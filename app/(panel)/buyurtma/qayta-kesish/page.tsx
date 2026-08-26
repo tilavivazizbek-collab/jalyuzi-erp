@@ -14,24 +14,26 @@ export default async function QaytaKesishSahifasi() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <Link href="/buyurtma" className="text-sm text-slate-500 hover:text-slate-900">
+        <Link href="/buyurtma" className="text-sm text-matn-kuchsiz hover:text-matn">
           ← Buyurtmalar
         </Link>
-        <h1 className="mt-2 text-xl font-semibold tracking-tight">Qayta kesish</h1>
-        <p className="mt-1 text-sm text-slate-500">
-          Ishlab chiqarish braki — material ikkinchi marta yechiladi (8.17).
-          Ombor braki (7.10) dan boshqa narsa.
+        <h1 className="mt-2 text-[22px] font-semibold tracking-[-0.02em] text-matn">
+          Qayta kesish
+        </h1>
+        <p className="mt-1 text-sm text-matn-kuchsiz">
+          Ishlab chiqarish braki — material ikkinchi marta yechiladi (8.17). Ombor braki (7.10) dan
+          boshqa narsa.
         </p>
       </div>
 
       {sorovlar.length === 0 ? (
-        <p className="rounded-xl border border-dashed border-slate-300 px-4 py-10 text-center text-sm text-slate-500">
+        <p className="rounded-karta border border-dashed border-chegara-quyuq px-4 py-10 text-center text-sm text-matn-kuchsiz">
           Hal qilinmagan so&apos;rov yo&apos;q.
         </p>
       ) : (
         <div className="flex flex-col gap-4">
           {sorovlar.map((s) => (
-            <div key={s.id} className="rounded-xl border border-slate-200 bg-white">
+            <div key={s.id} className="rounded-karta border border-chegara bg-sirt">
               <div className="flex flex-wrap items-start justify-between gap-3 px-4 py-3">
                 <div>
                   <Link
@@ -43,26 +45,25 @@ export default async function QaytaKesishSahifasi() {
                   <span className="ml-2 text-sm">
                     {s.tartib}. {s.turNomi}
                   </span>
-                  <span className="raqam ml-2 text-sm text-slate-600">
+                  <span className="raqam ml-2 text-sm text-matn-ikki">
                     {s.eniSm} × {s.boyiSm} sm
                   </span>
-                  <div className="mt-1 text-xs text-slate-500">
+                  <div className="mt-1 text-xs text-matn-kuchsiz">
                     {s.ustaIsmi} · {QK_SABAB_NOMI[s.sabab as QaytaKesishSababi] ?? s.sabab}
                     {s.izoh !== null && ` · ${s.izoh}`}
                   </div>
                 </div>
 
-                <div className="text-right text-xs text-slate-500">
+                <div className="text-right text-xs text-matn-kuchsiz">
                   {s.sana.toLocaleDateString('uz-UZ')}
                 </div>
               </div>
 
               {/* TZ 8.17.8 — takroriy brak adminga KO'RSATILADI (EC-BRK-03) */}
               {s.oldingiSoni > 0 && (
-                <p className="mx-4 mb-3 rounded-lg bg-amber-50 px-3 py-2.5 text-sm text-amber-900 ring-1 ring-amber-200">
-                  ⚠️ Bu pozitsiya <b>{s.oldingiSoni} marta</b> qayta kesilgan.
-                  Material yo&apos;qotishi:{' '}
-                  <b className="raqam">{s.yoqotilganKvM.toFixed(2)} kv.m</b> ·{' '}
+                <p className="mx-4 mb-3 rounded-maydon bg-belgi-sariq-fon px-3 py-2.5 text-sm text-belgi-sariq ">
+                  ⚠️ Bu pozitsiya <b>{s.oldingiSoni} marta</b> qayta kesilgan. Material
+                  yo&apos;qotishi: <b className="raqam">{s.yoqotilganKvM.toFixed(2)} kv.m</b> ·{' '}
                   <b className="raqam">{pulKorsat(som(s.yoqotilganSumma))}</b>
                 </p>
               )}

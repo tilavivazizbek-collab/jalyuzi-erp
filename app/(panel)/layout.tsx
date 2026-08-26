@@ -36,7 +36,7 @@ const GURUHLAR: readonly { nom: string; bandlar: readonly Band[] }[] = [
   {
     nom: 'Ombor',
     bandlar: [
-      { yol: '/ombor', nom: "Qoldiq", kod: 'ombor.qoldiq.kor' },
+      { yol: '/ombor', nom: 'Qoldiq', kod: 'ombor.qoldiq.kor' },
       { yol: '/ombor/kirim', nom: 'Kirimlar', kod: 'ombor.qoldiq.kor' },
       {
         yol: '/ombor/inventarizatsiya',
@@ -124,9 +124,7 @@ export default async function PanelQatlami({ children }: { children: ReactNode }
           </div>
         </header>
 
-        <main className="mx-auto max-w-6xl px-4 py-6 lg:px-6 lg:py-8">
-          {children}
-        </main>
+        <main className="mx-auto max-w-6xl px-4 py-6 lg:px-6 lg:py-8">{children}</main>
       </div>
     </div>
   );

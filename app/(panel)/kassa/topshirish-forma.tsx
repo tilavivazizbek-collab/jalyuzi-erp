@@ -38,9 +38,7 @@ export function TopshirishFormasi({
 
   // 1.3-invariant — valyutalar aralashmaydi
   const mosNishonlar =
-    manba === undefined
-      ? nishonlar
-      : nishonlar.filter((n) => n.valyuta === manba.valyuta);
+    manba === undefined ? nishonlar : nishonlar.filter((n) => n.valyuta === manba.valyuta);
 
   const begonaFilial = nishon !== undefined && !nishon.ozFilialimi;
 
@@ -51,7 +49,7 @@ export function TopshirishFormasi({
         onClick={() => {
           ochiqniOzgartir(true);
         }}
-        className="self-start rounded-lg border border-slate-300 px-3.5 py-2 text-sm text-slate-700 transition hover:bg-slate-50"
+        className="self-start rounded-maydon border border-chegara-quyuq px-3.5 py-2 text-sm text-matn-ikki transition-colors hover:bg-fon"
       >
         Pulni topshirish
       </button>
@@ -61,15 +59,14 @@ export function TopshirishFormasi({
   return (
     <form action={yubor} className="flex max-w-2xl flex-col gap-3">
       {holat.xato !== null && (
-        <p role="alert" className="text-sm text-red-700">
+        <p role="alert" className="text-sm text-belgi-qizil">
           {holat.xato}
         </p>
       )}
 
       {holat.bajarildi && (
-        <p className="rounded-lg bg-emerald-50 px-3 py-2.5 text-sm text-emerald-900 ring-1 ring-emerald-200">
-          Topshiriq yuborildi. Pul admin tasdiqlagunicha kassangizda turadi
-          (12.7).
+        <p className="rounded-maydon bg-belgi-yashil-fon px-3 py-2.5 text-sm text-belgi-yashil ">
+          Topshiriq yuborildi. Pul admin tasdiqlagunicha kassangizda turadi (12.7).
         </p>
       )}
 
@@ -123,10 +120,10 @@ export function TopshirishFormasi({
       </div>
 
       {begonaFilial && (
-        <p className="rounded-lg bg-amber-50 px-3 py-2.5 text-sm text-amber-900 ring-1 ring-amber-200">
-          ⚠️ Siz <b>{filialNomi}</b> sotuvchisisiz, pulni{' '}
-          <b>{nishon.filialNomi}</b> ga topshiryapsiz. Qabul qilingach{' '}
-          {nishon.filialNomi} {filialNomi} ga qarzdor bo&apos;ladi (22.5).
+        <p className="rounded-maydon bg-belgi-sariq-fon px-3 py-2.5 text-sm text-belgi-sariq ">
+          ⚠️ Siz <b>{filialNomi}</b> sotuvchisisiz, pulni <b>{nishon.filialNomi}</b> ga
+          topshiryapsiz. Qabul qilingach {nishon.filialNomi} {filialNomi} ga qarzdor bo&apos;ladi
+          (22.5).
         </p>
       )}
 
@@ -134,16 +131,16 @@ export function TopshirishFormasi({
         <input id="izoh" name="izoh" className={kirishUslubi(false)} />
       </Maydon>
 
-      <p className="text-xs text-slate-500">
-        So&apos;m va dollar <b>alohida</b> topshiriladi (12.7). Admin summa
-        mos kelmasa rad eta oladi — pul qimirlamaydi.
+      <p className="text-xs text-matn-kuchsiz">
+        So&apos;m va dollar <b>alohida</b> topshiriladi (12.7). Admin summa mos kelmasa rad eta
+        oladi — pul qimirlamaydi.
       </p>
 
       <div className="flex items-center gap-3">
         <button
           type="submit"
           disabled={kutilmoqda || nishonId === ''}
-          className="rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-slate-800 disabled:opacity-60"
+          className="rounded-maydon bg-amal px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-amal-hover disabled:opacity-60"
         >
           {kutilmoqda ? 'Yuborilmoqda…' : 'Topshirdim'}
         </button>
@@ -152,7 +149,7 @@ export function TopshirishFormasi({
           onClick={() => {
             ochiqniOzgartir(false);
           }}
-          className="text-xs text-slate-500 hover:text-slate-900"
+          className="text-xs text-matn-kuchsiz hover:text-matn"
         >
           Yopish
         </button>

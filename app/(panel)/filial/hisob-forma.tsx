@@ -21,7 +21,7 @@ export function TolovFormasi({ kassalar }: { kassalar: readonly AdminKassasi[] }
         onClick={() => {
           ochiqniOzgartir(true);
         }}
-        className="self-start rounded-lg bg-slate-900 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-slate-800"
+        className="self-start rounded-maydon bg-amal px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-amal-hover"
       >
         Qarzni to&apos;lash
       </button>
@@ -31,28 +31,20 @@ export function TolovFormasi({ kassalar }: { kassalar: readonly AdminKassasi[] }
   return (
     <form action={yubor} className="flex max-w-2xl flex-col gap-3">
       {holat.xato !== null && (
-        <p role="alert" className="text-sm text-red-700">
+        <p role="alert" className="text-sm text-belgi-qizil">
           {holat.xato}
         </p>
       )}
 
       {holat.bajarildi && (
-        <p className="rounded-lg bg-emerald-50 px-3 py-2.5 text-sm text-emerald-900 ring-1 ring-emerald-200">
+        <p className="rounded-maydon bg-belgi-yashil-fon px-3 py-2.5 text-sm text-belgi-yashil ">
           To&apos;lov o&apos;tdi — balans yangilandi.
         </p>
       )}
 
       <div className="flex flex-wrap items-end gap-3">
-        <Maydon
-          nom="kimdanKassaId"
-          yorliq="Qaysi kassadan"
-          xato={holat.maydonlar['kimdanKassaId']}
-        >
-          <select
-            id="kimdanKassaId"
-            name="kimdanKassaId"
-            className={`${kirishUslubi(false)} w-56`}
-          >
+        <Maydon nom="kimdanKassaId" yorliq="Qaysi kassadan" xato={holat.maydonlar['kimdanKassaId']}>
+          <select id="kimdanKassaId" name="kimdanKassaId" className={`${kirishUslubi(false)} w-56`}>
             {kassalar.map((k) => (
               <option key={k.id} value={k.id}>
                 {k.filialNomi} · {k.nom} · {k.valyuta}
@@ -61,16 +53,8 @@ export function TolovFormasi({ kassalar }: { kassalar: readonly AdminKassasi[] }
           </select>
         </Maydon>
 
-        <Maydon
-          nom="kimgaKassaId"
-          yorliq="Qaysi kassaga"
-          xato={holat.maydonlar['kimgaKassaId']}
-        >
-          <select
-            id="kimgaKassaId"
-            name="kimgaKassaId"
-            className={`${kirishUslubi(false)} w-56`}
-          >
+        <Maydon nom="kimgaKassaId" yorliq="Qaysi kassaga" xato={holat.maydonlar['kimgaKassaId']}>
+          <select id="kimgaKassaId" name="kimgaKassaId" className={`${kirishUslubi(false)} w-56`}>
             {kassalar.map((k) => (
               <option key={k.id} value={k.id}>
                 {k.filialNomi} · {k.nom} · {k.valyuta}
@@ -98,17 +82,16 @@ export function TolovFormasi({ kassalar }: { kassalar: readonly AdminKassasi[] }
         />
       </Maydon>
 
-      <p className="rounded-lg bg-slate-50 px-3 py-2.5 text-xs text-slate-600">
-        To&apos;lov <b>foyda-zararga tegmaydi</b> — bu korxona ichidagi
-        harakat (22.7.3). Ikkala kassa ham admin kassasi bo&apos;lishi va
-        valyutasi mos kelishi shart.
+      <p className="rounded-maydon bg-fon px-3 py-2.5 text-xs text-matn-ikki">
+        To&apos;lov <b>foyda-zararga tegmaydi</b> — bu korxona ichidagi harakat (22.7.3). Ikkala
+        kassa ham admin kassasi bo&apos;lishi va valyutasi mos kelishi shart.
       </p>
 
       <div className="flex items-center gap-3">
         <button
           type="submit"
           disabled={kutilmoqda}
-          className="rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-slate-800 disabled:opacity-60"
+          className="rounded-maydon bg-amal px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-amal-hover disabled:opacity-60"
         >
           {kutilmoqda ? "To'lanmoqda…" : "To'lash"}
         </button>
@@ -117,7 +100,7 @@ export function TolovFormasi({ kassalar }: { kassalar: readonly AdminKassasi[] }
           onClick={() => {
             ochiqniOzgartir(false);
           }}
-          className="text-xs text-slate-500 hover:text-slate-900"
+          className="text-xs text-matn-kuchsiz hover:text-matn"
         >
           Yopish
         </button>
@@ -138,7 +121,7 @@ export function TuzatishFormasi({ filiallar }: { filiallar: readonly FilialQator
         onClick={() => {
           ochiqniOzgartir(true);
         }}
-        className="self-start text-xs text-slate-500 underline underline-offset-2 hover:text-slate-900"
+        className="self-start text-xs text-matn-kuchsiz underline underline-offset-2 hover:text-matn"
       >
         Qo&apos;lda tuzatish
       </button>
@@ -148,22 +131,21 @@ export function TuzatishFormasi({ filiallar }: { filiallar: readonly FilialQator
   return (
     <form action={yubor} className="flex max-w-2xl flex-col gap-3">
       {holat.xato !== null && (
-        <p role="alert" className="text-sm text-red-700">
+        <p role="alert" className="text-sm text-belgi-qizil">
           {holat.xato}
         </p>
       )}
 
       {holat.bajarildi && (
-        <p className="rounded-lg bg-emerald-50 px-3 py-2.5 text-sm text-emerald-900 ring-1 ring-emerald-200">
+        <p className="rounded-maydon bg-belgi-yashil-fon px-3 py-2.5 text-sm text-belgi-yashil ">
           Tuzatish yozildi.
         </p>
       )}
 
-      <p className="rounded-lg bg-amber-50 px-3 py-2.5 text-xs text-amber-900 ring-1 ring-amber-200">
-        Zararni teng bo&apos;lish avtomatik qilinmaydi: u sotgan filial
-        kassasidan pul talab qiladi va u pul u yerda bo&apos;lmasligi
-        mumkin (22.3.3). Shuning uchun tuzatish <b>qo&apos;lda</b> yoziladi
-        va audit jurnalida qoladi.
+      <p className="rounded-maydon bg-belgi-sariq-fon px-3 py-2.5 text-xs text-belgi-sariq ">
+        Zararni teng bo&apos;lish avtomatik qilinmaydi: u sotgan filial kassasidan pul talab qiladi
+        va u pul u yerda bo&apos;lmasligi mumkin (22.3.3). Shuning uchun tuzatish <b>qo&apos;lda</b>{' '}
+        yoziladi va audit jurnalida qoladi.
       </p>
 
       <div className="flex flex-wrap items-end gap-3">
@@ -185,16 +167,8 @@ export function TuzatishFormasi({ filiallar }: { filiallar: readonly FilialQator
           </select>
         </Maydon>
 
-        <Maydon
-          nom="kimgaFilialId"
-          yorliq="Kimga"
-          xato={holat.maydonlar['kimgaFilialId']}
-        >
-          <select
-            id="kimgaFilialId"
-            name="kimgaFilialId"
-            className={`${kirishUslubi(false)} w-48`}
-          >
+        <Maydon nom="kimgaFilialId" yorliq="Kimga" xato={holat.maydonlar['kimgaFilialId']}>
+          <select id="kimgaFilialId" name="kimgaFilialId" className={`${kirishUslubi(false)} w-48`}>
             {filiallar.map((f) => (
               <option key={f.id} value={f.id}>
                 {f.nom}
@@ -226,7 +200,7 @@ export function TuzatishFormasi({ filiallar }: { filiallar: readonly FilialQator
         <button
           type="submit"
           disabled={kutilmoqda}
-          className="rounded-lg bg-amber-700 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-amber-800 disabled:opacity-60"
+          className="rounded-maydon bg-belgi-sariq px-3 py-1.5 text-xs font-medium text-white transition-colors hover:brightness-95 disabled:opacity-60"
         >
           {kutilmoqda ? 'Yozilmoqda…' : 'Tuzatish yozish'}
         </button>
@@ -235,7 +209,7 @@ export function TuzatishFormasi({ filiallar }: { filiallar: readonly FilialQator
           onClick={() => {
             ochiqniOzgartir(false);
           }}
-          className="text-xs text-slate-500 hover:text-slate-900"
+          className="text-xs text-matn-kuchsiz hover:text-matn"
         >
           Yopish
         </button>

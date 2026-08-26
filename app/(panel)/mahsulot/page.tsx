@@ -39,15 +39,17 @@ export default async function MahsulotRoyxati() {
     <div className="flex flex-col gap-6">
       <div className="flex items-end justify-between gap-4">
         <div>
-          <h1 className="text-xl font-semibold tracking-tight">Mahsulot turlari</h1>
-          <p className="mt-1 text-sm text-slate-500">
+          <h1 className="text-[22px] font-semibold tracking-[-0.02em] text-matn">
+            Mahsulot turlari
+          </h1>
+          <p className="mt-1 text-sm text-matn-kuchsiz">
             {qatorlar.length} ta · dasturchisiz yaratiladi (4.1)
           </p>
         </div>
         {yarataOladi && (
           <Link
             href="/mahsulot/yangi"
-            className="rounded-lg bg-slate-900 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-slate-800"
+            className="rounded-maydon bg-amal px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-amal-hover"
           >
             Mahsulot turi yaratish
           </Link>
@@ -55,13 +57,13 @@ export default async function MahsulotRoyxati() {
       </div>
 
       {qatorlar.length === 0 ? (
-        <p className="rounded-xl border border-dashed border-slate-300 px-4 py-10 text-center text-sm text-slate-500">
+        <p className="rounded-karta border border-dashed border-chegara-quyuq px-4 py-10 text-center text-sm text-matn-kuchsiz">
           Hali mahsulot turi yo&apos;q.
         </p>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+        <div className="overflow-x-auto rounded-karta border border-chegara bg-sirt">
           <table className="w-full text-sm">
-            <thead className="border-b border-slate-200 bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+            <thead className="border-b border-chegara bg-fon text-left text-xs uppercase tracking-wide text-matn-kuchsiz">
               <tr>
                 <th className="px-4 py-2.5 font-medium">Nomi</th>
                 <th className="px-4 py-2.5 font-medium">Slotlar</th>
@@ -71,9 +73,9 @@ export default async function MahsulotRoyxati() {
                 {ozgartiraOladi && <th className="px-4 py-2.5" />}
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-chegara">
               {qatorlar.map((t) => (
-                <tr key={t.id} className={t.faol ? '' : 'bg-slate-50 text-slate-400'}>
+                <tr key={t.id} className={t.faol ? '' : 'bg-fon text-matn-kuchsiz'}>
                   <td className="px-4 py-2.5 font-medium">
                     {t.nom}
                     {!t.faol && <span className="ml-2 text-xs">(nofaol)</span>}
@@ -82,7 +84,7 @@ export default async function MahsulotRoyxati() {
                     {t.slot_soni} ta
                     {/* TZ 5.6 — guruhsiz slot sotuvda bo'sh ro'yxat beradi */}
                     {t.guruhsiz_slot > 0 && (
-                      <span className="ml-2 text-xs text-amber-700">
+                      <span className="ml-2 text-xs text-belgi-sariq">
                         {t.guruhsiz_slot} tasida guruh yo&apos;q
                       </span>
                     )}
@@ -90,12 +92,12 @@ export default async function MahsulotRoyxati() {
                   <td className="px-4 py-2.5">{t.aksessuar_soni} ta</td>
                   <td className="raqam px-4 py-2.5">
                     {t.xizmat_haqi === null || Number(t.xizmat_haqi) === 0 ? (
-                      <span className="text-slate-400">—</span>
+                      <span className="text-matn-kuchsiz">—</span>
                     ) : (
                       pulKorsat(som(t.xizmat_haqi))
                     )}
                   </td>
-                  <td className="px-4 py-2.5 text-xs text-slate-600">
+                  <td className="px-4 py-2.5 text-xs text-matn-ikki">
                     {t.oynada_korinadi ? 'sayt' : ''}
                     {t.oynada_korinadi && t.botda_korinadi ? ' · ' : ''}
                     {t.botda_korinadi ? 'bot' : ''}
@@ -103,7 +105,10 @@ export default async function MahsulotRoyxati() {
                   </td>
                   {ozgartiraOladi && (
                     <td className="px-4 py-2.5 text-right">
-                      <Link href={`/mahsulot/${String(t.id)}`} className="text-slate-600 hover:text-slate-900">
+                      <Link
+                        href={`/mahsulot/${String(t.id)}`}
+                        className="text-matn-ikki hover:text-matn"
+                      >
                         Tahrirlash
                       </Link>
                     </td>

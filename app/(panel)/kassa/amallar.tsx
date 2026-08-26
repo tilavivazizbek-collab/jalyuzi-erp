@@ -21,7 +21,7 @@ export function StornoTugmasi({ yozuvId }: { yozuvId: number }) {
         onClick={() => {
           ochiqniOzgartir(true);
         }}
-        className="text-xs text-slate-500 underline underline-offset-2 hover:text-red-700"
+        className="text-xs text-matn-kuchsiz underline underline-offset-2 hover:text-belgi-qizil"
       >
         Storno
       </button>
@@ -33,7 +33,7 @@ export function StornoTugmasi({ yozuvId }: { yozuvId: number }) {
       <input type="hidden" name="yozuvId" value={yozuvId} />
 
       {holat.xato !== null && (
-        <span role="alert" className="text-xs text-red-700">
+        <span role="alert" className="text-xs text-belgi-qizil">
           {holat.xato}
         </span>
       )}
@@ -47,7 +47,7 @@ export function StornoTugmasi({ yozuvId }: { yozuvId: number }) {
         />
       </Maydon>
 
-      <p className="text-xs text-slate-500">
+      <p className="text-xs text-matn-kuchsiz">
         Eski yozuv o&apos;chirilmaydi — teskari yozuv qo&apos;shiladi (§6.5).
       </p>
 
@@ -55,7 +55,7 @@ export function StornoTugmasi({ yozuvId }: { yozuvId: number }) {
         <button
           type="submit"
           disabled={kutilmoqda}
-          className="rounded-lg bg-red-700 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-red-800 disabled:opacity-60"
+          className="rounded-maydon bg-belgi-qizil px-3 py-1.5 text-xs font-medium text-white transition-colors hover:brightness-95 disabled:opacity-60"
         >
           {kutilmoqda ? 'Bajarilmoqda…' : 'Storno qilish'}
         </button>
@@ -64,7 +64,7 @@ export function StornoTugmasi({ yozuvId }: { yozuvId: number }) {
           onClick={() => {
             ochiqniOzgartir(false);
           }}
-          className="text-xs text-slate-500 hover:text-slate-900"
+          className="text-xs text-matn-kuchsiz hover:text-matn"
         >
           Yopish
         </button>
@@ -82,7 +82,7 @@ export function TopshiriqQabulTugmasi({ topshiriqId }: { topshiriqId: number }) 
       <input type="hidden" name="topshiriqId" value={topshiriqId} />
 
       {holat.xato !== null && (
-        <span role="alert" className="text-xs text-red-700">
+        <span role="alert" className="text-xs text-belgi-qizil">
           {holat.xato}
         </span>
       )}
@@ -90,7 +90,7 @@ export function TopshiriqQabulTugmasi({ topshiriqId }: { topshiriqId: number }) 
       <button
         type="submit"
         disabled={kutilmoqda}
-        className="rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-slate-800 disabled:opacity-60"
+        className="rounded-maydon bg-amal px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-amal-hover disabled:opacity-60"
       >
         {kutilmoqda ? 'Qabul qilinmoqda…' : 'Qabul qilish'}
       </button>

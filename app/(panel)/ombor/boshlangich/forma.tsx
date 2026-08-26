@@ -44,14 +44,14 @@ export function BoshlangichFormasi({
   const [olchamlar, olchamlarniOzgartir] = useState<Olcham[]>(() => [yangiOlcham()]);
 
   const yoz = (i: number, maydon: keyof Olcham, qiymat: string): void => {
-    olchamlarniOzgartir((o) =>
-      o.map((x, j) => (i === j ? { ...x, [maydon]: qiymat } : x)),
-    );
+    olchamlarniOzgartir((o) => o.map((x, j) => (i === j ? { ...x, [maydon]: qiymat } : x)));
   };
 
   const tayyor = olchamlar
     .map((o) => ({ eniM: Number(o.eniM), boyiM: Number(o.boyiM) }))
-    .filter((o) => Number.isFinite(o.eniM) && Number.isFinite(o.boyiM) && o.eniM > 0 && o.boyiM > 0);
+    .filter(
+      (o) => Number.isFinite(o.eniM) && Number.isFinite(o.boyiM) && o.eniM > 0 && o.boyiM > 0,
+    );
 
   return (
     <form action={yubor} className="flex max-w-xl flex-col gap-6">
@@ -61,26 +61,24 @@ export function BoshlangichFormasi({
       {holat.xato !== null && (
         <p
           role="alert"
-          className="rounded-lg bg-red-50 px-3 py-2.5 text-sm text-red-800 ring-1 ring-red-200"
+          className="rounded-maydon bg-belgi-qizil-fon px-3 py-2.5 text-sm text-belgi-qizil "
         >
           {holat.xato}
         </p>
       )}
 
-      <p className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
+      <p className="rounded-karta border border-chegara bg-fon px-4 py-3 text-sm">
         <b>{materialNomi}</b>
-        <span className="mt-1 block text-xs text-slate-500">
-          Tizimga o&apos;tish qoldig&apos;i. Yetkazib beruvchi qarziga
-          tegilmaydi — bu xarid emas.
+        <span className="mt-1 block text-xs text-matn-kuchsiz">
+          Tizimga o&apos;tish qoldig&apos;i. Yetkazib beruvchi qarziga tegilmaydi — bu xarid emas.
         </span>
       </p>
 
       {rulon ? (
         <div>
-          <p className="mb-1 text-sm font-medium text-slate-700">Rulonlar</p>
-          <p className="mb-3 text-xs text-slate-500">
-            Har rulon alohida qator: eni × bo&apos;yi, metrda. Kv.m tizim
-            hisoblaydi (Q-05).
+          <p className="mb-1 text-sm font-medium text-matn-ikki">Rulonlar</p>
+          <p className="mb-3 text-xs text-matn-kuchsiz">
+            Har rulon alohida qator: eni × bo&apos;yi, metrda. Kv.m tizim hisoblaydi (Q-05).
           </p>
 
           <div className="flex flex-col gap-2">
@@ -95,7 +93,7 @@ export function BoshlangichFormasi({
                   className={`${kirishUslubi(false)} w-24`}
                   placeholder="eni"
                 />
-                <span className="text-slate-400">×</span>
+                <span className="text-matn-kuchsiz">×</span>
                 <input
                   value={o.boyiM}
                   onChange={(e) => {
@@ -105,14 +103,14 @@ export function BoshlangichFormasi({
                   className={`${kirishUslubi(false)} w-24`}
                   placeholder="bo'yi"
                 />
-                <span className="text-xs text-slate-400">m</span>
+                <span className="text-xs text-matn-kuchsiz">m</span>
                 {olchamlar.length > 1 && (
                   <button
                     type="button"
                     onClick={() => {
                       olchamlarniOzgartir((x) => x.filter((_, j) => j !== i));
                     }}
-                    className="text-xs text-slate-400 hover:text-red-700"
+                    className="text-xs text-matn-kuchsiz hover:text-belgi-qizil"
                   >
                     olib tashlash
                   </button>
@@ -126,7 +124,7 @@ export function BoshlangichFormasi({
             onClick={() => {
               olchamlarniOzgartir((x) => [...x, yangiOlcham()]);
             }}
-            className="mt-2 text-sm text-slate-500 underline underline-offset-2 hover:text-slate-900"
+            className="mt-2 text-sm text-matn-kuchsiz underline underline-offset-2 hover:text-matn"
           >
             + Rulon qo&apos;shish
           </button>
@@ -171,23 +169,22 @@ export function BoshlangichFormasi({
         />
       </Maydon>
 
-      <p className="rounded-lg bg-amber-50 px-3 py-2.5 text-xs text-amber-900 ring-1 ring-amber-200">
-        Bir material uchun <b>bir marta</b> kiritiladi. Ikkinchi urinish rad
-        etiladi — aks holda tizimga o&apos;tish qoldig&apos;i ikki barobar
-        bo&apos;lib ketardi.
+      <p className="rounded-maydon bg-belgi-sariq-fon px-3 py-2.5 text-xs text-belgi-sariq ">
+        Bir material uchun <b>bir marta</b> kiritiladi. Ikkinchi urinish rad etiladi — aks holda
+        tizimga o&apos;tish qoldig&apos;i ikki barobar bo&apos;lib ketardi.
       </p>
 
       <div className="flex items-center gap-3">
         <button
           type="submit"
           disabled={kutilmoqda}
-          className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800 disabled:opacity-60"
+          className="rounded-maydon bg-amal px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-amal-hover disabled:opacity-60"
         >
           {kutilmoqda ? 'Kiritilmoqda…' : 'Qoldiqni kiritish'}
         </button>
         <Link
           href={`/ombor/${String(materialId)}`}
-          className="text-sm text-slate-500 hover:text-slate-900"
+          className="text-sm text-matn-kuchsiz hover:text-matn"
         >
           Bekor qilish
         </Link>

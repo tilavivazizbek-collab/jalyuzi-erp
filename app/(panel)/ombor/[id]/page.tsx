@@ -57,11 +57,7 @@ function miqdorKorinishi(h: HarakatQatori): string {
   return '—';
 }
 
-export default async function MaterialKartochkasi({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export default async function MaterialKartochkasi({ params }: { params: Promise<{ id: string }> }) {
   const f = await sahifaRuxsati('ombor.qoldiq.kor');
   // TZ 14.6 — omborchida kirim bor, chiqim yo'q bo'lishi mumkin
   const chiqaraOladi = ruxsatBormi(f, 'ombor.chiqim');
@@ -85,11 +81,13 @@ export default async function MaterialKartochkasi({
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <Link href="/ombor" className="text-sm text-slate-500 hover:text-slate-900">
+        <Link href="/ombor" className="text-sm text-matn-kuchsiz hover:text-matn">
           ← Ombor qoldig&apos;i
         </Link>
-        <h1 className="mt-2 text-xl font-semibold tracking-tight">{sarlavha.nom}</h1>
-        <p className="mt-1 text-sm text-slate-500">
+        <h1 className="mt-2 text-[22px] font-semibold tracking-[-0.02em] text-matn">
+          {sarlavha.nom}
+        </h1>
+        <p className="mt-1 text-sm text-matn-kuchsiz">
           {bolaklar.length} ta bo&apos;lak · filial #{f.filialId}
           {/* TZ 15.1 — oxirgi sanoq kartochkada ko'rinadi */}
           {sanoq !== null && ` · oxirgi sanoq ${sanoq.sana} (${sanoq.kim})`}
@@ -97,7 +95,7 @@ export default async function MaterialKartochkasi({
         {boshlangichQilaOladi && bolaklar.length === 0 && (
           <Link
             href={`/ombor/boshlangich/${String(materialId)}`}
-            className="mt-3 inline-block rounded-lg border border-slate-300 px-3 py-1.5 text-sm text-slate-700 transition hover:bg-slate-50"
+            className="mt-3 inline-block rounded-maydon border border-chegara-quyuq px-3 py-1.5 text-sm text-matn-ikki transition-colors hover:bg-fon"
           >
             Boshlang&apos;ich qoldiq kiritish
           </Link>
@@ -106,35 +104,37 @@ export default async function MaterialKartochkasi({
 
       {/* ── Qoldiq tarkibi (7.11) ── */}
       <section>
-        <h2 className="mb-2 text-sm font-medium text-slate-700">Qoldiq tarkibi</h2>
+        <h2 className="mb-2 text-sm font-medium text-matn-ikki">Qoldiq tarkibi</h2>
         {bolaklar.length === 0 ? (
-          <p className="rounded-xl border border-dashed border-slate-300 px-4 py-8 text-center text-sm text-slate-500">
+          <p className="rounded-karta border border-dashed border-chegara-quyuq px-4 py-8 text-center text-sm text-matn-kuchsiz">
             Bo&apos;lak yo&apos;q.
           </p>
         ) : (
-          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+          <div className="overflow-x-auto rounded-karta border border-chegara bg-sirt">
             <table className="w-full text-sm">
-              <thead className="border-b border-slate-200 bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+              <thead className="border-b border-chegara bg-fon text-left text-xs uppercase tracking-wide text-matn-kuchsiz">
                 <tr>
                   <th className="px-4 py-2.5 font-medium">Kod</th>
                   <th className="px-4 py-2.5 font-medium">Turi</th>
-                  <th className="px-4 py-2.5 font-medium">
-                    {olchamli ? "O'lcham" : 'Miqdor'}
-                  </th>
+                  <th className="px-4 py-2.5 font-medium">{olchamli ? "O'lcham" : 'Miqdor'}</th>
                   <th className="px-4 py-2.5 font-medium">Holat</th>
                   <th className="px-4 py-2.5 text-right font-medium">Tannarx</th>
                   <th className="px-4 py-2.5 font-medium">Kirim</th>
                   {chiqaraOladi && <th className="px-4 py-2.5 font-medium" />}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-chegara">
                 {bolaklar.map((b) => {
                   const belgi = darajaBelgisi(b);
                   return (
-                    <tr key={b.id} className={b.holat === 'BOSH' ? '' : 'text-slate-500'}>
+                    <tr key={b.id} className={b.holat === 'BOSH' ? '' : 'text-matn-kuchsiz'}>
                       <td className="px-4 py-2.5 font-mono text-xs">{b.kod}</td>
                       <td className="px-4 py-2.5">
-                        {b.turi === 'RULON' ? 'Rulon' : b.turi === 'OSTATKA' ? 'Qoldiq kesma' : 'Dona'}
+                        {b.turi === 'RULON'
+                          ? 'Rulon'
+                          : b.turi === 'OSTATKA'
+                            ? 'Qoldiq kesma'
+                            : 'Dona'}
                       </td>
                       <td className="raqam px-4 py-2.5">
                         {b.eniM !== null && b.boyiM !== null
@@ -143,24 +143,24 @@ export default async function MaterialKartochkasi({
                             ? String(b.miqdor)
                             : '—'}
                         {belgi !== null && (
-                          <span className="ml-2 text-xs text-amber-700">{belgi}</span>
+                          <span className="ml-2 text-xs text-belgi-sariq">{belgi}</span>
                         )}
                       </td>
                       <td className="px-4 py-2.5">
                         <span
                           className={
                             b.holat === 'BOSH'
-                              ? 'text-emerald-700'
+                              ? 'text-belgi-yashil'
                               : b.holat === 'BAND'
-                                ? 'text-amber-700'
-                                : 'text-slate-400'
+                                ? 'text-belgi-sariq'
+                                : 'text-matn-kuchsiz'
                           }
                         >
                           {HOLAT_NOMI[b.holat] ?? b.holat}
                         </span>
                       </td>
                       <td className="raqam px-4 py-2.5">{pulKorsat(som(b.tannarx))}</td>
-                      <td className="px-4 py-2.5 text-xs text-slate-500">
+                      <td className="px-4 py-2.5 text-xs text-matn-kuchsiz">
                         {b.kirimRaqam ?? '—'}
                       </td>
                       {chiqaraOladi && (
@@ -168,7 +168,7 @@ export default async function MaterialKartochkasi({
                           {b.holat === 'BOSH' || b.holat === 'BAND' ? (
                             <Link
                               href={`/ombor/chiqim/${String(b.id)}`}
-                              className="text-xs text-red-700 underline underline-offset-2 hover:text-red-900"
+                              className="text-xs text-belgi-qizil underline underline-offset-2 hover:text-belgi-qizil"
                             >
                               Hisobdan chiqarish
                             </Link>
@@ -182,27 +182,27 @@ export default async function MaterialKartochkasi({
             </table>
           </div>
         )}
-        <p className="mt-2 text-xs text-slate-400">
+        <p className="mt-2 text-xs text-matn-kuchsiz">
           Har bo&apos;lak o&apos;z kirimini va tannarxini eslab qoladi (7.8).
         </p>
       </section>
 
       {/* ── Harakatlar tarixi (7.11) ── */}
       <section>
-        <h2 className="mb-1 text-sm font-medium text-slate-700">Harakatlar tarixi</h2>
-        <p className="mb-3 text-xs text-slate-500">
-          Qoldiq alohida saqlanmaydi — u shu jadvalning yig&apos;indisi (2.2-invariant).
-          Yozuvlar o&apos;zgartirilmaydi va o&apos;chirilmaydi (§6.5).
+        <h2 className="mb-1 text-sm font-medium text-matn-ikki">Harakatlar tarixi</h2>
+        <p className="mb-3 text-xs text-matn-kuchsiz">
+          Qoldiq alohida saqlanmaydi — u shu jadvalning yig&apos;indisi (2.2-invariant). Yozuvlar
+          o&apos;zgartirilmaydi va o&apos;chirilmaydi (§6.5).
         </p>
 
         {harakatlar.length === 0 ? (
-          <p className="rounded-xl border border-dashed border-slate-300 px-4 py-8 text-center text-sm text-slate-500">
+          <p className="rounded-karta border border-dashed border-chegara-quyuq px-4 py-8 text-center text-sm text-matn-kuchsiz">
             Harakat yo&apos;q.
           </p>
         ) : (
-          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+          <div className="overflow-x-auto rounded-karta border border-chegara bg-sirt">
             <table className="w-full text-sm">
-              <thead className="border-b border-slate-200 bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+              <thead className="border-b border-chegara bg-fon text-left text-xs uppercase tracking-wide text-matn-kuchsiz">
                 <tr>
                   <th className="px-4 py-2.5 font-medium">Sana</th>
                   <th className="px-4 py-2.5 font-medium">Turi</th>
@@ -213,10 +213,10 @@ export default async function MaterialKartochkasi({
                   {chiqaraOladi && <th className="px-4 py-2.5 font-medium" />}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-chegara">
                 {harakatlar.map((h) => (
                   <tr key={h.id}>
-                    <td className="px-4 py-2.5 text-slate-600">
+                    <td className="px-4 py-2.5 text-matn-ikki">
                       {h.sana.toLocaleDateString('uz-UZ', {
                         day: '2-digit',
                         month: '2-digit',
@@ -227,13 +227,13 @@ export default async function MaterialKartochkasi({
                     <td className="px-4 py-2.5 font-mono text-xs">{h.bolakKod}</td>
                     <td className="raqam px-4 py-2.5">{miqdorKorinishi(h)}</td>
                     <td className="raqam px-4 py-2.5">{pulKorsat(som(h.tannarxSumma))}</td>
-                    <td className="px-4 py-2.5 text-slate-500">{h.xodimIsmi}</td>
+                    <td className="px-4 py-2.5 text-matn-kuchsiz">{h.xodimIsmi}</td>
                     {chiqaraOladi && (
                       <td className="px-4 py-2.5 text-right align-top">
                         {h.turi === 'BRAK' && !h.bekorQilingan ? (
                           <BekorTugmasi harakatId={h.id} bolakKod={h.bolakKod} />
                         ) : h.turi === 'BRAK' ? (
-                          <span className="text-xs text-slate-400">bekor qilingan</span>
+                          <span className="text-xs text-matn-kuchsiz">bekor qilingan</span>
                         ) : null}
                       </td>
                     )}

@@ -17,12 +17,7 @@
 import { useActionState, useState } from 'react';
 import { Maydon, kirishUslubi } from '../maydon';
 import { pulKorsat, som } from '@/lib/domain/pul';
-import {
-  qaytarishAmali,
-  radEtishAmali,
-  topshirishAmali,
-  yetibKeldiAmali,
-} from './amal';
+import { qaytarishAmali, radEtishAmali, topshirishAmali, yetibKeldiAmali } from './amal';
 import { BOSH_AMAL } from './holat';
 
 export interface QaytarishKassasi {
@@ -41,7 +36,7 @@ export function TopshirishTugmasi({ pozitsiyaId }: { pozitsiyaId: number }) {
       <input type="hidden" name="pozitsiyaId" value={pozitsiyaId} />
 
       {holat.xato !== null && (
-        <span role="alert" className="text-xs text-red-700">
+        <span role="alert" className="text-xs text-belgi-qizil">
           {holat.xato}
         </span>
       )}
@@ -49,7 +44,7 @@ export function TopshirishTugmasi({ pozitsiyaId }: { pozitsiyaId: number }) {
       <button
         type="submit"
         disabled={kutilmoqda}
-        className="rounded-lg bg-emerald-700 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-emerald-800 disabled:opacity-60"
+        className="rounded-maydon bg-belgi-yashil px-3 py-1.5 text-xs font-medium text-white transition-colors hover:brightness-95 disabled:opacity-60"
       >
         {kutilmoqda ? 'Topshirilmoqda…' : 'Topshirish'}
       </button>
@@ -70,7 +65,7 @@ export function YetibKeldiTugmasi({ pozitsiyaId }: { pozitsiyaId: number }) {
       <input type="hidden" name="pozitsiyaId" value={pozitsiyaId} />
 
       {holat.xato !== null && (
-        <span role="alert" className="text-xs text-red-700">
+        <span role="alert" className="text-xs text-belgi-qizil">
           {holat.xato}
         </span>
       )}
@@ -78,7 +73,7 @@ export function YetibKeldiTugmasi({ pozitsiyaId }: { pozitsiyaId: number }) {
       <button
         type="submit"
         disabled={kutilmoqda}
-        className="rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-slate-800 disabled:opacity-60"
+        className="rounded-maydon bg-amal px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-amal-hover disabled:opacity-60"
       >
         {kutilmoqda ? 'Belgilanmoqda…' : 'Yetib keldi'}
       </button>
@@ -98,7 +93,7 @@ export function RadEtishTugmasi({ pozitsiyaId }: { pozitsiyaId: number }) {
         onClick={() => {
           ochiqniOzgartir(true);
         }}
-        className="text-xs text-slate-500 underline underline-offset-2 hover:text-red-700"
+        className="text-xs text-matn-kuchsiz underline underline-offset-2 hover:text-belgi-qizil"
       >
         Rad etildi
       </button>
@@ -110,7 +105,7 @@ export function RadEtishTugmasi({ pozitsiyaId }: { pozitsiyaId: number }) {
       <input type="hidden" name="pozitsiyaId" value={pozitsiyaId} />
 
       {holat.xato !== null && (
-        <span role="alert" className="text-xs text-red-700">
+        <span role="alert" className="text-xs text-belgi-qizil">
           {holat.xato}
         </span>
       )}
@@ -124,16 +119,16 @@ export function RadEtishTugmasi({ pozitsiyaId }: { pozitsiyaId: number }) {
         />
       </Maydon>
 
-      <p className="text-xs text-slate-500">
-        Mahsulot «sotilmagan tayyor mahsulot» ro&apos;yxatiga tushadi (7.13).
-        Ombor qoldig&apos;iga tegilmaydi — mato allaqachon kesilgan.
+      <p className="text-xs text-matn-kuchsiz">
+        Mahsulot «sotilmagan tayyor mahsulot» ro&apos;yxatiga tushadi (7.13). Ombor qoldig&apos;iga
+        tegilmaydi — mato allaqachon kesilgan.
       </p>
 
       <div className="flex items-center gap-3">
         <button
           type="submit"
           disabled={kutilmoqda}
-          className="rounded-lg bg-red-700 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-red-800 disabled:opacity-60"
+          className="rounded-maydon bg-belgi-qizil px-3 py-1.5 text-xs font-medium text-white transition-colors hover:brightness-95 disabled:opacity-60"
         >
           {kutilmoqda ? 'Saqlanmoqda…' : 'Rad etilgan deb belgilash'}
         </button>
@@ -142,7 +137,7 @@ export function RadEtishTugmasi({ pozitsiyaId }: { pozitsiyaId: number }) {
           onClick={() => {
             ochiqniOzgartir(false);
           }}
-          className="text-xs text-slate-500 hover:text-slate-900"
+          className="text-xs text-matn-kuchsiz hover:text-matn"
         >
           Yopish
         </button>
@@ -172,7 +167,7 @@ export function QaytarishTugmasi({
         onClick={() => {
           ochiqniOzgartir(true);
         }}
-        className="text-xs text-slate-500 underline underline-offset-2 hover:text-slate-900"
+        className="text-xs text-matn-kuchsiz underline underline-offset-2 hover:text-matn"
       >
         Qaytarish
       </button>
@@ -186,14 +181,14 @@ export function QaytarishTugmasi({
       <input type="hidden" name="pozitsiyaId" value={pozitsiyaId} />
 
       {holat.xato !== null && (
-        <span role="alert" className="text-xs text-red-700">
+        <span role="alert" className="text-xs text-belgi-qizil">
           {holat.xato}
         </span>
       )}
 
-      <p className="text-xs text-slate-600">
-        Tizim pozitsiya narxini taklif qiladi — mijoz bilan kelishib
-        o&apos;zgartiring. <b>Chegara yo&apos;q</b>, 0 ham kiritish mumkin (8.10).
+      <p className="text-xs text-matn-ikki">
+        Tizim pozitsiya narxini taklif qiladi — mijoz bilan kelishib o&apos;zgartiring.{' '}
+        <b>Chegara yo&apos;q</b>, 0 ham kiritish mumkin (8.10).
       </p>
 
       <div className="flex flex-wrap items-end gap-3">
@@ -242,9 +237,9 @@ export function QaytarishTugmasi({
       </div>
 
       {ushlab > 0 && (
-        <p className="raqam text-xs text-amber-800">
-          Ushlab qolinadi: {pulKorsat(som(ushlab.toFixed(2)))} — hisobotda
-          «qaytarishdan ushlab qolindi» bo&apos;lib chiqadi (11.4.1)
+        <p className="raqam text-xs text-belgi-sariq">
+          Ushlab qolinadi: {pulKorsat(som(ushlab.toFixed(2)))} — hisobotda «qaytarishdan ushlab
+          qolindi» bo&apos;lib chiqadi (11.4.1)
         </p>
       )}
 
@@ -261,7 +256,7 @@ export function QaytarishTugmasi({
         <button
           type="submit"
           disabled={kutilmoqda}
-          className="rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-slate-800 disabled:opacity-60"
+          className="rounded-maydon bg-amal px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-amal-hover disabled:opacity-60"
         >
           {kutilmoqda ? 'Saqlanmoqda…' : 'Qaytarishni rasmiylashtirish'}
         </button>
@@ -270,7 +265,7 @@ export function QaytarishTugmasi({
           onClick={() => {
             ochiqniOzgartir(false);
           }}
-          className="text-xs text-slate-500 hover:text-slate-900"
+          className="text-xs text-matn-kuchsiz hover:text-matn"
         >
           Yopish
         </button>

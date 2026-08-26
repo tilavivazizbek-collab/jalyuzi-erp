@@ -11,13 +11,13 @@ export default async function YangiMijoz() {
   return (
     <div className="flex max-w-3xl flex-col gap-6">
       <div>
-        <Link href="/mijoz" className="text-sm text-slate-500 hover:text-slate-900">
+        <Link href="/mijoz" className="text-sm text-matn-kuchsiz hover:text-matn">
           ← Mijozlar
         </Link>
-        <h1 className="mt-2 text-xl font-semibold tracking-tight">Yangi mijoz</h1>
+        <h1 className="mt-2 text-[22px] font-semibold tracking-[-0.02em] text-matn">Yangi mijoz</h1>
       </div>
 
-      <div className="rounded-xl border border-slate-200 bg-white p-6">
+      <div className="rounded-karta border border-chegara bg-sirt p-6">
         <MijozFormasi amal={mijozYaratAmali} qiymatlar={BOSH_QIYMATLAR} tugmaMatni="Saqlash" />
       </div>
     </div>
