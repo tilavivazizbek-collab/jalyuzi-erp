@@ -30,6 +30,8 @@ import * as omborEkrani from '@/app/(panel)/ombor/malumot';
 import * as sotuvEkrani from '@/app/(panel)/sotuv/malumot';
 import * as buyurtmaEkrani from '@/app/(panel)/buyurtma/malumot';
 import * as yoldaEkrani from '@/app/(panel)/buyurtma/yolda/malumot';
+import * as boshqaruvEkrani from '@/app/(panel)/boshqaruv/malumot';
+import * as katalog from '@/lib/amal/katalog';
 
 let sql: Ulanish;
 let filialId = 1;
@@ -187,6 +189,21 @@ describe('Sotuv ekranlari', () => {
     await expect(sotuvEkrani.sotuvTurlari(filialId)).resolves.toBeDefined();
   });
 
+  it('turRoyxati — yengil ro‘yxat (3.2)', async () => {
+    await expect(katalog.turRoyxati()).resolves.toBeDefined();
+  });
+
+  it('turTafsili — bitta tur, mavjud bo‘lmasa null', async () => {
+    await expect(katalog.turTafsili(YOQ, filialId)).resolves.toBeNull();
+
+    const bor = await katalog.turRoyxati();
+    if (bor[0] !== undefined) {
+      await expect(
+        katalog.turTafsili(bor[0].id, filialId),
+      ).resolves.not.toBeNull();
+    }
+  });
+
   it('mijozQidir · tikaOladiganFiliallar', async () => {
     await expect(sotuvEkrani.mijozQidir('a')).resolves.toBeDefined();
     await expect(sotuvEkrani.tikaOladiganFiliallar()).resolves.toBeDefined();
@@ -229,5 +246,9 @@ describe('Buyurtma ekranlari', () => {
     ).resolves.toBeDefined();
     // 20.5.1 — sotgan filialga kelayotgan tayyor mahsulot
     await expect(yoldaEkrani.yoldagilar(filialId)).resolves.toBeDefined();
+    // Boshqaruv sahifasi — kim va qayerda ishlayotgani
+    await expect(
+      boshqaruvEkrani.kimIshlamoqda(xodimId, filialId),
+    ).resolves.toBeDefined();
   });
 });

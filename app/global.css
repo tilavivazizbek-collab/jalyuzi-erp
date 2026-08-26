@@ -1,16 +1,83 @@
 @import 'tailwindcss';
 
-/* QISM 1 §19 — son formati `1 234 567.89`, sana `DD.MM.YYYY` */
+/**
+ * DIZAYN TIZIMI — barcha ekran shu qiymatlardan foydalanadi.
+ *
+ * ⚠️ Rang, o'lcham va bo'shliq bevosita yozilmaydi (`#123456`,
+ *    `13px`). Har biri shu yerda nom bilan turadi: keyin bir joyni
+ *    o'zgartirish butun tizimga tarqaladi.
+ *
+ * ⚠️ Ma'noli ranglar (yashil, sariq, qizil, moviy) biznes ma'nosiga
+ *    ega — bo'sh qoldiq, band, xato, yo'lda. Ular BEZAK EMAS:
+ *    omborchi ularni yodlab olgan, o'zgartirilmaydi.
+ */
 @theme {
-  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  /* ── Shrift ─────────────────────────────────────────────────── */
+  --font-sans: var(--font-inter), system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  /* ── Brend ──────────────────────────────────────────────────────
+     Logo, faol menyu, havola va fokus halqasi. Tugmalarga
+     QO'YILMAYDI: bitta ekranda 15–20 amal bor, hammasi to'q ko'k
+     bo'lsa ko'z qayerga qarashni bilmaydi. */
+  --color-brend: #2563eb;
+  --color-brend-quyuq: #1d4ed8;
+  --color-brend-fon: #eff6ff;
+
+  /* ── Asosiy amal ─────────────────────────────────────────────── */
+  --color-amal: #0f172a;
+  --color-amal-hover: #1e293b;
+
+  /* ── Ma'noli ranglar ────────────────────────────────────────── */
+  --color-yashil: #059669;
+  --color-yashil-fon: #ecfdf5;
+  --color-sariq: #b45309;
+  --color-sariq-fon: #fffbeb;
+  --color-qizil: #dc2626;
+  --color-qizil-fon: #fef2f2;
+  --color-moviy: #0284c7;
+  --color-moviy-fon: #f0f9ff;
+
+  /* ── Neytral ────────────────────────────────────────────────── */
+  --color-matn: #0f172a;
+  --color-matn-ikki: #475569;
+  --color-matn-kuchsiz: #94a3b8;
+  --color-chegara: #e2e8f0;
+  --color-chegara-quyuq: #cbd5e1;
+  --color-fon: #f8fafc;
+  --color-sirt: #ffffff;
+
+  /* ── Burchak ────────────────────────────────────────────────── */
+  --radius-maydon: 6px;
+  --radius-karta: 10px;
 }
 
 html {
   -webkit-text-size-adjust: 100%;
 }
 
-/* Pul va o'lcham ustunlari tik turishi uchun */
+/**
+ * Pul va o'lcham ustunlari TIK turishi uchun.
+ *
+ * ⚠️ Bularsiz `1 234 567` va `999 999` ustunda siljib ketadi va
+ *    egasi ko'z bilan taqqoslay olmaydi.
+ */
 .raqam {
   font-variant-numeric: tabular-nums;
   text-align: right;
+}
+
+/**
+ * Fokus halqasi — butun tizimda BIR XIL.
+ *
+ * ⚠️ Klaviatura bilan ishlaydigan odam qayerdaligini ko'rishi shart
+ *    (kirish ekranida sotuvchi Tab bilan yuradi). Halqa brend
+ *    rangida: u faqat shu yerda va menyuda uchraydi.
+ */
+.fokus {
+  outline: none;
+}
+.fokus:focus-visible,
+.fokus:focus {
+  border-color: var(--color-brend);
+  box-shadow: 0 0 0 3px rgb(37 99 235 / 18%);
 }

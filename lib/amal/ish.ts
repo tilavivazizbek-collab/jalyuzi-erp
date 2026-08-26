@@ -23,8 +23,12 @@ import {
   type Qoldiq,
 } from '@/lib/domain/kesish';
 import { haqHisobla, type StavkaBirligi } from '@/lib/domain/stavka';
-import { adminlarniOgohlantir } from './bildirishnoma';
-import { stavkasizIshMatni } from '@/lib/domain/bildirishnoma';
+import { adminlarniOgohlantir, mijozniOgohlantir } from './bildirishnoma';
+import {
+  bekorMatni,
+  stavkasizIshMatni,
+  tayyorMatni,
+} from '@/lib/domain/bildirishnoma';
 import { pulMatn } from '@/lib/domain/pul';
 import {
   navbatdami,
@@ -356,6 +360,35 @@ export async function tugatdim(
       WHERE id = ${kirim.pozitsiyaId}`;
 
     /**
+     * TZ 13.6 — «Xabar yuboriladi: ... **tayyor bo'lganda**.»
+     *
+     * ⚠️ Faqat `TAYYOR` da yuboriladi. `TAYYOR_YOLDA` bo'lsa
+     *    mahsulot boshqa filialda va mijoz kelib bekorga qaytardi
+     *    (13.6 · 20.5). Yetib kelganda alohida xabar ketadi.
+     */
+    if (yangiHolat === 'TAYYOR') {
+      const b = await tx<{ raqam: string; mijoz_id: number | null }[]>`
+        SELECT b.raqam, b.mijoz_id
+        FROM buyurtma_pozitsiya p
+        JOIN buyurtma b ON b.id = p.buyurtma_id
+        WHERE p.id = ${kirim.pozitsiyaId}`;
+
+      const mijozId = b[0]?.mijoz_id;
+      if (mijozId !== null && mijozId !== undefined) {
+        await mijozniOgohlantir(
+          tx,
+          {
+            mijozId,
+            matn: tayyorMatni(b[0]?.raqam ?? ''),
+            manbaTuri: 'buyurtma_pozitsiya',
+            manbaId: kirim.pozitsiyaId,
+          },
+          xodimId,
+        );
+      }
+    }
+
+    /**
      * TZ 10.10 — «Haq usta "Tugatdim" bosgan payt hisoblanadi. Mahsulot
      * mijozga topshirilishini KUTMAYDI: mijoz umuman kelmasligi mumkin
      * (8.8), ish esa bajarilgan.»
@@ -504,6 +537,32 @@ export async function pozitsiyaniBekorQil(
               ${tx.json({ holat: p.holat })},
               ${tx.json({ holat: 'BEKOR', boshatilgan_band: boshatilgan })},
               ${sabab.trim()})`;
+
+    /**
+     * TZ 13.6 — «Xabar yuboriladi: ... **bekor qilinganda**.»
+     *
+     * ⚠️ Sabab ham yuboriladi: mijoz nega bekor bo'lganini
+     *    sotuvchidan so'rab o'tirmasin.
+     */
+    const b = await tx<{ raqam: string; mijoz_id: number | null }[]>`
+      SELECT b.raqam, b.mijoz_id
+      FROM buyurtma_pozitsiya p
+      JOIN buyurtma b ON b.id = p.buyurtma_id
+      WHERE p.id = ${pozitsiyaId}`;
+
+    const mijozId = b[0]?.mijoz_id;
+    if (mijozId !== null && mijozId !== undefined) {
+      await mijozniOgohlantir(
+        tx,
+        {
+          mijozId,
+          matn: bekorMatni(b[0]?.raqam ?? '', sabab.trim()),
+          manbaTuri: 'buyurtma_pozitsiya',
+          manbaId: pozitsiyaId,
+        },
+        xodimId,
+      );
+    }
 
     return { boshatilganBand: boshatilgan };
   });

@@ -31,7 +31,7 @@ import { pozitsiyaNarxiniHisobla } from '@/lib/domain/pozitsiya-narxi';
 import { mijozOffseti } from '@/lib/domain/mijoz';
 import { biznesXatosimi } from '@/lib/xato';
 import { Maydon, kirishUslubi } from '../maydon';
-import { buyurtmaYaratAmali } from './amal';
+import { buyurtmaYaratAmali, turTafsiliAmali } from './amal';
 import { BOSH_HOLAT } from './holat';
 import type { SotuvMijozi, SotuvTuri } from './malumot';
 
@@ -89,16 +89,28 @@ const son = (x: string): number | null => {
 
 export function SotuvFormasi({
   turlar,
+  birinchiTur,
   filiallar,
   ozFilialId,
 }: {
-  turlar: readonly SotuvTuri[];
+  /** Faqat nom va raqam — yengil ro'yxat (3.2) */
+  turlar: readonly { id: number; nom: string }[];
+  /** Ekran bo'sh ochilmasligi uchun birinchi turning tafsiloti */
+  birinchiTur: SotuvTuri | null;
   filiallar: readonly { id: number; nom: string; bosh: boolean }[];
   ozFilialId: number;
 }) {
   const [holat, yubor, kutilmoqda] = useActionState(buyurtmaYaratAmali, BOSH_HOLAT);
 
   const [turId, turniOzgartir] = useState<number | null>(turlar[0]?.id ?? null);
+
+  /**
+   * ⚠️ Tanlangan turning TAFSILOTI. Ilgari hamma tur tafsiloti
+   *    birdan kelardi va sahifa og'irlashardi; endi tanlangani
+   *    kerak bo'lganda yuklanadi.
+   */
+  const [tur, turniYukla] = useState<SotuvTuri | null>(birinchiTur);
+  const [turYuklanmoqda, yuklanishniOzgartir] = useState(false);
   const [eni, eniniOzgartir] = useState('210');
   const [boyi, boyiniOzgartir] = useState('140');
   const [parametrlar, parametrlarniOzgartir] = useState<Record<string, string>>({});
@@ -112,7 +124,6 @@ export function SotuvFormasi({
   const [tayyorlik, tayyorlikniOzgartir] = useState('');
   const [kelishilgan, kelishilganniOzgartir] = useState('');
 
-  const tur = turlar.find((t) => t.id === turId) ?? null;
   const offset = mijozOffseti(mijoz);
 
   /** TZ 3.5 — har slot uchun formula bo'yicha miqdor. */
@@ -392,10 +403,21 @@ export function SotuvFormasi({
                 key={t.id}
                 type="button"
                 onClick={() => {
+                  if (t.id === turId) return;
                   turniOzgartir(t.id);
                   slotlarniOzgartir({});
                   aksessuarlarniOzgartir({});
+                  yuklanishniOzgartir(true);
+
+                  void turTafsiliAmali(t.id)
+                    .then((x) => {
+                      turniYukla(x);
+                    })
+                    .finally(() => {
+                      yuklanishniOzgartir(false);
+                    });
                 }}
+                disabled={turYuklanmoqda}
                 className={`rounded-lg px-3 py-1.5 text-sm transition ${
                   t.id === turId
                     ? 'bg-slate-900 text-white'

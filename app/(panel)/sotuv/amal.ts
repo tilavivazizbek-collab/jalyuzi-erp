@@ -16,6 +16,7 @@ import {
   buyurtmaYarat,
   type PozitsiyaKirimi,
 } from '@/lib/amal/buyurtma';
+import { turTafsili, type SotuvTuri } from '@/lib/amal/katalog';
 import { kesimOlchami } from '@/lib/domain/kesish';
 import { ruxsatTalab } from '@/lib/kirish/joriy';
 import { sotuvSxema } from '@/lib/sxema/sotuv';
@@ -123,4 +124,25 @@ export async function buyurtmaYaratAmali(
       buyurtmaRaqam: null,
     };
   }
+}
+
+// ─── TZ 3.2 · Turni tanlagach tafsilotini yuklash ─────────────────────────
+
+/**
+ * Bitta turning slot, parametr va aksessuarlarini qaytaradi.
+ *
+ * ⚠️ Ilgari sotuv ekrani HAMMA turni hamma matosi bilan yuklardi.
+ *    Guruhsiz mato har slotga biriktirilgani uchun bu ~2 mln obyekt
+ *    va ~230 MB JSON berardi. Endi tanlangan tur kerak bo'lganda
+ *    keladi — natija bir xil, yuk yuzlab barobar kam.
+ *
+ * ⚠️ Ruxsat SHU YERDA ham tekshiriladi (§9.4): server amali
+ *    to'g'ridan-to'g'ri chaqirilishi mumkin.
+ */
+export async function turTafsiliAmali(turId: number): Promise<SotuvTuri | null> {
+  const f = await ruxsatTalab('buyurtma.yarat');
+
+  if (!Number.isSafeInteger(turId) || turId <= 0) return null;
+
+  return turTafsili(turId, f.filialId);
 }

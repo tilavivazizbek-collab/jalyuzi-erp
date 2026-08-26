@@ -14,7 +14,12 @@
 
 import { Markup, type Telegraf } from 'telegraf';
 import { ulanishOl } from '@/lib/db';
-import { sotuvTurlari, type SotuvTuri } from '@/lib/amal/katalog';
+import {
+  sotuvTurlari,
+  turRoyxati,
+  turTafsili,
+  type SotuvTuri,
+} from '@/lib/amal/katalog';
 import { buyurtmaRaqamiOl, buyurtmaYarat } from '@/lib/amal/buyurtma';
 import { birMartaBajar, sessiyaOl, sessiyaYoz } from '@/lib/amal/bot';
 import { amalKaliti } from '@/lib/domain/bot';
@@ -184,17 +189,27 @@ export async function qadamniKorsat(
 
   switch (qadam) {
     case 'TUR_TANLASH': {
-      if (turlar.length === 0) {
+      /**
+       * ⚠️ Bu yerda YENGIL ro'yxat ishlatiladi: tugmaga faqat nom
+       *    kerak. Slot va matolar tur tanlangandan keyin keladi.
+       */
+      const royxat = await turRoyxati();
+
+      if (royxat.length === 0) {
         await ctx.reply(MATN.matoYoq, {
           reply_markup: mijozMenyusi().reply_markup,
         });
         return;
       }
+
+      // Telegram bitta xabarda 100 tugmadan ko'pini ko'tarmaydi
       await ctx.reply(MATN.turTanla, {
         reply_markup: Markup.inlineKeyboard(
-          turlar.map((t) => [
-            Markup.button.callback(t.nom, `oq_tur:${String(t.id)}`),
-          ]),
+          royxat
+            .slice(0, 30)
+            .map((t) => [
+              Markup.button.callback(t.nom, `oq_tur:${String(t.id)}`),
+            ]),
         ).reply_markup,
       });
       return;
@@ -516,10 +531,33 @@ export function oqimniUla(
     const kontekst = await mijozKontekstiOl(mijozId);
     if (kontekst === null) return null;
 
+    /**
+     * ⚠️ Faqat KERAKLI turlar yuklanadi:
+     *    - savatdagi va yig'ilayotgan pozitsiya turlari (narx uchun)
+     *    - tur hali tanlanmagan bo'lsa — hech biri, ro'yxat yengil
+     *      nomlardan quriladi
+     *
+     *    Ilgari hamma tur hamma matosi bilan kelardi: 369 tur va
+     *    1 190 mato bo'lganda bu ~2 mln obyekt edi va bot har
+     *    bosishda shuni qayta yasardi.
+     */
+    const q = await qoralamaOl(tg);
+
+    const keraklilar = [
+      ...new Set(
+        [q.joriy, ...q.savat]
+          .filter((p) => p !== null)
+          .map((p) => p.mahsulotTurId),
+      ),
+    ];
+
     return {
       tg,
-      q: await qoralamaOl(tg),
-      turlar: await sotuvTurlari(kontekst.filialId),
+      q,
+      turlar:
+        keraklilar.length === 0
+          ? []
+          : await sotuvTurlari(kontekst.filialId, keraklilar),
       kontekst,
     };
   }
@@ -539,8 +577,9 @@ export function oqimniUla(
       if (t === null) return;
 
       const turId = Number(ctx.match[1]);
-      const tur = t.turlar.find((x) => x.id === turId);
-      if (tur === undefined) return;
+      // Tanlangan turning tafsiloti SHU YERDA yuklanadi
+      const tur = await turTafsili(turId, t.kontekst.filialId);
+      if (tur === null) return;
 
       await davomEt(
         ctx,
@@ -674,7 +713,13 @@ export async function oqimMatniniQabulQil(
   const kontekst = await mijozKontekstiOl(mijozId);
   if (kontekst === null) return false;
 
-  const turlar = await sotuvTurlari(kontekst.filialId);
+  // Faqat yig'ilayotgan tur kerak — o'lcham va izoh shunga tegishli
+  const keraklilar =
+    q.joriy === null ? [] : [q.joriy.mahsulotTurId];
+  const turlar =
+    keraklilar.length === 0
+      ? []
+      : await sotuvTurlari(kontekst.filialId, keraklilar);
 
   if (qadam === 'IZOH') {
     await davomEt(ctx, izohQoy(q, matn), turlar, kontekst);

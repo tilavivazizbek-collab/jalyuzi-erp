@@ -6,6 +6,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { ulanishOl } from '@/lib/db';
+import { xabarniQaytaYubor } from '@/lib/amal/bildirishnoma';
 import { pozitsiyaniTasdiqla } from '@/lib/amal/buyurtma';
 import {
   ishniQaytaribOl,
@@ -296,5 +297,57 @@ export async function qaytarishAmali(
 
   revalidatePath('/buyurtma');
   revalidatePath('/kassa');
+  return { xato: null, bajarildi: true };
+}
+
+// ─── TZ 13.11 · 6.7 · Xabarni qayta yuborish ──────────────────────────────
+
+/**
+ * TZ 13.11 — «qayta yuborish tugmasi».
+ *
+ * ⚠️ Xabar bu yerda YUBORILMAYDI, faqat navbatga qaytariladi:
+ *    yuborish bot jarayonida (§2.1). Sayt Telegramni kutib
+ *    turmasligi kerak.
+ */
+export async function xabarniQaytaYuborAmali(
+  _oldingi: AmalHolati,
+  forma: FormData,
+): Promise<AmalHolati> {
+  const f = await ruxsatTalab('buyurtma.tahrirla');
+
+  const xabarId = Number(matnMaydon(forma, 'xabarId'));
+  if (!Number.isSafeInteger(xabarId) || xabarId <= 0) {
+    return { xato: 'Xabar tanlanmagan', bajarildi: false };
+  }
+
+  const sql = ulanishOl();
+
+  /**
+   * §9.4 — brauzerdan kelgan raqamga ishonilmaydi: xabar SHU
+   * filialning buyurtmasiga tegishli bo'lishi shart.
+   */
+  const tegishli = await sql<{ n: number }[]>`
+    SELECT COUNT(*)::int AS n
+    FROM bot_xabar x
+    JOIN buyurtma_pozitsiya p ON p.id = x.manba_id
+    JOIN buyurtma b           ON b.id = p.buyurtma_id
+    WHERE x.id = ${xabarId}
+      AND x.manba_turi = 'buyurtma_pozitsiya'
+      AND b.sotgan_filial_id = ${f.filialId}`;
+
+  if ((tegishli[0]?.n ?? 0) === 0) {
+    return { xato: 'Xabar topilmadi', bajarildi: false };
+  }
+
+  try {
+    await xabarniQaytaYubor(sql, xabarId);
+  } catch (x) {
+    return {
+      xato: biznesXatosimi(x) ? x.message : 'Qayta yuborilmadi',
+      bajarildi: false,
+    };
+  }
+
+  revalidatePath('/buyurtma');
   return { xato: null, bajarildi: true };
 }

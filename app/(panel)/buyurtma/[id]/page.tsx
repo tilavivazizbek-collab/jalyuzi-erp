@@ -1,5 +1,8 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { ulanishOl } from '@/lib/db';
+import { yetmaganXabarlar } from '@/lib/amal/bildirishnoma';
+import { Eslatmalar } from '../eslatma';
 import { sahifaRuxsati } from '@/lib/kirish/joriy';
 import { ruxsatBormi } from '@/lib/ruxsat/tekshir';
 import { nolSom, pulKorsat, pulMatn, qosh, ayir, som } from '@/lib/domain/pul';
@@ -49,6 +52,21 @@ export default async function BuyurtmaKartochkasi({
       ? tolovKassalari(f.filialId, f.xodimId)
       : Promise.resolve([]),
   ]);
+
+  /**
+   * TZ 13.11 · 6.7 — mijozga yetib bormagan xabarlar. Sotuvchi
+   * qizil holatni ko'rib qo'ng'iroq qiladi.
+   */
+  const eslatmalar = (
+    await Promise.all(
+      b.pozitsiyalar.map((p) =>
+        yetmaganXabarlar(ulanishOl(), {
+          manbaTuri: 'buyurtma_pozitsiya',
+          manbaId: p.id,
+        }),
+      ),
+    )
+  ).flat();
 
   const somda = b.valyuta === 'SOM';
   const pul = (x: string): string => (somda ? pulKorsat(som(x)) : `${x} $`);
@@ -270,6 +288,9 @@ export default async function BuyurtmaKartochkasi({
           ))}
         </div>
       </section>
+
+      {/* 13.11 · 6.7 — yetib bormagan xabarlar */}
+      <Eslatmalar xabarlar={eslatmalar} />
     </div>
   );
 }

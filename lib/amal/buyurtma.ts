@@ -27,6 +27,8 @@ import {
   type Manba,
   type PozitsiyaHolati,
 } from '@/lib/domain/buyurtma';
+import { mijozniOgohlantir } from './bildirishnoma';
+import { tasdiqlandiMatni } from '@/lib/domain/bildirishnoma';
 import { BiznesXato } from '@/lib/xato';
 
 export interface SlotKirimi {
@@ -322,9 +324,13 @@ export async function pozitsiyaniTasdiqla(
         holat: string;
         sotgan_filial_id: number;
         ishlab_chiqaruvchi_filial_id: number;
+        raqam: string;
+        mijoz_id: number | null;
+        narx: string;
       }[]
     >`
-      SELECT p.id, p.holat, b.sotgan_filial_id, b.ishlab_chiqaruvchi_filial_id
+      SELECT p.id, p.holat, b.sotgan_filial_id, b.ishlab_chiqaruvchi_filial_id,
+             b.raqam, b.mijoz_id, p.narx_snapshot::text AS narx
       FROM buyurtma_pozitsiya p
       JOIN buyurtma b ON b.id = p.buyurtma_id
       WHERE p.id = ${pozitsiyaId}
@@ -387,6 +393,36 @@ export async function pozitsiyaniTasdiqla(
               ${tx.json({ holat: p.holat })},
               ${tx.json({ holat })},
               ${'Pozitsiya tasdiqlandi'})`;
+
+    /**
+     * TZ 13.5 — «Sotuvchi tasdiqlayotganda narxni o'zgartirsa mijozga
+     * xabar ketadi... Aks holda mijoz "botda boshqacha yozgan edi"
+     * deydi va sotuvchi tushuntirib o'tiradi.»
+     *
+     * ⚠️ Xabar faqat BOT orqali kelgan buyurtmaga yuboriladi:
+     *    saytdan kiritilgan buyurtmada mijoz narxni sotuvchidan
+     *    o'z og'zidan eshitgan.
+     *
+     * ⚠️ Bu yerda narx O'ZGARISHI tekshirilmaydi — tasdiqlashda
+     *    pozitsiya narxi allaqachon yangilangan bo'ladi. Eski narx
+     *    audit jurnalida qoladi; mijozga joriy narx aytiladi.
+     */
+    if (p.mijoz_id !== null) {
+      await mijozniOgohlantir(
+        tx,
+        {
+          mijozId: p.mijoz_id,
+          matn: tasdiqlandiMatni({
+            raqam: p.raqam,
+            yangiNarx: p.narx,
+            eskiNarx: null,
+          }),
+          manbaTuri: 'buyurtma_pozitsiya',
+          manbaId: pozitsiyaId,
+        },
+        xodimId,
+      );
+    }
 
     return {
       holat,

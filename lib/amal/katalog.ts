@@ -62,20 +62,53 @@ export interface SotuvTuri {
   readonly aksessuarlar: readonly SotuvAksessuar[];
 }
 
+export interface TurQatori {
+  readonly id: number;
+  readonly nom: string;
+}
+
+/**
+ * TZ 3.2 — mahsulot turlari ro'yxati. **Faqat nom va raqam.**
+ *
+ * ⚠️ Bu funksiya slot va materialni YUKLAMAYDI. Sabab: sotuvchi
+ *    bir vaqtda BITTA tur bilan ishlaydi (3.1), lekin ilgari
+ *    ekran hamma turni hamma matosi bilan yuklardi. Guruhsiz
+ *    mato har slotga biriktirilgani uchun bu ikki millionga yaqin
+ *    obyekt va ~230 MB JSON berardi — sahifa bir daqiqadan ortiq
+ *    ochilardi.
+ *
+ *    Tafsilot `turTafsili` bilan, tur tanlangandan keyin keladi.
+ */
+export async function turRoyxati(): Promise<readonly TurQatori[]> {
+  const q = await ulanishOl()<{ id: number; nom: string }[]>`
+    SELECT id, nom FROM mahsulot_tur WHERE faol = true ORDER BY nom`;
+  return q;
+}
+
 /**
  * TZ 3.2 — «Admin sozlamalardan yangi tur qo'shsa AVTOMATIK shu qatorga
  * qo'shiladi, dasturchiga murojaat qilish shart emas.»
  *
  * Shuning uchun ro'yxat qattiq yozilmaydi — har safar bazadan o'qiladi.
+ *
+ * ⚠️ `turIdlari` berilsa FAQAT o'sha turlar yuklanadi. Bo'sh
+ *    qoldirilsa hammasi — bu og'ir va faqat botda, ro'yxat kichik
+ *    bo'lgan holatda ishlatiladi.
  */
-export async function sotuvTurlari(filialId: number): Promise<SotuvTuri[]> {
+export async function sotuvTurlari(
+  filialId: number,
+  turIdlari?: readonly number[],
+): Promise<SotuvTuri[]> {
   const sql = ulanishOl();
 
-  const turlar = await sql<
-    { id: number; nom: string; xizmat_haqi: string | null }[]
-  >`
-    SELECT id, nom, xizmat_haqi FROM mahsulot_tur
-    WHERE faol = true ORDER BY nom`;
+  const turlar =
+    turIdlari === undefined
+      ? await sql<{ id: number; nom: string; xizmat_haqi: string | null }[]>`
+          SELECT id, nom, xizmat_haqi FROM mahsulot_tur
+          WHERE faol = true ORDER BY nom`
+      : await sql<{ id: number; nom: string; xizmat_haqi: string | null }[]>`
+          SELECT id, nom, xizmat_haqi FROM mahsulot_tur
+          WHERE faol = true AND id = ANY(${turIdlari}) ORDER BY nom`;
 
   if (turlar.length === 0) return [];
 
@@ -227,4 +260,21 @@ export async function sotuvTurlari(filialId: number): Promise<SotuvTuri[]> {
         narx: a.narx,
       })),
   }));
+}
+
+/**
+ * Bitta turning to'liq tafsiloti — slot, parametr, aksessuar va
+ * har slotning matolari.
+ *
+ * ⚠️ Sotuv ekrani va bot SHU funksiyani chaqiradi: sotuvchi turni
+ *    tanlagandan keyin. Hamma turni oldindan yuklash o'rniga
+ *    bittasini kerak bo'lganda yuklash — bir xil natija, lekin
+ *    yuzlab barobar yengil.
+ */
+export async function turTafsili(
+  turId: number,
+  filialId: number,
+): Promise<SotuvTuri | null> {
+  const turlar = await sotuvTurlari(filialId, [turId]);
+  return turlar[0] ?? null;
 }
