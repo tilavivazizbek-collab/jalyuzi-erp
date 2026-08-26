@@ -14,6 +14,8 @@ import { mijozniBogla, sessiyaOl, sessiyaYoz } from '@/lib/amal/bot';
 import { mijozStatusi, pozitsiyaXulosasi } from '@/lib/domain/bot';
 import type { PozitsiyaHolati } from '@/lib/domain/buyurtma';
 import { pulKorsat, som, dollar } from '@/lib/domain/pul';
+import { matoNarxi } from '@/lib/domain/narx';
+import { mijozOffseti } from '@/lib/domain/mijoz';
 import { MATN } from './matn';
 import { xavfsiz, type BotKontekst } from './yordamchi';
 
@@ -184,6 +186,157 @@ export async function balansKorsat(
   });
 }
 
+// ─── 13.3 · Katalog ───────────────────────────────────────────────────────
+
+/**
+ * TZ 13.3 — «Katalog: mahsulot turi tanlanadi, keyin o'sha turning
+ * matolari chiqadi. Narx bo'yicha **arzondan qimmatga** saralanadi.
+ * 10 tadan ko'p bo'lsa paginatsiya.»
+ *
+ * ⚠️ Har matoda **shu mijoz uchun narx** ko'rsatiladi — offset
+ *    qo'llangan holda (6.3).
+ */
+export async function katalogTurlari(ctx: BotKontekst): Promise<void> {
+  const turlar = await ulanishOl()<{ id: number; nom: string }[]>`
+    SELECT id, nom FROM mahsulot_tur WHERE faol = true ORDER BY nom LIMIT 30`;
+
+  if (turlar.length === 0) {
+    await ctx.reply(MATN.matoYoq, {
+      reply_markup: mijozMenyusi().reply_markup,
+    });
+    return;
+  }
+
+  await ctx.reply('Qaysi mahsulot matolarini ko‘rasiz?', {
+    reply_markup: Markup.inlineKeyboard(
+      turlar.map((t) => [
+        Markup.button.callback(t.nom, `kat_tur:${String(t.id)}`),
+      ]),
+    ).reply_markup,
+  });
+}
+
+/** Katalogda bir sahifada nechta mato — 13.3. */
+const SAHIFA = 10;
+
+export async function katalogMatolari(
+  ctx: BotKontekst,
+  turId: number,
+  mijozId: number,
+  sahifa: number,
+): Promise<void> {
+  const sql = ulanishOl();
+
+  const m = await sql<
+    { offset_turi: string | null; offset_qiymat: string | null }[]
+  >`
+    SELECT offset_turi, offset_qiymat FROM mijoz WHERE id = ${mijozId}`;
+
+  const offset = mijozOffseti({
+    offsetTuri: m[0]?.offset_turi ?? null,
+    offsetQiymat: m[0]?.offset_qiymat ?? null,
+  });
+
+  /**
+   * ⚠️ Narx bo'yicha ARZONDAN QIMMATGA (13.3). Saralash bazada
+   *    bo'ladi — offset barcha matoga bir xil qo'llanadi, shuning
+   *    uchun tartib o'zgarmaydi (6.3).
+   */
+  const matolar = await sql<
+    { nom: string; narx: string | null; jami: number }[]
+  >`
+    SELECT DISTINCT mat.nom, mat.sotuv_narx::text AS narx,
+           COUNT(*) OVER ()::int AS jami
+    FROM mahsulot_slot ms
+    JOIN material mat
+      ON (ms.almashtirish_guruh_id IS NULL
+          OR mat.almashtirish_guruh_id = ms.almashtirish_guruh_id)
+    WHERE ms.mahsulot_tur_id = ${turId}
+      AND ms.faol = true AND mat.faol = true
+    ORDER BY mat.sotuv_narx NULLS LAST, mat.nom
+    LIMIT ${SAHIFA} OFFSET ${sahifa * SAHIFA}`;
+
+  if (matolar.length === 0) {
+    await ctx.reply(MATN.matoYoq, {
+      reply_markup: mijozMenyusi().reply_markup,
+    });
+    return;
+  }
+
+  const qatorlar = matolar.map((x) => {
+    const narx =
+      x.narx === null
+        ? 'narx belgilanmagan'
+        : pulKorsat(
+            matoNarxi({
+              standart: som(x.narx),
+              filialNarxi: null,
+              offset,
+              kurs: null,
+            }),
+          );
+    return `• ${x.nom} — ${narx}`;
+  });
+
+  const jami = matolar[0]?.jami ?? 0;
+  const oxirgiSahifa = (sahifa + 1) * SAHIFA >= jami;
+
+  const tugmalar = [];
+  if (sahifa > 0) {
+    tugmalar.push(
+      Markup.button.callback('⬅️', `kat_sahifa:${String(turId)}:${String(sahifa - 1)}`),
+    );
+  }
+  if (!oxirgiSahifa) {
+    tugmalar.push(
+      Markup.button.callback('➡️', `kat_sahifa:${String(turId)}:${String(sahifa + 1)}`),
+    );
+  }
+
+  await ctx.reply(qatorlar.join('\n'), {
+    reply_markup:
+      tugmalar.length > 0
+        ? Markup.inlineKeyboard([tugmalar]).reply_markup
+        : mijozMenyusi().reply_markup,
+  });
+}
+
+// ─── 13.3 · Bog'lanish ────────────────────────────────────────────────────
+
+/**
+ * TZ 13.3 — aloqa ma'lumotlari.
+ *
+ * ⚠️ Ma'lumot SOZLAMADAN olinadi, kodga yozilmaydi: telefon
+ *    o'zgarsa dasturchiga murojaat qilish kerak bo'lmasin (14.1).
+ */
+export async function boglanishKorsat(ctx: BotKontekst): Promise<void> {
+  const q = await ulanishOl()<{ kalit: string; qiymat: string | null }[]>`
+    SELECT kalit, qiymat FROM sozlama
+    WHERE kalit IN ('korxona_nomi', 'korxona_telefon', 'korxona_manzil')`;
+
+  const olish = (k: string): string | null =>
+    q.find((x) => x.kalit === k)?.qiymat ?? null;
+
+  const qatorlar = ['📞 *BOG‘LANISH*', ''];
+
+  const nom = olish('korxona_nomi');
+  const tel = olish('korxona_telefon');
+  const manzil = olish('korxona_manzil');
+
+  if (nom !== null) qatorlar.push(nom);
+  if (tel !== null) qatorlar.push(`Telefon: ${tel}`);
+  if (manzil !== null) qatorlar.push(`Manzil: ${manzil}`);
+
+  if (qatorlar.length === 2) {
+    qatorlar.push('Aloqa ma‘lumotlari hali kiritilmagan.');
+  }
+
+  await ctx.reply(qatorlar.join('\n'), {
+    parse_mode: 'Markdown',
+    reply_markup: mijozMenyusi().reply_markup,
+  });
+}
+
 // ─── Panelni ulash ────────────────────────────────────────────────────────
 
 export function mijozPaneliniUla(
@@ -209,6 +362,39 @@ export function mijozPaneliniUla(
         return;
       }
       await balansKorsat(ctx, mijozId);
+    }),
+  );
+
+  bot.hears(MATN.menyu.katalog, (ctx) =>
+    xavfsiz(ctx, async () => {
+      await katalogTurlari(ctx);
+    }),
+  );
+
+  bot.hears(MATN.menyu.boglanish, (ctx) =>
+    xavfsiz(ctx, async () => {
+      await boglanishKorsat(ctx);
+    }),
+  );
+
+  bot.action(/^kat_tur:(\d+)$/, (ctx) =>
+    xavfsiz(ctx, async () => {
+      await ctx.answerCbQuery();
+      const mijozId = await mijozIdOl(ctx);
+      if (mijozId === null) {
+        await royxatBoshla(ctx);
+        return;
+      }
+      await katalogMatolari(ctx, Number(ctx.match[1]), mijozId, 0);
+    }),
+  );
+
+  bot.action(/^kat_sahifa:(\d+):(\d+)$/, (ctx) =>
+    xavfsiz(ctx, async () => {
+      await ctx.answerCbQuery();
+      const mijozId = await mijozIdOl(ctx);
+      if (mijozId === null) return;
+      await katalogMatolari(ctx, Number(ctx.match[1]), mijozId, Number(ctx.match[2]));
     }),
   );
 

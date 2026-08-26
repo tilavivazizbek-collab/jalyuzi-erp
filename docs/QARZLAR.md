@@ -312,6 +312,33 @@ Xatolar HAR SAFAR boshqa testlarda chiqadi va hammasi bir xil sababdan:
 baza 10-bosqichgacha **masofada** turibdi va uy tarmog'i uzilib turadi.
 Shu kuni brauzer va API so'rovlari ham `ENOTFOUND` bergan.
 
+### 2026-08-23 — endi TESTNI YIQITMOQDA
+
+Ilgari uzilish testni yiqitardi. Endi **sekinlik** ham yiqitmoqda:
+bitta so'rov `SELECT 1` **2 168 ms** oldi.
+
+`qayta-kesish.test.ts` dagi uchta test 120 soniyalik chegaradan
+oshib ketdi. Yolg'iz yurgizilganda o'sha test **82 soniyada
+o'tadi** — kod sog', chegara yetmayapti.
+
+Ikkinchi sabab — **sinov axlati**: baza bir necha oylik test
+yozuvlari bilan to'lgan.
+
+| Jadval | Sinov yozuvi | Jami |
+|---|---|---|
+| material | 777 | 1 176 |
+| mahsulot_tur | 290 | 361 |
+| filial | 175 | 177 |
+
+Haqiqiy do'konda 5 ta mahsulot turi bo'ladi, hozir 361 ta. Sotuv
+ekrani hammasini slotlari va matolari bilan yuklaydi — shuning
+uchun `/sotuv` **108 soniyada** ochiladi.
+
+⚠️ Bu ikkalasi ham 10-bosqichda hal bo'ladi: baza egasining
+   serveriga ko'chadi va sinov bazasi ishlab chiqarishdan
+   ajratiladi. Undan oldin bazani tozalash egasining ruxsati bilan
+   qilinadi — u yerda faqat sinov ma'lumoti bor.
+
 ### Nega bu xavfli
 
 Tarmoq xatosi **kod xatosiga o'xshaydi**: test qizil, xabar uzun,

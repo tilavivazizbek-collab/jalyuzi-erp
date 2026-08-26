@@ -23,6 +23,8 @@ import {
   type Qoldiq,
 } from '@/lib/domain/kesish';
 import { haqHisobla, type StavkaBirligi } from '@/lib/domain/stavka';
+import { adminlarniOgohlantir } from './bildirishnoma';
+import { stavkasizIshMatni } from '@/lib/domain/bildirishnoma';
 import { pulMatn } from '@/lib/domain/pul';
 import {
   navbatdami,
@@ -390,6 +392,42 @@ export async function tugatdim(
         VALUES (current_date, ${filialId}, 'ISH_HAQI', ${pulMatn(haq)}, 'SOM',
                 NULL, 'buyurtma_pozitsiya', ${kirim.pozitsiyaId},
                 ${'Hisoblangan ish haqi (10.10)'}, ${xodimId})`;
+    } else if (p.usta_id !== null) {
+      /**
+       * TZ 13.9 · 10.12 — «Stavkasiz ish bajarildi» adminga xabar.
+       *
+       * ⚠️ Bu XATO EMAS, eslatma: ish to'xtamadi, mahsulot tayyor.
+       *    Faqat haq 0 bo'ldi va admin uni qo'lda qo'shishi kerak.
+       *    Xabar bo'lmasa usta haqsiz qolib ketardi.
+       */
+      const tafsil = await tx<
+        { raqam: string; tur_nomi: string; usta_ismi: string | null }[]
+      >`
+        SELECT b.raqam, mt.nom AS tur_nomi, u.ism AS usta_ismi
+        FROM buyurtma_pozitsiya bp
+        JOIN buyurtma b      ON b.id = bp.buyurtma_id
+        JOIN mahsulot_tur mt ON mt.id = bp.mahsulot_tur_id
+        LEFT JOIN xodim u    ON u.id = bp.usta_id
+        WHERE bp.id = ${kirim.pozitsiyaId}`;
+
+      const t = tafsil[0];
+      if (t !== undefined) {
+        await adminlarniOgohlantir(
+          tx,
+          {
+            filialId,
+            hodisa: 'STAVKASIZ_ISH',
+            matn: stavkasizIshMatni({
+              buyurtmaRaqami: t.raqam,
+              turNomi: t.tur_nomi,
+              ustaIsmi: t.usta_ismi ?? 'Usta',
+            }),
+            manbaTuri: 'buyurtma_pozitsiya',
+            manbaId: kirim.pozitsiyaId,
+          },
+          xodimId,
+        );
+      }
     }
 
     await tx`

@@ -15,6 +15,8 @@ import Decimal from 'decimal.js';
 import { bandQilTx, type SlotSorovi } from './band';
 import { kesimOlchami } from '@/lib/domain/kesish';
 import type { PozitsiyaHolati } from '@/lib/domain/buyurtma';
+import { adminlarniOgohlantir } from './bildirishnoma';
+import { qaytaKesishSoroviMatni } from '@/lib/domain/bildirishnoma';
 import { BiznesXato } from '@/lib/xato';
 
 export const QAYTA_KESISH_SABABLARI = [
@@ -67,11 +69,20 @@ export async function qaytaKesishSora(
 ): Promise<{ sorovId: number; oldingiSoni: number }> {
   return ulanish.begin(async (tx) => {
     const q = await tx<
-      { holat: string; qayta_kesildi_soni: number; ishlab_chiqaruvchi_filial_id: number }[]
+      {
+        holat: string;
+        qayta_kesildi_soni: number;
+        ishlab_chiqaruvchi_filial_id: number;
+        raqam: string;
+        tartib: number;
+        usta_ismi: string | null;
+      }[]
     >`
-      SELECT p.holat, p.qayta_kesildi_soni, b.ishlab_chiqaruvchi_filial_id
+      SELECT p.holat, p.qayta_kesildi_soni, b.ishlab_chiqaruvchi_filial_id,
+             b.raqam, p.tartib, u.ism AS usta_ismi
       FROM buyurtma_pozitsiya p
-      JOIN buyurtma b ON b.id = p.buyurtma_id
+      JOIN buyurtma b   ON b.id = p.buyurtma_id
+      LEFT JOIN xodim u ON u.id = ${ustaId}
       WHERE p.id = ${kirim.pozitsiyaId}`;
 
     const p = q[0];
@@ -117,6 +128,32 @@ export async function qaytaKesishSora(
                 oldingi_soni: p.qayta_kesildi_soni,
               })},
               ${kirim.izoh})`;
+
+    /**
+     * TZ 13.9 — «Qayta kesish so'rovi → adminga tasdiqlash tugmasi
+     * bilan xabar.»
+     *
+     * ⚠️ 2.1-invariant — xabar shu tranzaksiyada YOZILADI, lekin
+     *    yuborilmaydi. Telegram sekin javob bersa so'rov qulflanib
+     *    qolmasin (13.11).
+     */
+    await adminlarniOgohlantir(
+      tx,
+      {
+        filialId: p.ishlab_chiqaruvchi_filial_id,
+        hodisa: 'QAYTA_KESISH_SOROVI',
+        matn: qaytaKesishSoroviMatni({
+          buyurtmaRaqami: p.raqam,
+          tartib: p.tartib,
+          ustaIsmi: p.usta_ismi ?? 'Usta',
+          sabab: kirim.izoh ?? kirim.sabab,
+          nechanchiMarta: p.qayta_kesildi_soni + 1,
+        }),
+        manbaTuri: 'qayta_kesish',
+        manbaId: sorovId,
+      },
+      ustaId,
+    );
 
     return { sorovId, oldingiSoni: p.qayta_kesildi_soni };
   });

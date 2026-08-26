@@ -215,6 +215,63 @@ export async function ishlarimniKorsat(
   }
 }
 
+// ─── 13.8 · Tugatganlarim ─────────────────────────────────────────────────
+
+/**
+ * TZ 13.8 — «Tugatganlarim: tarix.»
+ *
+ * ⚠️ Narx KO'RSATILMAYDI (13.8) — faqat ish va uning haqi. Usta
+ *    mahsulot qanchaga sotilganini bilmaydi.
+ */
+export async function tugatganlarimniKorsat(
+  ctx: BotKontekst,
+  ustaId: number,
+): Promise<void> {
+  const q = await ulanishOl()<
+    {
+      raqam: string;
+      tartib: number;
+      tur: string;
+      sana: Date | null;
+      haq: string | null;
+    }[]
+  >`
+    SELECT b.raqam, p.tartib, mt.nom AS tur,
+           (SELECT MAX(a.sana) FROM audit_jurnal a
+             WHERE a.obyekt_turi = 'buyurtma_pozitsiya'
+               AND a.obyekt_id = p.id AND a.amal = 'TUGATDIM') AS sana,
+           (SELECT SUM(h.summa)::text FROM xodim_harakat h
+             WHERE h.manba_turi = 'buyurtma_pozitsiya'
+               AND h.manba_id = p.id AND h.turi = 'HAQ') AS haq
+    FROM buyurtma_pozitsiya p
+    JOIN buyurtma b      ON b.id = p.buyurtma_id
+    JOIN mahsulot_tur mt ON mt.id = p.mahsulot_tur_id
+    WHERE p.usta_id = ${ustaId}
+      AND p.holat NOT IN ('TASDIQLANGAN','FILIALGA_YUBORILDI','ISHLAB_CHIQARILMOQDA')
+    ORDER BY p.ozgartirildi DESC NULLS LAST
+    LIMIT 15`;
+
+  if (q.length === 0) {
+    await ctx.reply('Hali tugatilgan ish yo‘q.', {
+      reply_markup: ustaMenyusi().reply_markup,
+    });
+    return;
+  }
+
+  const qatorlar = q.map((i) => {
+    const haq =
+      i.haq === null ? '' : ` · ${pulKorsat(som(i.haq))}`;
+    const sana =
+      i.sana === null ? '' : ` · ${new Intl.DateTimeFormat('uz-UZ').format(i.sana)}`;
+    return `${i.raqam} · poz. ${String(i.tartib)} — ${i.tur}${haq}${sana}`;
+  });
+
+  await ctx.reply(['✔️ *TUGATGANLARIM*', '', ...qatorlar].join('\n'), {
+    parse_mode: 'Markdown',
+    reply_markup: ustaMenyusi().reply_markup,
+  });
+}
+
 // ─── 13.8 · Balans ────────────────────────────────────────────────────────
 
 /**
@@ -286,6 +343,14 @@ export function ustaPaneliniUla(
       const u = await ustaOl(ctx);
       if (u === null) return;
       await ishlarimniKorsat(ctx, u.xodimId);
+    }),
+  );
+
+  bot.hears(MATN.usta.tugatganlarim, (ctx) =>
+    xavfsiz(ctx, async () => {
+      const u = await ustaOl(ctx);
+      if (u === null) return;
+      await tugatganlarimniKorsat(ctx, u.xodimId);
     }),
   );
 

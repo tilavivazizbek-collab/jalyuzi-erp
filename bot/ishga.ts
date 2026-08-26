@@ -25,6 +25,7 @@ import { xavfsiz } from './yordamchi';
 import { mijozMenyusi, mijozPaneliniUla, royxatBoshla } from './mijoz';
 import { brakSababiQabul, ustaMenyusi, ustaPaneliniUla } from './usta';
 import { adminMenyusi, adminPaneliniUla } from './admin';
+import { yuboruvchiniBoshla } from './yuboruvchi';
 import { oqimMatniniQabulQil, oqimniUla } from './buyurtma-oqimi';
 
 export function botYarat(): Telegraf {
@@ -160,10 +161,18 @@ export function botYarat(): Telegraf {
 export async function botniIshgaTushir(): Promise<void> {
   const bot = botYarat();
 
+  /**
+   * 13.9 — bildirishnoma yuboruvchisi. Biznes amallari xabarni
+   * navbatga qo'yadi, u shu yerdan Telegramga ketadi (§2.1).
+   */
+  const yuboruvchiniToxtat = yuboruvchiniBoshla(bot);
+
   process.once('SIGINT', () => {
+    yuboruvchiniToxtat();
     bot.stop('SIGINT');
   });
   process.once('SIGTERM', () => {
+    yuboruvchiniToxtat();
     bot.stop('SIGTERM');
   });
 

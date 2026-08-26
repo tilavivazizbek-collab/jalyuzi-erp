@@ -20,6 +20,8 @@ import {
   pulTopshirishQarziTx,
 } from './filial-harakat';
 import { yozuvKursi } from './kurs';
+import { adminlarniOgohlantir } from './bildirishnoma';
+import { pulTopshirildiMatni } from '@/lib/domain/bildirishnoma';
 import { BiznesXato } from '@/lib/xato';
 
 export interface KassaYozuvi {
@@ -307,9 +309,14 @@ export async function topshiriqYubor(
   }
 
   return ulanish.begin(async (tx) => {
-    const kassalar = await tx<{ id: number; valyuta: string }[]>`
-      SELECT id, valyuta FROM kassa
-      WHERE id IN (${kirim.kimdanKassaId}, ${kirim.kimgaKassaId}) AND faol = true`;
+    const kassalar = await tx<
+      { id: number; valyuta: string; filial_id: number; filial_nomi: string }[]
+    >`
+      SELECT k.id, k.valyuta, k.filial_id, f.nom AS filial_nomi
+      FROM kassa k
+      JOIN filial f ON f.id = k.filial_id
+      WHERE k.id IN (${kirim.kimdanKassaId}, ${kirim.kimgaKassaId})
+        AND k.faol = true`;
 
     if (kassalar.length !== 2) throw new BiznesXato('KASSA_TOPILMADI');
     if (kassalar.some((k) => k.valyuta !== kirim.valyuta)) {
@@ -325,6 +332,43 @@ export async function topshiriqYubor(
 
     const topshiriqId = yangi[0]?.id;
     if (topshiriqId === undefined) throw new BiznesXato('KASSA_SAQLANMADI', 'topshiriq');
+
+    /**
+     * TZ 13.9 — «Sotuvchi pul topshirdi → adminga tasdiqlash tugmasi
+     * bilan xabar.»
+     *
+     * ⚠️ Xabar QABUL QILUVCHI filial adminiga boradi — pulni u
+     *    tasdiqlaydi (12.7).
+     *
+     * ⚠️ 22.5.2 — boshqa filialdan kelgan pul qarz tug'diradi,
+     *    shuning uchun xabarda alohida ogohlantirish bo'ladi.
+     */
+    const dan = kassalar.find((k) => k.id === kirim.kimdanKassaId);
+    const ga = kassalar.find((k) => k.id === kirim.kimgaKassaId);
+
+    if (dan !== undefined && ga !== undefined) {
+      const sotuvchi = await tx<{ ism: string }[]>`
+        SELECT ism FROM xodim WHERE id = ${xodimId}`;
+
+      await adminlarniOgohlantir(
+        tx,
+        {
+          filialId: ga.filial_id,
+          hodisa: 'PUL_TOPSHIRILDI',
+          matn: pulTopshirildiMatni({
+            sotuvchiIsmi: sotuvchi[0]?.ism ?? 'Sotuvchi',
+            summa: new Decimal(kirim.summa).toFixed(2),
+            valyuta: kirim.valyuta,
+            begonaFilial:
+              dan.filial_id === ga.filial_id ? null : dan.filial_nomi,
+          }),
+          manbaTuri: 'topshiriq',
+          manbaId: topshiriqId,
+        },
+        xodimId,
+      );
+    }
+
     return { topshiriqId };
   });
 }
