@@ -28,7 +28,7 @@ const GURUHLAR: readonly { nom: string; bandlar: readonly Band[] }[] = [
     bandlar: [
       { yol: '/boshqaruv', nom: 'Boshqaruv', kod: null },
       { yol: '/sotuv', nom: 'Sotuv', kod: 'buyurtma.yarat' },
-      { yol: '/buyurtma', nom: 'Buyurtmalar', kod: 'buyurtma.kor' },
+      { yol: '/buyurtma', nom: 'Sotuv tarixi', kod: 'buyurtma.kor' },
       { yol: '/buyurtma/yolda', nom: "Yo'ldagilar", kod: 'buyurtma.kor' },
       { yol: '/buyurtma/qayta-kesish', nom: 'Qayta kesish', kod: 'buyurtma.brak' },
     ],

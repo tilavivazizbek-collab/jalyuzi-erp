@@ -19,6 +19,8 @@ export interface BuyurtmaQatori {
   readonly tayyorlikSana: string | null;
   readonly pozitsiyaSoni: number;
   readonly jami: string;
+  /** TZ 3.12 — kassa yozuvlaridan yig'iladi (2.2-invariant) */
+  readonly tolangan: string;
   /** Holat → soni (8.2) */
   readonly holatlar: Readonly<Record<string, number>>;
 }
@@ -66,12 +68,27 @@ export async function buyurtmalar(
       tayyorlik_sana: string | null;
       pozitsiya_soni: number;
       jami: string | null;
+      tolangan: string | null;
     }[]
   >`
     SELECT b.id, b.raqam, b.sana, m.ism AS mijoz_ismi, b.manba, b.valyuta,
            b.tayyorlik_sana::text AS tayyorlik_sana,
            COUNT(p.id)::int AS pozitsiya_soni,
-           SUM(p.narx_snapshot - COALESCE(p.chegirma_summa, 0))::text AS jami
+           SUM(p.narx_snapshot - COALESCE(p.chegirma_summa, 0))::text AS jami,
+           /*
+            * TZ 3.12 — buyurtma qarzga ketishi mumkin. Sotuv
+            * tarixida «to'landimi» eng muhim ustun: sotuvchi
+            * qaysi mijozdan pul yig'ish kerakligini shu yerdan
+            * ko'radi.
+            *
+            * ⚠️ 2.2-invariant — to'langan summa saqlanmaydi,
+            *    kassa yozuvlaridan yig'iladi.
+            */
+           COALESCE((
+             SELECT SUM(y.summa) FROM kassa_yozuv y
+             WHERE y.manba_turi = 'buyurtma' AND y.manba_id = b.id
+               AND y.summa > 0
+           ), 0)::text AS tolangan
     FROM buyurtma b
     LEFT JOIN mijoz m ON m.id = b.mijoz_id
     LEFT JOIN buyurtma_pozitsiya p ON p.buyurtma_id = b.id
@@ -125,6 +142,7 @@ export async function buyurtmalar(
     tayyorlikSana: q.tayyorlik_sana,
     pozitsiyaSoni: q.pozitsiya_soni,
     jami: q.jami ?? '0',
+    tolangan: q.tolangan ?? '0',
     holatlar: holatBoyicha.get(q.id) ?? {},
   }));
 }
