@@ -364,23 +364,34 @@ export function SotuvFormasi({
   };
 
   return (
-    <form action={yubor} className="flex flex-col gap-6">
+    /**
+     * ⚠️ Keng ekranda IKKI USTUN: chapda pozitsiya yig'iladi, o'ngda
+     *    narx va savat YOPISHIB turadi. Ilgari hammasi bir ustunda
+     *    edi va sotuvchi savatni ko'rish uchun pastga tushardi —
+     *    jami summani ko'rmay turib mijozga narx aytardi.
+     *
+     * ⚠️ Tor ekranda bir ustun bo'lib qoladi: telefonda yon ustun
+     *    joy yeydi.
+     */
+    <form action={yubor} className="grid gap-6 xl:grid-cols-[1fr_360px]">
       <input type="hidden" name="buyurtma" value={JSON.stringify(yuborilajak)} />
 
+      {/* Xabarlar ikki ustunning USTIDA — ko'zdan qochmasin */}
+      <div className="contents xl:col-span-2">
       {holat.xato !== null && (
         <p
           role="alert"
-          className="rounded-lg bg-red-50 px-3 py-2.5 text-sm text-red-800 ring-1 ring-red-200"
+          className="rounded-maydon bg-red-50 px-3 py-2.5 text-sm text-red-800 ring-1 ring-red-200"
         >
           {holat.xato}
         </p>
       )}
 
       {holat.buyurtmaRaqam !== null && (
-        <div className="rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-900 ring-1 ring-emerald-200">
+        <div className="rounded-karta bg-belgi-yashil-fon px-4 py-3 text-sm text-belgi-yashil ring-1 ring-belgi-yashil/20">
           <b>{holat.buyurtmaRaqam}</b> saqlandi.
           {holat.materialgaKutmoqda.length > 0 && (
-            <span className="mt-1 block text-amber-900">
+            <span className="mt-1 block text-belgi-sariq">
               {holat.materialgaKutmoqda.join(', ')}-pozitsiya uchun mos material
               topilmadi — «Materialga kutmoqda» holatida turibdi (Q-03). Kirim
               bo&apos;lgach avtomatik navbatga qaytadi (8.12).
@@ -389,11 +400,15 @@ export function SotuvFormasi({
         </div>
       )}
 
+      </div>
+
+      {/* ═══ CHAP USTUN — pozitsiya yig'iladi ═══════════════════ */}
+      <div className="flex flex-col gap-6">
       {/* ── 3.2 · Mahsulot turlari ── */}
       <section>
-        <h2 className="mb-2 text-sm font-medium text-slate-700">Mahsulot turi</h2>
+        <h2 className="mb-2 text-sm font-medium text-matn-ikki">Mahsulot turi</h2>
         {turlar.length === 0 ? (
-          <p className="rounded-xl border border-dashed border-slate-300 px-4 py-6 text-center text-sm text-slate-500">
+          <p className="rounded-karta border border-dashed border-chegara-quyuq px-4 py-6 text-center text-sm text-matn-kuchsiz">
             Faol mahsulot turi yo&apos;q. Avval konstruktorda tur qo&apos;shing.
           </p>
         ) : (
@@ -418,11 +433,16 @@ export function SotuvFormasi({
                     });
                 }}
                 disabled={turYuklanmoqda}
-                className={`rounded-lg px-3 py-1.5 text-sm transition ${
+                /**
+                 * ⚠️ Faol tur BREND rangida, qora emas. Ekranda 15–20
+                 *    amal bor; qora fon eng kuchli signal va u
+                 *    «Buyurtmani saqlash» tugmasiga tegishli.
+                 */
+                className={`rounded-full px-3.5 py-1.5 text-[13px] font-medium transition-colors ${
                   t.id === turId
-                    ? 'bg-slate-900 text-white'
-                    : 'border border-slate-300 text-slate-700 hover:bg-slate-50'
-                }`}
+                    ? 'bg-brend text-white'
+                    : 'border border-chegara bg-sirt text-matn-ikki hover:border-chegara-quyuq hover:text-matn'
+                } ${turYuklanmoqda ? 'opacity-60' : ''}`}
               >
                 {t.nom}
               </button>
@@ -475,17 +495,17 @@ export function SotuvFormasi({
 
           {/* ── 3.3 · 3.5 · Slotlar ── */}
           <section>
-            <h2 className="mb-1 text-sm font-medium text-slate-700">Matolar</h2>
-            <p className="mb-3 text-xs text-slate-500">
+            <h2 className="mb-1 text-sm font-medium text-matn-ikki">Matolar</h2>
+            <p className="mb-3 text-xs text-matn-kuchsiz">
               Har slotda faqat o&apos;sha slotga bog&apos;langan matolar chiqadi
               (3.3). Hisoblangan son yonidagi maydonga o&apos;zgacha kelishilsa
               yozing — <b>narx shunga</b>, ombordan esa hisoblangani yechiladi
               (3.6).
             </p>
 
-            <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+            <div className="overflow-x-auto rounded-karta border border-chegara bg-white">
               <table className="w-full text-sm">
-                <thead className="border-b border-slate-200 bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+                <thead className="border-b border-chegara bg-fon text-left text-xs uppercase tracking-wide text-matn-kuchsiz">
                   <tr>
                     <th className="px-3 py-2.5 font-medium">Slot</th>
                     <th className="px-3 py-2.5 font-medium">Mato</th>
@@ -495,13 +515,13 @@ export function SotuvFormasi({
                     <th className="px-3 py-2.5 text-right font-medium">Summa</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-chegara">
                   {(hisob?.qatorlar ?? []).map((q) => (
                     <tr key={q.slot.id}>
                       <td className="px-3 py-2">
                         {q.slot.nom}
                         {!q.slot.majburiy && (
-                          <span className="ml-2 text-xs text-slate-400">ixtiyoriy</span>
+                          <span className="ml-2 text-xs text-matn-kuchsiz">ixtiyoriy</span>
                         )}
                       </td>
                       <td className="px-3 py-2">
@@ -573,16 +593,16 @@ export function SotuvFormasi({
           {/* ── 3.7 · Aksessuarlar ── */}
           {tur.aksessuarlar.length > 0 && (
             <section>
-              <h2 className="mb-1 text-sm font-medium text-slate-700">Aksessuarlar</h2>
-              <p className="mb-3 text-xs text-slate-500">
+              <h2 className="mb-1 text-sm font-medium text-matn-ikki">Aksessuarlar</h2>
+              <p className="mb-3 text-xs text-matn-kuchsiz">
                 Komplekt avtomatik tushadi. Sonini qo&apos;lda o&apos;zgartirsangiz
                 — o&apos;lcham keyin o&apos;zgarsa ham formula uni{' '}
                 <b>ustidan yozmaydi</b> (3.7).
               </p>
 
-              <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+              <div className="overflow-x-auto rounded-karta border border-chegara bg-white">
                 <table className="w-full text-sm">
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody className="divide-y divide-chegara">
                     {(hisob?.aksQatorlar ?? []).map((a) => (
                       <tr key={a.aksessuar.materialId}>
                         <td className="px-3 py-2">{a.aksessuar.nom}</td>
@@ -609,7 +629,7 @@ export function SotuvFormasi({
                             className={`${kirishUslubi(false)} w-20`}
                           />
                         </td>
-                        <td className="px-3 py-2 text-xs text-slate-500">
+                        <td className="px-3 py-2 text-xs text-matn-kuchsiz">
                           {BIRLIK_MATNI[a.birlik]}
                         </td>
                         <td className="raqam px-3 py-2">
@@ -632,7 +652,7 @@ export function SotuvFormasi({
                                 },
                               }));
                             }}
-                            className="text-xs text-slate-400 hover:text-red-700"
+                            className="text-xs text-matn-kuchsiz hover:text-belgi-qizil"
                           >
                             olib tashlash
                           </button>
@@ -647,7 +667,7 @@ export function SotuvFormasi({
 
           {/* Q-03 · QABUL S3.4 — yetishmovchilik OGOHI, bloklamaydi */}
           {yetmaydiganlar.length > 0 && (
-            <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            <div className="rounded-karta border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-belgi-sariq">
               <b>Bu mato hozir yetarli emas:</b>
               <ul className="mt-1 list-disc space-y-0.5 pl-5 text-xs">
                 {yetmaydiganlar.map((q) => (
@@ -671,12 +691,16 @@ export function SotuvFormasi({
           )}
 
           {/* ── 3.8 · Pozitsiya narxi ── */}
-          <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-            <div className="text-sm">
-              Pozitsiya narxi:{' '}
-              <b className="raqam">{pulKorsat(hisob?.jami ?? nolSom())}</b>
+          <div className="flex flex-wrap items-center justify-between gap-4 rounded-karta border border-chegara bg-sirt px-5 py-4">
+            <div>
+              <p className="text-[12px] tracking-[0.03em] text-matn-kuchsiz uppercase">
+                Pozitsiya narxi
+              </p>
+              <b className="raqam block text-[20px] leading-tight font-semibold tracking-[-0.02em]">
+                {pulKorsat(hisob?.jami ?? nolSom())}
+              </b>
               {tur.xizmatHaqi !== null && Number(tur.xizmatHaqi) > 0 && (
-                <span className="ml-2 text-xs text-slate-500">
+                <span className="mt-0.5 block text-[12px] text-matn-kuchsiz">
                   xizmat haqi {pulKorsat(som(tur.xizmatHaqi))} bilan
                 </span>
               )}
@@ -685,7 +709,7 @@ export function SotuvFormasi({
               type="button"
               disabled={!savatgaQoshilsinmi}
               onClick={savatgaQosh}
-              className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800 disabled:opacity-50"
+              className="rounded-maydon bg-brend px-4 py-2.5 text-[13px] font-medium text-white transition-colors hover:bg-brend-quyuq disabled:opacity-50"
             >
               Savatga qo&apos;shish
             </button>
@@ -693,39 +717,48 @@ export function SotuvFormasi({
         </>
       )}
 
+      </div>
+
+      {/* ═══ O'NG USTUN — narx doim ko'z oldida ══════════════════ */}
+      <aside className="flex flex-col gap-4 xl:sticky xl:top-20 xl:self-start">
       {/* ── 3.9 · Savat ── */}
       <section>
-        <h2 className="mb-2 text-sm font-medium text-slate-700">
+        <h2 className="mb-2 text-sm font-medium text-matn-ikki">
           Savat ({savat.length})
         </h2>
 
         {savat.length === 0 ? (
-          <p className="rounded-xl border border-dashed border-slate-300 px-4 py-6 text-center text-sm text-slate-500">
-            Savat bo&apos;sh. Bitta buyurtmada bir nechta xona va mahsulot
-            bo&apos;lishi mumkin.
+          <p className="rounded-karta border border-dashed border-chegara-quyuq px-4 py-8 text-center text-[13px] text-matn-kuchsiz">
+            Savat bo&apos;sh.
+            <span className="mt-1 block">
+              Bitta buyurtmada bir nechta xona bo&apos;lishi mumkin.
+            </span>
           </p>
         ) : (
-          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
-            <table className="w-full text-sm">
-              <tbody className="divide-y divide-slate-100">
+          <div className="overflow-hidden rounded-karta border border-chegara bg-sirt">
+            <table className="w-full text-[13px]">
+              <tbody className="divide-y divide-chegara">
                 {savat.map((q) => (
                   <tr key={q.kalit}>
-                    <td className="px-3 py-2">{q.turNomi}</td>
-                    <td className="raqam px-3 py-2">
-                      {q.eniSm} × {q.boyiSm} sm
+                    <td className="px-3 py-2.5">
+                      <span className="font-medium text-matn">{q.turNomi}</span>
+                      <span className="raqam mt-0.5 block text-left text-[12px] text-matn-kuchsiz">
+                        {q.eniSm} × {q.boyiSm} sm
+                      </span>
                     </td>
-                    <td className="raqam px-3 py-2 font-medium">
+                    <td className="raqam px-3 py-2.5 font-medium">
                       {pulKorsat(som(q.narx))}
                     </td>
-                    <td className="px-3 py-2 text-right">
+                    <td className="px-2 py-2.5 text-right">
                       <button
                         type="button"
                         onClick={() => {
                           savatniOzgartir((s) => s.filter((x) => x.kalit !== q.kalit));
                         }}
-                        className="text-xs text-slate-400 hover:text-red-700"
+                        aria-label="Olib tashlash"
+                        className="fokus rounded-maydon px-1.5 py-1 text-matn-kuchsiz transition-colors hover:bg-belgi-qizil-fon hover:text-belgi-qizil"
                       >
-                        olib tashlash
+                        ✕
                       </button>
                     </td>
                   </tr>
@@ -795,12 +828,21 @@ export function SotuvFormasi({
         </Maydon>
       </section>
 
-      <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white px-4 py-3">
+      {/*
+        ⚠️ Jami va saqlash tugmasi O'NG USTUN PASTIDA, yopishib
+           turadi. Sotuvchi mijozga narx aytayotganda uni ko'rib
+           turishi kerak — pastga tushib qidirmasin.
+      */}
+      <div className="flex flex-col gap-3 rounded-karta border border-chegara bg-sirt px-5 py-4">
         <div>
-          <div className="text-sm text-slate-500">Jami</div>
-          <div className="raqam text-xl font-semibold">{pulKorsat(savatJami)}</div>
+          <div className="text-[12px] tracking-[0.03em] text-matn-kuchsiz uppercase">
+            Jami
+          </div>
+          <div className="raqam text-left text-[24px] leading-tight font-semibold tracking-[-0.02em]">
+            {pulKorsat(savatJami)}
+          </div>
           {chegirma !== null && chegirma !== 0 && (
-            <div className="mt-1 text-xs text-amber-800">
+            <div className="mt-1 text-[12px] text-belgi-sariq">
               {chegirma > 0
                 ? `chegirma ${pulKorsat(som(chegirma.toFixed(2)))}`
                 : `qo'shimcha haq ${pulKorsat(som(Math.abs(chegirma).toFixed(2)))}`}
@@ -811,11 +853,12 @@ export function SotuvFormasi({
         <button
           type="submit"
           disabled={kutilmoqda || savat.length === 0}
-          className="rounded-lg bg-slate-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-slate-800 disabled:opacity-50"
+          className="fokus w-full rounded-maydon bg-amal px-5 py-3 text-[14px] font-medium text-white transition-colors hover:bg-amal-hover disabled:opacity-50"
         >
           {kutilmoqda ? 'Saqlanmoqda…' : 'Buyurtmani saqlash'}
         </button>
       </div>
+      </aside>
     </form>
   );
 }
@@ -851,15 +894,15 @@ function MijozTanlash({
 
   if (tanlangan !== null) {
     return (
-      <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
+      <div className="rounded-karta border border-chegara bg-fon px-4 py-3 text-sm">
         <div className="font-medium">{tanlangan.ism}</div>
-        <div className="text-xs text-slate-500">{tanlangan.telefon ?? '—'}</div>
+        <div className="text-xs text-matn-kuchsiz">{tanlangan.telefon ?? '—'}</div>
         <button
           type="button"
           onClick={() => {
             ozgartir(null);
           }}
-          className="mt-2 text-xs text-slate-500 underline underline-offset-2 hover:text-slate-900"
+          className="mt-2 text-xs text-matn-kuchsiz underline underline-offset-2 hover:text-matn"
         >
           boshqa mijoz
         </button>
@@ -882,9 +925,9 @@ function MijozTanlash({
         placeholder="Ism yoki telefon"
         className={kirishUslubi(false)}
       />
-      {qidirilmoqda && <span className="text-xs text-slate-400">qidirilmoqda…</span>}
+      {qidirilmoqda && <span className="text-xs text-matn-kuchsiz">qidirilmoqda…</span>}
       {topilgan.length > 0 && (
-        <div className="mt-1 max-h-40 overflow-y-auto rounded-lg border border-slate-200 bg-white">
+        <div className="mt-1 max-h-40 overflow-y-auto rounded-maydon border border-chegara bg-white">
           {topilgan.map((m) => (
             <button
               key={m.id}
@@ -894,10 +937,10 @@ function MijozTanlash({
                 matnniOzgartir('');
                 topilganniOzgartir([]);
               }}
-              className="block w-full px-3 py-2 text-left text-sm hover:bg-slate-50"
+              className="block w-full px-3 py-2 text-left text-sm hover:bg-fon"
             >
               {m.ism}
-              <span className="ml-2 text-xs text-slate-500">{m.telefon ?? ''}</span>
+              <span className="ml-2 text-xs text-matn-kuchsiz">{m.telefon ?? ''}</span>
             </button>
           ))}
         </div>

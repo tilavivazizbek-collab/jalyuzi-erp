@@ -28,10 +28,15 @@ export default async function SotuvEkrani() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-xl font-semibold tracking-tight">Sotuv</h1>
-        <p className="mt-1 text-sm text-slate-500">
-          Ekran bitta — boshqa sahifaga o&apos;tish shart emas (3.1). Filial #
-          {f.filialId}
+        <h1 className="text-[22px] font-semibold tracking-[-0.02em] text-matn">
+          Sotuv
+        </h1>
+        {/*
+          ⚠️ «Filial #1» olib tashlandi — raqam sotuvchiga hech
+             narsa aytmaydi. Filial nomi sarlavha qatorida turibdi.
+        */}
+        <p className="mt-0.5 text-[13px] text-matn-ikki">
+          Ekran bitta — boshqa sahifaga o&apos;tish shart emas (3.1)
         </p>
       </div>
 
