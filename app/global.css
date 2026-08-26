@@ -19,9 +19,9 @@
      Logo, faol menyu, havola va fokus halqasi. Tugmalarga
      QO'YILMAYDI: bitta ekranda 15–20 amal bor, hammasi to'q ko'k
      bo'lsa ko'z qayerga qarashni bilmaydi. */
-  --color-brend: #2563eb;
-  --color-brend-quyuq: #1d4ed8;
-  --color-brend-fon: #eff6ff;
+  --color-brend: #5b53d6;
+  --color-brend-quyuq: #4a43c4;
+  --color-brend-fon: #eeecfb;
 
   /* ── Asosiy amal ─────────────────────────────────────────────── */
   --color-amal: #0f172a;
@@ -43,12 +43,27 @@
   --color-matn-kuchsiz: #94a3b8;
   --color-chegara: #e2e8f0;
   --color-chegara-quyuq: #cbd5e1;
-  --color-fon: #f8fafc;
+  --color-fon: #f7f8fc;
   --color-sirt: #ffffff;
 
+  /* ── Ko'rsatkich kartalari uchun belgi ranglari ──────────────────
+     Har karta O'Z rangida: ko'z ularni bir-biridan ajratadi va
+     «bugungi savdo» bilan «xarajat» adashib ketmaydi. Bu bezak
+     emas — tez o'qish uchun. */
+  --color-belgi-kok: #4f7df3;
+  --color-belgi-kok-fon: #eaf0ff;
+  --color-belgi-yashil: #16a34a;
+  --color-belgi-yashil-fon: #e9f9ef;
+  --color-belgi-qizil: #e5484d;
+  --color-belgi-qizil-fon: #feecec;
+  --color-belgi-sariq: #d97706;
+  --color-belgi-sariq-fon: #fef4e6;
+
   /* ── Burchak ────────────────────────────────────────────────── */
-  --radius-maydon: 6px;
-  --radius-karta: 10px;
+  --radius-maydon: 8px;
+  /* Referens uslubi — yumshoqroq burchak, kartalar «og'ir»
+     ko'rinmasin */
+  --radius-karta: 14px;
 }
 
 html {
