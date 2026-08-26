@@ -95,7 +95,7 @@ export function KirishFormasi() {
       <button
         type="submit"
         disabled={kutilmoqda}
-        className="mt-1 h-11 rounded-[6px] bg-amal text-base font-medium text-white transition-colors hover:bg-amal-hover disabled:cursor-not-allowed disabled:opacity-60"
+        className="mt-1 h-11 rounded-[6px] bg-brend text-base font-medium text-white transition-colors hover:bg-brend-quyuq disabled:cursor-not-allowed disabled:opacity-60"
       >
         {kutilmoqda ? 'Tekshirilmoqda…' : 'Kirish'}
       </button>

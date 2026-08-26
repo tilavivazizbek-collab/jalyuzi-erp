@@ -94,7 +94,7 @@ export default async function XodimKartochkasiSahifasi({
                   <th className="px-4 py-2.5 font-medium">Izoh</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-chegara">
+              <tbody className="divide-y divide-chegara [&>tr:nth-child(even)]:bg-fon/50">
                 {k.harakatlar.map((h) => (
                   <tr key={h.id}>
                     <td className="px-4 py-2.5 text-matn-ikki">

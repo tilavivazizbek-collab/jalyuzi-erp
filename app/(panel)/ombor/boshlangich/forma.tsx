@@ -178,7 +178,7 @@ export function BoshlangichFormasi({
         <button
           type="submit"
           disabled={kutilmoqda}
-          className="rounded-maydon bg-amal px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-amal-hover disabled:opacity-60"
+          className="rounded-maydon bg-brend px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brend-quyuq disabled:opacity-60"
         >
           {kutilmoqda ? 'Kiritilmoqda…' : 'Qoldiqni kiritish'}
         </button>

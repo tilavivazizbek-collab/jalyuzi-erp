@@ -122,7 +122,7 @@ export function XarajatFormasi({ kassalar }: { kassalar: readonly QoldaKassa[] }
       <button
         type="submit"
         disabled={kutilmoqda}
-        className="self-start rounded-maydon bg-amal px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-amal-hover disabled:opacity-50"
+        className="self-start rounded-maydon bg-brend px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brend-quyuq disabled:opacity-50"
       >
         {kutilmoqda ? 'Saqlanmoqda…' : 'Xarajatni saqlash'}
       </button>
@@ -303,7 +303,7 @@ export function AyirboshlashFormasi({ kassalar }: { kassalar: readonly QoldaKass
       <button
         type="submit"
         disabled={kutilmoqda || son(summa) <= 0 || kimdan === kimga}
-        className="self-start rounded-maydon bg-amal px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-amal-hover disabled:opacity-50"
+        className="self-start rounded-maydon bg-brend px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brend-quyuq disabled:opacity-50"
       >
         {kutilmoqda ? 'Bajarilmoqda…' : 'Ayirboshlash'}
       </button>
@@ -411,7 +411,7 @@ export function QoldaHodisaFormasi({
       <button
         type="submit"
         disabled={kutilmoqda}
-        className="self-start rounded-maydon bg-amal px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-amal-hover disabled:opacity-50"
+        className="self-start rounded-maydon bg-brend px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brend-quyuq disabled:opacity-50"
       >
         {kutilmoqda ? 'Saqlanmoqda…' : 'Saqlash'}
       </button>

@@ -422,7 +422,7 @@ export function KirimFormasi({
           <button
             type="submit"
             disabled={kutilmoqda || qatorlar.length === 0}
-            className="rounded-maydon bg-amal px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-amal-hover disabled:opacity-60"
+            className="rounded-maydon bg-brend px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brend-quyuq disabled:opacity-60"
           >
             {kutilmoqda ? 'Saqlanmoqda…' : 'Kirim qilish'}
           </button>

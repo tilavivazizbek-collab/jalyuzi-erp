@@ -140,7 +140,7 @@ export function QaytaribOlishTugmasi({
         <button
           type="submit"
           disabled={kutilmoqda}
-          className="rounded-maydon bg-amal px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-amal-hover disabled:opacity-60"
+          className="rounded-maydon bg-brend px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-brend-quyuq disabled:opacity-60"
         >
           {kutilmoqda ? 'Qaytarilmoqda…' : 'Navbatga qaytarish'}
         </button>

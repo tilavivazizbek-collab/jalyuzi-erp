@@ -35,7 +35,7 @@ export default async function RuxsatYoq({
 
       <Link
         href="/boshqaruv"
-        className="mt-6 inline-block rounded-maydon bg-amal px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-amal-hover"
+        className="mt-6 inline-block rounded-maydon bg-brend px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brend-quyuq"
       >
         Boshqaruvga qaytish
       </Link>

@@ -88,7 +88,7 @@ export default async function VaraqaSahifasi({ params }: { params: Promise<{ id:
                   <th className="px-3 py-2.5 font-medium">Sabab</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-chegara">
+              <tbody className="divide-y divide-chegara [&>tr:nth-child(even)]:bg-fon/50">
                 {v.satrlar.map((s) => {
                   const dona = s.turi === 'DONA';
                   const birlik = dona ? (s.sarflashBirligi === 'SM' ? 'sm' : 'dona') : 'kv.m';

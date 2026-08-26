@@ -62,7 +62,7 @@ export default async function OmborQoldigi({
           {kirimQilaOladi && (
             <Link
               href="/ombor/kirim/yangi"
-              className="rounded-maydon bg-amal px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-amal-hover"
+              className="rounded-maydon bg-brend px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-brend-quyuq"
             >
               Yangi kirim
             </Link>
@@ -99,7 +99,7 @@ export default async function OmborQoldigi({
                       <th className="px-4 py-2.5" />
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-chegara">
+                  <tbody className="divide-y divide-chegara [&>tr:nth-child(even)]:bg-fon/50">
                     {olchamli.map((q) => (
                       <tr key={q.materialId}>
                         <td className="px-4 py-2.5 font-medium">{q.nom}</td>
@@ -151,7 +151,7 @@ export default async function OmborQoldigi({
                       <th className="px-4 py-2.5" />
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-chegara">
+                  <tbody className="divide-y divide-chegara [&>tr:nth-child(even)]:bg-fon/50">
                     {donali.map((q) => {
                       const birlik = q.sarflashBirligi as SarflashBirligi;
                       // Q-01 — chiziqli material smda saqlanadi, metrda ko'rsatiladi
@@ -236,7 +236,7 @@ function BarchaFiliallar({ filiallar }: { filiallar: readonly FilialQoldigi[] })
             <th className="px-4 py-2.5 text-right font-medium">Yo&apos;lda</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-chegara">
+        <tbody className="divide-y divide-chegara [&>tr:nth-child(even)]:bg-fon/50">
           {qatorlar.map((q) => (
             <tr key={`${q.filialNomi}-${String(q.material.materialId)}`}>
               <td className="px-4 py-2.5 font-medium">{q.material.nom}</td>

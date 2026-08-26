@@ -125,7 +125,7 @@ export default async function BuyurtmaKartochkasi({ params }: { params: Promise<
           {tolov.qatorlar.length > 0 && (
             <div className="mb-3 overflow-x-auto rounded-karta border border-chegara bg-sirt">
               <table className="w-full text-sm">
-                <tbody className="divide-y divide-chegara">
+                <tbody className="divide-y divide-chegara [&>tr:nth-child(even)]:bg-fon/50">
                   {tolov.qatorlar.map((q) => (
                     <tr key={q.id} className={q.stornoQilinganmi ? 'text-matn-kuchsiz' : ''}>
                       <td className="px-4 py-2 text-matn-ikki">
@@ -210,7 +210,7 @@ export default async function BuyurtmaKartochkasi({ params }: { params: Promise<
               </div>
 
               <table className="w-full text-sm">
-                <tbody className="divide-y divide-chegara">
+                <tbody className="divide-y divide-chegara [&>tr:nth-child(even)]:bg-fon/50">
                   {p.materiallar.map((m) => (
                     <tr key={m.slotNomi}>
                       <td className="px-4 py-2 text-matn-kuchsiz">{m.slotNomi}</td>

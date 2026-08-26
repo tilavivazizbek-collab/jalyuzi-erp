@@ -503,7 +503,7 @@ export function SotuvFormasi({
                       <th className="px-3 py-2.5 text-right font-medium">Summa</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-chegara">
+                  <tbody className="divide-y divide-chegara [&>tr:nth-child(even)]:bg-fon/50">
                     {(hisob?.qatorlar ?? []).map((q) => (
                       <tr key={q.slot.id}>
                         <td className="px-3 py-2">
@@ -585,7 +585,7 @@ export function SotuvFormasi({
 
                 <div className="overflow-x-auto rounded-karta border border-chegara bg-sirt">
                   <table className="w-full text-sm">
-                    <tbody className="divide-y divide-chegara">
+                    <tbody className="divide-y divide-chegara [&>tr:nth-child(even)]:bg-fon/50">
                       {(hisob?.aksQatorlar ?? []).map((a) => (
                         <tr key={a.aksessuar.materialId}>
                           <td className="px-3 py-2">{a.aksessuar.nom}</td>
@@ -714,7 +714,7 @@ export function SotuvFormasi({
           ) : (
             <div className="overflow-hidden rounded-karta border border-chegara bg-sirt">
               <table className="w-full text-[13px]">
-                <tbody className="divide-y divide-chegara">
+                <tbody className="divide-y divide-chegara [&>tr:nth-child(even)]:bg-fon/50">
                   {savat.map((q) => (
                     <tr key={q.kalit}>
                       <td className="px-3 py-2.5">
@@ -826,7 +826,7 @@ export function SotuvFormasi({
           <button
             type="submit"
             disabled={kutilmoqda || savat.length === 0}
-            className="fokus w-full rounded-maydon bg-amal px-5 py-3 text-[14px] font-medium text-white transition-colors hover:bg-amal-hover disabled:opacity-50"
+            className="fokus w-full rounded-maydon bg-brend px-5 py-3 text-[14px] font-medium text-white transition-colors hover:bg-brend-quyuq disabled:opacity-50"
           >
             {kutilmoqda ? 'Saqlanmoqda…' : 'Buyurtmani saqlash'}
           </button>

@@ -82,7 +82,13 @@ export function Menyu({ guruhlar }: { guruhlar: readonly MenyuGuruhi[] }) {
                    KO'RSATADI, e'tibor tortmaydi. E'tibor bandlarda
                    bo'lishi kerak.
               */}
-              <p className="mb-1 px-2.5 text-[11px] font-medium tracking-[0.04em] text-matn-kuchsiz uppercase">
+              {/*
+                ⚠️ Guruh sarlavhasi BREND rangida, lekin mayda va
+                   kuchsiz: u yo'l ko'rsatadi, e'tibor tortmaydi.
+                   Belgilar yo'q (egasi tanlovi) — shuning uchun
+                   guruhni rang ajratadi.
+              */}
+              <p className="mb-1 px-2.5 text-[11px] font-semibold tracking-[0.06em] text-brend/70 uppercase">
                 {g.nom}
               </p>
 
@@ -96,10 +102,16 @@ export function Menyu({ guruhlar }: { guruhlar: readonly MenyuGuruhi[] }) {
                       ochiqniOzgartir(false);
                     }}
                     aria-current={faol ? 'page' : undefined}
-                    className={`rounded-[6px] px-2.5 py-[7px] text-[13px] transition-colors ${
+                    /*
+                     * ⚠️ Faol band TO'LDIRILGAN brend rangida —
+                     *    xodim qayerdaligini bir qarashda ko'radi.
+                     *    Ilgari faqat och fon edi va ko'zga
+                     *    urilmasdi.
+                     */
+                    className={`rounded-maydon px-2.5 py-[7px] text-[13px] transition-colors ${
                       faol
-                        ? 'bg-brend-fon font-medium text-brend'
-                        : 'text-matn-ikki hover:bg-fon hover:text-matn'
+                        ? 'bg-brend font-medium text-white'
+                        : 'text-matn-ikki hover:bg-brend-fon hover:text-brend'
                     }`}
                   >
                     {b.nom}

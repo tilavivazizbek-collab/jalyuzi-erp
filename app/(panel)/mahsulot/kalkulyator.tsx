@@ -200,7 +200,7 @@ export function TestKalkulyatori({
               <th className="pb-2 text-right font-medium">Summa</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-chegara">
+          <tbody className="divide-y divide-chegara [&>tr:nth-child(even)]:bg-fon/50">
             {natija.qatorlar.map((q, i) => (
               <tr key={`${q.nom}-${String(i)}`}>
                 <td className="py-2">{q.nom}</td>

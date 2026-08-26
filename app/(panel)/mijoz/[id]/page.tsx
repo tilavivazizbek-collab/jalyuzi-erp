@@ -138,7 +138,7 @@ export default async function MijozTahrirlash({ params }: { params: Promise<{ id
                   <th className="px-4 py-2.5 font-medium">Kim</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-chegara">
+              <tbody className="divide-y divide-chegara [&>tr:nth-child(even)]:bg-fon/50">
                 {qarz.harakatlar.map((h) => (
                   <tr key={h.id}>
                     <td className="px-4 py-2.5 text-matn-ikki">

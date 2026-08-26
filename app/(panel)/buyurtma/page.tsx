@@ -79,7 +79,7 @@ export default async function BuyurtmalarRoyxati({
         {sotaOladi && (
           <Link
             href="/sotuv"
-            className="fokus rounded-maydon bg-amal px-4 py-2.5 text-[13px] font-medium text-white transition-colors hover:bg-amal-hover"
+            className="fokus rounded-maydon bg-brend px-4 py-2.5 text-[13px] font-medium text-white transition-colors hover:bg-brend-quyuq"
           >
             Yangi buyurtma
           </Link>
@@ -111,7 +111,7 @@ export default async function BuyurtmalarRoyxati({
       ) : (
         <div className="overflow-x-auto rounded-karta border border-chegara bg-sirt">
           <table className="w-full text-[13px]">
-            <thead className="border-b border-chegara text-left text-[11px] font-medium tracking-[0.04em] text-matn-kuchsiz uppercase">
+            <thead className="border-b border-chegara bg-fon/70 text-left text-[11px] font-medium tracking-[0.04em] text-matn-kuchsiz uppercase">
               <tr>
                 <th className="px-4 py-3">Sana</th>
                 <th className="px-4 py-3">Mijoz</th>
@@ -123,7 +123,7 @@ export default async function BuyurtmalarRoyxati({
               </tr>
             </thead>
 
-            <tbody className="divide-y divide-chegara">
+            <tbody className="divide-y divide-chegara [&>tr:nth-child(even)]:bg-fon/50">
               {royxat.map((b) => {
                 const jami = Number(b.jami);
                 const tolangan = Number(b.tolangan);

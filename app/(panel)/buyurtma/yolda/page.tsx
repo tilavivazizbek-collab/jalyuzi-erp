@@ -75,7 +75,7 @@ export default async function YoldagilarSahifasi() {
                     <th className="px-4 py-2.5" />
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-chegara">
+                <tbody className="divide-y divide-chegara [&>tr:nth-child(even)]:bg-fon/50">
                   {qatorlar.map((p) => (
                     <tr key={p.pozitsiyaId}>
                       <td className="px-4 py-2.5">

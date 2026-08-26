@@ -40,7 +40,7 @@ export default async function KochirishRoyxati() {
         </div>
         <Link
           href="/ombor/kochirish/yangi"
-          className="rounded-maydon bg-amal px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-amal-hover"
+          className="rounded-maydon bg-brend px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-brend-quyuq"
         >
           Material so&apos;rash
         </Link>
@@ -63,7 +63,7 @@ export default async function KochirishRoyxati() {
                 <th className="px-4 py-2.5 font-medium">Holat</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-chegara">
+            <tbody className="divide-y divide-chegara [&>tr:nth-child(even)]:bg-fon/50">
               {royxat.map((k) => (
                 <tr key={k.id}>
                   <td className="px-4 py-2.5">

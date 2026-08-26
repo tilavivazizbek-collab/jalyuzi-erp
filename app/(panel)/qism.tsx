@@ -46,7 +46,11 @@ const TUGMA_OLCHAM = 'px-4 py-2.5';
 /**
  * Asosiy amal — ekranda **BITTA** bo'ladi.
  *
- * ⚠️ Ikkita qora tugma bo'lsa ko'z qayerga qarashni bilmaydi.
+ * ⚠️ Rang BREND (siyohrang), qora emas. Qora tugma ekranni og'ir
+ *    va «quruq» qiladi; brend rangi esa amalni ajratib turadi va
+ *    tizimga jonlilik beradi.
+ *
+ * ⚠️ Ikkita brend tugma bo'lsa ko'z qayerga qarashni bilmaydi.
  *    Ikkinchi darajali amallar `IkkilamchiTugma` bilan.
  */
 export function BirlamchiTugma({
@@ -56,7 +60,7 @@ export function BirlamchiTugma({
   return (
     <button
       {...qolgan}
-      className={`${TUGMA_ASOS} ${TUGMA_OLCHAM} bg-amal text-white hover:bg-amal-hover`}
+      className={`${TUGMA_ASOS} ${TUGMA_OLCHAM} bg-brend text-white hover:bg-brend-quyuq`}
     >
       {children}
     </button>
@@ -103,7 +107,7 @@ export function BirlamchiHavola({ href, children }: { href: string; children: Re
   return (
     <Link
       href={href}
-      className={`${TUGMA_ASOS} ${TUGMA_OLCHAM} bg-amal text-white hover:bg-amal-hover`}
+      className={`${TUGMA_ASOS} ${TUGMA_OLCHAM} bg-brend text-white hover:bg-brend-quyuq`}
     >
       {children}
     </Link>
@@ -135,7 +139,9 @@ export function Karta({
   return (
     <div className="rounded-karta border border-chegara bg-sirt">
       {sarlavha !== undefined && (
-        <div className="flex items-baseline justify-between gap-3 border-b border-chegara px-5 py-3.5">
+        /* ⚠️ Sarlavha ZINASI ozgina bo'yalgan: karta ichida
+              «bu yerdan mazmun boshlanadi» degan chegara ko'rinadi. */
+        <div className="flex items-baseline justify-between gap-3 rounded-t-karta border-b border-chegara bg-fon/70 px-5 py-3.5">
           <h2 className="text-[13px] font-semibold text-matn">{sarlavha}</h2>
           {yon}
         </div>
@@ -151,6 +157,10 @@ export function Karta({
  * ⚠️ Jadval har doim `overflow-x-auto` ichida: tor ekranda sahifa
  *    emas, JADVAL suriladi. Aks holda butun sahifa qiyshayib
  *    ketadi.
+ *
+ * ⚠️ ZEBRA — har ikkinchi qator ozgina bo'yalgan. Uzun ro'yxatda
+ *    ko'z qatordan adashmaydi: 20 qatorli jadvalda summa bilan
+ *    mijozni chalkashtirib yubormaydi.
  */
 export function Jadval({
   ustunlar,
@@ -162,7 +172,7 @@ export function Jadval({
   return (
     <div className="overflow-x-auto rounded-karta border border-chegara bg-sirt">
       <table className="w-full text-[13px]">
-        <thead className="border-b border-chegara text-left text-[11px] font-medium tracking-[0.04em] text-matn-kuchsiz uppercase">
+        <thead className="border-b border-chegara bg-fon/70 text-left text-[11px] font-medium tracking-[0.04em] text-matn-kuchsiz uppercase">
           <tr>
             {ustunlar.map((u) => (
               <th key={u.nom} className={`px-4 py-3 ${u.ong === true ? 'text-right' : ''}`}>
@@ -171,7 +181,9 @@ export function Jadval({
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-chegara">{children}</tbody>
+        <tbody className="divide-y divide-chegara [&>tr:nth-child(even)]:bg-fon/50">
+          {children}
+        </tbody>
       </table>
     </div>
   );

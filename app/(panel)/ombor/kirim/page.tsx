@@ -29,7 +29,7 @@ export default async function KirimRoyxati() {
         {kirimQilaOladi && (
           <Link
             href="/ombor/kirim/yangi"
-            className="rounded-maydon bg-amal px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-amal-hover"
+            className="rounded-maydon bg-brend px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-brend-quyuq"
           >
             Yangi kirim
           </Link>
@@ -53,7 +53,7 @@ export default async function KirimRoyxati() {
                 <th className="px-4 py-2.5 font-medium">Holat</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-chegara">
+            <tbody className="divide-y divide-chegara [&>tr:nth-child(even)]:bg-fon/50">
               {hujjatlar.map((h) => {
                 const storno = h.holat === 'STORNO';
                 return (

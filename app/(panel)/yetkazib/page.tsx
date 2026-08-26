@@ -41,7 +41,7 @@ export default async function YetkazibRoyxati() {
         {yarataOladi && (
           <Link
             href="/yetkazib/yangi"
-            className="rounded-maydon bg-amal px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-amal-hover"
+            className="rounded-maydon bg-brend px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-brend-quyuq"
           >
             Qo&apos;shish
           </Link>
@@ -64,7 +64,7 @@ export default async function YetkazibRoyxati() {
                 {ozgartiraOladi && <th className="px-4 py-2.5" />}
               </tr>
             </thead>
-            <tbody className="divide-y divide-chegara">
+            <tbody className="divide-y divide-chegara [&>tr:nth-child(even)]:bg-fon/50">
               {qatorlar.map((y) => (
                 <tr key={y.id} className={y.faol ? '' : 'bg-fon text-matn-kuchsiz'}>
                   <td className="px-4 py-2.5 font-medium">

@@ -80,7 +80,7 @@ export function HalQilishFormasi({ sorovId, sabab }: { sorovId: number; sabab: s
           name="qaror"
           value="TASDIQ"
           disabled={kutilmoqda}
-          className="rounded-maydon bg-amal px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-amal-hover disabled:opacity-60"
+          className="rounded-maydon bg-brend px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brend-quyuq disabled:opacity-60"
         >
           Tasdiqlash — material qayta yechilsin
         </button>

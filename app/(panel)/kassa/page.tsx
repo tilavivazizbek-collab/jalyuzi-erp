@@ -84,7 +84,7 @@ export default async function KassaSahifasi() {
           </Link>
           <Link
             href="/kassa/kun"
-            className="rounded-maydon bg-amal px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-amal-hover"
+            className="rounded-maydon bg-brend px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-brend-quyuq"
           >
             Kun yopish
           </Link>
@@ -147,7 +147,7 @@ export default async function KassaSahifasi() {
 
           <div className="overflow-x-auto rounded-karta border border-belgi-sariq/20 bg-belgi-sariq-fon">
             <table className="w-full text-sm">
-              <tbody className="divide-y divide-chegara">
+              <tbody className="divide-y divide-chegara [&>tr:nth-child(even)]:bg-fon/50">
                 {topshiriqlar.map((t) => (
                   <tr key={t.id}>
                     <td className="px-4 py-2.5">{t.kimdan}</td>
@@ -182,7 +182,7 @@ export default async function KassaSahifasi() {
                   <th className="px-4 py-2.5 text-right font-medium">Dollar</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-chegara">
+              <tbody className="divide-y divide-chegara [&>tr:nth-child(even)]:bg-fon/50">
                 {balanslar.map((b) => (
                   <tr key={b.xodimId}>
                     <td className="px-4 py-2.5">
@@ -236,7 +236,7 @@ export default async function KassaSahifasi() {
                   {stornoQilaOladi && <th className="px-4 py-2.5 font-medium" />}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-chegara">
+              <tbody className="divide-y divide-chegara [&>tr:nth-child(even)]:bg-fon/50">
                 {kitob.map((y) => (
                   <tr key={y.id} className={y.stornoQilinganmi ? 'text-matn-kuchsiz' : ''}>
                     <td className="px-4 py-2.5 text-matn-ikki">

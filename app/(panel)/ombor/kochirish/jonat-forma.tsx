@@ -64,7 +64,7 @@ export function JonatishFormasi({
               <th className="px-4 py-2.5 text-right font-medium">Tannarx</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-chegara">
+          <tbody className="divide-y divide-chegara [&>tr:nth-child(even)]:bg-fon/50">
             {bolaklar.map((b) => (
               <tr key={b.id} className={tanlangan.includes(b.id) ? 'bg-fon' : ''}>
                 <td className="px-4 py-2.5">
@@ -140,7 +140,7 @@ export function JonatishFormasi({
       <button
         type="submit"
         disabled={kutilmoqda || tanlangan.length === 0}
-        className="self-start rounded-maydon bg-amal px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-amal-hover disabled:opacity-60"
+        className="self-start rounded-maydon bg-brend px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-brend-quyuq disabled:opacity-60"
       >
         {kutilmoqda ? "Jo'natilmoqda…" : `Jo'natish (${String(tanlangan.length)} bo'lak)`}
       </button>

@@ -54,7 +54,7 @@ export function FilialNarxlari({
               <th className="px-4 py-2.5" />
             </tr>
           </thead>
-          <tbody className="divide-y divide-chegara">
+          <tbody className="divide-y divide-chegara [&>tr:nth-child(even)]:bg-fon/50">
             {qatorlar.map((q) => (
               <NarxQatori
                 key={q.filialId}
@@ -107,7 +107,7 @@ function NarxQatori({
           <button
             type="submit"
             disabled={kutilmoqda}
-            className="rounded-maydon bg-amal px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-amal-hover disabled:opacity-60"
+            className="rounded-maydon bg-brend px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-brend-quyuq disabled:opacity-60"
           >
             {kutilmoqda ? '…' : 'Saqlash'}
           </button>

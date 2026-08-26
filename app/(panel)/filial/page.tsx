@@ -31,7 +31,7 @@ export default async function FilialRoyxati() {
           {yarataOladi && (
             <Link
               href="/filial/yangi"
-              className="rounded-maydon bg-amal px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-amal-hover"
+              className="rounded-maydon bg-brend px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-brend-quyuq"
             >
               Yangi filial
             </Link>
@@ -50,7 +50,7 @@ export default async function FilialRoyxati() {
               <th className="px-4 py-2.5 font-medium">Holat</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-chegara">
+          <tbody className="divide-y divide-chegara [&>tr:nth-child(even)]:bg-fon/50">
             {royxat.map((q) => (
               <tr key={q.id} className={q.faol ? '' : 'text-matn-kuchsiz'}>
                 <td className="px-4 py-2.5">
@@ -61,7 +61,7 @@ export default async function FilialRoyxati() {
                     {q.nom}
                   </Link>
                   {q.bosh && (
-                    <span className="ml-2 rounded-full bg-amal px-2 py-0.5 text-xs text-white">
+                    <span className="ml-2 rounded-full bg-brend px-2 py-0.5 text-xs text-white">
                       bosh
                     </span>
                   )}

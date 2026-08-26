@@ -55,7 +55,7 @@ export default async function KirimTafsili({ params }: { params: Promise<{ id: s
                 <th className="px-4 py-2.5 text-right font-medium">Brak</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-chegara">
+            <tbody className="divide-y divide-chegara [&>tr:nth-child(even)]:bg-fon/50">
               {h.qatorlar.map((q) => (
                 <tr key={q.id}>
                   <td className="px-4 py-2.5">{q.materialNomi}</td>

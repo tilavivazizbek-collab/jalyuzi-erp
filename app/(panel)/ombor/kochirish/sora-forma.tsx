@@ -51,7 +51,7 @@ export function SorovFormasi({ filiallar }: { filiallar: readonly FilialTanlovi[
       <button
         type="submit"
         disabled={kutilmoqda}
-        className="self-start rounded-maydon bg-amal px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-amal-hover disabled:opacity-60"
+        className="self-start rounded-maydon bg-brend px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-brend-quyuq disabled:opacity-60"
       >
         {kutilmoqda ? 'Yaratilmoqda…' : "So'rov yaratish"}
       </button>

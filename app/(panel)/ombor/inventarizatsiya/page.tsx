@@ -31,7 +31,7 @@ export default async function InventarizatsiyaRoyxati() {
         </div>
         <Link
           href="/ombor/inventarizatsiya/yangi"
-          className="rounded-maydon bg-amal px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-amal-hover"
+          className="rounded-maydon bg-brend px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-brend-quyuq"
         >
           Yangi sanash
         </Link>
@@ -54,7 +54,7 @@ export default async function InventarizatsiyaRoyxati() {
                 <th className="px-4 py-2.5 font-medium">Holat</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-chegara">
+            <tbody className="divide-y divide-chegara [&>tr:nth-child(even)]:bg-fon/50">
               {royxat.map((v) => (
                 <tr key={v.id}>
                   <td className="px-4 py-2.5">

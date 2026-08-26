@@ -58,7 +58,7 @@ export default async function FilialHisobi() {
                 <th className="px-4 py-2.5 font-medium">Kim qarzdor</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-chegara">
+            <tbody className="divide-y divide-chegara [&>tr:nth-child(even)]:bg-fon/50">
               {hisob.juftlar.map((j) => (
                 <tr key={j.filialId}>
                   <td className="px-4 py-2.5">{j.nom}</td>
@@ -117,7 +117,7 @@ export default async function FilialHisobi() {
                   <th className="px-4 py-2.5 text-right font-medium">Summa</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-chegara">
+              <tbody className="divide-y divide-chegara [&>tr:nth-child(even)]:bg-fon/50">
                 {harakatlar.map((h) => (
                   <tr key={h.id}>
                     <td className="px-4 py-2.5">{h.sana.toLocaleDateString('uz-UZ')}</td>

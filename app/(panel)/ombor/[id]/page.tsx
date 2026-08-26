@@ -123,7 +123,7 @@ export default async function MaterialKartochkasi({ params }: { params: Promise<
                   {chiqaraOladi && <th className="px-4 py-2.5 font-medium" />}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-chegara">
+              <tbody className="divide-y divide-chegara [&>tr:nth-child(even)]:bg-fon/50">
                 {bolaklar.map((b) => {
                   const belgi = darajaBelgisi(b);
                   return (
@@ -213,7 +213,7 @@ export default async function MaterialKartochkasi({ params }: { params: Promise<
                   {chiqaraOladi && <th className="px-4 py-2.5 font-medium" />}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-chegara">
+              <tbody className="divide-y divide-chegara [&>tr:nth-child(even)]:bg-fon/50">
                 {harakatlar.map((h) => (
                   <tr key={h.id}>
                     <td className="px-4 py-2.5 text-matn-ikki">

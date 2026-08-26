@@ -49,7 +49,7 @@ export default async function MahsulotRoyxati() {
         {yarataOladi && (
           <Link
             href="/mahsulot/yangi"
-            className="rounded-maydon bg-amal px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-amal-hover"
+            className="rounded-maydon bg-brend px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-brend-quyuq"
           >
             Mahsulot turi yaratish
           </Link>
@@ -73,7 +73,7 @@ export default async function MahsulotRoyxati() {
                 {ozgartiraOladi && <th className="px-4 py-2.5" />}
               </tr>
             </thead>
-            <tbody className="divide-y divide-chegara">
+            <tbody className="divide-y divide-chegara [&>tr:nth-child(even)]:bg-fon/50">
               {qatorlar.map((t) => (
                 <tr key={t.id} className={t.faol ? '' : 'bg-fon text-matn-kuchsiz'}>
                   <td className="px-4 py-2.5 font-medium">

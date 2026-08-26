@@ -126,7 +126,7 @@ export function KunYopishFormasi({ kun }: { kun: KunKorinishi }) {
       <button
         type="submit"
         disabled={kutilmoqda || s === null}
-        className="rounded-maydon bg-amal px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-amal-hover disabled:opacity-50"
+        className="rounded-maydon bg-brend px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brend-quyuq disabled:opacity-50"
       >
         {kutilmoqda ? 'Yopilmoqda…' : 'Kunni yopish'}
       </button>

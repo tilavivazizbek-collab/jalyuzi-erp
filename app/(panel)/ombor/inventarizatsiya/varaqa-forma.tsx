@@ -147,7 +147,7 @@ export function VaraqaFormasi({
               <th className="px-3 py-2.5 font-medium">Sabab</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-chegara">
+          <tbody className="divide-y divide-chegara [&>tr:nth-child(even)]:bg-fon/50">
             {satrlar.map((s) => {
               const k = ol(s.qatorId);
               const dona = s.turi === 'DONA';
@@ -268,7 +268,7 @@ export function VaraqaFormasi({
         <button
           type="submit"
           disabled={kutilmoqda || sanalgan === 0}
-          className="rounded-maydon bg-amal px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-amal-hover disabled:opacity-50"
+          className="rounded-maydon bg-brend px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brend-quyuq disabled:opacity-50"
         >
           {kutilmoqda ? 'Yakunlanmoqda…' : 'Yakunlash'}
         </button>

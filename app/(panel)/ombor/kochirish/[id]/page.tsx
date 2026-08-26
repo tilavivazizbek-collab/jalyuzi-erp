@@ -94,7 +94,7 @@ export default async function KochirishSahifasi({ params }: { params: Promise<{ 
                 <th className="px-4 py-2.5 text-right font-medium">Tannarx</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-chegara">
+            <tbody className="divide-y divide-chegara [&>tr:nth-child(even)]:bg-fon/50">
               {h.qatorlar.map((q) => (
                 <tr key={q.bolakId}>
                   <td className="raqam px-4 py-2.5">{q.kod}</td>
