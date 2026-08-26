@@ -20,6 +20,15 @@ ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV TZ=Asia/Tashkent
 
+# ⚠️ Next.js standalone serveri sukut bo'yicha `localhost` ga
+#    bog'lanadi — konteyner ICHIDA. Tashqaridan hech kim ulana
+#    olmaydi va joylashtirish «502» beradi.
+#
+#    `0.0.0.0` — barcha interfeyslar. Bu Renderda ham, `docker
+#    compose` da ham, egasining serverida ham bir xil kerak.
+ENV HOSTNAME=0.0.0.0
+ENV PORT=3000
+
 RUN addgroup -g 1001 -S erp && adduser -u 1001 -S erp -G erp
 
 # ⚠️ `public/` bo'sh bo'lsa ham MAVJUD bo'lishi shart: Docker
