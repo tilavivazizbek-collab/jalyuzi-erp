@@ -89,6 +89,22 @@ export async function urugEk(
           ON CONFLICT (xodim_id, rol_id) DO NOTHING`;
       }
     }
+
+    /**
+     * ⚠️ `filial` va `xodim` QAT'IY `id` bilan yozildi (halqa uchun
+     *    shart), lekin `BIGSERIAL` ketma-ketligi joyida turibdi.
+     *    Surilmasa keyingi filial yoki xodim `id = 1` olishga
+     *    urinadi va «duplicate key» beradi.
+     *
+     *    Bu bir marta sodir bo'lgan: urug'dan keyin birinchi xodim
+     *    qo'shishda ekran yiqilgan.
+     */
+    for (const jadval of ['filial', 'xodim']) {
+      await tx.unsafe(
+        `SELECT setval(pg_get_serial_sequence('${jadval}', 'id'),
+                       GREATEST((SELECT MAX(id) FROM ${jadval}), 1))`,
+      );
+    }
   });
 
   const [rollar] = await ulanish<{ n: number }[]>`SELECT COUNT(*)::int AS n FROM rol`;

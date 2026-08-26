@@ -1,0 +1,35 @@
+# Telegram bot — saytdan ALOHIDA jarayon (TZ 13.11).
+#
+# ⚠️ Nega alohida tasvir: «Bot butunlay ishlamay qolsa ishlab
+#    chiqarish to'xtamasligi kerak.» Bir konteynerda bo'lsa bot
+#    yiqilganda sayt ham qayta ishga tushardi.
+#
+# ⚠️ Node versiyasi §12 stekiga mos: 22 LTS. Platforma SDK si yo'q —
+#    tasvir istalgan serverda bir xil ishlaydi (§2.3).
+
+FROM node:22-alpine AS bogliqliklar
+WORKDIR /dastur
+COPY package.json package-lock.json* ./
+# `tsx` va `drizzle-kit` dev bog'liqligida — bot ularsiz ishlamaydi
+RUN npm ci
+
+FROM node:22-alpine AS ishga
+WORKDIR /dastur
+ENV NODE_ENV=production
+ENV TZ=Asia/Tashkent
+
+RUN addgroup -g 1001 -S erp && adduser -u 1001 -S erp -G erp
+
+COPY --from=bogliqliklar --chown=erp:erp /dastur/node_modules ./node_modules
+COPY --chown=erp:erp package.json ./
+COPY --chown=erp:erp tsconfig.json ./
+COPY --chown=erp:erp bot ./bot
+COPY --chown=erp:erp lib ./lib
+COPY --chown=erp:erp app ./app
+
+USER erp
+
+# ⚠️ Bot port ochmaydi — u Telegramga O'ZI ulanadi (uzoq so'rov).
+#    Shuning uchun Renderda «Background Worker» bo'ladi, «Web
+#    Service» emas.
+CMD ["node_modules/.bin/tsx", "bot/ishga-tushir.ts"]

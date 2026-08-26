@@ -1,0 +1,74 @@
+# Render uchun joylashtirish rejasi.
+#
+# ⚠️ MINTAQA — eng muhim sozlama. Sayt va baza BIR mintaqada
+#    turishi shart. Aks holda har so'rov okean orqali boradi va
+#    joylashtirishdan foyda bo'lmaydi.
+#
+#    `frankfurt` tanlangan: O'zbekistondan ~90 ms, Ogayodan ~250 ms.
+#    Neon bazasi ham AYNAN shu mintaqada ochilishi kerak.
+#
+# ⚠️ Bu fayl Renderning maxsus xizmatlariga bog'lanmaydi — oddiy
+#    Docker konteynerlari. Ertaga boshqa serverga ko'chirilsa
+#    `docker compose up` bilan ishlayveradi (QISM 1 §2.3).
+
+services:
+  # ── Sayt ────────────────────────────────────────────────────────
+  - type: web
+    name: jalyuzi-erp
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    region: frankfurt
+    # ⚠️ `starter` — bepul emas. Bepul tarif 15 daqiqadan keyin
+    #    uxlaydi va uyg'onishi 30–60 soniya oladi: ertalab sotuvchi
+    #    bir daqiqa kutib turardi.
+    plan: starter
+    healthCheckPath: /kirish
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: AUTH_SECRET
+        sync: false
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: TELEGRAM_ADMIN_CHAT_ID
+        sync: false
+      - key: CRON_SECRET
+        sync: false
+      - key: BACKUP_CHANNEL_ID
+        sync: false
+      - key: TZ
+        value: Asia/Tashkent
+      - key: NODE_ENV
+        value: production
+
+  # ── Telegram bot ────────────────────────────────────────────────
+  # ⚠️ 13.11 — «Bot butunlay ishlamay qolsa ishlab chiqarish
+  #    to'xtamasligi kerak.» Shuning uchun ALOHIDA xizmat: bot
+  #    yiqilsa sayt ishlayveradi.
+  #
+  # ⚠️ `worker` — bot port ochmaydi, u Telegramga o'zi ulanadi
+  #    (uzoq so'rov). Web xizmat qilinsa Render port kutib
+  #    yiqitardi.
+  - type: worker
+    name: jalyuzi-bot
+    runtime: docker
+    dockerfilePath: ./Dockerfile.bot
+    region: frankfurt
+    plan: starter
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: AUTH_SECRET
+        sync: false
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: TELEGRAM_ADMIN_CHAT_ID
+        sync: false
+      - key: CRON_SECRET
+        sync: false
+      - key: BACKUP_CHANNEL_ID
+        sync: false
+      - key: TZ
+        value: Asia/Tashkent
+      - key: NODE_ENV
+        value: production
