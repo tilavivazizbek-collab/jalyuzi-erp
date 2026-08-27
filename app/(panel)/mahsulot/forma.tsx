@@ -4,6 +4,8 @@ import { useActionState, useState } from 'react';
 import Link from 'next/link';
 import { BOSH_HOLAT, type KonstruktorHolati } from './holat';
 import { TestKalkulyatori, type GuruhMalumoti } from './kalkulyator';
+import { TezQoshish } from '../tanlov';
+import { guruhTezQosh } from '../tez-amal';
 
 export interface MaterialTanlovi {
   readonly id: number;
@@ -61,14 +63,24 @@ export function MahsulotFormasi({
   guruhlar,
   materiallar,
   tugmaMatni,
+  guruhQoshaOladi,
 }: {
   amal: (holat: KonstruktorHolati, forma: FormData) => Promise<KonstruktorHolati>;
   qiymatlar: MahsulotQiymatlari;
   guruhlar: readonly GuruhMalumoti[];
   materiallar: readonly MaterialTanlovi[];
   tugmaMatni: string;
+  guruhQoshaOladi: boolean;
 }) {
   const [holat, yubor, kutilmoqda] = useActionState(amal, BOSH_HOLAT);
+
+  /**
+   * ⚠️ Guruh ro'yxati SHU YERDA ham o'zgaradi: slot ichidan yangi
+   *    guruh qo'shilsa u darhol ro'yxatga tushishi kerak, aks holda
+   *    odam mahsulotni saqlab, sahifani yangilab, qaytadan
+   *    kirishi kerak bo'lardi.
+   */
+  const [guruhRoyxati, setGuruhRoyxati] = useState<readonly GuruhMalumoti[]>(guruhlar);
 
   const [xizmatHaqi, setXizmatHaqi] = useState(qiymatlar.xizmatHaqi);
   const [slotlar, setSlotlar] = useState<SlotQatori[]>([...qiymatlar.slotlar]);
@@ -261,22 +273,54 @@ export function MahsulotFormasi({
                     placeholder="Slot nomi — «Chet mato»"
                     className={kichik}
                   />
-                  <select
-                    value={s.almashtirishGuruhId ?? ''}
-                    onChange={(e) => {
-                      slotYangila(i, {
-                        almashtirishGuruhId: e.target.value === '' ? null : Number(e.target.value),
-                      });
-                    }}
-                    className={kichik}
-                  >
-                    <option value="">— guruh tanlang —</option>
-                    {guruhlar.map((g) => (
-                      <option key={g.id} value={g.id}>
-                        {g.nom}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="flex flex-col gap-1">
+                    <select
+                      value={s.almashtirishGuruhId ?? ''}
+                      onChange={(e) => {
+                        slotYangila(i, {
+                          almashtirishGuruhId:
+                            e.target.value === '' ? null : Number(e.target.value),
+                        });
+                      }}
+                      className={kichik}
+                    >
+                      <option value="">— guruh tanlang —</option>
+                      {guruhRoyxati.map((g) => (
+                        <option key={g.id} value={g.id}>
+                          {g.nom}
+                        </option>
+                      ))}
+                    </select>
+
+                    {guruhQoshaOladi && (
+                      <TezQoshish
+                        ixcham
+                        yangiYorliq="Yangi guruh"
+                        yarat={guruhTezQosh}
+                        qoshildi={(n) => {
+                          /**
+                           * ⚠️ Yangi guruhda hali material yo'q —
+                           *    shuning uchun birlik `KV_M` (serverdagi
+                           *    bilan bir xil standart) va narx namunasi
+                           *    yo'q. Kalkulyator uni narxsiz ko'rsatadi:
+                           *    bu to'g'ri, chunki narx haqiqatan ham
+                           *    hali yo'q.
+                           */
+                          setGuruhRoyxati((r) => [
+                            ...r,
+                            {
+                              id: n.id,
+                              nom: n.nom,
+                              sarflashBirligi: 'KV_M',
+                              namunaNarx: null,
+                              namunaNom: null,
+                            },
+                          ]);
+                          slotYangila(i, { almashtirishGuruhId: n.id });
+                        }}
+                      />
+                    )}
+                  </div>
                   <button
                     type="button"
                     onClick={() => {
@@ -420,7 +464,7 @@ export function MahsulotFormasi({
             guruhId: s.almashtirishGuruhId,
           }))}
           parametrlar={parametrlar.map((p) => ({ kod: p.kod, qiymat: p.standartQiymat }))}
-          guruhlar={guruhlar}
+          guruhlar={guruhRoyxati}
           xizmatHaqi={xizmatHaqi}
         />
       </div>

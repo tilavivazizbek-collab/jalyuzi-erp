@@ -15,7 +15,7 @@
  *    biri ustun ekani noaniq bo'lib qoladi.»
  */
 
-import { useActionState, useMemo, useState } from 'react';
+import { useActionState, useMemo, useState, useTransition } from 'react';
 import { sarflashHisobla, standartQiymatlar } from '@/lib/domain/formula';
 import { sm, type SarflashBirligi } from '@/lib/domain/birlik';
 import { nolSom, pulKorsat, pulMatn, qosh, som, type Som } from '@/lib/domain/pul';
@@ -24,6 +24,7 @@ import { pozitsiyaNarxiniHisobla } from '@/lib/domain/pozitsiya-narxi';
 import { mijozOffseti } from '@/lib/domain/mijoz';
 import { biznesXatosimi } from '@/lib/xato';
 import { Maydon, kirishUslubi } from '../maydon';
+import { mijozTezQosh } from '../tez-amal';
 import { buyurtmaYaratAmali, turTafsiliAmali } from './amal';
 import { BOSH_HOLAT } from './holat';
 import type { SotuvMijozi, SotuvTuri } from './malumot';
@@ -85,6 +86,7 @@ export function SotuvFormasi({
   birinchiTur,
   filiallar,
   ozFilialId,
+  mijozQoshaOladi,
 }: {
   /** Faqat nom va raqam — yengil ro'yxat (3.2) */
   turlar: readonly { id: number; nom: string }[];
@@ -92,6 +94,7 @@ export function SotuvFormasi({
   birinchiTur: SotuvTuri | null;
   filiallar: readonly { id: number; nom: string; bosh: boolean }[];
   ozFilialId: number;
+  mijozQoshaOladi: boolean;
 }) {
   const [holat, yubor, kutilmoqda] = useActionState(buyurtmaYaratAmali, BOSH_HOLAT);
 
@@ -746,7 +749,11 @@ export function SotuvFormasi({
 
         {/* ── 3.10 · 3.11 · 3.13 · 20.4 ── */}
         <section className="grid gap-4 sm:grid-cols-2">
-          <MijozTanlash tanlangan={mijoz} ozgartir={mijozniOzgartir} />
+          <MijozTanlash
+            tanlangan={mijoz}
+            ozgartir={mijozniOzgartir}
+            qoshaOladi={mijozQoshaOladi}
+          />
 
           <Maydon
             nom="tikuvchi"
@@ -840,13 +847,55 @@ export function SotuvFormasi({
 function MijozTanlash({
   tanlangan,
   ozgartir,
+  qoshaOladi,
 }: {
   tanlangan: SotuvMijozi | null;
   ozgartir: (m: SotuvMijozi | null) => void;
+  qoshaOladi: boolean;
 }) {
   const [matn, matnniOzgartir] = useState('');
   const [topilgan, topilganniOzgartir] = useState<readonly SotuvMijozi[]>([]);
   const [qidirilmoqda, qidirilmoqdaOzgartir] = useState(false);
+  const [qoshXato, qoshXatoniOzgartir] = useState<string | null>(null);
+  const [qoshilmoqda, qoshishniBoshla] = useTransition();
+
+  const izlanayotgan = matn.trim();
+
+  /**
+   * ⚠️ «Aynan shu ism topildi» — bo'lsa qo'shish taklif qilinmaydi.
+   *    TZ 6.5: mijoz ism bo'yicha takrorlanmaydi. Sotuvchi
+   *    ro'yxatdagini KO'RIB turib yana bittasini yaratsa, qarz
+   *    kimga yozilgani chalkashardi.
+   */
+  const aynanBor = topilgan.some((m) => m.ism.toLowerCase() === izlanayotgan.toLowerCase());
+
+  function yangiMijozQosh(): void {
+    qoshishniBoshla(() => {
+      void mijozTezQosh(izlanayotgan).then((n) => {
+        if ('xato' in n) {
+          qoshXatoniOzgartir(n.xato);
+          return;
+        }
+
+        /**
+         * ⚠️ Yangi mijozda offset ham, qarz limiti ham YO'Q —
+         *    ular kartochkasida keyin to'ldiriladi. Shuning uchun
+         *    narx odatdagi filial narxida qoladi (3.10).
+         */
+        ozgartir({
+          id: n.id,
+          ism: n.nom,
+          telefon: null,
+          qarzLimiti: null,
+          offsetTuri: null,
+          offsetQiymat: null,
+        });
+        matnniOzgartir('');
+        topilganniOzgartir([]);
+        qoshXatoniOzgartir(null);
+      });
+    });
+  }
 
   async function qidir(q: string): Promise<void> {
     matnniOzgartir(q);
@@ -917,6 +966,23 @@ function MijozTanlash({
             </button>
           ))}
         </div>
+      )}
+
+      {qoshaOladi && izlanayotgan.length >= 2 && !qidirilmoqda && !aynanBor && (
+        <button
+          type="button"
+          disabled={qoshilmoqda}
+          onClick={yangiMijozQosh}
+          className="fokus mt-1 self-start rounded-maydon px-1 py-0.5 text-[12px] font-medium text-brend transition-colors hover:underline disabled:opacity-60"
+        >
+          {qoshilmoqda ? 'Qo‘shilmoqda…' : `+ «${izlanayotgan}» ni yangi mijoz qilib qo‘shish`}
+        </button>
+      )}
+
+      {qoshXato !== null && (
+        <p role="alert" className="text-[12px] text-belgi-qizil">
+          {qoshXato}
+        </p>
       )}
     </Maydon>
   );

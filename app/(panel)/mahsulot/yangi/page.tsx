@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { sahifaRuxsati } from '@/lib/kirish/joriy';
+import { ruxsatBormi } from '@/lib/ruxsat/tekshir';
 import { mahsulotYaratAmali } from '../amal';
 import { BOSH_QIYMATLAR, MahsulotFormasi } from '../forma';
 import { guruhlarniOl, materiallarniOl } from '../malumot';
@@ -7,7 +8,9 @@ import { guruhlarniOl, materiallarniOl } from '../malumot';
 export const dynamic = 'force-dynamic';
 
 export default async function YangiMahsulot() {
-  await sahifaRuxsati('mahsulot.yarat');
+  const f = await sahifaRuxsati('mahsulot.yarat');
+  // §9.4 — tugmani yashirish himoya emas, server amali ham tekshiradi
+  const guruhQoshaOladi = ruxsatBormi(f, 'material.ozgartir');
 
   const [guruhlar, materiallar] = await Promise.all([guruhlarniOl(), materiallarniOl()]);
 
@@ -26,6 +29,7 @@ export default async function YangiMahsulot() {
         amal={mahsulotYaratAmali}
         qiymatlar={BOSH_QIYMATLAR}
         guruhlar={guruhlar}
+        guruhQoshaOladi={guruhQoshaOladi}
         materiallar={materiallar}
         tugmaMatni="Saqlash"
       />

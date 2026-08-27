@@ -2,6 +2,7 @@ import { sahifaRuxsati } from '@/lib/kirish/joriy';
 import { tikaOladiganFiliallar } from './malumot';
 import { turRoyxati, turTafsili } from '@/lib/amal/katalog';
 import { SotuvFormasi } from './forma';
+import { ruxsatBormi } from '@/lib/ruxsat/tekshir';
 
 export const dynamic = 'force-dynamic';
 
@@ -39,6 +40,7 @@ export default async function SotuvEkrani() {
         birinchiTur={birinchiTur}
         filiallar={filiallar}
         ozFilialId={f.filialId}
+        mijozQoshaOladi={ruxsatBormi(f, 'mijoz.yarat')}
       />
     </div>
   );

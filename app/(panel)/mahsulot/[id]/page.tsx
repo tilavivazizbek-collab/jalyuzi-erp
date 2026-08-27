@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ulanishOl } from '@/lib/db';
 import { sahifaRuxsati } from '@/lib/kirish/joriy';
+import { ruxsatBormi } from '@/lib/ruxsat/tekshir';
 import { mahsulotTahrirlaAmali } from '../amal';
 import type { KonstruktorHolati } from '../holat';
 import {
@@ -16,7 +17,9 @@ import { guruhlarniOl, materiallarniOl } from '../malumot';
 export const dynamic = 'force-dynamic';
 
 export default async function MahsulotTahrirlash({ params }: { params: Promise<{ id: string }> }) {
-  await sahifaRuxsati('mahsulot.ozgartir');
+  const f = await sahifaRuxsati('mahsulot.ozgartir');
+  // §9.4 — tugmani yashirish himoya emas, server amali ham tekshiradi
+  const guruhQoshaOladi = ruxsatBormi(f, 'material.ozgartir');
 
   const { id } = await params;
   const turId = Number(id);
@@ -102,6 +105,7 @@ export default async function MahsulotTahrirlash({ params }: { params: Promise<{
         amal={amal}
         qiymatlar={qiymatlar}
         guruhlar={guruhlar}
+        guruhQoshaOladi={guruhQoshaOladi}
         materiallar={materiallar}
         tugmaMatni="O'zgarishlarni saqlash"
       />
