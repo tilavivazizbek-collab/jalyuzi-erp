@@ -28,6 +28,23 @@ export type TezYaratish = (
 ) => Promise<{ id: number; nom: string } | { xato: string }>;
 
 /**
+ * Nomdan tashqari yana bitta tanlov so'raydigan qo'shish.
+ *
+ * ⚠️ Material uchun kerak: o'lchov birligisiz material ombordan
+ *    noto'g'ri yechiladi va keyin tuzatib bo'lmaydi (5.3).
+ */
+export type TezYaratishIkki = (
+  nom: string,
+  ikkinchi: string,
+) => Promise<{ id: number; nom: string } | { xato: string }>;
+
+export interface IkkinchiMaydon {
+  readonly yorliq: string;
+  readonly bandlar: readonly { readonly qiymat: string; readonly nom: string }[];
+  readonly boshlangich: string;
+}
+
+/**
  * «+ Yangi» tugmasi va uning ochiladigan qatori.
  *
  * ⚠️ Alohida qism: bir xil xatti-harakat ikki joyda kerak —
@@ -37,17 +54,24 @@ export type TezYaratish = (
 export function TezQoshish({
   yangiYorliq,
   yarat,
+  yaratIkki,
+  ikkinchi,
   qoshildi,
   ixcham = false,
 }: {
   yangiYorliq: string;
-  yarat: TezYaratish;
+  /** Faqat nom so'raydigan qo'shish */
+  yarat?: TezYaratish;
+  /** Nom + ikkinchi tanlov so'raydigan qo'shish */
+  yaratIkki?: TezYaratishIkki;
+  ikkinchi?: IkkinchiMaydon;
   qoshildi: (band: TanlovBandi) => void;
   /** Tor joyda — kichik shrift, kamroq bo'shliq */
   ixcham?: boolean;
 }) {
   const [ochiq, ochiqniOzgartir] = useState(false);
   const [yangiNom, yangiNomniOzgartir] = useState('');
+  const [ikkinchiQiymat, ikkinchiniOzgartir] = useState(ikkinchi?.boshlangich ?? '');
   const [xato, xatoniOzgartir] = useState<string | null>(null);
   const [kutilmoqda, boshla] = useTransition();
 
@@ -58,8 +82,15 @@ export function TezQoshish({
       return;
     }
 
+    const ish =
+      yaratIkki === undefined
+        ? yarat?.(t)
+        : yaratIkki(t, ikkinchiQiymat);
+
+    if (ish === undefined) return;
+
     boshla(() => {
-      void yarat(t).then((n) => {
+      void ish.then((n) => {
         if ('xato' in n) {
           xatoniOzgartir(n.xato);
           return;
@@ -115,6 +146,28 @@ export function TezQoshish({
           aria-label={yangiYorliq}
           className={`${kirishUslubi(false)} flex-1 ${ixcham ? 'py-1.5' : ''}`}
         />
+
+        {/*
+          ⚠️ Ikkinchi maydon TANLOV bo'lib turadi, matn emas. Material
+             uchun bu o'lchov birligi: uni erkin yozib bo'lmaydi,
+             chunki noto'g'ri birlik ombor hisobini buzadi (5.3).
+        */}
+        {ikkinchi !== undefined && (
+          <select
+            value={ikkinchiQiymat}
+            onChange={(e) => {
+              ikkinchiniOzgartir(e.target.value);
+            }}
+            aria-label={ikkinchi.yorliq}
+            className={`${kirishUslubi(false)} w-40 shrink-0 ${ixcham ? 'py-1.5' : ''}`}
+          >
+            {ikkinchi.bandlar.map((b) => (
+              <option key={b.qiymat} value={b.qiymat}>
+                {b.nom}
+              </option>
+            ))}
+          </select>
+        )}
 
         <button
           type="button"

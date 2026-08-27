@@ -48,6 +48,7 @@ export const XATO_BAND = {
   NARX_NOTOGRI: 'TZ 5.4',
   KOEFFITSIENT_NOTOGRI: 'TZ 5.3',
   BIRLIK_OZGARMAYDI: 'TZ 5.3',
+  SARF_NOTOGRI: 'TZ 4.5 — sarf noto‘g‘ri',
   BIRLIK_NOTOGRI: "TZ 5.3 — bunday o'lchov birligi yo'q",
   KONSTRUKTOR_XATO: 'TZ 4.5',
   TELEFON_NOTOGRI: 'QISM 1 §8',

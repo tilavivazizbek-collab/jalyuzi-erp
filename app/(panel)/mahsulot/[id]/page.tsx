@@ -20,6 +20,7 @@ export default async function MahsulotTahrirlash({ params }: { params: Promise<{
   const f = await sahifaRuxsati('mahsulot.ozgartir');
   // §9.4 — tugmani yashirish himoya emas, server amali ham tekshiradi
   const guruhQoshaOladi = ruxsatBormi(f, 'material.ozgartir');
+  const materialQoshaOladi = ruxsatBormi(f, 'material.yarat');
 
   const { id } = await params;
   const turId = Number(id);
@@ -106,6 +107,7 @@ export default async function MahsulotTahrirlash({ params }: { params: Promise<{
         qiymatlar={qiymatlar}
         guruhlar={guruhlar}
         guruhQoshaOladi={guruhQoshaOladi}
+        materialQoshaOladi={materialQoshaOladi}
         materiallar={materiallar}
         tugmaMatni="O'zgarishlarni saqlash"
       />

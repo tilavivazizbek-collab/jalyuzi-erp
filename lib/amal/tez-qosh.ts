@@ -13,6 +13,7 @@
 
 import { ulanishOl } from '@/lib/db';
 import { BiznesXato } from '@/lib/xato';
+import { birlikTavsifi } from '@/lib/domain/birlik-tanlovi';
 
 export interface TezBand {
   readonly id: number;
@@ -72,6 +73,65 @@ export async function yetkazibTezYarat(nom: string, xodimId: number): Promise<Te
     INSERT INTO yetkazib_beruvchi (nom, yaratdi_id)
     VALUES (${t}, ${xodimId})
     RETURNING id, nom`;
+
+  const yangi = y[0];
+  if (yangi === undefined) throw new BiznesXato('SAQLANMADI', 'Saqlanmadi');
+  return yangi;
+}
+
+// ─── TZ 5.2 · 5.3 · Material ──────────────────────────────────────────────
+
+/**
+ * ⚠️ Material NOM va O'LCHOV BIRLIGI bilan yaratiladi — faqat nom
+ *    yetarli emas. Birliksiz material ombordan noto'g'ri yechiladi:
+ *    mato «dona» deb sanalsa qoldiq butunlay xato chiqadi. Keyin
+ *    tuzatib ham bo'lmaydi — qoldiq bor material birligi
+ *    o'zgartirilmaydi (5.3).
+ *
+ * ⚠️ Narx, chegara va guruh keyin kartochkasida to'ldiriladi. Ular
+ *    bo'sh bo'lsa ham material ombor hisobida to'g'ri yuradi.
+ */
+export async function materialTezYarat(
+  nom: string,
+  olchovBirligi: string,
+  xodimId: number,
+): Promise<TezBand> {
+  const t = tezNomTozala(nom);
+  if (t === null) throw new BiznesXato('NOM_NOTOGRI', "Nom noto'g'ri");
+
+  const b = birlikTavsifi(olchovBirligi);
+
+  /**
+   * ⚠️ Shtanga, quti va metr — «1 shtanga necha metr» degan javobni
+   *    talab qiladi. Uni bu yerda so'ramaymiz (ish oqimini
+   *    to'xtatmaslik uchun), lekin taxminiy qiymat qo'yish ham
+   *    mumkin emas: noto'g'ri koeffitsient ombordan noto'g'ri
+   *    miqdorda material yechilishiga olib keladi va buni hech kim
+   *    sezmaydi.
+   *
+   *    Shuning uchun bunday material to'liq kartochkada ochiladi.
+   */
+  if (b.ozgarishKerak) {
+    throw new BiznesXato(
+      'BIRLIK_NOTOGRI',
+      `«${b.nom}» uchun 1 ${b.kirimBirligi} necha metr ekani kerak — material sahifasida oching`,
+    );
+  }
+
+  const sql = ulanishOl();
+
+  const bor = await sql<TezBand[]>`
+    SELECT id, nom FROM material
+    WHERE lower(nom) = lower(${t}) AND faol = true`;
+  if (bor[0] !== undefined) return bor[0];
+
+  const y = await sql<TezBand[]>`
+    INSERT INTO material (
+      nom, hisob_turi, kirim_birligi, sarflash_birligi, koeffitsient, yaratdi_id
+    ) VALUES (
+      ${t}, ${b.hisobTuri}, ${b.kirimBirligi}, ${b.sarflashBirligi},
+      '1', ${xodimId}
+    ) RETURNING id, nom`;
 
   const yangi = y[0];
   if (yangi === undefined) throw new BiznesXato('SAQLANMADI', 'Saqlanmadi');

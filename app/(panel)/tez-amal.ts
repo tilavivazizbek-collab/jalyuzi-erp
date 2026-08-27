@@ -13,7 +13,12 @@
 
 import { revalidatePath } from 'next/cache';
 import { ruxsatTalab } from '@/lib/kirish/joriy';
-import { guruhTezYarat, mijozTezYarat, yetkazibTezYarat } from '@/lib/amal/tez-qosh';
+import {
+  guruhTezYarat,
+  materialTezYarat,
+  mijozTezYarat,
+  yetkazibTezYarat,
+} from '@/lib/amal/tez-qosh';
 import { biznesXatosimi } from '@/lib/xato';
 
 export type TezNatija = { id: number; nom: string } | { xato: string };
@@ -40,6 +45,19 @@ export async function guruhTezQosh(nom: string): Promise<TezNatija> {
 export async function yetkazibTezQosh(nom: string): Promise<TezNatija> {
   const f = await ruxsatTalab('yetkazib.yarat');
   return bajar(() => yetkazibTezYarat(nom, f.xodimId), '/yetkazib', "Qo'shilmadi");
+}
+
+/**
+ * ⚠️ Material yaratish `material.yarat` ruxsatini talab qiladi —
+ *    mahsulot turini tahrirlash ruxsati o'z-o'zidan yetmaydi.
+ */
+export async function materialTezQosh(nom: string, olchovBirligi: string): Promise<TezNatija> {
+  const f = await ruxsatTalab('material.yarat');
+  return bajar(
+    () => materialTezYarat(nom, olchovBirligi, f.xodimId),
+    '/material',
+    "Material qo'shilmadi",
+  );
 }
 
 export async function mijozTezQosh(nom: string): Promise<TezNatija> {
