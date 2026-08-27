@@ -6,6 +6,8 @@ import { materialTahrirlaAmali } from '../amal';
 import type { FormaHolati } from '../holat';
 import { MaterialFormasi, type Guruh, type MaterialQiymatlari } from '../forma';
 import { filialNarxlari } from '@/lib/amal/filial-narx';
+import { joriyKurs } from '@/lib/amal/kurs';
+import { oxirgiKelishNarxi } from '../malumot';
 import { ruxsatBormi } from '@/lib/ruxsat/tekshir';
 import { FilialNarxlari } from '../narx-forma';
 
@@ -20,11 +22,14 @@ interface Qator {
   readonly koeffitsient: string;
   readonly sotuv_narx: string | null;
   readonly sotuv_valyuta: string;
+  readonly kutilayotgan_kelish_narx: string | null;
+  readonly kutilayotgan_kelish_valyuta: string;
   readonly min_ustama_foiz: string | null;
   readonly yaroqsiz_chegara_m: string | null;
   readonly kam_ishlatiladigan_m: string | null;
   readonly kam_qoldiq_chegara_m: string | null;
   readonly standart_rulon_eni_m: string | null;
+  readonly odatdagi_rulon_boyi_m: string | null;
   readonly almashtirish_guruh_id: number | null;
   readonly yaxlitlash_qadami: string | null;
 }
@@ -44,8 +49,14 @@ export default async function MaterialTahrirlash({ params }: { params: Promise<{
   const material = qatorlar[0];
   if (material === undefined) notFound();
 
-  const guruhlar = await ulanish<Guruh[]>`
-    SELECT id, nom FROM almashtirish_guruh WHERE faol = true ORDER BY nom`;
+  const [guruhlar, kurs, oxirgiKelish] = await Promise.all([
+    ulanish<Guruh[]>`
+      SELECT id, nom FROM almashtirish_guruh WHERE faol = true ORDER BY nom`,
+    // $ ↔ so'm ko'rsatish uchun (bazaga yozilmaydi)
+    joriyKurs(ulanish),
+    // TZ 5.4 — haqiqiy tannarx kirimdan keladi, faqat ko'rsatiladi
+    oxirgiKelishNarxi(materialId),
+  ]);
 
   // 20.9 — filial narx istisnolari (Q-28)
   const narxOzgartiraOladi = ruxsatBormi(f, 'narx.filial.ozgartir');
@@ -59,11 +70,14 @@ export default async function MaterialTahrirlash({ params }: { params: Promise<{
     koeffitsient: material.koeffitsient,
     sotuvNarx: m(material.sotuv_narx),
     sotuvValyuta: material.sotuv_valyuta,
+    kutilayotganKelishNarx: m(material.kutilayotgan_kelish_narx),
+    kutilayotganKelishValyuta: material.kutilayotgan_kelish_valyuta,
     minUstamaFoiz: m(material.min_ustama_foiz),
     yaroqsizChegaraM: m(material.yaroqsiz_chegara_m),
     kamIshlatiladiganM: m(material.kam_ishlatiladigan_m),
     kamQoldiqChegaraM: m(material.kam_qoldiq_chegara_m),
     standartRulonEniM: m(material.standart_rulon_eni_m),
+    odatdagiRulonBoyiM: m(material.odatdagi_rulon_boyi_m),
     almashtirishGuruhId:
       material.almashtirish_guruh_id === null ? '' : String(material.almashtirish_guruh_id),
     yaxlitlashQadami: m(material.yaxlitlash_qadami),
@@ -90,6 +104,9 @@ export default async function MaterialTahrirlash({ params }: { params: Promise<{
           amal={amal}
           qiymatlar={qiymatlar}
           guruhlar={guruhlar}
+          guruhQoshaOladi={ruxsatBormi(f, 'material.ozgartir')}
+          joriyKurs={kurs ?? ''}
+          oxirgiKelish={oxirgiKelish}
           tugmaMatni="O'zgarishlarni saqlash"
         />
       </div>

@@ -11,6 +11,7 @@
 import { ulanishOl } from '@/lib/db';
 import { pulMatn, som } from '@/lib/domain/pul';
 import { bolakQiymati } from '@/lib/domain/tannarx';
+import type { MaterialTanlovi, YetkazibTanlovi } from './kirim/forma';
 
 export interface MaterialQoldigi {
   readonly materialId: number;
@@ -752,4 +753,60 @@ export async function filialNomi(filialId: number): Promise<string> {
   const q = await ulanishOl()<{ nom: string }[]>`
     SELECT nom FROM filial WHERE id = ${filialId}`;
   return q[0]?.nom ?? `#${String(filialId)}`;
+}
+
+// ─── TZ 7.9 · Kirim hujjati formasi ───────────────────────────────────────
+
+/**
+ * ⚠️ Bu ikki so'rov ilgari `kirim/yangi/page.tsx` ichida turardi.
+ *    Shu sababli `ekran-sorovlari.test.ts` ularni ko'rmasdi — ustun
+ *    nomidagi xato faqat ekranni ochgan odamga bilinardi (T-01).
+ */
+export async function kirimMateriallari(): Promise<MaterialTanlovi[]> {
+  const qatorlar = await ulanishOl()<
+    {
+      id: number;
+      nom: string;
+      hisob_turi: string;
+      kirim_birligi: string;
+      standart_rulon_eni_m: string | null;
+      odatdagi_rulon_boyi_m: string | null;
+      kutilayotgan_kelish_narx: string | null;
+      kutilayotgan_kelish_valyuta: string;
+    }[]
+  >`SELECT id, nom, hisob_turi, kirim_birligi,
+           standart_rulon_eni_m::text, odatdagi_rulon_boyi_m::text,
+           kutilayotgan_kelish_narx::text, kutilayotgan_kelish_valyuta
+    FROM material WHERE faol = true ORDER BY nom`;
+
+  return qatorlar.map((x) => ({
+    id: x.id,
+    nom: x.nom,
+    hisobTuri: x.hisob_turi,
+    kirimBirligi: x.kirim_birligi,
+    /**
+     * Kirim qatorlari shu o'lchamlar bilan ochiladi (Q-14).
+     *
+     * ⚠️ HISOBGA TEGMAYDI: qoldiq baribir omborchi kiritgan haqiqiy
+     *    o'lchamdan hisoblanadi. Bu faqat terishni qisqartiradi.
+     */
+    odatdagiEniM: x.standart_rulon_eni_m,
+    odatdagiBoyiM: x.odatdagi_rulon_boyi_m,
+    kutilayotganNarx: x.kutilayotgan_kelish_narx,
+    kutilayotganValyuta: x.kutilayotgan_kelish_valyuta,
+  }));
+}
+
+export async function kirimYetkazuvchilari(): Promise<YetkazibTanlovi[]> {
+  const qatorlar = await ulanishOl()<
+    { id: number; nom: string; tolov_muddati_kun: number | null; valyuta: string }[]
+  >`SELECT id, nom, tolov_muddati_kun, valyuta FROM yetkazib_beruvchi
+    WHERE faol = true ORDER BY nom`;
+
+  return qatorlar.map((x) => ({
+    id: x.id,
+    nom: x.nom,
+    tolovMuddatiKun: x.tolov_muddati_kun,
+    valyuta: x.valyuta,
+  }));
 }

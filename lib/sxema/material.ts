@@ -69,6 +69,14 @@ export const materialSxema = z
 
     sotuvNarx: ixtiyoriySon('Sotuv narxi'),
     sotuvValyuta: z.enum(VALYUTALAR).default('SOM'),
+
+    /**
+     * ⚠️ TANNARX EMAS (5.4). Kirimni oldindan to'ldirish va
+     *    taxminiy ustamani ko'rsatish uchun.
+     */
+    kutilayotganKelishNarx: ixtiyoriySon('Kelish narxi'),
+    kutilayotganKelishValyuta: z.enum(VALYUTALAR).default('SOM'),
+
     minUstamaFoiz: ixtiyoriySon('Minimal ustama'),
 
     // TZ 5.5 — ostatka chegaralari ENI bo'yicha, metrda
@@ -77,7 +85,9 @@ export const materialSxema = z
     // Q-10 — kam qoldiq chegarasi UZUNLIK bo'yicha, metrda
     kamQoldiqChegaraM: ixtiyoriySon('Kam qoldiq chegarasi'),
     // Q-14 — bo'sh bo'lsa oxirgi kirimdan olinadi
-    standartRulonEniM: ixtiyoriySon('Standart rulon eni'),
+    standartRulonEniM: ixtiyoriySon('Rulon eni'),
+    /** Kirimni oldindan to'ldirish uchun — hisobga tegmaydi */
+    odatdagiRulonBoyiM: ixtiyoriySon("Odatdagi rulon bo'yi"),
 
     almashtirishGuruhId: z
       .string()

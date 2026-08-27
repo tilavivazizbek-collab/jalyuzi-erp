@@ -38,6 +38,7 @@ export const XATO_MATNI: Record<XatoKod, string> = {
   NARX_NOTOGRI: "Narx qiymati noto'g'ri",
   KOEFFITSIENT_NOTOGRI: "Konversiya koeffitsienti noto'g'ri",
   BIRLIK_OZGARMAYDI: "Qoldiq bor ekan, birlikni o'zgartirib bo'lmaydi",
+  BIRLIK_NOTOGRI: "Bunday o'lchov birligi yo'q",
   KONSTRUKTOR_XATO: "Mahsulot turi sozlamasida xato bor",
   TELEFON_NOTOGRI: "Telefon raqami noto'g'ri",
   MATERIAL_SAQLANMADI: "Materialni saqlab bo'lmadi",
@@ -137,6 +138,9 @@ export const XATO_MATNI: Record<XatoKod, string> = {
   BOT_KIRISH_YOQ: "Bu bo'limga kirish huquqingiz yo'q",
   BOT_OQIM_BUZUQ: 'Buyurtma boshidan boshlansin — /start bosing',
   BOT_OQIM_TOLIQ_EMAS: "Pozitsiya to'liq emas: mato va o'lcham kerak",
+
+  NOM_NOTOGRI: "Nom bo'sh yoki juda uzun",
+  SAQLANMADI: 'Saqlanmadi — qaytadan urinib ko‘ring',
 };
 
 export const BIRLIK_MATNI = {

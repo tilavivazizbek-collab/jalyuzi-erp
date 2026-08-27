@@ -27,6 +27,9 @@ export interface MaterialQatori {
   readonly kam_ishlatiladigan_m: string | null;
   readonly kam_qoldiq_chegara_m: string | null;
   readonly standart_rulon_eni_m: string | null;
+  readonly odatdagi_rulon_boyi_m: string | null;
+  readonly kutilayotgan_kelish_narx: string | null;
+  readonly kutilayotgan_kelish_valyuta: string;
   readonly almashtirish_guruh_id: number | null;
   readonly yaxlitlash_qadami: string | null;
   readonly faol: boolean;
@@ -42,11 +45,19 @@ function auditQiymatlari(m: MaterialQatori): Qiymatlar {
     koeffitsient: m.koeffitsient,
     sotuv_narx: m.sotuv_narx,
     sotuv_valyuta: m.sotuv_valyuta,
+    /**
+     * ⚠️ Narx o'zgarishi audit jurnaliga TUSHISHI shart — kim,
+     *    qachon va nechadan nechaga o'zgartirganini keyin
+     *    topib bo'lmasa, narx bahsi hal qilinmaydi.
+     */
+    kutilayotgan_kelish_narx: m.kutilayotgan_kelish_narx,
+    kutilayotgan_kelish_valyuta: m.kutilayotgan_kelish_valyuta,
     min_ustama_foiz: m.min_ustama_foiz,
     yaroqsiz_chegara_m: m.yaroqsiz_chegara_m,
     kam_ishlatiladigan_m: m.kam_ishlatiladigan_m,
     kam_qoldiq_chegara_m: m.kam_qoldiq_chegara_m,
     standart_rulon_eni_m: m.standart_rulon_eni_m,
+    odatdagi_rulon_boyi_m: m.odatdagi_rulon_boyi_m,
     almashtirish_guruh_id: m.almashtirish_guruh_id,
     yaxlitlash_qadami: m.yaxlitlash_qadami,
   };
@@ -63,16 +74,22 @@ export async function materialYarat(
     const qator = await tx<{ id: number }[]>`
       INSERT INTO material (
         nom, hisob_turi, kirim_birligi, sarflash_birligi, koeffitsient,
-        sotuv_narx, sotuv_valyuta, min_ustama_foiz,
+        sotuv_narx, sotuv_valyuta,
+        kutilayotgan_kelish_narx, kutilayotgan_kelish_valyuta,
+        min_ustama_foiz,
         yaroqsiz_chegara_m, kam_ishlatiladigan_m, kam_qoldiq_chegara_m,
-        standart_rulon_eni_m, almashtirish_guruh_id, yaxlitlash_qadami,
+        standart_rulon_eni_m, odatdagi_rulon_boyi_m,
+        almashtirish_guruh_id, yaxlitlash_qadami,
         yaratdi_id
       ) VALUES (
         ${kirim.nom}, ${kirim.hisobTuri}, ${kirim.kirimBirligi},
         ${kirim.sarflashBirligi}, ${kirim.koeffitsient},
-        ${yoNull(kirim.sotuvNarx)}, ${kirim.sotuvValyuta}, ${yoNull(kirim.minUstamaFoiz)},
+        ${yoNull(kirim.sotuvNarx)}, ${kirim.sotuvValyuta},
+        ${yoNull(kirim.kutilayotganKelishNarx)}, ${kirim.kutilayotganKelishValyuta},
+        ${yoNull(kirim.minUstamaFoiz)},
         ${yoNull(kirim.yaroqsizChegaraM)}, ${yoNull(kirim.kamIshlatiladiganM)},
         ${yoNull(kirim.kamQoldiqChegaraM)}, ${yoNull(kirim.standartRulonEniM)},
+        ${yoNull(kirim.odatdagiRulonBoyiM)},
         ${kirim.almashtirishGuruhId ?? null}, ${yoNull(kirim.yaxlitlashQadami)},
         ${xodimId}
       ) RETURNING id`;
@@ -152,11 +169,14 @@ export async function materialTahrirla(
         koeffitsient = ${kirim.koeffitsient},
         sotuv_narx = ${yoNull(kirim.sotuvNarx)},
         sotuv_valyuta = ${kirim.sotuvValyuta},
+        kutilayotgan_kelish_narx = ${yoNull(kirim.kutilayotganKelishNarx)},
+        kutilayotgan_kelish_valyuta = ${kirim.kutilayotganKelishValyuta},
         min_ustama_foiz = ${yoNull(kirim.minUstamaFoiz)},
         yaroqsiz_chegara_m = ${yoNull(kirim.yaroqsizChegaraM)},
         kam_ishlatiladigan_m = ${yoNull(kirim.kamIshlatiladiganM)},
         kam_qoldiq_chegara_m = ${yoNull(kirim.kamQoldiqChegaraM)},
         standart_rulon_eni_m = ${yoNull(kirim.standartRulonEniM)},
+        odatdagi_rulon_boyi_m = ${yoNull(kirim.odatdagiRulonBoyiM)},
         almashtirish_guruh_id = ${kirim.almashtirishGuruhId ?? null},
         yaxlitlash_qadami = ${yoNull(kirim.yaxlitlashQadami)},
         ozgartirildi = now(), ozgartirdi_id = ${xodimId}

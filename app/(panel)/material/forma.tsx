@@ -3,15 +3,21 @@
 import { useActionState, useState } from 'react';
 import Link from 'next/link';
 import { Maydon, kirishUslubi } from '../maydon';
+import { TanlovYokiYangi } from '../tanlov';
+import { guruhTezQosh } from '../tez-amal';
+import { NarxKatagi } from './narx-katak';
 import { BOSH_HOLAT, type FormaHolati } from './holat';
 import {
-  HISOB_TURI_NOMI,
-  HISOB_TURLARI,
-  SARFLASH_BIRLIGI_NOMI,
-  SARFLASH_BIRLIKLARI,
-  koeffitsientIzohi,
-  type SarflashBirligi,
-} from '@/lib/sxema/material';
+  BIRLIK_TAVSIFI,
+  OLCHOV_BIRLIKLARI,
+  birlikniTop,
+  koeffitsientniMetrga,
+  metrniKoeffitsientga,
+  ozgarishSavoli,
+  type OlchovBirligi,
+} from '@/lib/domain/birlik-tanlovi';
+import { ustamaFoizi } from '@/lib/domain/narx-kalkulyatori';
+import type { OxirgiKelish } from './malumot';
 
 export interface Guruh {
   readonly id: number;
@@ -26,11 +32,14 @@ export interface MaterialQiymatlari {
   readonly koeffitsient: string;
   readonly sotuvNarx: string;
   readonly sotuvValyuta: string;
+  readonly kutilayotganKelishNarx: string;
+  readonly kutilayotganKelishValyuta: string;
   readonly minUstamaFoiz: string;
   readonly yaroqsizChegaraM: string;
   readonly kamIshlatiladiganM: string;
   readonly kamQoldiqChegaraM: string;
   readonly standartRulonEniM: string;
+  readonly odatdagiRulonBoyiM: string;
   readonly almashtirishGuruhId: string;
   readonly yaxlitlashQadami: string;
 }
@@ -43,11 +52,14 @@ export const BOSH_QIYMATLAR: MaterialQiymatlari = {
   koeffitsient: '1',
   sotuvNarx: '',
   sotuvValyuta: 'SOM',
+  kutilayotganKelishNarx: '',
+  kutilayotganKelishValyuta: 'SOM',
   minUstamaFoiz: '',
   yaroqsizChegaraM: '',
   kamIshlatiladiganM: '',
   kamQoldiqChegaraM: '',
   standartRulonEniM: '',
+  odatdagiRulonBoyiM: '',
   almashtirishGuruhId: '',
   yaxlitlashQadami: '',
 };
@@ -56,18 +68,50 @@ export function MaterialFormasi({
   amal,
   qiymatlar,
   guruhlar,
+  guruhQoshaOladi,
+  joriyKurs,
+  oxirgiKelish,
   tugmaMatni,
 }: {
   amal: (holat: FormaHolati, forma: FormData) => Promise<FormaHolati>;
   qiymatlar: MaterialQiymatlari;
   guruhlar: readonly Guruh[];
+  /** Ro'yxat ichidan yangi guruh qo'sha oladimi (§9.4 — server ham tekshiradi) */
+  guruhQoshaOladi: boolean;
+  /** Bugungi kurs — $ ↔ so'm ko'rsatish uchun. Yo'q bo'lsa hamroh katak jim turadi */
+  joriyKurs: string;
+  /** TZ 5.4 — haqiqiy kelish narxi kirim hujjatidan keladi, tahrirlanmaydi */
+  oxirgiKelish: OxirgiKelish | null;
   tugmaMatni: string;
 }) {
   const [holat, yubor, kutilmoqda] = useActionState(amal, BOSH_HOLAT);
-  const [kirimBirligi, setKirimBirligi] = useState(qiymatlar.kirimBirligi);
-  const [sarflash, setSarflash] = useState<SarflashBirligi>(
-    qiymatlar.sarflashBirligi as SarflashBirligi,
+
+  /**
+   * ⚠️ Eski material qo'lda kiritilgan birlik bilan turishi mumkin
+   *    («palka», «bobina»). U ro'yxatga tushmaydi — `null` keladi
+   *    va ekran eski uchta maydonni ko'rsatadi. Ma'lumot
+   *    YO'QOLMAYDI va jimgina o'zgarmaydi.
+   */
+  const [birlik, birlikniOzgartir] = useState<OlchovBirligi | null>(
+    birlikniTop(qiymatlar.hisobTuri, qiymatlar.kirimBirligi, qiymatlar.sarflashBirligi),
   );
+
+  const [ozgarishMetr, ozgarishMetrniOzgartir] = useState(
+    koeffitsientniMetrga(qiymatlar.koeffitsient),
+  );
+
+  const [kurs, kursniOzgartir] = useState(joriyKurs);
+
+  const [kelishNarx, kelishNarxniOzgartir] = useState(qiymatlar.kutilayotganKelishNarx);
+  const [kelishValyuta, kelishValyutaniOzgartir] = useState(
+    qiymatlar.kutilayotganKelishValyuta,
+  );
+  const [sotuvNarx, sotuvNarxniOzgartir] = useState(qiymatlar.sotuvNarx);
+  const [sotuvValyuta, sotuvValyutaniOzgartir] = useState(qiymatlar.sotuvValyuta);
+
+  const tavsif = birlik === null ? null : BIRLIK_TAVSIFI[birlik];
+
+  const ustama = ustamaFoizi(kelishNarx, kelishValyuta, sotuvNarx, sotuvValyuta);
 
   const x = (nom: string): string | undefined => holat.maydonXatolari[nom];
   const chegara = (nom: string): string => kirishUslubi(x(nom) !== undefined);
@@ -83,6 +127,25 @@ export function MaterialFormasi({
         </p>
       )}
 
+      {/*
+        ⚠️ Uchta ustun bazada QOLDI — ular kirimda, band qilishda va
+           hisobotlarda ishlatiladi. Ekranda esa bitta tanlov turadi
+           va u shu uchtasini o'zi to'ldiradi. Noto'g'ri uchlik
+           (rulon + dona + SM) endi yaratib bo'lmaydi.
+      */}
+      {tavsif !== null && (
+        <>
+          <input type="hidden" name="hisobTuri" value={tavsif.hisobTuri} />
+          <input type="hidden" name="kirimBirligi" value={tavsif.kirimBirligi} />
+          <input type="hidden" name="sarflashBirligi" value={tavsif.sarflashBirligi} />
+          <input
+            type="hidden"
+            name="koeffitsient"
+            value={birlikKoeffitsienti(tavsif.ozgarishKerak, ozgarishMetr)}
+          />
+        </>
+      )}
+
       <section className="grid gap-4 sm:grid-cols-2">
         <div className="sm:col-span-2">
           <Maydon nom="nom" yorliq="Nomi" xato={x('nom')}>
@@ -96,124 +159,217 @@ export function MaterialFormasi({
           </Maydon>
         </div>
 
-        <Maydon nom="hisobTuri" yorliq="Hisob turi" izoh="TZ 5.2" xato={x('hisobTuri')}>
-          <select
-            id="hisobTuri"
-            name="hisobTuri"
-            defaultValue={qiymatlar.hisobTuri}
-            className={chegara('hisobTuri')}
-          >
-            {HISOB_TURLARI.map((t) => (
-              <option key={t} value={t}>
-                {HISOB_TURI_NOMI[t]}
-              </option>
-            ))}
-          </select>
-        </Maydon>
-
-        <Maydon
+        {/*
+          ⚠️ Ro'yxat ostida «+ Yangi guruh» turadi — omborchi material
+             kiritayotib boshqa sahifaga o'tib ketmasin.
+        */}
+        <TanlovYokiYangi
           nom="almashtirishGuruhId"
-          yorliq="Almashtirish guruhi"
-          izoh="TZ 5.6 — sotuvda shu guruh chiqadi"
-        >
-          <select
-            id="almashtirishGuruhId"
-            name="almashtirishGuruhId"
-            defaultValue={qiymatlar.almashtirishGuruhId}
-            className={chegara('almashtirishGuruhId')}
-          >
-            <option value="">— tanlanmagan —</option>
-            {guruhlar.map((g) => (
-              <option key={g.id} value={String(g.id)}>
-                {g.nom}
-              </option>
-            ))}
-          </select>
-        </Maydon>
+          yorliq="Guruhi"
+          izoh="sotuvda shu guruh chiqadi"
+          bandlar={guruhlar}
+          boshlangich={qiymatlar.almashtirishGuruhId}
+          yangiYorliq="Yangi guruh"
+          qoshaOladi={guruhQoshaOladi}
+          yarat={guruhTezQosh}
+        />
 
         <Maydon
-          nom="kirimBirligi"
-          yorliq="Kirim birligi"
-          izoh="ombor qanday qabul qiladi"
-          xato={x('kirimBirligi')}
+          nom="olchovBirligi"
+          yorliq="O'lchov birligi"
+          izoh="ombor shunday qabul qiladi"
+          xato={x('hisobTuri') ?? x('kirimBirligi') ?? x('sarflashBirligi')}
         >
-          <input
-            id="kirimBirligi"
-            name="kirimBirligi"
-            defaultValue={qiymatlar.kirimBirligi}
-            onChange={(e) => {
-              setKirimBirligi(e.target.value);
-            }}
-            required
-            className={chegara('kirimBirligi')}
-          />
-        </Maydon>
-
-        <Maydon nom="sarflashBirligi" yorliq="Sarflash birligi" izoh="buyurtmada qanday yechiladi">
           <select
-            id="sarflashBirligi"
-            name="sarflashBirligi"
-            defaultValue={qiymatlar.sarflashBirligi}
+            id="olchovBirligi"
+            value={birlik ?? ''}
             onChange={(e) => {
-              setSarflash(e.target.value as SarflashBirligi);
+              birlikniOzgartir(e.target.value as OlchovBirligi);
             }}
-            className={chegara('sarflashBirligi')}
+            className={kirishUslubi(false)}
           >
-            {SARFLASH_BIRLIKLARI.map((b) => (
+            {birlik === null && <option value="">— eski birlik —</option>}
+            {OLCHOV_BIRLIKLARI.map((b) => (
               <option key={b} value={b}>
-                {SARFLASH_BIRLIGI_NOMI[b]}
+                {BIRLIK_TAVSIFI[b].nom}
               </option>
             ))}
           </select>
         </Maydon>
 
-        <div className="sm:col-span-2">
+        {/*
+          ⚠️ «Koeffitsient» so'zi ekranda ISHLATILMAYDI. Omborchi uni
+             tushunmaydi, «1 shtanga necha metr» degan savolni esa
+             darhol tushunadi. Bazada u smda saqlanadi (Q-01).
+        */}
+        {birlik !== null && tavsif?.ozgarishKerak === true && (
           <Maydon
-            nom="koeffitsient"
-            yorliq="Koeffitsient"
-            izoh={koeffitsientIzohi(kirimBirligi, sarflash)}
+            nom="ozgarishMetr"
+            yorliq={ozgarishSavoli(birlik)}
+            izoh="masalan: 1 shtanga = 3 metr"
             xato={x('koeffitsient')}
           >
             <input
-              id="koeffitsient"
-              name="koeffitsient"
-              defaultValue={qiymatlar.koeffitsient}
+              id="ozgarishMetr"
+              value={ozgarishMetr}
+              onChange={(e) => {
+                ozgarishMetrniOzgartir(e.target.value);
+              }}
               required
               inputMode="decimal"
               className={chegara('koeffitsient')}
             />
           </Maydon>
-        </div>
+        )}
+
+        {/*
+          ⚠️ Eni va bo'yi rulonning YONIDA turadi — ular chegaralarga
+             emas, o'lchov birligiga tegishli.
+
+          ⚠️ Ikkalasi ham HISOBGA TEGMAYDI. Har rulon boshqa o'lchamda
+             keladi va qoldiq doim HAQIQIY o'lchamdan hisoblanadi
+             (7.4, Q-05). Bular kirim formasini oldindan to'ldiradi.
+        */}
+        {tavsif?.olchamliMi === true && (
+          <>
+            <Maydon
+              nom="standartRulonEniM"
+              yorliq="Rulon eni (m)"
+              izoh="kirimda oldindan to'ldiriladi"
+              xato={x('standartRulonEniM')}
+            >
+              <input
+                id="standartRulonEniM"
+                name="standartRulonEniM"
+                defaultValue={qiymatlar.standartRulonEniM}
+                inputMode="decimal"
+                className={chegara('standartRulonEniM')}
+              />
+            </Maydon>
+
+            <Maydon
+              nom="odatdagiRulonBoyiM"
+              yorliq="Rulon bo'yi (m)"
+              izoh="odatdagi uzunlik, omborchi o'zgartira oladi"
+              xato={x('odatdagiRulonBoyiM')}
+            >
+              <input
+                id="odatdagiRulonBoyiM"
+                name="odatdagiRulonBoyiM"
+                defaultValue={qiymatlar.odatdagiRulonBoyiM}
+                inputMode="decimal"
+                className={chegara('odatdagiRulonBoyiM')}
+              />
+            </Maydon>
+          </>
+        )}
       </section>
+
+      {/*
+        ⚠️ Eski material standart bo'lmagan birlik bilan turibdi. Uni
+           jimgina o'zgartirish — ombor qoldig'ini buzish (5.3).
+           Shuning uchun eski qiymatlar ko'rsatiladi va ro'yxatdan
+           yangisi tanlanmaguncha o'zgarmaydi.
+      */}
+      {tavsif === null && (
+        <section className="rounded-karta border border-belgi-sariq/40 bg-belgi-sariq-fon p-4">
+          <p className="mb-3 text-xs text-belgi-sariq">
+            Bu materialda eski, ro&apos;yxatda yo&apos;q birlik turibdi. Yuqoridagi
+            ro&apos;yxatdan yangisini tanlamaguningizcha quyidagilar o&apos;zgarmaydi.
+          </p>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <Maydon nom="hisobTuri" yorliq="Hisob turi" xato={x('hisobTuri')}>
+              <input
+                id="hisobTuri"
+                name="hisobTuri"
+                defaultValue={qiymatlar.hisobTuri}
+                className={chegara('hisobTuri')}
+              />
+            </Maydon>
+            <Maydon nom="kirimBirligi" yorliq="Kirim birligi" xato={x('kirimBirligi')}>
+              <input
+                id="kirimBirligi"
+                name="kirimBirligi"
+                defaultValue={qiymatlar.kirimBirligi}
+                className={chegara('kirimBirligi')}
+              />
+            </Maydon>
+            <Maydon nom="sarflashBirligi" yorliq="Sarflash birligi">
+              <input
+                id="sarflashBirligi"
+                name="sarflashBirligi"
+                defaultValue={qiymatlar.sarflashBirligi}
+                className={chegara('sarflashBirligi')}
+              />
+            </Maydon>
+            <Maydon nom="koeffitsient" yorliq="Koeffitsient" xato={x('koeffitsient')}>
+              <input
+                id="koeffitsient"
+                name="koeffitsient"
+                defaultValue={qiymatlar.koeffitsient}
+                inputMode="decimal"
+                className={chegara('koeffitsient')}
+              />
+            </Maydon>
+          </div>
+        </section>
+      )}
 
       <section>
         <h2 className="mb-3 text-sm font-semibold text-matn">Narx</h2>
-        <div className="grid gap-4 sm:grid-cols-3">
-          <Maydon
-            nom="sotuvNarx"
-            yorliq="Sotuv narxi"
-            izoh={`1 ${SARFLASH_BIRLIGI_NOMI[sarflash === 'SM' ? 'SM' : sarflash]} uchun`}
-            xato={x('sotuvNarx')}
-          >
-            <input
-              id="sotuvNarx"
-              name="sotuvNarx"
-              defaultValue={qiymatlar.sotuvNarx}
-              inputMode="decimal"
-              className={chegara('sotuvNarx')}
-            />
-          </Maydon>
 
-          <Maydon nom="sotuvValyuta" yorliq="Valyuta">
-            <select
-              id="sotuvValyuta"
-              name="sotuvValyuta"
-              defaultValue={qiymatlar.sotuvValyuta}
-              className={chegara('sotuvValyuta')}
-            >
-              <option value="SOM">so&apos;m</option>
-              <option value="USD">dollar</option>
-            </select>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <NarxKatagi
+            nom="kutilayotganKelishNarx"
+            yorliq="Kelish narxi"
+            izoh={
+              tavsif === null
+                ? 'kutilayotgan'
+                : `kutilayotgan — 1 ${tavsif.kirimBirligi} uchun`
+            }
+            boshNarx={qiymatlar.kutilayotganKelishNarx}
+            boshValyuta={qiymatlar.kutilayotganKelishValyuta}
+            kurs={kurs}
+            xato={x('kutilayotganKelishNarx')}
+            ozgardi={(n, v) => {
+              kelishNarxniOzgartir(n);
+              kelishValyutaniOzgartir(v);
+            }}
+          />
+
+          <NarxKatagi
+            nom="sotuvNarx"
+            yorliq="Sotish narxi"
+            izoh={tavsif === null ? undefined : `1 ${tavsif.narxBirligi} uchun`}
+            boshNarx={qiymatlar.sotuvNarx}
+            boshValyuta={qiymatlar.sotuvValyuta}
+            kurs={kurs}
+            xato={x('sotuvNarx')}
+            ozgardi={(n, v) => {
+              sotuvNarxniOzgartir(n);
+              sotuvValyutaniOzgartir(v);
+            }}
+          />
+        </div>
+
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          {/*
+            ⚠️ Kurs YUBORILMAYDI (`name` yo'q). U faqat ekranda
+               $ ↔ so'm ko'rsatish uchun. Kurs bazaga faqat kirim va
+               to'lov hujjatlarida yoziladi (9.6) — u yerda qotib
+               qoladi va keyin o'zgarmaydi.
+          */}
+          <Maydon nom="kurs" yorliq="Kurs" izoh="bugungi kurs, faqat ko'rsatish uchun">
+            <input
+              id="kurs"
+              value={kurs}
+              onChange={(e) => {
+                kursniOzgartir(e.target.value);
+              }}
+              inputMode="decimal"
+              placeholder="masalan 12800"
+              className={kirishUslubi(false)}
+            />
           </Maydon>
 
           <Maydon
@@ -231,9 +387,33 @@ export function MaterialFormasi({
             />
           </Maydon>
         </div>
-        {sarflash === 'SM' && (
-          <p className="mt-2 rounded-maydon bg-belgi-sariq-fon px-3 py-2 text-xs text-belgi-sariq ">
-            Chiziqli material <b>santimetrda</b> sarflanadi, narxi esa <b>1 metr</b> uchun yoziladi.
+
+        <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs">
+          {ustama !== null && (
+            <span className="text-matn-ikki">
+              Taxminiy ustama: <b className="text-matn">{ustama}%</b>
+            </span>
+          )}
+
+          {/*
+            ⚠️ TZ 5.4 — «Tannarx qo'lda kiritilmaydi.» Haqiqiy kelish
+               narxi faqat shu yerda, o'qish uchun. Yuqoridagi «kelish
+               narxi» esa taxmin: ikkalasi sanasi bilan ajratiladi.
+          */}
+          {oxirgiKelish !== null && (
+            <span className="text-matn-kuchsiz">
+              Oxirgi haqiqiy kelish narxi:{' '}
+              <b className="text-matn-ikki">
+                {oxirgiKelish.narx} {oxirgiKelish.valyuta === 'USD' ? '$' : "so'm"}
+              </b>{' '}
+              ({oxirgiKelish.sana})
+            </span>
+          )}
+        </div>
+
+        {tavsif?.sarflashBirligi === 'SM' && (
+          <p className="mt-3 rounded-maydon bg-belgi-sariq-fon px-3 py-2 text-xs text-belgi-sariq ">
+            Bu material <b>santimetrda</b> sarflanadi, narxi esa <b>1 metr</b> uchun yoziladi.
             Tizim o&apos;zi ÷100 qiladi (Q-01).
           </p>
         )}
@@ -242,8 +422,8 @@ export function MaterialFormasi({
       <section>
         <h2 className="mb-1 text-sm font-semibold text-matn">Chegaralar</h2>
         <p className="mb-3 text-xs text-matn-kuchsiz">
-          Ostatka chegaralari <b>eni bo&apos;yicha, metrda</b> (5.5). Kam qoldiq chegarasi — uzunlik
-          bo&apos;yicha (Q-10).
+          Ostatka chegaralari <b>eni bo&apos;yicha, metrda</b> (5.5). Kam qoldiq chegarasi —
+          uzunlik bo&apos;yicha (Q-10).
         </p>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Maydon
@@ -284,17 +464,17 @@ export function MaterialFormasi({
             />
           </Maydon>
           <Maydon
-            nom="standartRulonEniM"
-            yorliq="Standart rulon eni (m)"
-            izoh="bo'sh → oxirgi kirimdan"
-            xato={x('standartRulonEniM')}
+            nom="yaxlitlashQadami"
+            yorliq="Yaxlitlash qadami"
+            izoh="xarid ro'yxati uchun"
+            xato={x('yaxlitlashQadami')}
           >
             <input
-              id="standartRulonEniM"
-              name="standartRulonEniM"
-              defaultValue={qiymatlar.standartRulonEniM}
+              id="yaxlitlashQadami"
+              name="yaxlitlashQadami"
+              defaultValue={qiymatlar.yaxlitlashQadami}
               inputMode="decimal"
-              className={chegara('standartRulonEniM')}
+              className={chegara('yaxlitlashQadami')}
             />
           </Maydon>
         </div>
@@ -314,4 +494,22 @@ export function MaterialFormasi({
       </div>
     </form>
   );
+}
+
+/**
+ * Ekrandagi metrni bazadagi koeffitsientga o'giradi.
+ *
+ * ⚠️ Bo'sh yoki noto'g'ri kiritilgan bo'lsa BO'SH yuboriladi —
+ *    Zod sxemasi uni ushlaydi va odam tushunarli xato ko'radi.
+ *    Bu yerda «1» deb to'ldirib qo'yish jimgina noto'g'ri
+ *    konversiya yaratardi.
+ */
+function birlikKoeffitsienti(ozgarishKerak: boolean, ozgarishMetr: string): string {
+  if (!ozgarishKerak) return '1';
+  if (ozgarishMetr.trim() === '') return '';
+
+  const n = Number(ozgarishMetr);
+  if (!Number.isFinite(n) || n <= 0) return '';
+
+  return metrniKoeffitsientga(ozgarishMetr);
 }

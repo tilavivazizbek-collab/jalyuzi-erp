@@ -48,6 +48,7 @@ export const XATO_BAND = {
   NARX_NOTOGRI: 'TZ 5.4',
   KOEFFITSIENT_NOTOGRI: 'TZ 5.3',
   BIRLIK_OZGARMAYDI: 'TZ 5.3',
+  BIRLIK_NOTOGRI: "TZ 5.3 — bunday o'lchov birligi yo'q",
   KONSTRUKTOR_XATO: 'TZ 4.5',
   TELEFON_NOTOGRI: 'QISM 1 §8',
   MATERIAL_TOPILMADI: 'TZ 5.1',
@@ -143,6 +144,10 @@ export const XATO_BAND = {
   BOT_KIRISH_YOQ: 'TZ 13.1',
   BOT_OQIM_BUZUQ: 'TZ 13.4',
   BOT_OQIM_TOLIQ_EMAS: 'TZ 13.4',
+
+  // ─── Ro'yxat ichidan tez qo'shish ───────────────────────────────
+  NOM_NOTOGRI: "QISM 1 §5.1 — bo'sh yoki haddan uzun nom",
+  SAQLANMADI: 'QISM 1 §5.1 — yozuv qaytmadi',
 } as const;
 
 export type XatoKod = keyof typeof XATO_BAND;

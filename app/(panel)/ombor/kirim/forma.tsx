@@ -6,12 +6,32 @@ import { Maydon, kirishUslubi } from '../../maydon';
 import { kirimYaratAmali } from './amal';
 import { BOSH_HOLAT } from './holat';
 import { pulKorsat, som, nolSom, qosh, kopaytir } from '@/lib/domain/pul';
+import { TanlovYokiYangi } from '../../tanlov';
+import { yetkazibTezQosh } from '../../tez-amal';
 
 export interface MaterialTanlovi {
   readonly id: number;
   readonly nom: string;
   readonly hisobTuri: string;
   readonly kirimBirligi: string;
+  /**
+   * Kartochkadagi odatdagi o'lchamlar — rulon qatorlari SHU qiymat
+   * bilan ochiladi.
+   *
+   * ⚠️ Bu HISOBGA TEGMAYDI: qoldiq baribir omborchi kiritgan
+   *    HAQIQIY o'lchamdan hisoblanadi. Bu faqat terishni qisqartiradi.
+   */
+  readonly odatdagiEniM: string | null;
+  readonly odatdagiBoyiM: string | null;
+
+  /**
+   * Kartochkadagi kutilayotgan kelish narxi va uning valyutasi.
+   *
+   * ⚠️ Bu TANNARX EMAS (5.4). Faqat qatorni oldindan to'ldiradi;
+   *    haqiqiy tannarx omborchi kiritgan narxdan hisoblanadi.
+   */
+  readonly kutilayotganNarx: string | null;
+  readonly kutilayotganValyuta: string;
 }
 
 export interface YetkazibTanlovi {
@@ -40,9 +60,11 @@ const kichik = `${kirishUslubi(false)} py-1.5`;
 export function KirimFormasi({
   materiallar,
   yetkazuvchilar,
+  yetkazibQoshaOladi,
 }: {
   materiallar: readonly MaterialTanlovi[];
   yetkazuvchilar: readonly YetkazibTanlovi[];
+  yetkazibQoshaOladi: boolean;
 }) {
   const [holat, yubor, kutilmoqda] = useActionState(kirimYaratAmali, BOSH_HOLAT);
 
@@ -72,7 +94,11 @@ export function KirimFormasi({
     if (m?.hisobTuri === 'RULON' && Number.isInteger(soni) && soni > 0 && soni <= 50) {
       const bolaklar = Array.from(
         { length: soni },
-        (_, k) => q.bolaklar[k] ?? { eniM: '', boyiM: '' },
+        (_, k) =>
+          q.bolaklar[k] ?? {
+            eniM: m.odatdagiEniM ?? '',
+            boyiM: m.odatdagiBoyiM ?? '',
+          },
       );
       yangila(i, { miqdorKirim: miqdor, bolaklar });
     } else {
@@ -152,21 +178,15 @@ export function KirimFormasi({
             />
           </Maydon>
 
-          <Maydon nom="yetkazibBeruvchiId" yorliq="Yetkazib beruvchi">
-            <select
-              id="yetkazibBeruvchiId"
-              name="yetkazibBeruvchiId"
-              required
-              className={kirishUslubi(false)}
-            >
-              <option value="">— tanlang —</option>
-              {yetkazuvchilar.map((y) => (
-                <option key={y.id} value={y.id}>
-                  {y.nom}
-                </option>
-              ))}
-            </select>
-          </Maydon>
+          <TanlovYokiYangi
+            nom="yetkazibBeruvchiId"
+            yorliq="Yetkazib beruvchi"
+            bandlar={yetkazuvchilar}
+            boshMatn="— tanlang —"
+            yangiYorliq="Yangi yetkazib beruvchi"
+            qoshaOladi={yetkazibQoshaOladi}
+            yarat={yetkazibTezQosh}
+          />
 
           <Maydon nom="valyuta" yorliq="Valyuta">
             <select
@@ -224,7 +244,7 @@ export function KirimFormasi({
                   {
                     materialId: birinchi.id,
                     miqdorKirim: '',
-                    narxBirlik: '',
+                    narxBirlik: boshlangichNarx(birinchi, valyuta),
                     defektMiqdor: '',
                     defektTuri: null,
                     bolaklar: [],
@@ -257,7 +277,14 @@ export function KirimFormasi({
                     <select
                       value={q.materialId}
                       onChange={(e) => {
-                        yangila(i, { materialId: Number(e.target.value), bolaklar: [] });
+                        const yangiId = Number(e.target.value);
+                        const yangiM = materiallar.find((z) => z.id === yangiId);
+                        yangila(i, {
+                          materialId: yangiId,
+                          bolaklar: [],
+                          narxBirlik:
+                            yangiM === undefined ? '' : boshlangichNarx(yangiM, valyuta),
+                        });
                       }}
                       className={kichik}
                     >
@@ -439,4 +466,21 @@ export function KirimFormasi({
       </div>
     </form>
   );
+}
+
+/**
+ * Qator ochilganda narx katagida nima turadi.
+ *
+ * ⚠️ Kartochkadagi narx faqat hujjat valyutasi bilan MOS bo'lsa
+ *    qo'yiladi. Aks holda dollarli narx so'mli hujjatga tushib
+ *    ketardi va omborchi buni sezmasligi mumkin edi — tannarx
+ *    ming barobar xato chiqardi.
+ *
+ * ⚠️ Bu shunchaki BOSHLANG'ICH qiymat. Omborchi uni o'zgartiradi
+ *    va tannarx doim u kiritgan narxdan hisoblanadi (5.4).
+ */
+function boshlangichNarx(m: MaterialTanlovi, hujjatValyutasi: string): string {
+  if (m.kutilayotganNarx === null) return '';
+  if (m.kutilayotganValyuta !== hujjatValyutasi) return '';
+  return m.kutilayotganNarx;
 }

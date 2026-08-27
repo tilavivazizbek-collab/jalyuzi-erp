@@ -175,6 +175,9 @@ describe('Ombor ekranlari', () => {
     await expect(
       omborEkrani.boshlangichBormi(materialId, filialId),
     ).resolves.toBeDefined();
+    // 7.9 — kirim formasining ro'yxatlari
+    await expect(omborEkrani.kirimMateriallari()).resolves.toBeDefined();
+    await expect(omborEkrani.kirimYetkazuvchilari()).resolves.toBeDefined();
   });
 });
 

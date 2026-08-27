@@ -1,0 +1,1 @@
+ALTER TABLE "material" ADD COLUMN "odatdagi_rulon_boyi_m" numeric(8, 2);

@@ -73,6 +73,28 @@ export const material = pgTable(
     /** TZ 5.4 — mato uchun 1 kv.m, karniz uchun 1 METR, aksessuar uchun 1 dona */
     sotuvNarx: numeric('sotuv_narx', { precision: 14, scale: 2 }),
     sotuvValyuta: text('sotuv_valyuta').notNull().default('SOM'),
+
+    /**
+     * Kutilayotgan kelish narxi — yetkazib beruvchi odatda qancha so'raydi.
+     *
+     * ⚠️ BU TANNARX EMAS. TZ 5.4: «Tannarx qo'lda kiritilmaydi — har
+     *    kirim hujjatidan avtomatik keladi.» Haqiqiy tannarx FIFO
+     *    bo'yicha `bolak` yozuvlaridan keladi va bu ustun unga
+     *    HECH QACHON aralashmaydi.
+     *
+     *    Bu ustun ikki ish qiladi:
+     *      1. kirim formasini oldindan to'ldiradi (omborchi terishi qisqaradi)
+     *      2. kartochkada taxminiy ustama % ni ko'rsatadi (5.4)
+     *
+     *    Ikkalasi ham — QULAYLIK. Pul hisobiga tegmaydi.
+     */
+    kutilayotganKelishNarx: numeric('kutilayotgan_kelish_narx', {
+      precision: 14,
+      scale: 2,
+    }),
+    kutilayotganKelishValyuta: text('kutilayotgan_kelish_valyuta')
+      .notNull()
+      .default('SOM'),
     /** Bo'sh → sozlamadagi standart (5.4) */
     minUstamaFoiz: numeric('min_ustama_foiz', { precision: 6, scale: 2 }),
 
@@ -83,6 +105,21 @@ export const material = pgTable(
     kamQoldiqChegaraM: numeric('kam_qoldiq_chegara_m', { precision: 6, scale: 2 }),
     /** Q-14 — chegarani kv.m ga o'girish uchun. Bo'sh → oxirgi kirimdan olinadi */
     standartRulonEniM: numeric('standart_rulon_eni_m', { precision: 6, scale: 2 }),
+
+    /**
+     * Kirimda oldindan to'ldirish uchun odatdagi rulon uzunligi.
+     *
+     * ⚠️ Bu HISOBGA TEGMAYDI. Har rulon boshqa uzunlikda keladi —
+     *    30 m, 45 m, 22 m — va ombor qoldig'i doim HAQIQIY
+     *    o'lchamdan hisoblanadi (7.4, Q-05). Bu maydon faqat
+     *    omborchining terishini qisqartiradi: kirim formasi shu
+     *    qiymat bilan ochiladi, u kerak bo'lsa o'zgartiradi.
+     *
+     * ⚠️ Shu sababli `standart_` emas, `odatdagi_` deb ataladi:
+     *    «standart» degan so'z uni majburiy qoida deb tushunishga
+     *    olib kelardi.
+     */
+    odatdagiRulonBoyiM: numeric('odatdagi_rulon_boyi_m', { precision: 8, scale: 2 }),
 
     almashtirishGuruhId: bigint('almashtirish_guruh_id', { mode: 'number' }).references(
       () => almashtirishGuruh.id,
@@ -97,6 +134,15 @@ export const material = pgTable(
     check('material_hisob_turi', sql`${t.hisobTuri} IN ('RULON','CHIZIQLI','DONA','KV_M')`),
     check('material_sarflash_birligi', sql`${t.sarflashBirligi} IN ('SM','KV_M','DONA')`),
     check('material_valyuta', sql`${t.sotuvValyuta} IN ('SOM','USD')`),
+    check(
+      'material_kelish_valyuta',
+      sql`${t.kutilayotganKelishValyuta} IN ('SOM','USD')`,
+    ),
+    // Kutilayotgan narx ham manfiy bo'lmaydi
+    check(
+      'material_kelish_narx_manfiy_emas',
+      sql`${t.kutilayotganKelishNarx} IS NULL OR ${t.kutilayotganKelishNarx} >= 0`,
+    ),
     // TZ 5.8 — «Bloklaydi: koeffitsient 0 yoki manfiy»
     check('material_koeffitsient_musbat', sql`${t.koeffitsient} > 0`),
     // TZ 5.8 — «Bloklaydi: sotuv narxi manfiy»

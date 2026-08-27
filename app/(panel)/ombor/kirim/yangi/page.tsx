@@ -1,39 +1,20 @@
 import Link from 'next/link';
-import { ulanishOl } from '@/lib/db';
 import { sahifaRuxsati } from '@/lib/kirish/joriy';
-import { KirimFormasi, type MaterialTanlovi, type YetkazibTanlovi } from '../forma';
+import { ruxsatBormi } from '@/lib/ruxsat/tekshir';
+import { kirimMateriallari, kirimYetkazuvchilari } from '../../malumot';
+import { KirimFormasi } from '../forma';
 
 export const dynamic = 'force-dynamic';
 
 export default async function YangiKirim() {
-  await sahifaRuxsati('ombor.kirim.yarat');
-
-  const ulanish = ulanishOl();
+  const f = await sahifaRuxsati('ombor.kirim.yarat');
+  // §9.4 — tugmani yashirish himoya emas, server amali ham tekshiradi
+  const yetkazibQoshaOladi = ruxsatBormi(f, 'yetkazib.yarat');
 
   const [materiallar, yetkazuvchilar] = await Promise.all([
-    ulanish<
-      { id: number; nom: string; hisob_turi: string; kirim_birligi: string }[]
-    >`SELECT id, nom, hisob_turi, kirim_birligi FROM material
-      WHERE faol = true ORDER BY nom`,
-    ulanish<
-      { id: number; nom: string; tolov_muddati_kun: number | null; valyuta: string }[]
-    >`SELECT id, nom, tolov_muddati_kun, valyuta FROM yetkazib_beruvchi
-      WHERE faol = true ORDER BY nom`,
+    kirimMateriallari(),
+    kirimYetkazuvchilari(),
   ]);
-
-  const m: MaterialTanlovi[] = materiallar.map((x) => ({
-    id: x.id,
-    nom: x.nom,
-    hisobTuri: x.hisob_turi,
-    kirimBirligi: x.kirim_birligi,
-  }));
-
-  const y: YetkazibTanlovi[] = yetkazuvchilar.map((x) => ({
-    id: x.id,
-    nom: x.nom,
-    tolovMuddatiKun: x.tolov_muddati_kun,
-    valyuta: x.valyuta,
-  }));
 
   return (
     <div className="flex flex-col gap-6">
@@ -50,7 +31,11 @@ export default async function YangiKirim() {
         </p>
       </div>
 
-      <KirimFormasi materiallar={m} yetkazuvchilar={y} />
+      <KirimFormasi
+        materiallar={materiallar}
+        yetkazuvchilar={yetkazuvchilar}
+        yetkazibQoshaOladi={yetkazibQoshaOladi}
+      />
     </div>
   );
 }
