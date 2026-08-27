@@ -42,7 +42,7 @@ export default async function MijozRoyxati() {
         {yarataOladi && (
           <Link
             href="/mijoz/yangi"
-            className="rounded-maydon bg-brend px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-brend-quyuq"
+            className="rounded-maydon bg-brend px-3.5 py-2 text-sm font-medium text-white transition-all active:scale-[0.98] hover:bg-brend-quyuq"
           >
             Mijoz qo&apos;shish
           </Link>

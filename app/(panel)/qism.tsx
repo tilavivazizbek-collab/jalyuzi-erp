@@ -38,8 +38,14 @@ export function Sarlavha({ nom, izoh, amal }: { nom: string; izoh?: string; amal
 
 // ─── Tugmalar ─────────────────────────────────────────────────────────────
 
+/**
+ * ⚠️ `active:scale-[0.98]` — bosilgan zahoti tugma ozgina bosiladi.
+ *    Bu javob server javobini KUTMAYDI: odam bosgani darhol
+ *    bilinadi. Masofadagi bazada javob 2–3 soniya kelishi mumkin
+ *    va shu oraliqda hech narsa bo'lmasa odam qayta bosadi.
+ */
 const TUGMA_ASOS =
-  'fokus inline-flex items-center justify-center rounded-maydon text-[13px] font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed';
+  'fokus inline-flex items-center justify-center gap-2 rounded-maydon text-[13px] font-medium transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100';
 
 const TUGMA_OLCHAM = 'px-4 py-2.5';
 
@@ -348,5 +354,37 @@ export function FiltrTugmasi({
     >
       {children}
     </Link>
+  );
+}
+
+// ─── Kutish belgisi ───────────────────────────────────────────────────────
+
+/**
+ * Aylanma belgi — tugma server javobini kutayotganda.
+ *
+ * ⚠️ Matn ham o'zgaradi («Saqlanmoqda…»), lekin belgi HARAKATDA
+ *    bo'lgani muhim: qotib qolgan matn «osilib qoldi» degan
+ *    taassurot beradi, aylanma esa «ishlayapti» deydi.
+ */
+export function Kutmoqda() {
+  return (
+    <svg viewBox="0 0 24 24" width="14" height="14" className="animate-spin" aria-hidden="true">
+      <circle
+        cx="12"
+        cy="12"
+        r="9"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="3"
+        opacity="0.25"
+      />
+      <path
+        d="M21 12a9 9 0 0 0-9-9"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="3"
+        strokeLinecap="round"
+      />
+    </svg>
   );
 }

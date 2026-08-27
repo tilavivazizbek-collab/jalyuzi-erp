@@ -21,7 +21,7 @@ export function TolovFormasi({ kassalar }: { kassalar: readonly AdminKassasi[] }
         onClick={() => {
           ochiqniOzgartir(true);
         }}
-        className="self-start rounded-maydon bg-brend px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-brend-quyuq"
+        className="self-start rounded-maydon bg-brend px-3.5 py-2 text-sm font-medium text-white transition-all active:scale-[0.98] hover:bg-brend-quyuq"
       >
         Qarzni to&apos;lash
       </button>
@@ -91,7 +91,7 @@ export function TolovFormasi({ kassalar }: { kassalar: readonly AdminKassasi[] }
         <button
           type="submit"
           disabled={kutilmoqda}
-          className="rounded-maydon bg-brend px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-brend-quyuq disabled:opacity-60"
+          className="rounded-maydon bg-brend px-3 py-1.5 text-xs font-medium text-white transition-all active:scale-[0.98] hover:bg-brend-quyuq disabled:opacity-60"
         >
           {kutilmoqda ? "To'lanmoqda…" : "To'lash"}
         </button>
@@ -200,7 +200,7 @@ export function TuzatishFormasi({ filiallar }: { filiallar: readonly FilialQator
         <button
           type="submit"
           disabled={kutilmoqda}
-          className="rounded-maydon bg-belgi-sariq px-3 py-1.5 text-xs font-medium text-white transition-colors hover:brightness-95 disabled:opacity-60"
+          className="rounded-maydon bg-belgi-sariq px-3 py-1.5 text-xs font-medium text-white transition-all active:scale-[0.98] hover:brightness-95 disabled:opacity-60"
         >
           {kutilmoqda ? 'Yozilmoqda…' : 'Tuzatish yozish'}
         </button>

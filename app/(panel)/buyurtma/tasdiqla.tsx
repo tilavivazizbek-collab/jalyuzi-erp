@@ -33,7 +33,7 @@ export function TasdiqlashTugmasi({ pozitsiyaId }: { pozitsiyaId: number }) {
       <button
         type="submit"
         disabled={kutilmoqda}
-        className="rounded-maydon bg-brend px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-brend-quyuq disabled:opacity-60"
+        className="rounded-maydon bg-brend px-3 py-1.5 text-xs font-medium text-white transition-all active:scale-[0.98] hover:bg-brend-quyuq disabled:opacity-60"
       >
         {kutilmoqda ? 'Tasdiqlanmoqda…' : 'Tasdiqlash'}
       </button>

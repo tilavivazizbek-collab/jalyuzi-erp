@@ -132,7 +132,7 @@ export function ChiqimFormasi({
         <button
           type="submit"
           disabled={kutilmoqda}
-          className="rounded-maydon bg-belgi-qizil px-4 py-2 text-sm font-medium text-white transition-colors hover:brightness-95 disabled:opacity-60"
+          className="rounded-maydon bg-belgi-qizil px-4 py-2 text-sm font-medium text-white transition-all active:scale-[0.98] hover:brightness-95 disabled:opacity-60"
         >
           {kutilmoqda ? 'Chiqarilmoqda…' : 'Hisobdan chiqarish'}
         </button>

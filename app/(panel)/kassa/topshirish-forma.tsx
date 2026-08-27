@@ -49,7 +49,7 @@ export function TopshirishFormasi({
         onClick={() => {
           ochiqniOzgartir(true);
         }}
-        className="self-start rounded-maydon border border-chegara-quyuq px-3.5 py-2 text-sm text-matn-ikki transition-colors hover:bg-fon"
+        className="self-start rounded-maydon border border-chegara-quyuq px-3.5 py-2 text-sm text-matn-ikki transition-all active:scale-[0.98] hover:bg-fon"
       >
         Pulni topshirish
       </button>
@@ -140,7 +140,7 @@ export function TopshirishFormasi({
         <button
           type="submit"
           disabled={kutilmoqda || nishonId === ''}
-          className="rounded-maydon bg-brend px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-brend-quyuq disabled:opacity-60"
+          className="rounded-maydon bg-brend px-3 py-1.5 text-xs font-medium text-white transition-all active:scale-[0.98] hover:bg-brend-quyuq disabled:opacity-60"
         >
           {kutilmoqda ? 'Yuborilmoqda…' : 'Topshirdim'}
         </button>

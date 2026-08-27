@@ -96,3 +96,40 @@ html {
   border-color: var(--color-brend);
   box-shadow: 0 0 0 3px rgb(37 99 235 / 18%);
 }
+
+/**
+ * Yuqoridagi yuklanish chizig'i — TZ yo'q, foydalanuvchi tajribasi.
+ *
+ * ⚠️ Chiziq 90% da to'xtaydi va oxirigacha bormaydi: sahifa
+ *    kelganda u yo'qoladi. Aks holda «tugadi» deb ko'rsatib, keyin
+ *    yana kutishga majbur qilardi.
+ *
+ * ⚠️ Boshida TEZ, oxiriga borib sekinlashadi — haqiqiy yuklanish
+ *    shunday tuyuladi. Bir tekis harakat «qotib qoldi» degan
+ *    taassurot beradi.
+ */
+@keyframes yuklanish {
+  0% {
+    transform: scaleX(0);
+  }
+  40% {
+    transform: scaleX(0.55);
+  }
+  70% {
+    transform: scaleX(0.8);
+  }
+  100% {
+    transform: scaleX(0.9);
+  }
+}
+
+/**
+ * Harakatni kamaytirishni so'ragan foydalanuvchi uchun — animatsiya
+ * o'chadi, lekin chiziq baribir ko'rinadi.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .animate-\[yuklanish_1\.2s_ease-out_forwards\] {
+    animation: none;
+    transform: scaleX(0.9);
+  }
+}

@@ -79,7 +79,7 @@ export default async function BuyurtmalarRoyxati({
         {sotaOladi && (
           <Link
             href="/sotuv"
-            className="fokus rounded-maydon bg-brend px-4 py-2.5 text-[13px] font-medium text-white transition-colors hover:bg-brend-quyuq"
+            className="fokus rounded-maydon bg-brend px-4 py-2.5 text-[13px] font-medium text-white transition-all active:scale-[0.98] hover:bg-brend-quyuq"
           >
             Yangi buyurtma
           </Link>

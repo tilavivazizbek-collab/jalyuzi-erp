@@ -48,21 +48,21 @@ export default async function OmborQoldigi({
           {barchasiniKoradi && (
             <Link
               href={barchasimi ? '/ombor' : '/ombor?filial=barcha'}
-              className="rounded-maydon border border-chegara-quyuq px-3.5 py-2 text-sm text-matn-ikki transition-colors hover:bg-fon"
+              className="rounded-maydon border border-chegara-quyuq px-3.5 py-2 text-sm text-matn-ikki transition-all active:scale-[0.98] hover:bg-fon"
             >
               {barchasimi ? nomi : 'Barcha filiallar'}
             </Link>
           )}
           <Link
             href="/ombor/kirim"
-            className="rounded-maydon border border-chegara-quyuq px-3.5 py-2 text-sm font-medium text-matn-ikki transition-colors hover:bg-fon"
+            className="rounded-maydon border border-chegara-quyuq px-3.5 py-2 text-sm font-medium text-matn-ikki transition-all active:scale-[0.98] hover:bg-fon"
           >
             Kirim hujjatlari
           </Link>
           {kirimQilaOladi && (
             <Link
               href="/ombor/kirim/yangi"
-              className="rounded-maydon bg-brend px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-brend-quyuq"
+              className="rounded-maydon bg-brend px-3.5 py-2 text-sm font-medium text-white transition-all active:scale-[0.98] hover:bg-brend-quyuq"
             >
               Yangi kirim
             </Link>

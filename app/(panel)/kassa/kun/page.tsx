@@ -56,7 +56,7 @@ export default async function KunYopishSahifasi({
         </label>
         <button
           type="submit"
-          className="rounded-maydon border border-chegara-quyuq px-3.5 py-2 text-sm text-matn-ikki transition-colors hover:bg-fon"
+          className="rounded-maydon border border-chegara-quyuq px-3.5 py-2 text-sm text-matn-ikki transition-all active:scale-[0.98] hover:bg-fon"
         >
           Ko&apos;rsatish
         </button>

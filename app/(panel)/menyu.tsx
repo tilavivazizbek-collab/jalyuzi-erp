@@ -1,7 +1,7 @@
 'use client';
 
-import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { MenyuHavolasi } from './yuklanish';
 import { useState } from 'react';
 
 export interface MenyuBandi {
@@ -95,27 +95,16 @@ export function Menyu({ guruhlar }: { guruhlar: readonly MenyuGuruhi[] }) {
               {g.bandlar.map((b) => {
                 const faol = eng === b.yol && eng !== '';
                 return (
-                  <Link
+                  <MenyuHavolasi
                     key={b.yol}
                     href={b.yol}
+                    faol={faol}
                     onClick={() => {
                       ochiqniOzgartir(false);
                     }}
-                    aria-current={faol ? 'page' : undefined}
-                    /*
-                     * ⚠️ Faol band TO'LDIRILGAN brend rangida —
-                     *    xodim qayerdaligini bir qarashda ko'radi.
-                     *    Ilgari faqat och fon edi va ko'zga
-                     *    urilmasdi.
-                     */
-                    className={`rounded-maydon px-2.5 py-[7px] text-[13px] transition-colors ${
-                      faol
-                        ? 'bg-brend font-medium text-white'
-                        : 'text-matn-ikki hover:bg-brend-fon hover:text-brend'
-                    }`}
                   >
                     {b.nom}
-                  </Link>
+                  </MenyuHavolasi>
                 );
               })}
             </div>

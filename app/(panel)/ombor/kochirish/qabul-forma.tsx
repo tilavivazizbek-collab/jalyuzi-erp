@@ -145,7 +145,7 @@ export function QabulFormasi({
       <button
         type="submit"
         disabled={kutilmoqda}
-        className="self-start rounded-maydon bg-belgi-yashil px-3.5 py-2 text-sm font-medium text-white transition-colors hover:brightness-95 disabled:opacity-60"
+        className="self-start rounded-maydon bg-belgi-yashil px-3.5 py-2 text-sm font-medium text-white transition-all active:scale-[0.98] hover:brightness-95 disabled:opacity-60"
       >
         {kutilmoqda ? 'Qabul qilinmoqda…' : 'Qabul qilish'}
       </button>
@@ -199,7 +199,7 @@ export function BekorFormasi({ kochirishId }: { kochirishId: number }) {
         <button
           type="submit"
           disabled={kutilmoqda}
-          className="rounded-maydon bg-belgi-qizil px-3 py-1.5 text-xs font-medium text-white transition-colors hover:brightness-95 disabled:opacity-60"
+          className="rounded-maydon bg-belgi-qizil px-3 py-1.5 text-xs font-medium text-white transition-all active:scale-[0.98] hover:brightness-95 disabled:opacity-60"
         >
           {kutilmoqda ? 'Bekor qilinmoqda…' : 'Bekor qilish'}
         </button>

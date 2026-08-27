@@ -59,7 +59,7 @@ export function BekorTugmasi({ pozitsiyaId }: { pozitsiyaId: number }) {
         <button
           type="submit"
           disabled={kutilmoqda}
-          className="rounded-maydon bg-belgi-qizil px-3 py-1.5 text-xs font-medium text-white transition-colors hover:brightness-95 disabled:opacity-60"
+          className="rounded-maydon bg-belgi-qizil px-3 py-1.5 text-xs font-medium text-white transition-all active:scale-[0.98] hover:brightness-95 disabled:opacity-60"
         >
           {kutilmoqda ? 'Bekor qilinmoqda…' : 'Ha, bekor qilinsin'}
         </button>
@@ -140,7 +140,7 @@ export function QaytaribOlishTugmasi({
         <button
           type="submit"
           disabled={kutilmoqda}
-          className="rounded-maydon bg-brend px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-brend-quyuq disabled:opacity-60"
+          className="rounded-maydon bg-brend px-3 py-1.5 text-xs font-medium text-white transition-all active:scale-[0.98] hover:bg-brend-quyuq disabled:opacity-60"
         >
           {kutilmoqda ? 'Qaytarilmoqda…' : 'Navbatga qaytarish'}
         </button>

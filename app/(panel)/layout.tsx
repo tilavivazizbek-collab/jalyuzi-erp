@@ -115,7 +115,7 @@ export default async function PanelQatlami({ children }: { children: ReactNode }
               <form action={chiqishAmali}>
                 <button
                   type="submit"
-                  className="fokus rounded-[6px] px-2.5 py-1.5 text-[13px] text-matn-ikki transition-colors hover:bg-fon hover:text-matn"
+                  className="fokus rounded-[6px] px-2.5 py-1.5 text-[13px] text-matn-ikki transition-all active:scale-[0.98] hover:bg-fon hover:text-matn"
                 >
                   Chiqish
                 </button>

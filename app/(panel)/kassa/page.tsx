@@ -78,13 +78,13 @@ export default async function KassaSahifasi() {
         <div className="flex items-center gap-2">
           <Link
             href="/kassa/amallar-sahifa"
-            className="rounded-maydon border border-chegara-quyuq px-3.5 py-2 text-sm text-matn-ikki transition-colors hover:bg-fon"
+            className="rounded-maydon border border-chegara-quyuq px-3.5 py-2 text-sm text-matn-ikki transition-all active:scale-[0.98] hover:bg-fon"
           >
             Amallar
           </Link>
           <Link
             href="/kassa/kun"
-            className="rounded-maydon bg-brend px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-brend-quyuq"
+            className="rounded-maydon bg-brend px-3.5 py-2 text-sm font-medium text-white transition-all active:scale-[0.98] hover:bg-brend-quyuq"
           >
             Kun yopish
           </Link>

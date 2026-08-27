@@ -136,7 +136,7 @@ export function QarzTolashFormasi({
       <button
         type="submit"
         disabled={kutilmoqda || mos.length === 0}
-        className="self-start rounded-maydon bg-brend px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brend-quyuq disabled:opacity-50"
+        className="self-start rounded-maydon bg-brend px-4 py-2 text-sm font-medium text-white transition-all active:scale-[0.98] hover:bg-brend-quyuq disabled:opacity-50"
       >
         {kutilmoqda ? 'Saqlanmoqda…' : "To'lovni qabul qilish"}
       </button>

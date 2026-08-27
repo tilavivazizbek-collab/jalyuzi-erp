@@ -80,7 +80,7 @@ export function HalQilishFormasi({ sorovId, sabab }: { sorovId: number; sabab: s
           name="qaror"
           value="TASDIQ"
           disabled={kutilmoqda}
-          className="rounded-maydon bg-brend px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brend-quyuq disabled:opacity-60"
+          className="rounded-maydon bg-brend px-4 py-2 text-sm font-medium text-white transition-all active:scale-[0.98] hover:bg-brend-quyuq disabled:opacity-60"
         >
           Tasdiqlash — material qayta yechilsin
         </button>
@@ -89,7 +89,7 @@ export function HalQilishFormasi({ sorovId, sabab }: { sorovId: number; sabab: s
           name="qaror"
           value="RAD"
           disabled={kutilmoqda}
-          className="rounded-maydon border border-chegara-quyuq px-4 py-2 text-sm text-matn-ikki transition-colors hover:bg-fon disabled:opacity-60"
+          className="rounded-maydon border border-chegara-quyuq px-4 py-2 text-sm text-matn-ikki transition-all active:scale-[0.98] hover:bg-fon disabled:opacity-60"
         >
           Rad etish
         </button>

@@ -95,7 +95,7 @@ export default async function MaterialKartochkasi({ params }: { params: Promise<
         {boshlangichQilaOladi && bolaklar.length === 0 && (
           <Link
             href={`/ombor/boshlangich/${String(materialId)}`}
-            className="mt-3 inline-block rounded-maydon border border-chegara-quyuq px-3 py-1.5 text-sm text-matn-ikki transition-colors hover:bg-fon"
+            className="mt-3 inline-block rounded-maydon border border-chegara-quyuq px-3 py-1.5 text-sm text-matn-ikki transition-all active:scale-[0.98] hover:bg-fon"
           >
             Boshlang&apos;ich qoldiq kiritish
           </Link>

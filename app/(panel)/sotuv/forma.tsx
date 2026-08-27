@@ -689,7 +689,7 @@ export function SotuvFormasi({
                 type="button"
                 disabled={!savatgaQoshilsinmi}
                 onClick={savatgaQosh}
-                className="rounded-maydon bg-brend px-4 py-2.5 text-[13px] font-medium text-white transition-colors hover:bg-brend-quyuq disabled:opacity-50"
+                className="rounded-maydon bg-brend px-4 py-2.5 text-[13px] font-medium text-white transition-all active:scale-[0.98] hover:bg-brend-quyuq disabled:opacity-50"
               >
                 Savatga qo&apos;shish
               </button>
@@ -826,7 +826,7 @@ export function SotuvFormasi({
           <button
             type="submit"
             disabled={kutilmoqda || savat.length === 0}
-            className="fokus w-full rounded-maydon bg-brend px-5 py-3 text-[14px] font-medium text-white transition-colors hover:bg-brend-quyuq disabled:opacity-50"
+            className="fokus w-full rounded-maydon bg-brend px-5 py-3 text-[14px] font-medium text-white transition-all active:scale-[0.98] hover:bg-brend-quyuq disabled:opacity-50"
           >
             {kutilmoqda ? 'Saqlanmoqda…' : 'Buyurtmani saqlash'}
           </button>

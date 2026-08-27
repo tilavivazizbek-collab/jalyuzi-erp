@@ -140,7 +140,7 @@ export function JonatishFormasi({
       <button
         type="submit"
         disabled={kutilmoqda || tanlangan.length === 0}
-        className="self-start rounded-maydon bg-brend px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-brend-quyuq disabled:opacity-60"
+        className="self-start rounded-maydon bg-brend px-3.5 py-2 text-sm font-medium text-white transition-all active:scale-[0.98] hover:bg-brend-quyuq disabled:opacity-60"
       >
         {kutilmoqda ? "Jo'natilmoqda…" : `Jo'natish (${String(tanlangan.length)} bo'lak)`}
       </button>
