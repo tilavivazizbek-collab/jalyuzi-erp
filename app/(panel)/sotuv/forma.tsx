@@ -18,8 +18,8 @@
 import { useActionState, useMemo, useState, useTransition } from 'react';
 import { sarflashHisobla, standartQiymatlar } from '@/lib/domain/formula';
 import { sm, type SarflashBirligi } from '@/lib/domain/birlik';
-import { nolSom, pulKorsat, pulMatn, qosh, som, type Som } from '@/lib/domain/pul';
-import { aksessuarNarxi, matoNarxi, qatorSummasi } from '@/lib/domain/narx';
+import { kurs, nolSom, pulKorsat, pulMatn, qosh, som, type Som } from '@/lib/domain/pul';
+import { aksessuarNarxi, katalogNarxi, matoNarxi, qatorSummasi } from '@/lib/domain/narx';
 import { pozitsiyaNarxiniHisobla } from '@/lib/domain/pozitsiya-narxi';
 import { mijozOffseti } from '@/lib/domain/mijoz';
 import { biznesXatosimi } from '@/lib/xato';
@@ -87,6 +87,7 @@ export function SotuvFormasi({
   filiallar,
   ozFilialId,
   mijozQoshaOladi,
+  joriyKurs,
 }: {
   /** Faqat nom va raqam — yengil ro'yxat (3.2) */
   turlar: readonly { id: number; nom: string }[];
@@ -95,8 +96,24 @@ export function SotuvFormasi({
   filiallar: readonly { id: number; nom: string; bosh: boolean }[];
   ozFilialId: number;
   mijozQoshaOladi: boolean;
+  /**
+   * ⚠️ Dollardagi material narxini so'mga o'girish uchun (5.4).
+   *    Kurs kiritilmagan bo'lsa `null` — u holda dollardagi mato
+   *    tanlanganda tushunarli xato chiqadi.
+   */
+  joriyKurs: string | null;
 }) {
   const [holat, yubor, kutilmoqda] = useActionState(buyurtmaYaratAmali, BOSH_HOLAT);
+
+  /**
+   * ⚠️ Kurs `Kurs` turiga o'raladi — `ogir()` faqat shuni qabul
+   *    qiladi (§3.2). `JORIY` manbasi: bu bugungi kurs, yozuvga
+   *    qotgan snapshot emas.
+   */
+  const kursObyekti = useMemo(
+    () => (joriyKurs === null || joriyKurs.trim() === '' ? null : kurs(joriyKurs, new Date(), 'JORIY')),
+    [joriyKurs],
+  );
 
   const [turId, turniOzgartir] = useState<number | null>(turlar[0]?.id ?? null);
 
@@ -165,10 +182,12 @@ export function SotuvFormasi({
           ? null
           : pulMatn(
               matoNarxi({
-                standart: som(material.narx),
+                standart:
+                  katalogNarxi(material.narx, material.narxValyuta, kursObyekti) ??
+                  som(material.narx),
                 filialNarxi: null,
                 offset,
-                kurs: null,
+                kurs: kursObyekti,
               }),
             );
 
@@ -195,11 +214,13 @@ export function SotuvFormasi({
                     formula: s.formula,
                     sarflashBirligi: birlik,
                     narx: material?.narx ?? null,
+                    narxValyuta: material?.narxValyuta,
                     tuzatilganMiqdor: tuzatilgan,
                   },
                 ],
                 aksessuarlar: [],
                 offset,
+                kurs: kursObyekti,
                 xizmatHaqi: null,
               }).jami,
             );
@@ -254,7 +275,13 @@ export function SotuvFormasi({
         const soni = t?.qoldaKiritildi === true ? (son(t.soni) ?? 0) : hisoblangan;
 
         // ⚠️ TZ 6.3 — «Offset FAQAT MATOGA qo'llanadi, AKSESSUARGA TEGMAYDI.»
-        const narx = a.narx === null ? null : aksessuarNarxi(som(a.narx), null);
+        const narx =
+          a.narx === null
+            ? null
+            : aksessuarNarxi(
+                katalogNarxi(a.narx, a.narxValyuta, kursObyekti) ?? som(a.narx),
+                null,
+              );
 
         const summa =
           narx === null
@@ -350,7 +377,13 @@ export function SotuvFormasi({
     mijozId: mijoz?.id ?? null,
     ishlabChiqaruvchiFilialId: tikuvchi,
     valyuta: 'SOM' as const,
-    kursSnapshot: null,
+    /**
+     * ⚠️ Buyurtma so'mda bo'lsa ham kurs YOZILADI — dollardagi
+     *    material narxi shu kursda so'mga o'girilgan. Yozilmasa,
+     *    keyin «bu narx qayerdan chiqqan» degan savolga javob
+     *    topilmasdi (2.3-invariant: o'tmish o'zgarmaydi).
+     */
+    kursSnapshot: joriyKurs,
     tayyorlikSana: tayyorlik === '' ? null : tayyorlik,
     qarzgaKetadimi: false,
     pozitsiyalar: savat.map((q) => q.yuk),

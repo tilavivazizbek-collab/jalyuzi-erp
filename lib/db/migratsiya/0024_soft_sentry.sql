@@ -1,0 +1,2 @@
+ALTER TABLE "material_filial_narx" ADD COLUMN "valyuta" text DEFAULT 'SOM' NOT NULL;--> statement-breakpoint
+ALTER TABLE "material_filial_narx" ADD CONSTRAINT "material_filial_narx_valyuta" CHECK ("material_filial_narx"."valyuta" IN ('SOM','USD'));

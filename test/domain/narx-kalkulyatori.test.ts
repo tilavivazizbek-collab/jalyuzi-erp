@@ -12,6 +12,9 @@ import {
   saqlanadiganNarx,
   ustamaFoizi,
 } from '@/lib/domain/narx-kalkulyatori';
+import { katalogNarxi } from '@/lib/domain/narx';
+import { kurs, pulMatn, type Som } from '@/lib/domain/pul';
+import { BiznesXato } from '@/lib/xato';
 
 describe('hamrohQiymat — $ dan so\'mga', () => {
   it('12 $ × 12 800 = 153 600 so\'m', () => {
@@ -170,5 +173,45 @@ describe('saqlanadiganNarx — bazaga qaysi raqam boradi', () => {
   it("ikkala raqam hech qachon birga saqlanmaydi (1.3-invariant)", () => {
     const s = saqlanadiganNarx(j, 'USD', false);
     expect(Object.keys(s)).toEqual(['narx', 'valyuta']);
+  });
+});
+
+describe("katalogNarxi — dollardagi material narxi (5.4 · 1.3-invariant)", () => {
+  const k = kurs('12800', new Date('2026-08-27'), 'JORIY');
+
+  it("so'mdagi narx o'zgarishsiz qoladi", () => {
+    expect(pulMatn(katalogNarxi('120000', 'SOM', k) as Som)).toBe('120000.00');
+  });
+
+  it('dollardagi narx kursga uriladi', () => {
+    // 12 $ × 12 800 = 153 600 so'm
+    expect(pulMatn(katalogNarxi('12', 'USD', k) as Som)).toBe('153600.00');
+  });
+
+  it("narx yo'q bo'lsa null — mato tanlanmagan holat", () => {
+    expect(katalogNarxi(null, 'USD', k)).toBeNull();
+  });
+
+  it("so'mdagi narx uchun kurs KERAK EMAS", () => {
+    expect(pulMatn(katalogNarxi('120000', 'SOM', null) as Som)).toBe('120000.00');
+  });
+
+  /**
+   * ⚠️ ENG MUHIM TEKSHIRUV. Ilgari valyuta umuman o'qilmasdi va
+   *    12 $ narx sotuvda 12 SO'M bo'lib chiqardi. Endi kurssiz
+   *    dollarli narx JIMGINA qabul qilinmaydi — xato otiladi.
+   */
+  it('dollardagi narx uchun kurs bo‘lmasa XATO otiladi', () => {
+    expect(() => katalogNarxi('12', 'USD', null)).toThrow(BiznesXato);
+  });
+
+  it("kurssiz dollar narxi hech qachon so'm deb qabul qilinmaydi", () => {
+    let natija: unknown = 'otilmadi';
+    try {
+      natija = katalogNarxi('12', 'USD', null);
+    } catch {
+      natija = 'otildi';
+    }
+    expect(natija).toBe('otildi');
   });
 });

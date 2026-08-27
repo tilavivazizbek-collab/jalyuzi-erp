@@ -43,7 +43,8 @@ import { pozitsiyaNarxiniHisobla } from '@/lib/domain/pozitsiya-narxi';
 import { mijozOffseti } from '@/lib/domain/mijoz';
 import type { SarflashBirligi } from '@/lib/domain/birlik';
 import { kesimOlchami } from '@/lib/domain/kesish';
-import { pulKorsat, som } from '@/lib/domain/pul';
+import { kurs, pulKorsat, som, type Kurs } from '@/lib/domain/pul';
+import { joriyKurs } from '@/lib/amal/kurs';
 import { MATN, TAKROR } from './matn';
 import { xavfsiz, type BotKontekst } from './yordamchi';
 import { mijozMenyusi } from './mijoz';
@@ -73,6 +74,12 @@ interface MijozKonteksti {
   readonly filialId: number;
   readonly tikuvchiFilialId: number;
   readonly offset: ReturnType<typeof mijozOffseti>;
+  /**
+   * ⚠️ 5.4 — dollardagi material narxi so'mga SHU kurs bilan
+   *    o'giriladi. Botda ham, saytda ham bir xil bo'lishi shart:
+   *    aks holda mijoz «botda boshqacha yozgan edi» derdi.
+   */
+  readonly kurs: Kurs | null;
 }
 
 /**
@@ -99,6 +106,8 @@ async function mijozKontekstiOl(mijozId: number): Promise<MijozKonteksti | null>
   >`
     SELECT offset_turi, offset_qiymat FROM mijoz WHERE id = ${mijozId}`;
 
+  const k = await joriyKurs(sql);
+
   return {
     mijozId,
     filialId: filial.id,
@@ -109,6 +118,7 @@ async function mijozKontekstiOl(mijozId: number): Promise<MijozKonteksti | null>
       offsetTuri: m[0]?.offset_turi ?? null,
       offsetQiymat: m[0]?.offset_qiymat ?? null,
     }),
+    kurs: k === null ? null : kurs(k, new Date(), 'JORIY'),
   };
 }
 
@@ -122,6 +132,8 @@ function pozitsiyaHisobi(
   p: PozitsiyaQoralama,
   tur: SotuvTuri,
   offset: MijozKonteksti['offset'],
+  /** 5.4 — dollardagi material narxini so'mga o'girish uchun */
+  kurs: Kurs | null = null,
 ) {
   const slotlar = p.slotlar.map((s) => {
     const slot = tur.slotlar.find((x) => x.id === s.slotId);
@@ -131,6 +143,7 @@ function pozitsiyaHisobi(
       formula: slot?.formula ?? '0',
       sarflashBirligi: (material?.sarflashBirligi ?? 'KV_M') as SarflashBirligi,
       narx: material?.narx ?? null,
+      narxValyuta: material?.narxValyuta,
     };
   });
 
@@ -142,6 +155,7 @@ function pozitsiyaHisobi(
       formula: a.formula,
       sarflashBirligi: a.sarflashBirligi as SarflashBirligi,
       narx: a.narx,
+      narxValyuta: a.narxValyuta,
       majburiy: a.majburiy,
     }));
 
@@ -159,6 +173,7 @@ function pozitsiyaHisobi(
     slotlar,
     aksessuarlar,
     offset,
+    kurs,
     xizmatHaqi: tur.xizmatHaqi,
   });
 }
@@ -168,8 +183,9 @@ function pozitsiyaNarxi(
   p: PozitsiyaQoralama,
   tur: SotuvTuri,
   offset: MijozKonteksti['offset'],
+  joriyKursi: Kurs | null,
 ): string {
-  return pozitsiyaHisobi(p, tur, offset).jami;
+  return pozitsiyaHisobi(p, tur, offset, joriyKursi).jami;
 }
 
 // ─── Qadamni ko'rsatish ───────────────────────────────────────────────────
@@ -341,7 +357,8 @@ async function savatniKorsat(
 
   toliq.savat.forEach((p, i) => {
     const tur = turlar.find((t) => t.id === p.mahsulotTurId);
-    const narx = tur === undefined ? '0' : pozitsiyaNarxi(p, tur, kontekst.offset);
+    const narx =
+      tur === undefined ? '0' : pozitsiyaNarxi(p, tur, kontekst.offset, kontekst.kurs);
     jami += Number(narx);
 
     qatorlar.push(
@@ -398,7 +415,7 @@ export async function savatniYubor(
     const hisob =
       tur === undefined
         ? null
-        : pozitsiyaHisobi(p, tur, kontekst.offset);
+        : pozitsiyaHisobi(p, tur, kontekst.offset, kontekst.kurs);
 
     /**
      * ⚠️ Narx qatorlari va buyurtma kirimi AYNI hisobdan quriladi.
@@ -485,7 +502,8 @@ export async function savatniYubor(
         ishlabChiqaruvchiFilialId: kontekst.tikuvchiFilialId,
         manba: 'BOT',
         valyuta: 'SOM',
-        kursSnapshot: null,
+        // Saytdagi kabi: narx qaysi kursda hisoblangani yozib qo'yiladi
+        kursSnapshot: kontekst.kurs === null ? null : kontekst.kurs.qiymat.toFixed(2),
         tayyorlikSana: null,
         qarzgaKetadimi: true,
         pozitsiyalar,

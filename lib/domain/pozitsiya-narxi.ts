@@ -13,9 +13,10 @@
  */
 
 import { sm, type SarflashBirligi } from './birlik';
-import { nolSom, pulMatn, som, type Som } from './pul';
+import { nolSom, pulMatn, som, type Kurs, type Som } from './pul';
 import {
   aksessuarNarxi,
+  katalogNarxi,
   matoNarxi,
   pozitsiyaNarxi,
   qatorSummasi,
@@ -29,6 +30,8 @@ export interface SlotKirishi {
   readonly sarflashBirligi: SarflashBirligi;
   /** Tanlangan matoning STANDART narxi; tanlanmagan bo'lsa `null` */
   readonly narx: string | null;
+  /** `USD` bo'lsa narx kursga uriladi (5.4) */
+  readonly narxValyuta?: string;
   /** TZ 3.6 — sotuvchi tuzatgan miqdor; narx SHUNGA tayanadi */
   readonly tuzatilganMiqdor?: number | null;
 }
@@ -38,6 +41,7 @@ export interface AksessuarKirishi {
   readonly formula: string;
   readonly sarflashBirligi: SarflashBirligi;
   readonly narx: string | null;
+  readonly narxValyuta?: string;
   readonly majburiy: boolean;
   /** TZ 3.7 — qo'lda kiritilgan son formulani USTIDAN YOZMAYDI */
   readonly qoldaSoni?: number | null;
@@ -52,6 +56,13 @@ export interface NarxKirishi {
   readonly aksessuarlar: readonly AksessuarKirishi[];
   /** TZ 6.3 — offset FAQAT matoga, aksessuarga tegmaydi */
   readonly offset: Offset | null;
+  /**
+   * ⚠️ Dollardagi material narxini so'mga o'girish uchun.
+   *    Barcha narx so'm bo'lsa kerak emas — `null` bo'laveradi.
+   *    Dollarli narx uchun kurs bo'lmasa xato otiladi: jimgina
+   *    so'm deb hisoblash narxni ming barobar kamaytirardi.
+   */
+  readonly kurs?: Kurs | null;
   readonly xizmatHaqi: string | null;
 }
 
@@ -114,7 +125,7 @@ export function pozitsiyaNarxiniHisobla(k: NarxKirishi): NarxNatijasi {
     }
 
     const birlikNarxi = matoNarxi({
-      standart: som(s.narx),
+      standart: katalogNarxi(s.narx, s.narxValyuta ?? 'SOM', k.kurs ?? null) ?? som(s.narx),
       // Filial narxi SQL da hal qilingan (`COALESCE`) — 20.9
       filialNarxi: null,
       offset: k.offset,
@@ -155,7 +166,10 @@ export function pozitsiyaNarxiniHisobla(k: NarxKirishi): NarxNatijasi {
     }
 
     // ⚠️ 6.3 — offset BERILMAYDI
-    const birlikNarxi = aksessuarNarxi(som(a.narx), null);
+    const birlikNarxi = aksessuarNarxi(
+      katalogNarxi(a.narx, a.narxValyuta ?? 'SOM', k.kurs ?? null) ?? som(a.narx),
+      null,
+    );
 
     return {
       nom: a.nom,

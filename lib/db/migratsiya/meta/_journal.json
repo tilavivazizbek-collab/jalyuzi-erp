@@ -169,6 +169,13 @@
       "when": 1787812960303,
       "tag": "0023_tidy_korvac",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1787842607305,
+      "tag": "0024_soft_sentry",
+      "breakpoints": true
     }
   ]
 }

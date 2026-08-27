@@ -168,11 +168,24 @@ export const materialFilialNarx = pgTable(
       .notNull()
       .references(() => filial.id),
     sotuvNarx: numeric('sotuv_narx', { precision: 14, scale: 2 }).notNull(),
+
+    /**
+     * ⚠️ Filial narxi ham dollarda bo'lishi mumkin — chet mato
+     *    filialda ham dollarda yuritiladi.
+     *
+     *    Ilgari bu ustun yo'q edi va filial narxi DOIM so'm deb
+     *    qabul qilinardi. Material dollarda, filial narxi esa
+     *    so'mda bo'lsa — ikkalasi jimgina aralashib ketardi
+     *    (1.3-invariant buzilishi).
+     */
+    valyuta: text('valyuta').notNull().default('SOM'),
+
     ...izlar,
   },
   (t) => [
     uniqueIndex('material_filial_narx_bitta').on(t.materialId, t.filialId),
     check('material_filial_narx_manfiy_emas', sql`${t.sotuvNarx} >= 0`),
+    check('material_filial_narx_valyuta', sql`${t.valyuta} IN ('SOM','USD')`),
   ],
 );
 

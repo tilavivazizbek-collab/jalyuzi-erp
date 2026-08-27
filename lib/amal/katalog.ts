@@ -24,6 +24,12 @@ export interface SotuvMaterial {
   readonly nom: string;
   readonly sarflashBirligi: string;
   readonly narx: string | null;
+  /**
+   * ⚠️ Narx dollarda ham bo'lishi mumkin. Uni so'mga o'girmasdan
+   *    ishlatish — narxni ming barobar kamaytirish demak.
+   *    `katalogNarxi()` orqali o'tkaziladi.
+   */
+  readonly narxValyuta: string;
   /** Q-25 — shu filialdagi bo'sh qoldiq (3.3: «har mato yonida qoldiq») */
   readonly boshKvM: number;
   readonly boshDona: number;
@@ -51,6 +57,8 @@ export interface SotuvAksessuar {
   readonly formula: string;
   readonly majburiy: boolean;
   readonly narx: string | null;
+  /** Materialdagi kabi — dollarda bo'lishi mumkin */
+  readonly narxValyuta: string;
 }
 
 export interface SotuvTuri {
@@ -151,11 +159,13 @@ export async function sotuvTurlari(
       formula: string;
       majburiy: boolean;
       narx: string | null;
+      narx_valyuta: string;
     }[]
   >`
     SELECT ma.mahsulot_tur_id, ma.material_id, m.nom, m.sarflash_birligi,
            ma.formula, ma.majburiy,
-           COALESCE(fn.sotuv_narx::text, m.sotuv_narx::text) AS narx
+           COALESCE(fn.sotuv_narx::text, m.sotuv_narx::text) AS narx,
+           COALESCE(fn.valyuta, m.sotuv_valyuta) AS narx_valyuta
     FROM mahsulot_aksessuar ma
     JOIN material m ON m.id = ma.material_id
     LEFT JOIN material_filial_narx fn
@@ -200,10 +210,17 @@ export async function sotuvTurlari(
       sarflash_birligi: string;
       almashtirish_guruh_id: number | null;
       narx: string | null;
+      narx_valyuta: string;
     }[]
   >`
     SELECT m.id, m.nom, m.sarflash_birligi, m.almashtirish_guruh_id,
-           COALESCE(fn.sotuv_narx::text, m.sotuv_narx::text) AS narx
+           COALESCE(fn.sotuv_narx::text, m.sotuv_narx::text) AS narx,
+           /*
+            * ⚠️ Valyuta narx bilan BIRGA olinadi. Filial narxi
+            *   qo'yilgan bo'lsa uning valyutasi ishlaydi — aks holda
+            *   dollardagi filial narxi so'm deb hisoblanardi.
+            */
+           COALESCE(fn.valyuta, m.sotuv_valyuta) AS narx_valyuta
     FROM material m
     LEFT JOIN material_filial_narx fn
            ON fn.material_id = m.id AND fn.filial_id = ${filialId}
@@ -220,6 +237,7 @@ export async function sotuvTurlari(
       nom: m.nom,
       sarflashBirligi: m.sarflash_birligi,
       narx: m.narx,
+      narxValyuta: m.narx_valyuta,
       boshKvM: q?.kvM ?? 0,
       boshDona: q?.dona ?? 0,
     };
@@ -258,6 +276,7 @@ export async function sotuvTurlari(
         formula: a.formula,
         majburiy: a.majburiy,
         narx: a.narx,
+        narxValyuta: a.narx_valyuta,
       })),
   }));
 }

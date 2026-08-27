@@ -9,6 +9,7 @@
 
 import {
   ayir,
+  dollar,
   kopaytir,
   manfiy,
   musbatmi,
@@ -17,6 +18,7 @@ import {
   nolmi,
   ogir,
   qosh,
+  som,
   yaxlitlaNarx,
   type Dollar,
   type Kurs,
@@ -220,4 +222,39 @@ export function ustamaChegarasi(materialChegarasi: number | null, standart: numb
 
 export function ustamaPastmi(sotuv: Som, tannarx: Som, chegaraFoiz: number): boolean {
   return ustamaFoizi(sotuv, tannarx) < chegaraFoiz;
+}
+
+// ─── Katalog narxining valyutasi — TZ 5.4 · 9.6 · 1.3-invariant ──────────
+
+/**
+ * Material kartochkasidagi narxni SO'MGA keltiradi.
+ *
+ * ⚠️ NEGA KERAK
+ *
+ * Material narxi dollarda ham yozilishi mumkin (chet mato). Bazada
+ * raqam va valyuta yonma-yon turadi, lekin sotuv hisobi FAQAT
+ * so'mda yuradi. Ilgari valyuta ustuni umuman o'qilmasdi: 12 $
+ * narx sotuvda 12 SO'M bo'lib chiqardi.
+ *
+ * ⚠️ Kurs PARAMETR bo'lib keladi (§3.2) va o'girish faqat
+ *    `ogir(summa, kurs)` orqali bo'ladi. Bu yerda bazaga ham,
+ *    bugungi kunga ham murojaat yo'q.
+ *
+ * ⚠️ Dollarli narx uchun kurs bo'lmasa XATO OTILADI. Jimgina
+ *    raqamni so'm deb qabul qilish — narxni ming barobar
+ *    kamaytirish demak. Sotuvchi xatoni ko'rib kursni kiritgani
+ *    ancha yaxshi.
+ */
+export function katalogNarxi(
+  narx: string | null,
+  valyuta: string,
+  k: Kurs | null,
+): Som | null {
+  if (narx === null) return null;
+  if (valyuta !== 'USD') return som(narx);
+
+  if (k === null) {
+    throw new BiznesXato('KURS_KERAK', 'dollardagi material narxi uchun kurs kerak');
+  }
+  return ogir(dollar(narx), k);
 }

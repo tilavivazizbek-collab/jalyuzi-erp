@@ -66,8 +66,11 @@ export async function filialNarxiBelgila(
   }
 
   return ulanish.begin(async (tx) => {
-    const material = await tx<{ nom: string; sotuv_narx: string | null }[]>`
-      SELECT nom, sotuv_narx::text FROM material WHERE id = ${kirim.materialId}`;
+    const material = await tx<
+      { nom: string; sotuv_narx: string | null; sotuv_valyuta: string }[]
+    >`
+      SELECT nom, sotuv_narx::text, sotuv_valyuta
+      FROM material WHERE id = ${kirim.materialId}`;
     if (material[0] === undefined) {
       throw new BiznesXato('MATERIAL_TOPILMADI', String(kirim.materialId));
     }
@@ -98,10 +101,19 @@ export async function filialNarxiBelgila(
         WHERE material_id = ${kirim.materialId} AND filial_id = ${kirim.filialId}`;
     } else {
       await tx`
-        INSERT INTO material_filial_narx (material_id, filial_id, sotuv_narx, yaratdi_id)
-        VALUES (${kirim.materialId}, ${kirim.filialId}, ${kirim.narx}, ${xodimId})
+        /*
+         * ⚠️ Valyuta MATERIALDAN meros olinadi. Q-28: filial narxni
+         *   o'zgartira oladi, lekin VALYUTANI emas — chet mato
+         *   filialda birdan so'mga aylanib qolmasligi kerak.
+         *   Aks holda ikkalasi aralashib ketardi (1.3-invariant).
+         */
+        INSERT INTO material_filial_narx (material_id, filial_id, sotuv_narx,
+                                          valyuta, yaratdi_id)
+        VALUES (${kirim.materialId}, ${kirim.filialId}, ${kirim.narx},
+                ${material[0]?.sotuv_valyuta ?? 'SOM'}, ${xodimId})
         ON CONFLICT (material_id, filial_id)
         DO UPDATE SET sotuv_narx = EXCLUDED.sotuv_narx,
+                      valyuta = EXCLUDED.valyuta,
                       ozgartirildi = now(), ozgartirdi_id = ${xodimId}`;
     }
 
