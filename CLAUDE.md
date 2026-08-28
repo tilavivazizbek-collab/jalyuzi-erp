@@ -65,6 +65,12 @@ qoida olishdan oldin qarorlar ro'yxatini tekshir.
 - Kv.m **kiritilmaydi** — `eni × bo'yi` dan hisoblanadi
 
 ### Baza
+- **Migratsiya yaratilgach DARHOL qo'llanadi va tekshiriladi.**
+  `db:generate` dan keyin `db:migrate`, so'ng ustun bazada
+  paydo bo'lganini ko'rish. ⚠️ 2026-08-28: 0026 generatsiya
+  qilindi, qo'llanmadi — deploydan keyin butun sayt yiqildi
+  («column rasm does not exist»). `typecheck`, `lint`, `test`
+  va `build` — hech biri buni ko'rmaydi
 - `DELETE` yo'q — `faol = false` · `ON DELETE CASCADE` yo'q
 - `FLOAT` / `REAL` / `ENUM` yo'q
 - Harakat jadvallarida `UPDATE` yo'q — storno yozuvi
