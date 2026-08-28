@@ -141,6 +141,16 @@ export function FilialFormasi({
             </option>
           ))}
         </select>
+
+          {/* Xodimlarni boshqarish — yangi oynada */}
+          <a
+            href="/xodim"
+            target="_blank"
+            rel="noopener"
+            className="fokus mt-1 self-start rounded-maydon px-1 text-[12px] text-matn-kuchsiz transition-colors hover:text-matn hover:underline"
+          >
+            Xodimlar ↗
+          </a>
       </Maydon>
 
       <Maydon

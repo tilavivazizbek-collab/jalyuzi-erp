@@ -82,6 +82,12 @@ export default async function KassaSahifasi() {
                kassa jadvali bo'sh turardi: to'lov ham, kun yopish
                ham ishlamasdi.
           */}
+          <Link
+            href="/kassa/royxat"
+            className="rounded-maydon border border-chegara-quyuq px-3.5 py-2 text-sm text-matn-ikki transition-all hover:bg-fon active:scale-[0.98]"
+          >
+            Kassalar
+          </Link>
           {kassaOchaOladi && (
             <Link
               href="/kassa/yangi"

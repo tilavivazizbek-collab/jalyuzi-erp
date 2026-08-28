@@ -38,6 +38,8 @@ export const XATO_MATNI: Record<XatoKod, string> = {
   NARX_NOTOGRI: "Narx qiymati noto'g'ri",
   KOEFFITSIENT_NOTOGRI: "Konversiya koeffitsienti noto'g'ri",
   BIRLIK_OZGARMAYDI: "Qoldiq bor ekan, birlikni o'zgartirib bo'lmaydi",
+  TELEFON_BAND: 'Bu telefon raqami band',
+  ROL_YOQ: 'Tanlangan rol topilmadi',
   YOZUV_YOQ: 'Yozuv topilmadi',
   KASSA_TAKRORLANDI: 'Bu xodimda bunday kassa allaqachon bor',
   SARF_NOTOGRI: 'Sarf noto‘g‘ri kiritilgan',

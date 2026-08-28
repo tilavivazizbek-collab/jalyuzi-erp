@@ -65,6 +65,7 @@ const BANDLAR: readonly Band[] = [
   { yol: '/ombor/kochirish', nom: "Ko'chirish", kod: 'ombor.qoldiq.kor' },
   { yol: '/buyurtma/qayta-kesish', nom: 'Qayta kesish', kod: 'buyurtma.brak' },
   { yol: '/filial/hisob', nom: 'Filiallararo hisob', kod: 'filial.hisob' },
+  { yol: '/xodim', nom: 'Xodimlar', kod: 'xodim.kor' },
   { yol: '/filial', nom: 'Filiallar', kod: 'filial.kor' },
 ];
 

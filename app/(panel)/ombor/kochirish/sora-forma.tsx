@@ -32,6 +32,15 @@ export function SorovFormasi({ filiallar }: { filiallar: readonly FilialTanlovi[
             </option>
           ))}
         </select>
+
+          <a
+            href="/filial"
+            target="_blank"
+            rel="noopener"
+            className="fokus mt-1 self-start rounded-maydon px-1 text-[12px] text-matn-kuchsiz transition-colors hover:text-matn hover:underline"
+          >
+            Filiallar ↗
+          </a>
       </Maydon>
 
       <Maydon nom="izoh" yorliq="Izoh" izoh="Nima kerakligini yozing">

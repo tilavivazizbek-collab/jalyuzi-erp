@@ -455,3 +455,37 @@ export async function kassaXodimlari(): Promise<XodimTanlovi[]> {
       )
     ORDER BY x.ism`;
 }
+
+// ─── TZ 12.2 · Kassa boshqaruvi ──────────────────────────────────────────
+
+export interface KassaBoshqaruvQatori {
+  readonly id: number;
+  readonly nom: string;
+  readonly turi: string;
+  readonly valyuta: string;
+  readonly filialNomi: string;
+  readonly xodimIsmi: string | null;
+  readonly faol: boolean;
+  /** 2.2-invariant — SUM() bilan, saqlanmaydi */
+  readonly qoldiq: string;
+}
+
+/**
+ * Kassalarni boshqarish ro'yxati.
+ *
+ * ⚠️ Bu `/kassa` sahifasidagi kunlik ko'rinishdan BOSHQA: u yerda
+ *    faqat faol kassalar qoldig'i turadi. Bu yerda o'chirilganlari
+ *    ham ko'rinadi, chunki maqsad — boshqarish.
+ */
+export async function kassaBoshqaruvRoyxati(): Promise<KassaBoshqaruvQatori[]> {
+  return ulanishOl()<KassaBoshqaruvQatori[]>`
+    SELECT k.id, k.nom, k.turi, k.valyuta, k.faol,
+           f.nom AS "filialNomi",
+           x.ism AS "xodimIsmi",
+           COALESCE((SELECT SUM(y.summa) FROM kassa_yozuv y
+                     WHERE y.kassa_id = k.id), 0)::text AS qoldiq
+    FROM kassa k
+    JOIN filial f ON f.id = k.filial_id
+    LEFT JOIN xodim x ON x.id = k.xodim_id
+    ORDER BY k.faol DESC, f.nom, k.nom`;
+}

@@ -436,13 +436,13 @@ export function SotuvFormasi({
       <div className="flex flex-col gap-6">
         {/* ── 3.2 · Mahsulot turlari ── */}
         <section>
-          <h2 className="mb-2 text-sm font-medium text-matn-ikki">Mahsulot turi</h2>
+          <h2 className="mb-1.5 text-sm font-medium text-matn-ikki">Mahsulot turi</h2>
           {turlar.length === 0 ? (
             <p className="rounded-karta border border-dashed border-chegara-quyuq px-4 py-6 text-center text-sm text-matn-kuchsiz">
               Faol mahsulot turi yo&apos;q. Avval konstruktorda tur qo&apos;shing.
             </p>
           ) : (
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-1.5">
               {turlar.map((t) => (
                 <button
                   key={t.id}
@@ -468,7 +468,13 @@ export function SotuvFormasi({
                    *    amal bor; qora fon eng kuchli signal va u
                    *    «Buyurtmani saqlash» tugmasiga tegishli.
                    */
-                  className={`rounded-full px-3.5 py-1.5 text-[13px] font-medium transition-colors ${
+                  /**
+                   * ⚠️ IXCHAM. Tur soni o'nlab bo'lishi mumkin —
+                   *    katta tugmalar bir necha qatorga yoyilib,
+                   *    o'lcham kiritish maydonini ekrandan
+                   *    surib yuborardi.
+                   */
+                  className={`rounded-full px-2.5 py-1 text-[12px] font-medium transition-colors ${
                     t.id === turId
                       ? 'bg-brend text-white'
                       : 'border border-chegara bg-sirt text-matn-ikki hover:border-chegara-quyuq hover:text-matn'
@@ -959,12 +965,19 @@ function MijozTanlash({
     );
   }
 
+  /**
+   * ⚠️ `<Maydon>` (ya'ni `<label>`) ISHLATILMAYDI.
+   *
+   *    HTML da `<label>` ichiga tugma qo'yish taqiqlangan: brauzer
+   *    bosishni tugmaga emas, kirish maydoniga yo'naltiradi va
+   *    topilgan mijozni TANLAB BO'LMASDI.
+   */
   return (
-    <Maydon
-      nom="mijoz"
-      yorliq="Mijoz"
-      izoh="Majburiy emas — ko'chadagi xaridorga ham sotiladi (3.10)"
-    >
+    <div className="flex flex-col gap-1">
+      <label htmlFor="mijoz" className="text-sm font-medium text-matn-ikki">
+        Mijoz
+      </label>
+
       <input
         id="mijoz"
         value={matn}
@@ -972,9 +985,12 @@ function MijozTanlash({
           void qidir(e.target.value);
         }}
         placeholder="Ism yoki telefon"
+        autoComplete="off"
         className={kirishUslubi(false)}
       />
+
       {qidirilmoqda && <span className="text-xs text-matn-kuchsiz">qidirilmoqda…</span>}
+
       {topilgan.length > 0 && (
         <div className="mt-1 max-h-40 overflow-y-auto rounded-maydon border border-chegara bg-sirt">
           {topilgan.map((m) => (
@@ -986,7 +1002,7 @@ function MijozTanlash({
                 matnniOzgartir('');
                 topilganniOzgartir([]);
               }}
-              className="block w-full px-3 py-2 text-left text-sm hover:bg-fon"
+              className="block w-full px-3 py-2 text-left text-sm transition-colors hover:bg-fon"
             >
               {m.ism}
               <span className="ml-2 text-xs text-matn-kuchsiz">{m.telefon ?? ''}</span>
@@ -994,6 +1010,25 @@ function MijozTanlash({
           ))}
         </div>
       )}
+
+      {/*
+        ⚠️ SUKUT SAQLAMAYDI. Ilgari bitta harf yozilsa hech narsa
+           bo'lmasdi va odam «qidiruv ishlamayapti» deb o'ylardi.
+           Endi nima kutilayotgani aytiladi.
+      */}
+      {izlanayotgan.length === 1 && (
+        <span className="text-xs text-matn-kuchsiz">yana bitta harf yozing…</span>
+      )}
+
+      {izlanayotgan.length >= 2 && !qidirilmoqda && topilgan.length === 0 && (
+        <span className="text-xs text-matn-kuchsiz">
+          «{izlanayotgan}» bo&apos;yicha mijoz topilmadi
+        </span>
+      )}
+
+      <span className="text-xs text-matn-kuchsiz">
+        Majburiy emas — ko&apos;chadagi xaridorga ham sotiladi (3.10)
+      </span>
 
       <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1">
         {qoshaOladi && (
@@ -1043,6 +1078,6 @@ function MijozTanlash({
           />
         }
       />
-    </Maydon>
+    </div>
   );
 }

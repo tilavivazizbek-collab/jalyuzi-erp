@@ -9,6 +9,11 @@
 
 import { hash, verify } from '@node-rs/argon2';
 import { BiznesXato } from '@/lib/xato';
+import {
+  PAROL_ENG_KAM,
+  PAROL_ENG_KOP,
+  parolYaroqlimi,
+} from '@/lib/domain/parol-qoida';
 
 /**
  * `@node-rs/argon2` dagi `Algorithm.Argon2id`.
@@ -36,12 +41,12 @@ const SOZLAMA = {
  * ⚠️ TZ da yozilmagan — QARORLAR-KOD P-10. 8 belgi tanlandi: bundan kamida
  * parol taxmin qilinadi, ko'pi esa xodimlarni qog'ozga yozishga majbur qiladi.
  */
-export const PAROL_ENG_KAM = 8;
-export const PAROL_ENG_KOP = 128;
-
-export function parolYaroqlimi(parol: string): boolean {
-  return parol.length >= PAROL_ENG_KAM && parol.length <= PAROL_ENG_KOP;
-}
+/**
+ * ⚠️ Qoidaning O'ZI `lib/domain/parol-qoida.ts` da — u ekranda
+ *    ham kerak, bu fayl esa argon2 (native modul) olib keladi va
+ *    brauzerga tushmaydi. Bu yerda faqat qayta eksport.
+ */
+export { PAROL_ENG_KAM, PAROL_ENG_KOP, parolYaroqlimi };
 
 export async function parolHash(parol: string): Promise<string> {
   if (!parolYaroqlimi(parol)) {

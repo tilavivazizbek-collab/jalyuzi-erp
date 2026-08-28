@@ -8,7 +8,7 @@ majbur bo'ldi («dropdownlarda qo'shish bo'lsin»). Har safar bitta
 joy tuzatilib «bo'ldi» deyilardi. Teshik ko'rinmagani uchun shunday
 bo'ldi. Endi ko'rinadi.
 
-Oxirgi yangilanish: **2026-08-28** (o'chirish qo'shildi)
+Oxirgi yangilanish: **2026-08-28** — 1 va 2-bo'limda ❌ QOLMADI
 
 ---
 
@@ -21,9 +21,9 @@ Oxirgi yangilanish: **2026-08-28** (o'chirish qo'shildi)
 | Yetkazib beruvchi | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Mahsulot turi | ✅ | ✅ | ✅ | ✅ | — |
 | Almashtirish guruhi | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Filial | ✅ | ✅ | ✅ | ✅ | ❌ |
-| **Kassa** | ✅ | ✅ | ❌ | ❌ | ❌ |
-| **Xodim** | ❌ | ❌ | ❌ | ❌ | ❌ |
+| Filial | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Kassa | ✅ | ✅ | — | ✅ | ✅ |
+| Xodim | ✅ | ✅ | ✅ | ✅ | ✅ |
 
 **O'chirish = nofaol qilish** (§3: `DELETE` yo'q). Yozuv ro'yxatdan,
 dropdowndan va sotuvdan yo'qoladi, lekin eski buyurtmada nomi
@@ -32,9 +32,10 @@ ko'rinib turadi. Qaytarish mumkin.
 ⚠️ Ishlatilayotgan yozuv o'chirilmaydi va SABAB aytiladi: «omborda
 4 ta bo'lak bor», «qarzi bor: 320 000 so'm». 10 test.
 
-**Kassa** — tahrirlash va o'chirish qolgan.
-**Xodim** — butun bo'lim yo'q. Yangi sotuvchi ishga olsangiz uni
-tizimga qo'sha olmaysiz.
+⚠️ **Kassa tahrirlanmaydi — ATAYLAB.** Kassaning turi, valyutasi
+va egasi o'zgarsa, o'tgan yozuvlar boshqa kassaga tegishli bo'lib
+qolardi (2.3-invariant). Kerak bo'lsa: eskisini o'chirib yangisini
+ochish. Nomini o'zgartirish keyin qo'shilishi mumkin.
 
 ---
 
@@ -51,12 +52,14 @@ o'chirish.
 | Mahsulot turi | Guruh | ✅ modal | ✅ `/guruh` |
 | Mahsulot turi | Material | ✅ modal | ✅ `/material` |
 | Sotuv | Mijoz | ✅ modal | ✅ `/mijoz` |
-| To'lov | Kassa | ❌ | ❌ |
-| Ish haqi | Kassa | ❌ | ❌ |
-| Kassa topshirish | Kassa | ❌ | ❌ |
-| Filiallararo hisob | Kassa · Filial | ❌ | ❌ |
-| Filial kartochkasi | Xodim (tikuvchi) | ❌ | ❌ |
-| Ko'chirish | Filial | ❌ | ❌ |
+| To'lov | Kassa | — | ✅ `/kassa/royxat` |
+| Filial kartochkasi | Xodim (tikuvchi) | — | ✅ `/xodim` |
+| Ko'chirish | Filial | — | ✅ `/filial` |
+| Ish haqi · Topshirish · Filial hisobi | Kassa | — | ✅ `/kassa/royxat` |
+
+⚠️ Qo'shish ustuni «—»: kassa, xodim va filial ish oqimi ichidan
+qo'shilmaydi — ular sozlama, o'z sahifasidan ochiladi. Boshqarish
+havolasi esa bor.
 
 ---
 
@@ -83,9 +86,6 @@ o'chirish.
 
 | Nima | Kim so'ragan | Holat |
 |---|---|---|
-| Kassa tahrirlash va o'chirish | audit | **qolgan** |
-| Xodim bo'limi (butun) | audit | **qolgan** |
-| Kassa · Filial · Xodim dropdownlarida boshqarish | egasi | **qolgan** |
 | Kirim narxi metr bo'yicha (`4$ × 50 m`) | egasi | tasdiqlangan |
 | Rasm — mahsulot turi va matolarda | egasi | tasdiqlangan |
 | Sotuvda qo'shimcha mahsulot | egasi | tasdiqlangan |

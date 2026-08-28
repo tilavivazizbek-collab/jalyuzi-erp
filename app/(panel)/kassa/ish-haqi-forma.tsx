@@ -96,6 +96,16 @@ export function IshHaqiFormasi({
               </option>
             ))}
           </select>
+
+          {/* Kassalarni boshqarish — yangi oynada, ish uzilmasin */}
+          <a
+            href="/kassa/royxat"
+            target="_blank"
+            rel="noopener"
+            className="fokus mt-1 self-start rounded-maydon px-1 text-[12px] text-matn-kuchsiz transition-colors hover:text-matn hover:underline"
+          >
+            Kassalar ↗
+          </a>
         </Maydon>
 
         <Maydon nom="balans-valyuta" yorliq="Balans valyutasi">

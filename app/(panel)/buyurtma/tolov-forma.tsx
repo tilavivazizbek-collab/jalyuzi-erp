@@ -121,6 +121,19 @@ export function TolovFormasi({
               ))}
             </select>
 
+            {/*
+              ⚠️ Ro'yxatni boshqarish — yangi oynada, chunki to'lov
+                 yarim to'ldirilgan bo'lishi mumkin.
+            */}
+            <a
+              href="/kassa/royxat"
+              target="_blank"
+              rel="noopener"
+              className="fokus shrink-0 rounded-maydon px-1 text-[12px] text-matn-kuchsiz transition-colors hover:text-matn hover:underline"
+            >
+              Kassalar ↗
+            </a>
+
             <input
               value={q.summa}
               onChange={(e) => {
