@@ -18,7 +18,20 @@
 
 import { ulanishYarat, type Ulanish } from '@/lib/db/ulanish';
 
-export const BAZA_BORMI = (process.env['DATABASE_URL'] ?? '') !== '';
+/**
+ * ⚠️ TESTLAR ISHLAYDIGAN BAZAGA HECH QACHON YOZMAYDI.
+ *
+ *    Ilgari `DATABASE_URL` ishlatilardi — ya'ni egasining
+ *    ishlaydigan bazasi. Natijada u yerda 88 material, 138
+ *    buyurtma va 432 audit yozuvi sinov axlati to'plangan edi.
+ *    Kassa yozuvini esa o'chirib ham bo'lmasdi (§6.5 trigger).
+ *
+ *    Endi ALOHIDA o'zgaruvchi: `TEST_DATABASE_URL`. Loqal Docker
+ *    Postgres uchun mo'ljallangan (`docker compose up`).
+ */
+export const SINOV_BAZA_URL = process.env['TEST_DATABASE_URL'] ?? '';
+
+export const BAZA_BORMI = SINOV_BAZA_URL !== '';
 
 /** Sinov ma'lumotlari haqiqiy yozuvlar bilan to'qnashmasligi uchun. */
 export const SINOV_XODIM_ID = 9001;
@@ -28,10 +41,32 @@ export const SINOV_USTA_TELEFON = '998900009002';
 export const SINOV_PAROL = 'integratsiya-sinov-paroli';
 
 export function sinovUlanishi(): Ulanish {
-  const url = process.env['DATABASE_URL'];
-  if (url === undefined || url === '') {
-    throw new Error('DATABASE_URL yo\'q — test:baza uchun .env kerak');
+  const url = SINOV_BAZA_URL;
+
+  if (url === '') {
+    throw new Error(
+      "TEST_DATABASE_URL yo'q. Testlar ishlaydigan bazaga YOZMAYDI — " +
+        'loqal baza kerak: `docker compose up -d`, keyin .env ga ' +
+        'TEST_DATABASE_URL qatorini qo`shing.',
+    );
   }
+
+  /**
+   * ⚠️ ENG MUHIM HIMOYA: test bazasi ishlaydigan bazaga TENG
+   *    BO'LMASLIGI kerak.
+   *
+   *    Bu tekshiruvsiz kimdir `.env` da ikkalasini bir xil qilib
+   *    qo'yardi va hammasi qaytadan boshlanardi: egasining
+   *    bazasiga yana sinov axlati to'planardi.
+   */
+  const ish = process.env['DATABASE_URL'] ?? '';
+  if (ish !== '' && ish === url) {
+    throw new Error(
+      'TEST_DATABASE_URL va DATABASE_URL BIR XIL. Testlar ishlaydigan ' +
+        'bazaga yozmasligi kerak — alohida baza korsating.',
+    );
+  }
+
   return ulanishYarat(url, { max: 3 });
 }
 

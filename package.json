@@ -20,11 +20,12 @@
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
     "db:urug": "tsx --env-file=.env lib/db/urug-ishga.ts",
-    "db:tozala": "tsx --env-file=.env lib/db/tozala.ts",
+    "db:tozala": "tsx --env-file=.env lib/db/tozala-buyruq.ts",
     "test:baza": "vitest run --config vitest.baza.config.ts",
     "test:hammasi": "npm run test && npm run test:baza",
     "bot": "tsx --env-file=.env bot/ishga-tushir.ts",
-    "db:ruxsat": "tsx --env-file=.env lib/db/ruxsat-buyruq.ts"
+    "db:ruxsat": "tsx --env-file=.env lib/db/ruxsat-buyruq.ts",
+    "db:sinov-tozala": "tsx --env-file=.env lib/db/sinov-tozala.ts"
   },
   "dependencies": {
     "@node-rs/argon2": "^2.1.0",

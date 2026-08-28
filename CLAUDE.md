@@ -303,7 +303,34 @@ hal qildi.
 
 ---
 
-## 15. ESLATMA
+## 15. EGASINING BAZASIGA TEGILMAYDI
+
+⚠️ **Testlar egasining ishlaydigan bazasiga HECH QACHON yozmaydi.**
+
+Ular `TEST_DATABASE_URL` ni talab qiladi va u `DATABASE_URL` ga teng
+bo'lsa **to'xtaydi**. Loqal baza: `docker compose up -d`.
+
+⚠️ **O'zingdan ma'lumot qo'shmaysan.** Na sinov materiali, na namuna
+mijoz, na «tekshirib ko'rish uchun» yozuv. Bazaga faqat EGASI
+kiritadi.
+
+Biror narsani tekshirish kerak bo'lsa — loqal bazada qil yoki
+egasidan so'ra.
+
+⚠️ NEGA: 2026-08-28 da egasining bazasida 88 material, 138 buyurtma,
+336 bo'lak, 432 audit yozuvi — hammasi sinov axlati — to'planib
+qolgan edi. Kassa yozuvini esa o'chirib ham bo'lmasdi (§6.5
+trigger). Baza to'liq tozalangan.
+
+**Tozalash buyruqlari** (faqat egasi so'rasa):
+```
+URUG_TOZALASHGA_RUXSAT=ha npm run db:tozala   # ish ma'lumotlari
+npm run db:sinov-tozala                        # sinov filial/xodim
+```
+
+---
+
+## 16. ESLATMA
 
 Bu tizim ichida korxonaning **haqiqiy puli** turadi. Egasi kodni o'qiy
 olmaydi — u faqat senga ishonadi.

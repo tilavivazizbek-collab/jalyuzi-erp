@@ -1,40 +1,111 @@
 /**
- * lib/db/tozala.ts — bazani noldan tiklash · `npm run db:tozala`
+ * lib/db/tozala.ts — ish ma'lumotlarini tozalash.
  *
- * ⚠️ BARCHA JADVALNI O'CHIRADI. Faqat ishlab chiqish bazasida.
+ * ⚠️ QAYTARIB BO'LMAYDI. Faqat egasi so'raganda ishlatiladi va
+ *    `URUG_TOZALASHGA_RUXSAT=ha` talab qiladi.
  *
- * Ishlab chiqarish bazasida ishlamasligi uchun `URUG_TOZALASHGA_RUXSAT=ha`
- * majburiy. QISM 1 §17: ishlab chiqarish bazasiga zaxirasiz tegilmaydi.
+ * ⚠️ NIMA QOLADI: filial, rol, ruxsat, xodim, sozlama, kurs.
+ *    Ular tozalansa tizimga KIRIB BO'LMASDI va hamma sozlamani
+ *    qaytadan qilish kerak bo'lardi.
+ *
+ * ⚠️ `TRUNCATE` ishlatiladi, `DELETE` emas: pul va ombor
+ *    jadvallarida o'chirishni to'sadigan trigger bor (§6.5).
+ *    U `DELETE` ni to'sadi — bu to'g'ri himoya. `TRUNCATE` esa
+ *    ataylab qilinadigan, alohida ruxsat talab qiladigan amal.
  */
 
-import { ulanishYarat } from '@/lib/db/ulanish';
+import type postgres from 'postgres';
 
-const url = process.env['DATABASE_URL'];
-const ruxsat = process.env['URUG_TOZALASHGA_RUXSAT'];
+/**
+ * Ish ma'lumoti — tozalanadi.
+ *
+ * ⚠️ Tartib muhim emas: `CASCADE` bog'liqlarni o'zi hal qiladi.
+ */
+export const TOZALANADIGAN = [
+  // Buyurtma va ishlab chiqarish
+  'qayta_kesish',
+  'pozitsiya_aksessuar',
+  'pozitsiya_material',
+  'band',
+  'buyurtma_pozitsiya',
+  'buyurtma',
+  // Ombor
+  'ombor_harakat',
+  'inventarizatsiya_qator',
+  'inventarizatsiya',
+  'kochirish_qator',
+  'kochirish',
+  'bolak',
+  'kirim_qator',
+  'kirim',
+  // Pul
+  'kassa_kun',
+  'kassa_yozuv',
+  'kassa',
+  'topshiriq',
+  'xarajat',
+  'filial_harakat',
+  'mijoz_harakat',
+  'yetkazib_beruvchi_harakat',
+  'xodim_harakat',
+  // Ma'lumotnomalar
+  'material_filial_narx',
+  'mahsulot_aksessuar',
+  'mahsulot_parametr',
+  'mahsulot_slot',
+  'mahsulot_tur',
+  'material',
+  'almashtirish_guruh',
+  'mijoz',
+  'yetkazib_beruvchi',
+  'stavka',
+  // Bot va jurnal
+  'bot_xabar',
+  'bot_sessiya',
+  'audit_jurnal',
+  'amal_kaliti',
+] as const;
 
-if (url === undefined || url === '') {
-  console.error("DATABASE_URL yo'q");
-  process.exit(1);
+/**
+ * Tegilmaydi — bularsiz tizim ishlamaydi.
+ *
+ *   filial · rol · ruxsat · rol_ruxsat · xodim · xodim_rol
+ *   sessiya · sozlama · kurs_tarix
+ */
+export const SAQLANADIGAN = [
+  'filial',
+  'rol',
+  'ruxsat',
+  'rol_ruxsat',
+  'xodim',
+  'xodim_rol',
+  'sessiya',
+  'sozlama',
+  'kurs_tarix',
+] as const;
+
+export interface TozalashNatijasi {
+  readonly jadval: string;
+  readonly oldin: number;
 }
 
-if (ruxsat !== 'ha') {
-  console.error('Bu buyruq butun bazani o\'chiradi.');
-  console.error('Rozi bo\'lsangiz:  URUG_TOZALASHGA_RUXSAT=ha npm run db:tozala');
-  process.exit(1);
-}
+export async function ishMalumotlariniTozala(
+  ulanish: postgres.Sql,
+): Promise<TozalashNatijasi[]> {
+  const natija: TozalashNatijasi[] = [];
 
-const ulanish = ulanishYarat(url, { max: 1 });
+  for (const jadval of TOZALANADIGAN) {
+    const q = await ulanish.unsafe(`SELECT count(*)::int AS n FROM ${jadval}`);
+    natija.push({ jadval, oldin: (q[0] as { n: number } | undefined)?.n ?? 0 });
+  }
 
-try {
-  await ulanish.unsafe(`
-    DROP SCHEMA public CASCADE;
-    CREATE SCHEMA public;
-    DROP SCHEMA IF EXISTS drizzle CASCADE;
-  `);
-  console.log("Baza tozalandi. Endi:  npm run db:migrate  va  npm run db:urug");
-} catch (x) {
-  console.error('Tozalanmadi:', x instanceof Error ? x.message : String(x));
-  process.exitCode = 1;
-} finally {
-  await ulanish.end();
+  /**
+   * ⚠️ Bitta buyruqda: jadvallar bir-biriga bog'langan va
+   *    alohida-alohida tozalash chala holat qoldirardi.
+   */
+  await ulanish.unsafe(
+    `TRUNCATE TABLE ${TOZALANADIGAN.join(', ')} RESTART IDENTITY CASCADE`,
+  );
+
+  return natija.filter((n) => n.oldin > 0);
 }
