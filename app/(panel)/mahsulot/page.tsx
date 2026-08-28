@@ -4,6 +4,7 @@ import { sahifaRuxsati } from '@/lib/kirish/joriy';
 import { ruxsatBormi } from '@/lib/ruxsat/tekshir';
 import { pulKorsat, som } from '@/lib/domain/pul';
 import { OchirTugma } from '../ochir-tugma';
+import { OchirilganlarHavolasi, QaytarTugma } from '../ochirilganlar';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,12 +20,25 @@ interface Qator {
   readonly aksessuar_soni: number;
 }
 
-export default async function MahsulotRoyxati() {
+export default async function MahsulotRoyxati({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const f = await sahifaRuxsati('mahsulot.kor');
+
+  /** ⚠️ O'chirilgan yozuv ro'yxatda KO'RINMAYDI */
+  const sp = await searchParams;
+  const ochirilganlar = sp['ochirilgan'] === '1';
   const yarataOladi = ruxsatBormi(f, 'mahsulot.yarat');
   const ozgartiraOladi = ruxsatBormi(f, 'mahsulot.ozgartir');
 
-  const qatorlar = await ulanishOl()<Qator[]>`
+  const sql = ulanishOl();
+
+  const ochirilganSoni = await sql<{ n: number }[]>`
+    SELECT COUNT(*)::int AS n FROM mahsulot_tur WHERE faol = false`;
+
+  const qatorlar = await sql<Qator[]>`
     SELECT t.id, t.nom, t.xizmat_haqi, t.oynada_korinadi, t.botda_korinadi, t.faol,
            COUNT(s.id) FILTER (WHERE s.faol)::int AS slot_soni,
            COUNT(s.id) FILTER (WHERE s.faol AND s.almashtirish_guruh_id IS NULL)::int
@@ -34,7 +48,8 @@ export default async function MahsulotRoyxati() {
     FROM mahsulot_tur t
     LEFT JOIN mahsulot_slot s ON s.mahsulot_tur_id = t.id
     GROUP BY t.id
-    ORDER BY t.faol DESC, t.tartib, t.nom`;
+    WHERE t.faol = ${!ochirilganlar}
+    ORDER BY t.tartib, t.nom`;
 
   return (
     <div className="flex flex-col gap-6">
@@ -47,14 +62,21 @@ export default async function MahsulotRoyxati() {
             {qatorlar.length} ta · dasturchisiz yaratiladi (4.1)
           </p>
         </div>
-        {yarataOladi && (
-          <Link
-            href="/mahsulot/yangi"
-            className="rounded-maydon bg-brend px-3.5 py-2 text-sm font-medium text-white transition-all active:scale-[0.98] hover:bg-brend-quyuq"
-          >
-            Mahsulot turi yaratish
-          </Link>
-        )}
+        <div className="flex items-center gap-3">
+          <OchirilganlarHavolasi
+            soni={ochirilganSoni[0]?.n ?? 0}
+            korsatilmoqda={ochirilganlar}
+          />
+
+          {yarataOladi && (
+            <Link
+              href="/mahsulot/yangi"
+              className="rounded-maydon bg-brend px-3.5 py-2 text-sm font-medium text-white transition-all active:scale-[0.98] hover:bg-brend-quyuq"
+            >
+              Mahsulot turi yaratish
+            </Link>
+          )}
+        </div>
       </div>
 
       {qatorlar.length === 0 ? (
@@ -107,14 +129,20 @@ export default async function MahsulotRoyxati() {
                   {ozgartiraOladi && (
                     <td className="px-4 py-2.5 text-right">
                       <div className="flex items-center justify-end gap-3">
-                        <Link
-                          href={`/mahsulot/${String(t.id)}`}
-                          className="text-matn-ikki hover:text-matn"
-                        >
-                          Tahrirlash
-                        </Link>
+                        {t.faol ? (
+                          <Link
+                            href={`/mahsulot/${String(t.id)}`}
+                            className="text-matn-ikki hover:text-matn"
+                          >
+                            Tahrirlash
+                          </Link>
+                        ) : (
+                          <QaytarTugma tur="mahsulot" id={t.id} nom={t.nom} />
+                        )}
                         {/* O'chirish = nofaol qilish; ishlatilayotgani to'siladi */}
-                        <OchirTugma tur="mahsulot" id={t.id} nom={t.nom} ixcham />
+                        {t.faol && (
+                          <OchirTugma tur="mahsulot" id={t.id} nom={t.nom} ixcham />
+                        )}
                       </div>
                     </td>
                   )}

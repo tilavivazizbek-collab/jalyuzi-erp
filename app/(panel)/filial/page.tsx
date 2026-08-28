@@ -2,14 +2,26 @@ import Link from 'next/link';
 import { sahifaRuxsati } from '@/lib/kirish/joriy';
 import { ruxsatBormi } from '@/lib/ruxsat/tekshir';
 import { REJIM_NOMI, rejim } from '@/lib/domain/filial';
-import { filialRoyxati } from './malumot';
+import { filialOchirilganSoni, filialRoyxati } from './malumot';
 import { OchirTugma } from '../ochir-tugma';
+import { OchirilganlarHavolasi, QaytarTugma } from '../ochirilganlar';
 
 export const dynamic = 'force-dynamic';
 
-export default async function FilialRoyxati() {
+export default async function FilialRoyxati({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const f = await sahifaRuxsati('filial.kor');
-  const royxat = await filialRoyxati();
+  /** ⚠️ O'chirilgan yozuv ro'yxatda KO'RINMAYDI */
+  const sp = await searchParams;
+  const ochirilganlar = sp['ochirilgan'] === '1';
+
+  const [royxat, ochirilganSoni] = await Promise.all([
+    filialRoyxati(ochirilganlar),
+    filialOchirilganSoni(),
+  ]);
 
   const yarataOladi = ruxsatBormi(f, 'filial.yarat');
   const ozgartiraOladi = ruxsatBormi(f, 'filial.ozgartir');
@@ -30,6 +42,8 @@ export default async function FilialRoyxati() {
           >
             Hisob-kitob
           </Link>
+          <OchirilganlarHavolasi soni={ochirilganSoni} korsatilmoqda={ochirilganlar} />
+
           {yarataOladi && (
             <Link
               href="/filial/yangi"
@@ -93,9 +107,12 @@ export default async function FilialRoyxati() {
                     ⚠️ Bosh filial, qoldig'i yoki xodimi bor filial
                        o'chirilmaydi — sabab ko'rsatiladi.
                   */}
-                  {ozgartiraOladi && q.faol && (
-                    <OchirTugma tur="filial" id={q.id} nom={q.nom} ixcham />
-                  )}
+                  {ozgartiraOladi &&
+                    (q.faol ? (
+                      <OchirTugma tur="filial" id={q.id} nom={q.nom} ixcham />
+                    ) : (
+                      <QaytarTugma tur="filial" id={q.id} nom={q.nom} />
+                    ))}
                 </td>
               </tr>
             ))}

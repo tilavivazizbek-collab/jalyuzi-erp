@@ -15,7 +15,10 @@ export interface XodimQatori {
   readonly parolBormi: boolean;
 }
 
-export async function xodimRoyxati(): Promise<XodimQatori[]> {
+export async function xodimRoyxati(
+  /** ⚠️ `true` — faqat O'CHIRILGANLARI (qaytarish uchun) */
+  ochirilganlar = false,
+): Promise<XodimQatori[]> {
   return ulanishOl()<XodimQatori[]>`
     SELECT x.id, x.ism, x.telefon, f.nom AS "filialNomi", x.faol,
            (x.parol_hash IS NOT NULL) AS "parolBormi",
@@ -27,7 +30,8 @@ export async function xodimRoyxati(): Promise<XodimQatori[]> {
            ) AS rollar
     FROM xodim x
     JOIN filial f ON f.id = x.filial_id
-    ORDER BY x.faol DESC, x.ism`;
+    WHERE x.faol = ${!ochirilganlar}
+    ORDER BY x.ism`;
 }
 
 export interface XodimTafsili {
@@ -83,4 +87,11 @@ export interface FilialTanlovi {
 export async function xodimFiliallari(): Promise<FilialTanlovi[]> {
   return ulanishOl()<FilialTanlovi[]>`
     SELECT id, nom FROM filial WHERE faol = true ORDER BY bosh DESC, nom`;
+}
+
+/** O'chirilganlar soni — havolada ko'rsatiladi */
+export async function xodimOchirilganSoni(): Promise<number> {
+  const q = await ulanishOl()<{ n: number }[]>`
+    SELECT COUNT(*)::int AS n FROM xodim WHERE faol = false`;
+  return q[0]?.n ?? 0;
 }

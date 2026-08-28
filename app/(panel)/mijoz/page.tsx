@@ -6,6 +6,7 @@ import { telefonKorsat } from '@/lib/domain/telefon';
 import { pulKorsat, som } from '@/lib/domain/pul';
 import { OFFSET_TURI_NOMI, type OffsetTuri } from '@/lib/sxema/mijoz';
 import { OchirTugma } from '../ochir-tugma';
+import { OchirilganlarHavolasi, QaytarTugma } from '../ochirilganlar';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,15 +22,28 @@ interface Qator {
   readonly faol: boolean;
 }
 
-export default async function MijozRoyxati() {
+export default async function MijozRoyxati({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const f = await sahifaRuxsati('mijoz.kor');
+
+  /** ⚠️ O'chirilgan yozuv ro'yxatda KO'RINMAYDI (§13) */
+  const sp = await searchParams;
+  const ochirilganlar = sp['ochirilgan'] === '1';
   const yarataOladi = ruxsatBormi(f, 'mijoz.yarat');
   const ozgartiraOladi = ruxsatBormi(f, 'mijoz.ozgartir');
 
-  const qatorlar = await ulanishOl()<Qator[]>`
+  const sql = ulanishOl();
+
+  const ochirilganSoni = await sql<{ n: number }[]>`
+    SELECT COUNT(*)::int AS n FROM mijoz WHERE faol = false`;
+
+  const qatorlar = await sql<Qator[]>`
     SELECT id, ism, telefon, telegram_id, shaxs_turi,
            offset_turi, offset_qiymat, qarz_limiti, faol
-    FROM mijoz ORDER BY faol DESC, ism`;
+    FROM mijoz WHERE faol = ${!ochirilganlar} ORDER BY ism`;
 
   return (
     <div className="flex flex-col gap-6">
@@ -40,14 +54,21 @@ export default async function MijozRoyxati() {
             {qatorlar.length} ta · barcha filial uchun umumiy, qarzi ham (Q-26)
           </p>
         </div>
-        {yarataOladi && (
-          <Link
-            href="/mijoz/yangi"
-            className="rounded-maydon bg-brend px-3.5 py-2 text-sm font-medium text-white transition-all active:scale-[0.98] hover:bg-brend-quyuq"
-          >
-            Mijoz qo&apos;shish
-          </Link>
-        )}
+        <div className="flex items-center gap-3">
+          <OchirilganlarHavolasi
+            soni={ochirilganSoni[0]?.n ?? 0}
+            korsatilmoqda={ochirilganlar}
+          />
+
+          {yarataOladi && (
+            <Link
+              href="/mijoz/yangi"
+              className="rounded-maydon bg-brend px-3.5 py-2 text-sm font-medium text-white transition-all active:scale-[0.98] hover:bg-brend-quyuq"
+            >
+              Mijoz qo&apos;shish
+            </Link>
+          )}
+        </div>
       </div>
 
       {qatorlar.length === 0 ? (
@@ -107,14 +128,21 @@ export default async function MijozRoyxati() {
                   {ozgartiraOladi && (
                     <td className="px-4 py-2.5 text-right">
                       <div className="flex items-center justify-end gap-3">
-                        <Link
-                          href={`/mijoz/${String(m.id)}`}
-                          className="text-matn-ikki hover:text-matn"
-                        >
-                          Tahrirlash
-                        </Link>
+                        {/* ⚠️ O'chirilganda faqat qaytarish mumkin */}
+                        {m.faol ? (
+                          <Link
+                            href={`/mijoz/${String(m.id)}`}
+                            className="text-matn-ikki hover:text-matn"
+                          >
+                            Tahrirlash
+                          </Link>
+                        ) : (
+                          <QaytarTugma tur="mijoz" id={m.id} nom={m.ism} />
+                        )}
                         {/* O'chirish = nofaol qilish; ishlatilayotgani to'siladi */}
-                        <OchirTugma tur="mijoz" id={m.id} nom={m.ism} ixcham />
+                        {m.faol && (
+                          <OchirTugma tur="mijoz" id={m.id} nom={m.ism} ixcham />
+                        )}
                       </div>
                     </td>
                   )}

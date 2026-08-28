@@ -197,12 +197,16 @@ const FILIAL_USTUNLARI = `
   f.standart_ishlab_chiqaruvchi_id, s.nom AS standart_nomi,
   f.kassa_yopilish_soati::text AS kassa_yopilish_soati, f.bosh, f.faol`;
 
-export async function filialRoyxati(): Promise<readonly FilialKorinishi[]> {
+export async function filialRoyxati(
+  /** ⚠️ `true` — faqat O'CHIRILGANLARI (qaytarish uchun) */
+  ochirilganlar = false,
+): Promise<readonly FilialKorinishi[]> {
   const sql = ulanishOl();
   const q = await sql<FilialSatri[]>`
     SELECT ${sql.unsafe(FILIAL_USTUNLARI)}
     FROM filial f
     LEFT JOIN filial s ON s.id = f.standart_ishlab_chiqaruvchi_id
+    WHERE f.faol = ${!ochirilganlar}
     ORDER BY f.bosh DESC, f.nom`;
   return q.map(korinishga);
 }
@@ -232,3 +236,10 @@ export async function tikaOladiganFiliallar(
 }
 
 
+
+/** O'chirilgan filiallar soni — ro'yxatdagi havolada ko'rsatiladi */
+export async function filialOchirilganSoni(): Promise<number> {
+  const q = await ulanishOl()<{ n: number }[]>`
+    SELECT COUNT(*)::int AS n FROM filial WHERE faol = false`;
+  return q[0]?.n ?? 0;
+}

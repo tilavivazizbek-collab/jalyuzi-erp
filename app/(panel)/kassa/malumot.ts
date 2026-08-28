@@ -477,7 +477,10 @@ export interface KassaBoshqaruvQatori {
  *    faqat faol kassalar qoldig'i turadi. Bu yerda o'chirilganlari
  *    ham ko'rinadi, chunki maqsad — boshqarish.
  */
-export async function kassaBoshqaruvRoyxati(): Promise<KassaBoshqaruvQatori[]> {
+export async function kassaBoshqaruvRoyxati(
+  /** ⚠️ `true` — faqat O'CHIRILGANLARI (qaytarish uchun) */
+  ochirilganlar = false,
+): Promise<KassaBoshqaruvQatori[]> {
   return ulanishOl()<KassaBoshqaruvQatori[]>`
     SELECT k.id, k.nom, k.turi, k.valyuta, k.faol,
            f.nom AS "filialNomi",
@@ -487,5 +490,13 @@ export async function kassaBoshqaruvRoyxati(): Promise<KassaBoshqaruvQatori[]> {
     FROM kassa k
     JOIN filial f ON f.id = k.filial_id
     LEFT JOIN xodim x ON x.id = k.xodim_id
-    ORDER BY k.faol DESC, f.nom, k.nom`;
+    WHERE k.faol = ${!ochirilganlar}
+    ORDER BY f.nom, k.nom`;
+}
+
+/** O'chirilgan kassalar soni */
+export async function kassaOchirilganSoni(): Promise<number> {
+  const q = await ulanishOl()<{ n: number }[]>`
+    SELECT COUNT(*)::int AS n FROM kassa WHERE faol = false`;
+  return q[0]?.n ?? 0;
 }

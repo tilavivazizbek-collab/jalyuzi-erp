@@ -4,6 +4,7 @@ import { sahifaRuxsati } from '@/lib/kirish/joriy';
 import { ruxsatBormi } from '@/lib/ruxsat/tekshir';
 import { telefonKorsat } from '@/lib/domain/telefon';
 import { OchirTugma } from '../ochir-tugma';
+import { OchirilganlarHavolasi, QaytarTugma } from '../ochirilganlar';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,15 +19,28 @@ interface Qator {
   readonly faol: boolean;
 }
 
-export default async function YetkazibRoyxati() {
+export default async function YetkazibRoyxati({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const f = await sahifaRuxsati('yetkazib.kor');
+
+  /** ⚠️ O'chirilgan yozuv ro'yxatda KO'RINMAYDI (§13) */
+  const sp = await searchParams;
+  const ochirilganlar = sp['ochirilgan'] === '1';
   const yarataOladi = ruxsatBormi(f, 'yetkazib.yarat');
   const ozgartiraOladi = ruxsatBormi(f, 'yetkazib.ozgartir');
 
-  const qatorlar = await ulanishOl()<Qator[]>`
+  const sql = ulanishOl();
+
+  const ochirilganSoni = await sql<{ n: number }[]>`
+    SELECT COUNT(*)::int AS n FROM yetkazib_beruvchi WHERE faol = false`;
+
+  const qatorlar = await sql<Qator[]>`
     SELECT id, nom, nima_yetkazadi, kontakt_shaxs, telefon,
            tolov_muddati_kun, valyuta, faol
-    FROM yetkazib_beruvchi ORDER BY faol DESC, nom`;
+    FROM yetkazib_beruvchi WHERE faol = ${!ochirilganlar} ORDER BY nom`;
 
   return (
     <div className="flex flex-col gap-6">
@@ -39,14 +53,21 @@ export default async function YetkazibRoyxati() {
             {qatorlar.length} ta · qarzi umumiy, filialga bog&apos;lanmagan (Q-26)
           </p>
         </div>
-        {yarataOladi && (
-          <Link
-            href="/yetkazib/yangi"
-            className="rounded-maydon bg-brend px-3.5 py-2 text-sm font-medium text-white transition-all active:scale-[0.98] hover:bg-brend-quyuq"
-          >
-            Qo&apos;shish
-          </Link>
-        )}
+        <div className="flex items-center gap-3">
+          <OchirilganlarHavolasi
+            soni={ochirilganSoni[0]?.n ?? 0}
+            korsatilmoqda={ochirilganlar}
+          />
+
+          {yarataOladi && (
+            <Link
+              href="/yetkazib/yangi"
+              className="rounded-maydon bg-brend px-3.5 py-2 text-sm font-medium text-white transition-all active:scale-[0.98] hover:bg-brend-quyuq"
+            >
+              Qo&apos;shish
+            </Link>
+          )}
+        </div>
       </div>
 
       {qatorlar.length === 0 ? (
@@ -94,14 +115,21 @@ export default async function YetkazibRoyxati() {
                   {ozgartiraOladi && (
                     <td className="px-4 py-2.5 text-right">
                       <div className="flex items-center justify-end gap-3">
-                        <Link
-                          href={`/yetkazib/${String(y.id)}`}
-                          className="text-matn-ikki hover:text-matn"
-                        >
-                          Tahrirlash
-                        </Link>
+                        {/* ⚠️ O'chirilganda faqat qaytarish mumkin */}
+                        {y.faol ? (
+                          <Link
+                            href={`/yetkazib/${String(y.id)}`}
+                            className="text-matn-ikki hover:text-matn"
+                          >
+                            Tahrirlash
+                          </Link>
+                        ) : (
+                          <QaytarTugma tur="yetkazib" id={y.id} nom={y.nom} />
+                        )}
                         {/* O'chirish = nofaol qilish; ishlatilayotgani to'siladi */}
-                        <OchirTugma tur="yetkazib" id={y.id} nom={y.nom} ixcham />
+                        {y.faol && (
+                          <OchirTugma tur="yetkazib" id={y.id} nom={y.nom} ixcham />
+                        )}
                       </div>
                     </td>
                   )}

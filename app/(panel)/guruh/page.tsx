@@ -1,6 +1,7 @@
 import { sahifaRuxsati } from '@/lib/kirish/joriy';
 import { ruxsatBormi } from '@/lib/ruxsat/tekshir';
-import { guruhRoyxati } from './malumot';
+import { guruhOchirilganSoni, guruhRoyxati } from './malumot';
+import { OchirilganlarHavolasi } from '../ochirilganlar';
 import { GuruhRoyxati } from './royxat';
 import { GuruhQoshish } from './qoshish';
 
@@ -13,11 +14,22 @@ export const dynamic = 'force-dynamic';
  *    kartochkasidagi modal orqali yaratilardi, keyin uni
  *    tahrirlash ham, o'chirish ham mumkin emasdi.
  */
-export default async function GuruhSahifasi() {
+export default async function GuruhSahifasi({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const f = await sahifaRuxsati('material.kor');
   const ozgartiraOladi = ruxsatBormi(f, 'material.ozgartir');
 
-  const qatorlar = await guruhRoyxati();
+  /** ⚠️ O'chirilgan yozuv ro'yxatda KO'RINMAYDI */
+  const sp = await searchParams;
+  const ochirilganlar = sp['ochirilgan'] === '1';
+
+  const [qatorlar, ochirilganSoni] = await Promise.all([
+    guruhRoyxati(ochirilganlar),
+    guruhOchirilganSoni(),
+  ]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -31,7 +43,10 @@ export default async function GuruhSahifasi() {
           </p>
         </div>
 
-        {ozgartiraOladi && <GuruhQoshish />}
+        <div className="flex items-center gap-3">
+          <OchirilganlarHavolasi soni={ochirilganSoni} korsatilmoqda={ochirilganlar} />
+          {ozgartiraOladi && <GuruhQoshish />}
+        </div>
       </div>
 
       <GuruhRoyxati qatorlar={qatorlar} ozgartiraOladi={ozgartiraOladi} />

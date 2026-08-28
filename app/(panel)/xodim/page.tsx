@@ -3,7 +3,8 @@ import { sahifaRuxsati } from '@/lib/kirish/joriy';
 import { ruxsatBormi } from '@/lib/ruxsat/tekshir';
 import { telefonKorsat } from '@/lib/domain/telefon';
 import { OchirTugma } from '../ochir-tugma';
-import { xodimRoyxati } from './malumot';
+import { xodimOchirilganSoni, xodimRoyxati } from './malumot';
+import { OchirilganlarHavolasi, QaytarTugma } from '../ochirilganlar';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,13 +15,23 @@ export const dynamic = 'force-dynamic';
  *    kelgan va yangi sotuvchi ishga olinsa uni tizimga kiritib
  *    bo'lmasdi.
  */
-export default async function XodimSahifasi() {
+export default async function XodimSahifasi({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const f = await sahifaRuxsati('xodim.kor');
 
   const yarataOladi = ruxsatBormi(f, 'xodim.yarat');
   const ozgartiraOladi = ruxsatBormi(f, 'xodim.ozgartir');
 
-  const qatorlar = await xodimRoyxati();
+  const sp = await searchParams;
+  const ochirilganlar = sp['ochirilgan'] === '1';
+
+  const [qatorlar, ochirilganSoni] = await Promise.all([
+    xodimRoyxati(ochirilganlar),
+    xodimOchirilganSoni(),
+  ]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -32,14 +43,18 @@ export default async function XodimSahifasi() {
           </p>
         </div>
 
-        {yarataOladi && (
-          <Link
-            href="/xodim/yangi"
+        <div className="flex items-center gap-3">
+          <OchirilganlarHavolasi soni={ochirilganSoni} korsatilmoqda={ochirilganlar} />
+
+          {yarataOladi && (
+            <Link
+              href="/xodim/yangi"
             className="rounded-maydon bg-brend px-3.5 py-2 text-sm font-medium text-white transition-all hover:bg-brend-quyuq active:scale-[0.98]"
           >
-            + Yangi xodim
-          </Link>
-        )}
+              + Yangi xodim
+            </Link>
+          )}
+        </div>
       </div>
 
       {qatorlar.length === 0 ? (
@@ -90,14 +105,18 @@ export default async function XodimSahifasi() {
                   {ozgartiraOladi && (
                     <td className="px-4 py-2.5">
                       <div className="flex items-center justify-end gap-3">
-                        <Link
-                          href={`/xodim/${String(x.id)}`}
-                          className="text-matn-ikki hover:text-matn"
-                        >
-                          Tahrirlash
-                        </Link>
-                        {x.faol && (
-                          <OchirTugma tur="xodim" id={x.id} nom={x.ism} ixcham />
+                        {x.faol ? (
+                          <>
+                            <Link
+                              href={`/xodim/${String(x.id)}`}
+                              className="text-matn-ikki hover:text-matn"
+                            >
+                              Tahrirlash
+                            </Link>
+                            <OchirTugma tur="xodim" id={x.id} nom={x.ism} ixcham />
+                          </>
+                        ) : (
+                          <QaytarTugma tur="xodim" id={x.id} nom={x.ism} />
                         )}
                       </div>
                     </td>

@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { ulanishOl } from '@/lib/db';
 import { OchirTugma } from '../ochir-tugma';
+import { OchirilganlarHavolasi, QaytarTugma } from '../ochirilganlar';
 import { sahifaRuxsati } from '@/lib/kirish/joriy';
 import { ruxsatBormi } from '@/lib/ruxsat/tekshir';
 import {
@@ -31,18 +32,37 @@ function narxBirligi(sarflash: string): string {
   return sarflash === 'SM' ? 'm' : SARFLASH_BIRLIGI_NOMI[sarflash as SarflashBirligi];
 }
 
-export default async function MaterialRoyxati() {
+export default async function MaterialRoyxati({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const f = await sahifaRuxsati('material.kor');
   const yarataOladi = ruxsatBormi(f, 'material.yarat');
   const ozgartiraOladi = ruxsatBormi(f, 'material.ozgartir');
 
-  const qatorlar = await ulanishOl()<Qator[]>`
+  /**
+   * ⚠️ O'CHIRILGAN YOZUV RO'YXATDA KO'RINMAYDI. Ilgari u faqat
+   *    kulrang bo'lib turardi va ro'yxatni to'ldirardi.
+   *    «O'chirilganlar» havolasi bosilsa ko'rsatiladi — qaytarish
+   *    uchun.
+   */
+  const p = await searchParams;
+  const ochirilganlar = p['ochirilgan'] === '1';
+
+  const sql = ulanishOl();
+
+  const qatorlar = await sql<Qator[]>`
     SELECT m.id, m.nom, m.hisob_turi, m.kirim_birligi, m.sarflash_birligi,
            m.koeffitsient, m.sotuv_narx, m.sotuv_valyuta, m.faol,
            g.nom AS guruh_nomi
     FROM material m
     LEFT JOIN almashtirish_guruh g ON g.id = m.almashtirish_guruh_id
-    ORDER BY m.faol DESC, m.nom`;
+    WHERE m.faol = ${!ochirilganlar}
+    ORDER BY m.nom`;
+
+  const ochirilganSoni = await sql<{ n: number }[]>`
+    SELECT COUNT(*)::int AS n FROM material WHERE faol = false`;
 
   return (
     <div className="flex flex-col gap-6">
@@ -53,14 +73,21 @@ export default async function MaterialRoyxati() {
             {qatorlar.length} ta · barcha filial uchun umumiy (Q-26)
           </p>
         </div>
-        {yarataOladi && (
-          <Link
-            href="/material/yangi"
-            className="rounded-maydon bg-brend px-3.5 py-2 text-sm font-medium text-white transition-all active:scale-[0.98] hover:bg-brend-quyuq"
-          >
-            Material qo&apos;shish
-          </Link>
-        )}
+        <div className="flex items-center gap-3">
+          <OchirilganlarHavolasi
+            soni={ochirilganSoni[0]?.n ?? 0}
+            korsatilmoqda={ochirilganlar}
+          />
+
+          {yarataOladi && (
+            <Link
+              href="/material/yangi"
+              className="rounded-maydon bg-brend px-3.5 py-2 text-sm font-medium text-white transition-all active:scale-[0.98] hover:bg-brend-quyuq"
+            >
+              Material qo&apos;shish
+            </Link>
+          )}
+        </div>
       </div>
 
       {qatorlar.length === 0 ? (
@@ -83,10 +110,7 @@ export default async function MaterialRoyxati() {
             <tbody className="divide-y divide-chegara [&>tr:nth-child(even)]:bg-fon/50">
               {qatorlar.map((m) => (
                 <tr key={m.id} className={m.faol ? '' : 'bg-fon text-matn-kuchsiz'}>
-                  <td className="px-4 py-2.5 font-medium">
-                    {m.nom}
-                    {!m.faol && <span className="ml-2 text-xs">(nofaol)</span>}
-                  </td>
+                  <td className="px-4 py-2.5 font-medium">{m.nom}</td>
                   <td className="px-4 py-2.5">
                     {HISOB_TURI_NOMI[m.hisob_turi as HisobTuri] ?? m.hisob_turi}
                   </td>
@@ -114,18 +138,25 @@ export default async function MaterialRoyxati() {
                   {ozgartiraOladi && (
                     <td className="px-4 py-2.5">
                       <div className="flex items-center justify-end gap-3">
-                        <Link
-                          href={`/material/${String(m.id)}`}
-                          className="text-matn-ikki hover:text-matn"
-                        >
-                          Tahrirlash
-                        </Link>
+                        {/* ⚠️ O'chirilganda faqat qaytarish mumkin */}
+                        {m.faol ? (
+                          <Link
+                            href={`/material/${String(m.id)}`}
+                            className="text-matn-ikki hover:text-matn"
+                          >
+                            Tahrirlash
+                          </Link>
+                        ) : (
+                          <QaytarTugma tur="material" id={m.id} nom={m.nom} />
+                        )}
                         {/*
                           ⚠️ O'chirish = nofaol qilish. Omborda
                              qoldig'i bor material o'chirilmaydi va
                              sabab ko'rsatiladi.
                         */}
-                        <OchirTugma tur="material" id={m.id} nom={m.nom} ixcham />
+                        {m.faol && (
+                          <OchirTugma tur="material" id={m.id} nom={m.nom} ixcham />
+                        )}
                       </div>
                     </td>
                   )}

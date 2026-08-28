@@ -11,6 +11,7 @@
 import { useState, useTransition } from 'react';
 import { kirishUslubi } from '../maydon';
 import { OchirTugma } from '../ochir-tugma';
+import { QaytarTugma } from '../ochirilganlar';
 import { guruhNominiOzgartir } from './amal';
 import type { GuruhQatori } from './malumot';
 
@@ -159,19 +160,23 @@ function Qator({
       {ozgartiraOladi && (
         <td className="px-4 py-2.5">
           <div className="flex items-center justify-end gap-3">
-            {!tahrir && guruh.faol && (
-              <button
-                type="button"
-                onClick={() => {
-                  tahrirniOzgartir(true);
-                }}
-                className="fokus rounded-maydon px-1 text-matn-ikki transition-colors hover:text-matn"
-              >
-                Tahrirlash
-              </button>
-            )}
-            {guruh.faol && (
-              <OchirTugma tur="guruh" id={guruh.id} nom={guruh.nom} ixcham />
+            {guruh.faol ? (
+              <>
+                {!tahrir && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      tahrirniOzgartir(true);
+                    }}
+                    className="fokus rounded-maydon px-1 text-matn-ikki transition-colors hover:text-matn"
+                  >
+                    Tahrirlash
+                  </button>
+                )}
+                <OchirTugma tur="guruh" id={guruh.id} nom={guruh.nom} ixcham />
+              </>
+            ) : (
+              <QaytarTugma tur="guruh" id={guruh.id} nom={guruh.nom} />
             )}
           </div>
         </td>

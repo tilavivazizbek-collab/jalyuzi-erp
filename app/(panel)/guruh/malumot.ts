@@ -21,7 +21,10 @@ export interface GuruhQatori {
   readonly slotSoni: number;
 }
 
-export async function guruhRoyxati(): Promise<GuruhQatori[]> {
+export async function guruhRoyxati(
+  /** ⚠️ `true` — faqat O'CHIRILGANLARI (qaytarish uchun) */
+  ochirilganlar = false,
+): Promise<GuruhQatori[]> {
   return ulanishOl()<GuruhQatori[]>`
     SELECT g.id, g.nom, g.faol,
            (SELECT COUNT(*)::int FROM material m
@@ -29,11 +32,19 @@ export async function guruhRoyxati(): Promise<GuruhQatori[]> {
            (SELECT COUNT(*)::int FROM mahsulot_slot s
              WHERE s.almashtirish_guruh_id = g.id AND s.faol = true) AS "slotSoni"
     FROM almashtirish_guruh g
-    ORDER BY g.faol DESC, g.nom`;
+    WHERE g.faol = ${!ochirilganlar}
+    ORDER BY g.nom`;
 }
 
 export async function guruhniOl(id: number): Promise<{ id: number; nom: string } | null> {
   const q = await ulanishOl()<{ id: number; nom: string }[]>`
     SELECT id, nom FROM almashtirish_guruh WHERE id = ${id}`;
   return q[0] ?? null;
+}
+
+/** O'chirilganlar soni — havolada ko'rsatiladi */
+export async function guruhOchirilganSoni(): Promise<number> {
+  const q = await ulanishOl()<{ n: number }[]>`
+    SELECT COUNT(*)::int AS n FROM almashtirish_guruh WHERE faol = false`;
+  return q[0]?.n ?? 0;
 }

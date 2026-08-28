@@ -3,7 +3,8 @@ import { sahifaRuxsati } from '@/lib/kirish/joriy';
 import { ruxsatBormi } from '@/lib/ruxsat/tekshir';
 import { KASSA_TURI_NOMI, type KassaTuri } from '@/lib/sxema/kassa-yarat';
 import { OchirTugma } from '../../ochir-tugma';
-import { kassaBoshqaruvRoyxati } from '../malumot';
+import { kassaBoshqaruvRoyxati, kassaOchirilganSoni } from '../malumot';
+import { OchirilganlarHavolasi, QaytarTugma } from '../../ochirilganlar';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,11 +15,22 @@ export const dynamic = 'force-dynamic';
  *    topshiriq). Bu yerda ro'yxat boshqariladi va o'chirilganlari
  *    ham ko'rinadi.
  */
-export default async function KassaRoyxati() {
+export default async function KassaRoyxati({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const f = await sahifaRuxsati('kassa.barcha.kor');
   const boshqaraOladi = ruxsatBormi(f, 'kassa.yarat');
 
-  const qatorlar = await kassaBoshqaruvRoyxati();
+  /** ⚠️ O'chirilgan yozuv ro'yxatda KO'RINMAYDI */
+  const sp = await searchParams;
+  const ochirilganlar = sp['ochirilgan'] === '1';
+
+  const [qatorlar, ochirilganSoni] = await Promise.all([
+    kassaBoshqaruvRoyxati(ochirilganlar),
+    kassaOchirilganSoni(),
+  ]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -32,14 +44,18 @@ export default async function KassaRoyxati() {
           </h1>
         </div>
 
-        {boshqaraOladi && (
-          <Link
-            href="/kassa/yangi"
+        <div className="flex items-center gap-3">
+          <OchirilganlarHavolasi soni={ochirilganSoni} korsatilmoqda={ochirilganlar} />
+
+          {boshqaraOladi && (
+            <Link
+              href="/kassa/yangi"
             className="rounded-maydon bg-brend px-3.5 py-2 text-sm font-medium text-white transition-all hover:bg-brend-quyuq active:scale-[0.98]"
           >
-            + Yangi kassa
-          </Link>
-        )}
+              + Yangi kassa
+            </Link>
+          )}
+        </div>
       </div>
 
       {qatorlar.length === 0 ? (
@@ -86,7 +102,11 @@ export default async function KassaRoyxati() {
                         ⚠️ Ichida puli bor kassa o'chirilmaydi —
                            sabab ko'rsatiladi.
                       */}
-                      {k.faol && <OchirTugma tur="kassa" id={k.id} nom={k.nom} ixcham />}
+                      {k.faol ? (
+                        <OchirTugma tur="kassa" id={k.id} nom={k.nom} ixcham />
+                      ) : (
+                        <QaytarTugma tur="kassa" id={k.id} nom={k.nom} />
+                      )}
                     </td>
                   )}
                 </tr>
