@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { BOSH_HOLAT, type KonstruktorHolati } from './holat';
 import { TestKalkulyatori, type GuruhMalumoti } from './kalkulyator';
 import { Modal } from '../modal';
+import { RasmYuklash } from '../rasm-yuklash';
 import { GuruhFormasi } from '../guruh-forma';
 import {
   MaterialFormasi,
@@ -152,6 +153,7 @@ export function MahsulotFormasi({
   tugmaMatni,
   guruhQoshaOladi,
   materialQoshaOladi,
+  rasmManzili,
 }: {
   amal: (holat: KonstruktorHolati, forma: FormData) => Promise<KonstruktorHolati>;
   qiymatlar: MahsulotQiymatlari;
@@ -161,6 +163,8 @@ export function MahsulotFormasi({
   guruhQoshaOladi: boolean;
   /** §9.4 — server amali ham `material.yarat` ni tekshiradi */
   materialQoshaOladi: boolean;
+  /** Katalog rasmi — sotuvda tur tanlanayotganda ko'rinadi (4.2) */
+  rasmManzili?: string | null;
 }) {
   const [holat, yubor, kutilmoqda] = useActionState(amal, BOSH_HOLAT);
 
@@ -238,6 +242,15 @@ export function MahsulotFormasi({
         <section className="rounded-karta border border-chegara bg-sirt p-5">
           <h2 className="mb-4 text-sm font-semibold">Asosiy</h2>
           <div className="grid gap-4 sm:grid-cols-2">
+            <div className="sm:col-span-2">
+              {/* TZ 4.2 — katalog rasmi, sotuvda tur yonida chiqadi */}
+              <RasmYuklash
+                nom="rasm"
+                joriyManzil={rasmManzili ?? null}
+                yorliq="Mahsulot rasmi"
+              />
+            </div>
+
             <label className="flex flex-col gap-1 sm:col-span-2">
               <span className="text-sm font-medium text-matn-ikki">Nomi</span>
               <input name="nom" defaultValue={qiymatlar.nom} required className={kirish} />
@@ -389,6 +402,13 @@ export function MahsulotFormasi({
                       <span className="text-[11px] text-matn-kuchsiz">{tavsif.izoh}</span>
 
                       <div className="flex items-center gap-3">
+                        {/*
+                          ⚠️ TZ 4.6 — bu belgi SOTUVDA ishlaydi:
+                             belgilangani savatga O'ZI qo'shiladi,
+                             belgilanmagani esa faqat mijoz
+                             so'raganda. Shuning uchun yorliq
+                             «majburiy» emas, natijani aytadi.
+                        */}
                         <label className="flex items-center gap-1.5 text-xs text-matn-ikki">
                           <input
                             type="checkbox"
@@ -398,7 +418,7 @@ export function MahsulotFormasi({
                             }}
                             className="size-3.5"
                           />
-                          majburiy
+                          {q.majburiy ? "doim qo'shiladi" : "mijoz so'rasa"}
                         </label>
 
                         <button

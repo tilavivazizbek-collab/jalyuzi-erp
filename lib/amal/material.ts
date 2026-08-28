@@ -11,6 +11,7 @@
 import type postgres from 'postgres';
 import { farqniAjrat, ozgarishBormi, type Qiymatlar } from '@/lib/audit/amallar';
 import type { MaterialKirimi } from '@/lib/sxema/material';
+import type { RasmNatijasi } from '@/lib/domain/rasm';
 import { BiznesXato } from '@/lib/xato';
 
 export interface MaterialQatori {
@@ -69,6 +70,7 @@ export async function materialYarat(
   ulanish: postgres.Sql,
   kirim: MaterialKirimi,
   xodimId: number,
+  rasm: RasmNatijasi | 'OCHIR' | null = null,
 ): Promise<number> {
   return ulanish.begin(async (tx) => {
     const qator = await tx<{ id: number }[]>`
@@ -95,6 +97,18 @@ export async function materialYarat(
       ) RETURNING id`;
 
     const id = qator[0]?.id;
+
+    /**
+     * ⚠️ Rasm ALOHIDA yoziladi, lekin AYNI tranzaksiyada: material
+     *    saqlanib rasm yozilmay qolsa, odam «rasm yuklandi» deb
+     *    o'ylab yurardi (2.1-invariant).
+     */
+    if (id !== undefined && rasm !== null && rasm !== 'OCHIR') {
+      await tx`
+        UPDATE material SET rasm = ${rasm.baytlar}, rasm_turi = ${rasm.turi}
+        WHERE id = ${id}`;
+    }
+
     if (id === undefined) {
       throw new BiznesXato('MATERIAL_SAQLANMADI');
     }
@@ -138,6 +152,14 @@ export async function materialTahrirla(
   kirim: MaterialKirimi,
   xodimId: number,
   filialId: number,
+  /**
+   * Katalog rasmi — TZ 3.3.
+   *
+   * ⚠️ `null` — rasm o'zgarmadi, `'OCHIR'` — olib tashlandi.
+   *    Zod sxemasidan ALOHIDA keladi: baytlarni matn tekshiruvidan
+   *    o'tkazishning ma'nosi yo'q.
+   */
+  rasm: RasmNatijasi | 'OCHIR' | null = null,
 ): Promise<TahrirNatijasi> {
   return ulanish.begin(async (tx) => {
     const oldingi = await tx<MaterialQatori[]>`
@@ -181,6 +203,20 @@ export async function materialTahrirla(
         yaxlitlash_qadami = ${yoNull(kirim.yaxlitlashQadami)},
         ozgartirildi = now(), ozgartirdi_id = ${xodimId}
       WHERE id = ${materialId}`;
+
+    /**
+     * ⚠️ Uch holat: `null` — tegilmaydi, `'OCHIR'` — tozalanadi,
+     *    aks holda yangisi yoziladi. Ikkinchisisiz rasmni olib
+     *    tashlab bo'lmasdi.
+     */
+    if (rasm === 'OCHIR') {
+      await tx`
+        UPDATE material SET rasm = NULL, rasm_turi = NULL WHERE id = ${materialId}`;
+    } else if (rasm !== null) {
+      await tx`
+        UPDATE material SET rasm = ${rasm.baytlar}, rasm_turi = ${rasm.turi}
+        WHERE id = ${materialId}`;
+    }
 
     const yangilangan = await tx<MaterialQatori[]>`
       SELECT * FROM material WHERE id = ${materialId}`;

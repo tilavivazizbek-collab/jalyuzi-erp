@@ -183,6 +183,13 @@
       "when": 1787901309924,
       "tag": "0025_thick_spyke",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1787902283830,
+      "tag": "0026_steady_shinko_yamashiro",
+      "breakpoints": true
     }
   ]
 }

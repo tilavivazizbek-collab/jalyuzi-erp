@@ -30,4 +30,6 @@ export const MATERIAL_MAYDONLARI = [
   'odatdagiRulonBoyiM',
   'almashtirishGuruhId',
   'yaxlitlashQadami',
+  // Katalog rasmi — `data:` matn yoki `OCHIR` (3.3)
+  'rasm',
 ];

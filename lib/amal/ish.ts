@@ -41,6 +41,7 @@ import {
 import { bandniBoshatTx } from './band';
 import { tayyorMahsulotQarziYozTx } from './filial-harakat';
 import { BiznesXato } from '@/lib/xato';
+import { donaYech } from './dona-yechish';
 
 interface PozitsiyaQatori {
   readonly id: number;
@@ -342,6 +343,74 @@ export async function tugatdim(
                 'buyurtma_pozitsiya', ${kirim.pozitsiyaId},
                 ${kesim.qoldiqDarajasi === 'YAROQSIZ' ? 'Yaroqsiz qoldiq (7.5)' : null},
                 ${xodimId})`;
+    }
+
+    /**
+     * ── AKSESSUARLAR OMBORDAN YECHILADI ──
+     *
+     * ⚠️ 2026-08-28 auditida topilgan xato: aksessuar (kronshteyn,
+     *    zanjir, vint) `pozitsiya_aksessuar` ga YOZILARDI, lekin
+     *    ombordan HECH QAYERDA yechilmasdi. Mijozdan puli olinardi,
+     *    qoldiq esa kamaymasdi — farq har sotuvda ortib borardi.
+     *
+     * ⚠️ Aynan SHU YERDA, mato bilan birga: mahsulot tayyorlanganda
+     *    aksessuar ham ishlatilgan bo'ladi. Tasdiqlashda yechilsa,
+     *    bekor qilingan buyurtmadan keyin qaytarish kerak bo'lardi.
+     *
+     * ⚠️ Yetmasa ISH TO'XTATILMAYDI: usta mahsulotni allaqachon
+     *    yasagan. Qoldiq manfiyga tushmaydi — shunchaki yechilmaydi
+     *    va jurnalga izoh yoziladi. Buni inventarizatsiya ko'rsatadi.
+     */
+    const aksessuarlar = await tx<
+      { material_id: number; soni: string }[]
+    >`
+      SELECT material_id, soni::text
+      FROM pozitsiya_aksessuar WHERE buyurtma_pozitsiya_id = ${kirim.pozitsiyaId}`;
+
+    for (const a of aksessuarlar) {
+      const kerak = Number(a.soni);
+      if (!Number.isFinite(kerak) || kerak <= 0) continue;
+
+      const yechim = await donaYech(tx, a.material_id, filialId, kerak);
+
+      if (yechim.holat === 'YETMADI') {
+        /**
+         * ⚠️ OMBOR JURNALIGA EMAS, AUDIT jurnaliga.
+         *
+         *    `ombor_harakat` da har yozuv BO'LAKKA bog'langan —
+         *    bazaning o'zi shuni talab qiladi. «Hech narsa
+         *    yechilmadi» esa harakat emas: ombor jurnalida nol
+         *    miqdorli, bo'laksiz yozuv yolg'on iz qoldirardi.
+         *
+         *    Auditda esa uning o'rni bor: kim, qachon, nima
+         *    yetishmadi.
+         */
+        await tx`
+          INSERT INTO audit_jurnal (xodim_id, filial_id, amal, obyekt_turi,
+                                    obyekt_id, yangi_qiymat, izoh)
+          VALUES (${xodimId}, ${filialId}, 'AKSESSUAR_YETMADI',
+                  'buyurtma_pozitsiya', ${kirim.pozitsiyaId},
+                  ${tx.json({
+                    material_id: a.material_id,
+                    kerak,
+                    omborda: yechim.mavjud,
+                  })},
+                  ${`Aksessuar yetmadi: kerak ${String(kerak)}, omborda ${yechim.mavjud}`})`;
+        continue;
+      }
+
+      for (const partiya of yechim.partiyalar) {
+        const olindi = Number(partiya.miqdor);
+        await tx`
+          INSERT INTO ombor_harakat (filial_id, bolak_id, turi, miqdor_dona,
+                                     tannarx_summa, manba_turi, manba_id, izoh,
+                                     xodim_id)
+          VALUES (${filialId}, ${partiya.bolakId}, 'KESIM',
+                  ${-olindi},
+                  ${(-olindi * Number(partiya.tannarx)).toFixed(2)},
+                  'buyurtma_pozitsiya', ${kirim.pozitsiyaId},
+                  'Aksessuar ishlatildi', ${xodimId})`;
+      }
     }
 
     // ── Pozitsiya holati (20.5) ──

@@ -5,6 +5,7 @@ import { Maydon, kirishUslubi } from '../maydon';
 import { TanlovModal } from '../tanlov-modal';
 import { GuruhFormasi } from '../guruh-forma';
 import { NarxKatagi } from './narx-katak';
+import { RasmYuklash } from '../rasm-yuklash';
 import { BekorQilish, useSaqlanganda } from '../modal-forma';
 import type { YaratilganYozuv } from '../modal-holat';
 import { BOSH_HOLAT, type FormaHolati } from './holat';
@@ -75,6 +76,7 @@ export function MaterialFormasi({
   tugmaMatni,
   saqlandi,
   bekor,
+  rasmManzili,
 }: {
   amal: (holat: FormaHolati, forma: FormData) => Promise<FormaHolati>;
   qiymatlar: MaterialQiymatlari;
@@ -89,6 +91,8 @@ export function MaterialFormasi({
   /** Modalda beriladi — saqlangach oyna yopiladi va material tanlanadi */
   saqlandi?: (y: YaratilganYozuv) => void;
   bekor?: () => void;
+  /** Mavjud rasm manzili — TZ 3.3 katalogi uchun */
+  rasmManzili?: string | null;
 }) {
   const [holat, yubor, kutilmoqda] = useActionState(amal, BOSH_HOLAT);
 
@@ -162,6 +166,14 @@ export function MaterialFormasi({
       )}
 
       <section className="grid gap-4 sm:grid-cols-2">
+        <div className="sm:col-span-2">
+          {/*
+            ⚠️ Mato rasmi sotuvda ko'rinadi: mijoz «qaysi rang?»
+               deganda sotuvchi ekranni buradi (3.3).
+          */}
+          <RasmYuklash nom="rasm" joriyManzil={rasmManzili ?? null} yorliq="Mato rasmi" />
+        </div>
+
         <div className="sm:col-span-2">
           <Maydon nom="nom" yorliq="Nomi" xato={x('nom')}>
             <input

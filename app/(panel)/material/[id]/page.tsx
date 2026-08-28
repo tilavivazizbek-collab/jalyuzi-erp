@@ -29,6 +29,13 @@ interface Qator {
   readonly kam_ishlatiladigan_m: string | null;
   readonly kam_qoldiq_chegara_m: string | null;
   readonly standart_rulon_eni_m: string | null;
+  /**
+   * ⚠️ Rasmning O'ZI olinmaydi — faqat BORMI degan javob.
+   *    Baytlarni sahifaga yuklash uni og'irlashtirardi; rasm
+   *    alohida yo'l orqali keladi va keshlanadi.
+   */
+  readonly rasm_bormi: boolean;
+  readonly ozgartirildi: string | null;
   readonly odatdagi_rulon_boyi_m: string | null;
   readonly almashtirish_guruh_id: number | null;
   readonly yaxlitlash_qadami: string | null;
@@ -45,7 +52,21 @@ export default async function MaterialTahrirlash({ params }: { params: Promise<{
   if (!Number.isSafeInteger(materialId) || materialId <= 0) notFound();
 
   const ulanish = ulanishOl();
-  const qatorlar = await ulanish<Qator[]>`SELECT * FROM material WHERE id = ${materialId}`;
+  /**
+   * ⚠️ `SELECT *` EMAS: `rasm` ustuni bir necha yuz kilobayt va u
+   *    sahifaga umuman kerak emas — rasm alohida yo'l orqali
+   *    keladi va keshlanadi. Ilgari `*` bo'lgani uchun har
+   *    ochilishda rasm ikki marta yuklanardi.
+   */
+  const qatorlar = await ulanish<Qator[]>`
+    SELECT id, nom, hisob_turi, kirim_birligi, sarflash_birligi, koeffitsient,
+           sotuv_narx, sotuv_valyuta, kutilayotgan_kelish_narx,
+           kutilayotgan_kelish_valyuta, min_ustama_foiz, yaroqsiz_chegara_m,
+           kam_ishlatiladigan_m, kam_qoldiq_chegara_m, standart_rulon_eni_m,
+           odatdagi_rulon_boyi_m, almashtirish_guruh_id, yaxlitlash_qadami,
+           (rasm IS NOT NULL) AS rasm_bormi,
+           to_char(ozgartirildi, 'YYYYMMDDHH24MISS') AS ozgartirildi
+    FROM material WHERE id = ${materialId}`;
   const material = qatorlar[0];
   if (material === undefined) notFound();
 
@@ -108,6 +129,16 @@ export default async function MaterialTahrirlash({ params }: { params: Promise<{
           joriyKurs={kurs ?? ''}
           oxirgiKelish={oxirgiKelish}
           tugmaMatni="O'zgarishlarni saqlash"
+          /**
+           * ⚠️ Manzilga o'zgarish vaqti qo'shiladi: rasm bir yilga
+           *    keshlanadi, lekin yangisi yuklansa manzil ham
+           *    o'zgaradi va brauzer eskisini ko'rsatmaydi.
+           */
+          rasmManzili={
+            material.rasm_bormi
+              ? `/api/rasm/material/${String(materialId)}?v=${material.ozgartirildi ?? ''}`
+              : null
+          }
         />
       </div>
 

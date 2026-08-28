@@ -100,7 +100,7 @@ export function SotuvFormasi({
   qoshimchalar,
 }: {
   /** Faqat nom va raqam — yengil ro'yxat (3.2) */
-  turlar: readonly { id: number; nom: string }[];
+  turlar: readonly { id: number; nom: string; rasmBormi: boolean }[];
   /** Ekran bo'sh ochilmasligi uchun birinchi turning tafsiloti */
   birinchiTur: SotuvTuri | null;
   filiallar: readonly { id: number; nom: string; bosh: boolean }[];
@@ -487,6 +487,19 @@ export function SotuvFormasi({
                       : 'border border-chegara bg-sirt text-matn-ikki hover:border-chegara-quyuq hover:text-matn'
                   } ${turYuklanmoqda ? 'opacity-60' : ''}`}
                 >
+                  {/*
+                    ⚠️ TZ 4.2 — katalog rasmi. Tugma ichida kichik
+                       belgi bo'lib turadi: mijoz «qaysi mahsulot?»
+                       deganda sotuvchi ekranni buradi.
+                  */}
+                  {t.rasmBormi && (
+                    <img
+                      src={`/api/rasm/mahsulot/${String(t.id)}`}
+                      alt=""
+                      loading="lazy"
+                      className="mr-1.5 inline-block size-4 rounded-[3px] object-cover align-[-3px]"
+                    />
+                  )}
                   {t.nom}
                 </button>
               ))}
@@ -590,6 +603,29 @@ export function SotuvFormasi({
                               </option>
                             ))}
                           </select>
+
+                          {/*
+                            ⚠️ TZ 3.3 — «mijozga ekranni burib
+                               ko'rsatish uchun». `<option>` ichida
+                               rasm ko'rsatib bo'lmaydi, shuning
+                               uchun TANLANGANI yonida turadi.
+                          */}
+                          {q.material?.rasmBormi === true && (
+                            <a
+                              href={`/api/rasm/material/${String(q.material.id)}`}
+                              target="_blank"
+                              rel="noopener"
+                              title="Kattalashtirish"
+                              className="fokus mt-1 block w-fit"
+                            >
+                              <img
+                                src={`/api/rasm/material/${String(q.material.id)}`}
+                                alt={q.material.nom}
+                                loading="lazy"
+                                className="size-12 rounded-maydon border border-chegara object-cover"
+                              />
+                            </a>
+                          )}
                         </td>
                         <td className="raqam px-3 py-2">
                           {q.xato !== null ? (
@@ -695,6 +731,59 @@ export function SotuvFormasi({
                       ))}
                     </tbody>
                   </table>
+
+                {/*
+                  ⚠️ TZ 4.6 — «Ixtiyoriy aksessuar sotuvda AVTOMATIK
+                     KELMAYDI, mijoz so'ragandagina qo'shiladi.»
+
+                     Mantiq bor edi, lekin QO'SHISH YO'LI yo'q edi:
+                     ixtiyoriy aksessuar ro'yxatda umuman
+                     ko'rinmasdi va uni sotib bo'lmasdi.
+                */}
+                {(() => {
+                  const qoshilgan = new Set(
+                    (hisob?.aksQatorlar ?? []).map((a) => a.aksessuar.materialId),
+                  );
+                  const ixtiyoriy = (tur?.aksessuarlar ?? []).filter(
+                    (a) => !qoshilgan.has(a.materialId),
+                  );
+
+                  if (ixtiyoriy.length === 0) return null;
+
+                  return (
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <span className="text-xs text-matn-kuchsiz">
+                        Mijoz so&apos;rasa qo&apos;shiladi:
+                      </span>
+                      {ixtiyoriy.map((a) => (
+                        <button
+                          key={a.materialId}
+                          type="button"
+                          onClick={() => {
+                            aksessuarlarniOzgartir((o) => ({
+                              ...o,
+                              [a.materialId]: {
+                                materialId: a.materialId,
+                                soni: '',
+                                /**
+                                 * ⚠️ `qoldaKiritildi: false` —
+                                 *    formula sonini o'zi hisoblaydi
+                                 *    (3.7). Sotuvchi xohlasa keyin
+                                 *    qo'lda o'zgartiradi.
+                                 */
+                                qoldaKiritildi: false,
+                                ochirilgan: false,
+                              },
+                            }));
+                          }}
+                          className="fokus rounded-full border border-chegara bg-sirt px-2.5 py-1 text-[12px] font-medium text-brend transition-colors hover:border-brend/40 hover:bg-brend/5"
+                        >
+                          + {a.nom}
+                        </button>
+                      ))}
+                    </div>
+                  );
+                })()}
                 </div>
               </section>
             )}

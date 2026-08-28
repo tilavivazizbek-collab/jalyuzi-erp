@@ -11,6 +11,7 @@
 import type postgres from 'postgres';
 import { konstruktorTekshir, type MahsulotTuri } from '@/lib/domain/konstruktor';
 import type { MahsulotTurKirimi } from '@/lib/sxema/konstruktor';
+import type { RasmNatijasi } from '@/lib/domain/rasm';
 import { BiznesXato } from '@/lib/xato';
 
 export type KonstruktorNatijasi =
@@ -112,6 +113,8 @@ export async function mahsulotTuriYarat(
   ulanish: postgres.Sql,
   kirim: MahsulotTurKirimi,
   xodimId: number,
+  /** Katalog rasmi — TZ 4.2. `null` — yo'q, `'OCHIR'` — olib tashlash */
+  rasm: RasmNatijasi | 'OCHIR' | null = null,
 ): Promise<KonstruktorNatijasi> {
   const xabarlar = domenTekshiruvi(kirim);
   if (xabarlar.length > 0) return { holat: 'NUQSON', xabarlar };
@@ -125,6 +128,13 @@ export async function mahsulotTuriYarat(
       RETURNING id`;
 
     const id = qator[0]?.id;
+
+    /** ⚠️ Rasm AYNI tranzaksiyada — yarim saqlanmasin (2.1-invariant) */
+    if (id !== undefined && rasm !== null && rasm !== 'OCHIR') {
+      await tx`
+        UPDATE mahsulot_tur SET rasm = ${rasm.baytlar}, rasm_turi = ${rasm.turi}
+        WHERE id = ${id}`;
+    }
     if (id === undefined) throw new BiznesXato('MAHSULOT_SAQLANMADI');
 
     await bolaklarniYoz(tx, id, kirim, xodimId);
@@ -138,6 +148,7 @@ export async function mahsulotTuriTahrirla(
   kirim: MahsulotTurKirimi,
   xodimId: number,
   filialId: number,
+  rasm: RasmNatijasi | 'OCHIR' | null = null,
 ): Promise<KonstruktorNatijasi> {
   const xabarlar = domenTekshiruvi(kirim);
   if (xabarlar.length > 0) return { holat: 'NUQSON', xabarlar };
@@ -157,6 +168,16 @@ export async function mahsulotTuriTahrirla(
         botda_korinadi = ${kirim.botdaKorinadi},
         ozgartirildi = now(), ozgartirdi_id = ${xodimId}
       WHERE id = ${turId}`;
+
+    /** ⚠️ `OCHIR` — rasmni olib tashlash; `null` — tegilmaydi */
+    if (rasm === 'OCHIR') {
+      await tx`
+        UPDATE mahsulot_tur SET rasm = NULL, rasm_turi = NULL WHERE id = ${turId}`;
+    } else if (rasm !== null) {
+      await tx`
+        UPDATE mahsulot_tur SET rasm = ${rasm.baytlar}, rasm_turi = ${rasm.turi}
+        WHERE id = ${turId}`;
+    }
 
     await bolaklarniYoz(tx, turId, kirim, xodimId);
 

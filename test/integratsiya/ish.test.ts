@@ -69,6 +69,8 @@ async function rulonYarat(eni = 1.8, boyi = 2.0): Promise<number> {
 async function pozitsiyaTayyorla(
   eniM = 1.2,
   boyiM = 2.0,
+  /** Aksessuar qo'shilsa — ombordan yechilishini tekshirish uchun */
+  aksessuar: { materialId: number; soni: number } | null = null,
 ): Promise<{ pozitsiyaId: number; buyurtmaId: number }> {
   hisoblagich += 1;
 
@@ -103,7 +105,18 @@ async function pozitsiyaTayyorla(
             kerak: { eniM, boyiM },
           },
         ],
-        aksessuarlar: [],
+        aksessuarlar:
+          aksessuar === null
+            ? []
+            : [
+                {
+                  materialId: aksessuar.materialId,
+                  soni: String(aksessuar.soni),
+                  birlik: 'DONA',
+                  narxSnapshot: '30000',
+                  qoldaKiritildi: false,
+                },
+              ],
       },
     ],
   };
@@ -114,6 +127,142 @@ async function pozitsiyaTayyorla(
     buyurtmaId: n.buyurtmaId,
   };
 }
+
+// ─── Aksessuar ombordan yechiladi ────────────────────────────────────────
+
+describe('Aksessuar «Tugatdim» da ombordan yechiladi', () => {
+  /**
+   * ⚠️ 2026-08-28 auditida topilgan xato: aksessuar
+   *    `pozitsiya_aksessuar` ga yozilardi, lekin ombordan HECH
+   *    QAYERDA yechilmasdi. Kronshteyn sotilib puli olinardi,
+   *    qoldiq esa kamaymasdi.
+   */
+  async function kronshteynYarat(miqdor: number): Promise<number> {
+    hisoblagich += 1;
+    const m = await sql<{ id: number }[]>`
+      INSERT INTO material (nom, hisob_turi, kirim_birligi, sarflash_birligi, yaratdi_id)
+      VALUES (${`ISH-AKS-${String(Date.now())}-${String(hisoblagich)}`},
+              'DONA', 'dona', 'DONA', ${XODIM})
+      RETURNING id`;
+    const materialId = m[0]?.id ?? 0;
+
+    await sql`
+      INSERT INTO bolak (material_id, filial_id, kod, turi, miqdor,
+                         tannarx_birlik_snapshot, yaratdi_id)
+      VALUES (${materialId}, ${FILIAL},
+              ${`ISH-AKS-B-${String(Date.now())}-${String(hisoblagich)}`},
+              'DONA', ${miqdor}, 20000, ${XODIM})`;
+
+    return materialId;
+  }
+
+  async function qoldiq(materialId: number): Promise<number> {
+    const q = await sql<{ jami: string }[]>`
+      SELECT COALESCE(SUM(miqdor), 0)::text AS jami FROM bolak
+      WHERE material_id = ${materialId} AND holat = 'BOSH' AND faol = true`;
+    return Number(q[0]?.jami ?? '0');
+  }
+
+  it('qoldiq HAQIQATAN kamayadi', async () => {
+    const materialId = await kronshteynYarat(10);
+    await rulonYarat();
+
+    const { pozitsiyaId } = await pozitsiyaTayyorla(1.2, 2.0, {
+      materialId,
+      soni: 4,
+    });
+    await ishniOl(sql, pozitsiyaId, USTA, '45000');
+
+    expect(await qoldiq(materialId)).toBe(10);
+
+    await tugatdim(
+      sql,
+      {
+        pozitsiyaId,
+        manba: 'OSTATKA',
+        qoldiq: { eniM: 0.6, boyiM: 2.0, saqlansinmi: true },
+        ogohTasdiqlandi: false,
+        izoh: null,
+      },
+      CHEGARALAR,
+      USTA,
+    );
+
+    /** ⚠️ ASOSIY TEKSHIRUV: 10 − 4 = 6 */
+    expect(await qoldiq(materialId)).toBe(6);
+  });
+
+  it('ombor jurnaliga yozuv tushadi', async () => {
+    const materialId = await kronshteynYarat(10);
+    await rulonYarat();
+
+    const { pozitsiyaId } = await pozitsiyaTayyorla(1.2, 2.0, {
+      materialId,
+      soni: 3,
+    });
+    await ishniOl(sql, pozitsiyaId, USTA, '45000');
+
+    await tugatdim(
+      sql,
+      {
+        pozitsiyaId,
+        manba: 'OSTATKA',
+        qoldiq: { eniM: 0.6, boyiM: 2.0, saqlansinmi: true },
+        ogohTasdiqlandi: false,
+        izoh: null,
+      },
+      CHEGARALAR,
+      USTA,
+    );
+
+    const h = await sql<{ miqdor_dona: number; izoh: string | null }[]>`
+      SELECT miqdor_dona, izoh FROM ombor_harakat
+      WHERE manba_id = ${pozitsiyaId} AND izoh = 'Aksessuar ishlatildi'`;
+
+    expect(h.length).toBe(1);
+    /** ⚠️ MANFIY — ombordan chiqmoqda (2.2-invariant) */
+    expect(h[0]?.miqdor_dona).toBe(-3);
+  });
+
+  it("aksessuar yetmasa ish TO'XTAMAYDI — usta allaqachon yasagan", async () => {
+    const materialId = await kronshteynYarat(2);
+    await rulonYarat();
+
+    const { pozitsiyaId } = await pozitsiyaTayyorla(1.2, 2.0, {
+      materialId,
+      soni: 10,
+    });
+    await ishniOl(sql, pozitsiyaId, USTA, '45000');
+
+    const n = await tugatdim(
+      sql,
+      {
+        pozitsiyaId,
+        manba: 'OSTATKA',
+        qoldiq: { eniM: 0.6, boyiM: 2.0, saqlansinmi: true },
+        ogohTasdiqlandi: false,
+        izoh: null,
+      },
+      CHEGARALAR,
+      USTA,
+    );
+
+    expect(n.holat).toBe('TAYYOR');
+
+    /** ⚠️ Qoldiq MANFIYGA TUSHMAYDI — yechilmaydi, jurnalda izoh qoladi */
+    expect(await qoldiq(materialId)).toBe(2);
+
+    /**
+     * ⚠️ AUDIT jurnalida, ombor jurnalida emas: «hech narsa
+     *    yechilmadi» ombor HARAKATI emas va bazaning o'zi
+     *    bo'laksiz yozuvni rad etadi.
+     */
+    const h = await sql<{ izoh: string | null }[]>`
+      SELECT izoh FROM audit_jurnal
+      WHERE obyekt_id = ${pozitsiyaId} AND amal = 'AKSESSUAR_YETMADI'`;
+    expect(h.length).toBe(1);
+  });
+});
 
 // ─── TZ 8.5 · Ishni olish ─────────────────────────────────────────────────
 

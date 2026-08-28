@@ -16,6 +16,7 @@ import { ruxsatTalab } from '@/lib/kirish/joriy';
 import { mahsulotTurSxema } from '@/lib/sxema/konstruktor';
 import { biznesXatosimi } from '@/lib/xato';
 import type { KonstruktorHolati } from './holat';
+import { rasmniOqi } from '@/lib/domain/rasm';
 
 function xom(forma: FormData, nom: string): string {
   const q = forma.get(nom);
@@ -68,7 +69,12 @@ export async function mahsulotYaratAmali(
 
   let natija;
   try {
-    natija = await mahsulotTuriYarat(ulanishOl(), tekshiruv.data, f.xodimId);
+    natija = await mahsulotTuriYarat(
+      ulanishOl(),
+      tekshiruv.data,
+      f.xodimId,
+      rasmniOqi(xom(forma, 'rasm')),
+    );
   } catch (x) {
     return {
       xato: biznesXatosimi(x) ? x.message : 'Saqlashda xato yuz berdi',
@@ -102,6 +108,7 @@ export async function mahsulotTahrirlaAmali(
       tekshiruv.data,
       f.xodimId,
       f.filialId,
+      rasmniOqi(xom(forma, 'rasm')),
     );
   } catch (x) {
     return {

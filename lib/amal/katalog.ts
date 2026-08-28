@@ -30,6 +30,13 @@ export interface SotuvMaterial {
    *    `katalogNarxi()` orqali o'tkaziladi.
    */
   readonly narxValyuta: string;
+  /**
+   * Rasm BORMI — TZ 3.3 «mijozga ekranni burib ko'rsatish uchun».
+   *
+   * ⚠️ Rasmning O'ZI olinmaydi: 200 ta mato × 100 KB = 20 MB
+   *    bo'lardi. Rasm alohida yo'l orqali keladi va keshlanadi.
+   */
+  readonly rasmBormi: boolean;
   /** Q-25 — shu filialdagi bo'sh qoldiq (3.3: «har mato yonida qoldiq») */
   readonly boshKvM: number;
   readonly boshDona: number;
@@ -73,6 +80,8 @@ export interface SotuvTuri {
 export interface TurQatori {
   readonly id: number;
   readonly nom: string;
+  /** TZ 4.2 — katalog rasmi bormi (rasmning o'zi emas) */
+  readonly rasmBormi: boolean;
 }
 
 /**
@@ -88,8 +97,12 @@ export interface TurQatori {
  *    Tafsilot `turTafsili` bilan, tur tanlangandan keyin keladi.
  */
 export async function turRoyxati(): Promise<readonly TurQatori[]> {
-  const q = await ulanishOl()<{ id: number; nom: string }[]>`
-    SELECT id, nom FROM mahsulot_tur WHERE faol = true ORDER BY nom`;
+  /** ⚠️ Rasmning O'ZI olinmaydi — u alohida yo'ldan keladi va keshlanadi */
+  const q = await ulanishOl()<
+    { id: number; nom: string; rasmBormi: boolean }[]
+  >`
+    SELECT id, nom, (rasm IS NOT NULL) AS "rasmBormi"
+    FROM mahsulot_tur WHERE faol = true ORDER BY nom`;
   return q;
 }
 
@@ -211,6 +224,7 @@ export async function sotuvTurlari(
       almashtirish_guruh_id: number | null;
       narx: string | null;
       narx_valyuta: string;
+      rasm_bormi: boolean;
     }[]
   >`
     SELECT m.id, m.nom, m.sarflash_birligi, m.almashtirish_guruh_id,
@@ -220,7 +234,8 @@ export async function sotuvTurlari(
             *   qo'yilgan bo'lsa uning valyutasi ishlaydi — aks holda
             *   dollardagi filial narxi so'm deb hisoblanardi.
             */
-           COALESCE(fn.valyuta, m.sotuv_valyuta) AS narx_valyuta
+           COALESCE(fn.valyuta, m.sotuv_valyuta) AS narx_valyuta,
+           (m.rasm IS NOT NULL) AS rasm_bormi
     FROM material m
     LEFT JOIN material_filial_narx fn
            ON fn.material_id = m.id AND fn.filial_id = ${filialId}
@@ -238,6 +253,7 @@ export async function sotuvTurlari(
       sarflashBirligi: m.sarflash_birligi,
       narx: m.narx,
       narxValyuta: m.narx_valyuta,
+      rasmBormi: m.rasm_bormi,
       boshKvM: q?.kvM ?? 0,
       boshDona: q?.dona ?? 0,
     };

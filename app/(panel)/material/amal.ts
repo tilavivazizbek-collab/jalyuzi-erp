@@ -15,6 +15,7 @@ import { ruxsatTalab } from '@/lib/kirish/joriy';
 import { materialSxema } from '@/lib/sxema/material';
 import { biznesXatosimi } from '@/lib/xato';
 import { kirimniQaytar, maydonlarniOqi } from '../forma-yordamchi';
+import { rasmniOqi } from '@/lib/domain/rasm';
 import { xatolarniYig, type FormaHolati } from './holat';
 import type { YaratilganYozuv } from '../modal-holat';
 import { MATERIAL_MAYDONLARI } from './maydonlar';
@@ -45,7 +46,12 @@ async function yaratIchki(
 
   let id: number;
   try {
-    id = await materialYarat(ulanishOl(), tekshiruv.data, f.xodimId);
+    id = await materialYarat(
+      ulanishOl(),
+      tekshiruv.data,
+      f.xodimId,
+      rasmniOqi(kirim['rasm'] ?? ''),
+    );
   } catch (x) {
     return kirimniQaytar<FormaHolati>(
       {
@@ -90,14 +96,16 @@ export async function materialModalYaratAmali(
 
 export async function materialTahrirlaAmali(
   materialId: number,
-  _oldingi: FormaHolati,
+  oldingi: FormaHolati,
   forma: FormData,
 ): Promise<FormaHolati> {
   const f = await ruxsatTalab('material.ozgartir');
 
-  const tekshiruv = materialSxema.safeParse(formadanOqi(forma));
+  const kirim = formadanOqi(forma);
+
+  const tekshiruv = materialSxema.safeParse(kirim);
   if (!tekshiruv.success) {
-    return xatolarniYig(tekshiruv.error.issues);
+    return kirimniQaytar(xatolarniYig(tekshiruv.error.issues), oldingi, kirim);
   }
 
   let natija;
@@ -108,6 +116,7 @@ export async function materialTahrirlaAmali(
       tekshiruv.data,
       f.xodimId,
       f.filialId,
+      rasmniOqi(kirim['rasm'] ?? ''),
     );
   } catch (x) {
     return {

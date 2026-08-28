@@ -18,6 +18,7 @@ import {
   bigint,
   boolean,
   check,
+  customType,
   date,
   index,
   integer,
@@ -26,6 +27,15 @@ import {
   text,
   uniqueIndex,
 } from 'drizzle-orm/pg-core';
+
+/**
+ * Rasm — `bytea`.
+ *
+ * ⚠️ Bir marta e'lon qilinadi va ikki jadvalda ishlatiladi (§2.2).
+ */
+const baytlar = customType<{ data: Buffer; driverData: Buffer }>({
+  dataType: () => 'bytea',
+});
 import { id, izlar, ochirilmaydi } from './ustunlar';
 import { filial } from './asos';
 
@@ -121,6 +131,28 @@ export const material = pgTable(
      */
     odatdagiRulonBoyiM: numeric('odatdagi_rulon_boyi_m', { precision: 8, scale: 2 }),
 
+
+    /**
+     * Katalog rasmi — TZ 4.2 · 3.3 · 13 (bot katalogi).
+     *
+     * ⚠️ NEGA BAZADA, FAYL EMAS
+     *
+     *    Render bepul rejasida fayl tizimi VAQTINCHALIK: har
+     *    deploy da yuklangan rasmlar YO'QOLARDI. Vercel Blob esa
+     *    o'z qoidamiz bilan taqiqlangan (platformaga bog'lanmaslik).
+     *
+     *    Bazada saqlansa: zaxira nusxaga o'zi tushadi, alohida
+     *    xizmat kerak emas va `docker compose up` bilan loqal ham
+     *    ishlaydi.
+     *
+     * ⚠️ Rasm yuklanganda KICHIKLASHTIRILADI (eni 800 px). Aks
+     *    holda telefondan olingan 5 MB rasm sotuv ekranini
+     *    og'irlashtirardi.
+     */
+    rasm: baytlar('rasm'),
+    /** `image/webp` kabi — brauzerga to'g'ri sarlavha berish uchun */
+    rasmTuri: text('rasm_turi'),
+
     almashtirishGuruhId: bigint('almashtirish_guruh_id', { mode: 'number' }).references(
       () => almashtirishGuruh.id,
     ),
@@ -199,6 +231,28 @@ export const mahsulotTur = pgTable(
     /** TZ 4.7 — ixtiyoriy. Bo'sh qolsa narxga hech narsa qo'shilmaydi */
     xizmatHaqi: numeric('xizmat_haqi', { precision: 14, scale: 2 }).default('0'),
     tartib: integer('tartib').notNull().default(0),
+
+    /**
+     * Katalog rasmi — TZ 4.2 · 3.3 · 13 (bot katalogi).
+     *
+     * ⚠️ NEGA BAZADA, FAYL EMAS
+     *
+     *    Render bepul rejasida fayl tizimi VAQTINCHALIK: har
+     *    deploy da yuklangan rasmlar YO'QOLARDI. Vercel Blob esa
+     *    o'z qoidamiz bilan taqiqlangan (platformaga bog'lanmaslik).
+     *
+     *    Bazada saqlansa: zaxira nusxaga o'zi tushadi, alohida
+     *    xizmat kerak emas va `docker compose up` bilan loqal ham
+     *    ishlaydi.
+     *
+     * ⚠️ Rasm yuklanganda KICHIKLASHTIRILADI (eni 800 px). Aks
+     *    holda telefondan olingan 5 MB rasm sotuv ekranini
+     *    og'irlashtirardi.
+     */
+    rasm: baytlar('rasm'),
+    /** `image/webp` kabi — brauzerga to'g'ri sarlavha berish uchun */
+    rasmTuri: text('rasm_turi'),
+
     oynadaKorinadi: boolean('oynada_korinadi').notNull().default(true),
     botdaKorinadi: boolean('botda_korinadi').notNull().default(true),
     ...ochirilmaydi,

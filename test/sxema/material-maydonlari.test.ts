@@ -54,8 +54,30 @@ describe('Material formasi maydonlari Zod sxemasi bilan mos', () => {
 
   it("ro'yxatdagi har maydon sxemada bor — ortiqcha nom qolib ketmasin", () => {
     const kalitlar = new Set(sxemaKalitlari());
-    const ortiqchalar = MATERIAL_MAYDONLARI.filter((m) => !kalitlar.has(m));
+
+    /**
+     * ⚠️ `rasm` ATAYLAB Zod sxemasidan tashqarida.
+     *
+     *    U matn emas, BAYTLAR: `data:image/webp;base64,...`.
+     *    Zod uni tekshirsa ham hech narsa bermasdi — rasm turi,
+     *    hajmi va formati `lib/domain/rasm.ts` da tekshiriladi,
+     *    u yerda `Buffer` bilan ishlash mumkin.
+     */
+    const sxemadanTashqari = new Set(['rasm']);
+
+    const ortiqchalar = MATERIAL_MAYDONLARI.filter(
+      (m) => !kalitlar.has(m) && !sxemadanTashqari.has(m),
+    );
     expect(ortiqchalar).toEqual([]);
+  });
+
+  it('rasm maydoni formadan o‘qiladi — u Zoddan tashqarida', () => {
+    /**
+     * ⚠️ Tashqarida bo'lgani uchun uni unutib qo'yish oson:
+     *    forma yuboradi, lekin server o'qimasdi va rasm
+     *    jimgina yo'qolardi.
+     */
+    expect(MATERIAL_MAYDONLARI).toContain('rasm');
   });
 
   it("ro'yxatda nom takrorlanmaydi", () => {

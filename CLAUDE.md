@@ -277,7 +277,33 @@ bog'langan: uni ochib qarash mumkin.
 
 ---
 
-## 14. ESLATMA
+## 14. TAXMIN QILMA — SO'RA
+
+Topshiriq **aniq tushunarli bo'lmasa** — ishni boshlama. Avval nima
+demoqchi ekanini **aniqlashtirib ol**.
+
+Taxmin qilib boshlash eng qimmat xato: noto'g'ri tushunilgan ish
+qilinadi, tekshiriladi, kommit qilinadi — keyin hammasi qaytadan
+yoziladi. Bitta savol bir soatlik ishni tejaydi.
+
+**Qanday so'raladi:**
+- Nima tushunganingni **ayt** — egasi darrov to'g'rilaydi
+- **Ikki-uch variant** ber, har birining oqibatini yoz
+- **Misol so'ra**: «50 $ kurs 11 900 → 595 000» kabi aniq raqam
+  har qanday tushuntirishdan foydali
+
+⚠️ 2026-08-28: «narxi bo'yiga hisoblanadi» degan gap **sotuv narxi**
+deb tushunilgan va butun boshqa reja tuzilgan edi. Aslida u
+**kirim narxi** ekan. Bitta misol (`4$ × 50 m = 200$`) hammasini
+hal qildi.
+
+⚠️ Bu §1 dagi «Talab noaniq — **aniqlashtirasan**» qoidasining
+   kuchaytirilgan shakli: aniqlashtirmasdan **ishni boshlash
+   ham** taqiqlanadi.
+
+---
+
+## 15. ESLATMA
 
 Bu tizim ichida korxonaning **haqiqiy puli** turadi. Egasi kodni o'qiy
 olmaydi — u faqat senga ishonadi.

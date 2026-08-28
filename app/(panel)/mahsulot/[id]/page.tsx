@@ -36,8 +36,13 @@ export default async function MahsulotTahrirlash({ params }: { params: Promise<{
       tartib: number;
       oynada_korinadi: boolean;
       botda_korinadi: boolean;
+      rasm_bormi: boolean;
+      ozgartirildi: string | null;
     }[]
-  >`SELECT id, nom, xizmat_haqi, tartib, oynada_korinadi, botda_korinadi
+  >`SELECT id, nom, xizmat_haqi, tartib, oynada_korinadi, botda_korinadi,
+           /* ⚠️ Rasmning O'ZI olinmaydi — u alohida yo'ldan keladi */
+           (rasm IS NOT NULL) AS rasm_bormi,
+           to_char(ozgartirildi, 'YYYYMMDDHH24MISS') AS ozgartirildi
     FROM mahsulot_tur WHERE id = ${turId}`;
   const tur = turlar[0];
   if (tur === undefined) notFound();
@@ -110,6 +115,11 @@ export default async function MahsulotTahrirlash({ params }: { params: Promise<{
         materialQoshaOladi={materialQoshaOladi}
         materiallar={materiallar}
         tugmaMatni="O'zgarishlarni saqlash"
+        rasmManzili={
+          tur.rasm_bormi
+            ? `/api/rasm/mahsulot/${String(turId)}?v=${tur.ozgartirildi ?? ''}`
+            : null
+        }
       />
     </div>
   );
