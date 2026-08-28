@@ -20,6 +20,7 @@
 import type postgres from 'postgres';
 import Decimal from 'decimal.js';
 import { bandQilTx, type SlotSorovi } from './band';
+import { donaYech } from './dona-yechish';
 import {
   boshHolat,
   otishniTekshir,
@@ -71,7 +72,15 @@ export async function buyurtmaRaqamiOl(soruvchi: postgres.Sql): Promise<string> 
 }
 
 export interface PozitsiyaKirimi {
-  readonly mahsulotTurId: number;
+  /**
+   * ⚠️ `null` — QO'SHIMCHA MAHSULOT. Mijoz uydagi buzilgan
+   *    mexanizm o'rniga bittasini alohida olsa, u tayyorlanmaydi:
+   *    o'lchov olinmaydi, usta ishlamaydi, kesilmaydi. Shunchaki
+   *    ombordan olinib beriladi.
+   */
+  readonly mahsulotTurId: number | null;
+  /** Qo'shimcha mahsulotda — qaysi material sotilmoqda */
+  readonly qoshimchaMaterialId?: number | null;
   readonly eniSm: number;
   readonly boyiSm: number;
   readonly soni: number;
@@ -174,10 +183,12 @@ export async function buyurtmaYarat(
 
       const q = await tx<{ id: number }[]>`
         INSERT INTO buyurtma_pozitsiya (buyurtma_id, tartib, mahsulot_tur_id,
+                                        qoshimcha_material_id,
                                         eni_sm, boyi_sm, soni, narx_snapshot,
                                         chegirma_summa, xizmat_haqi,
                                         formula_snapshot, holat, yaratdi_id)
-        VALUES (${buyurtmaId}, ${i + 1}, ${p.mahsulotTurId}, ${p.eniSm}, ${p.boyiSm},
+        VALUES (${buyurtmaId}, ${i + 1}, ${p.mahsulotTurId},
+                ${p.qoshimchaMaterialId ?? null}, ${p.eniSm}, ${p.boyiSm},
                 ${p.soni}, ${p.narxSnapshot}, ${p.chegirmaSumma}, ${p.xizmatHaqi},
                 ${tx.json(p.formulaSnapshot as never)},
                 ${tasdiqlangan ? tasdiqHolati : bosh}, ${xodimId})
@@ -248,6 +259,49 @@ export async function buyurtmaYarat(
           await tx`
             UPDATE buyurtma_pozitsiya SET holat = 'MATERIALGA_KUTMOQDA'
             WHERE id = ${pozitsiyaId}`;
+        }
+      }
+
+      /**
+       * QO'SHIMCHA MAHSULOT — ombordan darhol yechiladi.
+       *
+       * ⚠️ Band qilinmaydi, YECHILADI: u tayyorlanmaydi, kesilmaydi
+       *    va usta ishlamaydi — shu zahoti mijozga beriladi.
+       *
+       * ⚠️ Yetmasa pozitsiya «materialga kutmoqda» ga tushadi, xuddi
+       *    mato yetmagandagi kabi (8.12). Sotuv to'xtatilmaydi:
+       *    qolgan pozitsiyalar baribir tayyorlanadi.
+       */
+      if (tasdiqlangan && p.qoshimchaMaterialId !== null && p.qoshimchaMaterialId !== undefined) {
+        const yechim = await donaYech(
+          tx,
+          p.qoshimchaMaterialId,
+          kirim.ishlabChiqaruvchiFilialId,
+          p.soni,
+        );
+
+        if (yechim.holat === 'YETMADI') {
+          holat = 'MATERIALGA_KUTMOQDA';
+          topilmagan = [p.qoshimchaMaterialId];
+          yetishmadi = true;
+
+          await tx`
+            UPDATE buyurtma_pozitsiya SET holat = 'MATERIALGA_KUTMOQDA'
+            WHERE id = ${pozitsiyaId}`;
+        } else {
+          /**
+           * ⚠️ Qaysi partiyadan olingani YOZILADI — tannarx keyin
+           *    shundan hisoblanadi (2.3-invariant: o'tmish
+           *    o'zgarmaydi).
+           */
+          for (const partiya of yechim.partiyalar) {
+            await tx`
+              INSERT INTO pozitsiya_aksessuar (buyurtma_pozitsiya_id, material_id,
+                                               soni, birlik, narx_snapshot,
+                                               qolda_kiritildi)
+              VALUES (${pozitsiyaId}, ${p.qoshimchaMaterialId},
+                      ${partiya.miqdor}, 'DONA', ${partiya.tannarx}, true)`;
+          }
         }
       }
 

@@ -18,6 +18,7 @@ import type postgres from 'postgres';
 import Decimal from 'decimal.js';
 import {
   birlikTannarxi,
+  rulonTannarxi,
   ustamaniTekshir,
   xarajatniTaqsimla,
   type DefektTuri,
@@ -37,6 +38,11 @@ export interface QatorKirimi {
   /** Kirim birligidagi miqdor — rulon soni, shtanga soni, dona */
   readonly miqdorKirim: number;
   readonly narxBirlik: string;
+  /**
+   * ⚠️ `METR` — narx uzunlik metriga (mato rulonlari). Bo'sh
+   *    bo'lsa `BIRLIK`: eski hujjatlar shunday ishlagan.
+   */
+  readonly narxAsosi?: 'BIRLIK' | 'METR';
   readonly defektMiqdor: number;
   readonly defektTuri: DefektTuri;
   /**
@@ -128,11 +134,20 @@ export async function kirimYarat(
 
     // ── 2. Qo'shimcha xarajat taqsimoti (7.9) ──
     const xarajat = qosh(som(kirim.transportSumma), som(kirim.bojxonaSumma));
+    /**
+     * ⚠️ `METR` narxida qator qiymati rulon BO'YLARI yig'indisiga
+     *    ko'paytiriladi, rulonlar soniga emas.
+     */
+    const jamiBoyi = (q: (typeof kirim.qatorlar)[number]): number =>
+      q.bolaklar.reduce((y, b) => y + b.boyiM, 0);
+
     const domenQatorlar: KirimQatori[] = kirim.qatorlar.map((q, i) => ({
       id: i,
       miqdor: q.miqdorKirim,
       narxBirlik: som(q.narxBirlik),
       defektMiqdor: q.defektMiqdor,
+      narxAsosi: q.narxAsosi,
+      jamiBoyiM: jamiBoyi(q),
     }));
     const ulushlar = xarajatniTaqsimla(domenQatorlar, xarajat);
 
@@ -168,6 +183,8 @@ export async function kirimYarat(
           miqdor: q.miqdorKirim,
           narxBirlik: som(q.narxBirlik),
           defektMiqdor: q.defektMiqdor,
+          narxAsosi: q.narxAsosi,
+          jamiBoyiM: jamiBoyi(q),
         },
         ulush.ulush,
         q.defektTuri,
@@ -216,7 +233,22 @@ export async function kirimYarat(
            * to'g'ri (QARORLAR-KOD P-20).
            */
           const maydon = olcham.eniM * olcham.boyiM;
-          const kvMTannarx = new Decimal(pulMatn(tannarx.birlikTannarx)).div(maydon);
+
+          /**
+           * ⚠️ `METR` narxida har rulon O'Z BO'YIGA mutanosib
+           *    to'lanadi: 50 metrlik rulon 30 metrlikdan qimmat.
+           *    Qator qiymatini rulonlar SONIGA bo'lsak, qisqasi
+           *    haddan qimmat, uzuni haddan arzon chiqardi.
+           *
+           *    Natijada kv.m tannarxi faqat ENIga bog'liq bo'ladi —
+           *    metr narxi bir xil bo'lsa keng rulon arzonroq.
+           */
+          const rulonNarxi =
+            q.narxAsosi === 'METR'
+              ? rulonTannarxi(tannarx.jamiQiymat, jamiBoyi(q), olcham.boyiM)
+              : tannarx.birlikTannarx;
+
+          const kvMTannarx = new Decimal(pulMatn(rulonNarxi)).div(maydon);
 
           await bolakYoz(tx, {
             materialId: q.materialId,

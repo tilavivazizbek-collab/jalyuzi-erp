@@ -31,6 +31,11 @@ export const kirimQatorSxema = z
   .object({
     materialId: z.number().int().positive('Materialni tanlang'),
     miqdorKirim: musbatSon('Miqdor'),
+    /**
+     * ⚠️ `METR` — narx uzunlik metriga berilgan (mato rulonlari).
+     *    Rulonning ENI narxga ta'sir qilmaydi.
+     */
+    narxAsosi: z.enum(['BIRLIK', 'METR']).default('BIRLIK'),
     narxBirlik: z
       .string()
       .trim()

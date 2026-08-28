@@ -78,3 +78,42 @@ export async function tikaOladiganFiliallar(): Promise<
     ORDER BY bosh DESC, nom`;
   return q;
 }
+
+// ─── Qo'shimcha mahsulot — TZ 3.x (kengaytma) ────────────────────────────
+
+export interface QoshimchaMaterial {
+  readonly id: number;
+  readonly nom: string;
+  readonly narx: string | null;
+  readonly narxValyuta: string;
+  readonly boshDona: number;
+}
+
+/**
+ * Alohida sotiladigan buyumlar — mexanizm, kronshteyn, zanjir.
+ *
+ * ⚠️ Faqat DONA hisobidagi material: mato metrlab kesiladi va
+ *    alohida sotilmaydi.
+ *
+ * ⚠️ Qoldiq shu FILIALDA hisoblanadi (Q-25) va narx filial
+ *    narxidan keladi (20.9).
+ */
+export async function qoshimchaMateriallar(
+  filialId: number,
+): Promise<QoshimchaMaterial[]> {
+  return ulanishOl()<QoshimchaMaterial[]>`
+    SELECT m.id, m.nom,
+           COALESCE(fn.sotuv_narx::text, m.sotuv_narx::text) AS narx,
+           COALESCE(fn.valyuta, m.sotuv_valyuta) AS "narxValyuta",
+           COALESCE((SELECT SUM(b.miqdor) FROM bolak b
+                     WHERE b.material_id = m.id
+                       AND b.filial_id = ${filialId}
+                       AND b.turi = 'DONA'
+                       AND b.holat = 'BOSH'
+                       AND b.faol = true), 0)::int AS "boshDona"
+    FROM material m
+    LEFT JOIN material_filial_narx fn
+           ON fn.material_id = m.id AND fn.filial_id = ${filialId}
+    WHERE m.faol = true AND m.hisob_turi = 'DONA'
+    ORDER BY m.nom`;
+}

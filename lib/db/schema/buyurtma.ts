@@ -127,9 +127,32 @@ export const buyurtmaPozitsiya = pgTable(
       .notNull()
       .references(() => buyurtma.id),
     tartib: integer('tartib').notNull(),
-    mahsulotTurId: bigint('mahsulot_tur_id', { mode: 'number' })
-      .notNull()
-      .references(() => mahsulotTur.id),
+
+    /**
+     * ⚠️ IXTIYORIY — `NULL` bo'lsa bu QO'SHIMCHA MAHSULOT.
+     *
+     *    Mijoz «uydagi mexanizm buzilgan, bittasini alohida olay»
+     *    desa, u tayyorlanmaydi: jalyuzi tikilmaydi, o'lchov
+     *    olinmaydi, usta ishlamaydi. Shunchaki ombordan olinib
+     *    beriladi.
+     *
+     *    Bunday qatorda tur ham, o'lcham ham, formula ham yo'q —
+     *    faqat material va soni.
+     */
+    mahsulotTurId: bigint('mahsulot_tur_id', { mode: 'number' }).references(
+      () => mahsulotTur.id,
+    ),
+
+    /**
+     * Qo'shimcha mahsulotning materiali.
+     *
+     * ⚠️ `mahsulot_tur_id` bilan BIRGA to'lmaydi: qator yo tayyor
+     *    mahsulot, yo qo'shimcha buyum. Bazadagi CHECK shuni
+     *    ta'minlaydi.
+     */
+    qoshimchaMaterialId: bigint('qoshimcha_material_id', { mode: 'number' }).references(
+      () => material.id,
+    ),
 
     /** TZ 3.4 — o'lcham SANTIMETRDA: mijoz va usta shunday gapiradi */
     eniSm: integer('eni_sm').notNull(),
@@ -170,6 +193,27 @@ export const buyurtmaPozitsiya = pgTable(
     ...izlar,
   },
   (t) => [
+    /**
+     * ⚠️ Qator YO tayyor mahsulot, YO qo'shimcha buyum.
+     *
+     *    Ikkalasi ham to'lsa — qaysi biri sotilgani noaniq bo'lardi.
+     *    Ikkalasi ham bo'sh bo'lsa — nima sotilgani umuman bilinmasdi.
+     */
+    check(
+      'pozitsiya_turi_yoki_material',
+      sql`(${t.mahsulotTurId} IS NOT NULL AND ${t.qoshimchaMaterialId} IS NULL)
+           OR (${t.mahsulotTurId} IS NULL AND ${t.qoshimchaMaterialId} IS NOT NULL)`,
+    ),
+    /**
+     * ⚠️ Qo'shimcha buyumda O'LCHAM YO'Q — u tayyorlanmaydi,
+     *    kesilmaydi. Nol qo'yiladi va shu tekshiriladi.
+     */
+    check(
+      'pozitsiya_qoshimcha_olchamsiz',
+      sql`${t.qoshimchaMaterialId} IS NULL
+           OR (${t.eniSm} = 0 AND ${t.boyiSm} = 0)`,
+    ),
+
     check(
       'buyurtma_pozitsiya_holat',
       sql`${t.holat} IN ('TASDIQ_KUTMOQDA','TASDIQLANGAN','MATERIALGA_KUTMOQDA',

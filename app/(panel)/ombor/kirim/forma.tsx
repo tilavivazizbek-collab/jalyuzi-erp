@@ -61,6 +61,15 @@ interface Qator {
   materialId: number;
   miqdorKirim: string;
   narxBirlik: string;
+  /**
+   * ⚠️ `METR` — narx uzunlik metriga berilgan: «4 $ metriga,
+   *    rulon 50 metr» → rulon narxi 200 $. Rulonning ENI narxga
+   *    ta'sir qilmaydi.
+   *
+   *    Ilgari faqat rulon narxi bor edi va omborchi 200 ni O'ZI
+   *    hisoblab kiritardi.
+   */
+  narxAsosi: 'BIRLIK' | 'METR';
   defektMiqdor: string;
   defektTuri: 'QAYTARILADI' | 'HISOBDAN_CHIQADI' | null;
   bolaklar: BolakQatori[];
@@ -128,13 +137,22 @@ export function KirimFormasi({
     }
   };
 
+  /** `METR` narxida qator qiymati BO'YLAR YIG'INDISIGA ko'paytiriladi */
+  const jamiBoyi = (q: Qator): number =>
+    q.bolaklar.reduce((y, b) => {
+      const n = Number(b.boyiM);
+      return Number.isFinite(n) && n > 0 ? y + n : y;
+    }, 0);
+
   const jami = useMemo(() => {
     let s = nolSom();
     for (const q of qatorlar) {
       const narx = Number(q.narxBirlik);
-      const miqdor = Number(q.miqdorKirim);
-      if (Number.isFinite(narx) && Number.isFinite(miqdor) && narx >= 0 && miqdor > 0) {
-        s = qosh(s, kopaytir(som(q.narxBirlik), miqdor));
+      if (!Number.isFinite(narx) || narx < 0) continue;
+
+      const kopaytmа = q.narxAsosi === 'METR' ? jamiBoyi(q) : Number(q.miqdorKirim);
+      if (Number.isFinite(kopaytmа) && kopaytmа > 0) {
+        s = qosh(s, kopaytir(som(q.narxBirlik), kopaytmа));
       }
     }
     const t = Number(transport);
@@ -279,6 +297,12 @@ export function KirimFormasi({
                     materialId: birinchi.id,
                     miqdorKirim: '',
                     narxBirlik: boshlangichNarx(birinchi, valyuta),
+                    /**
+                     * ⚠️ Rulon materialda odatda METR narxi
+                     *    ishlatiladi — mato metriga narxlanadi.
+                     *    Boshqa turlarda birlik narxi.
+                     */
+                    narxAsosi: birinchi.hisobTuri === 'RULON' ? 'METR' : 'BIRLIK',
                     defektMiqdor: '',
                     defektTuri: null,
                     bolaklar: [],
@@ -415,15 +439,36 @@ export function KirimFormasi({
                       className={kichik}
                     />
 
-                    <input
-                      value={q.narxBirlik}
-                      onChange={(e) => {
-                        yangila(i, { narxBirlik: e.target.value });
-                      }}
-                      placeholder="narx / birlik"
-                      inputMode="decimal"
-                      className={kichik}
-                    />
+                    {/*
+                      ⚠️ Narx nimaga berilgani TANLANADI. Yetkazib
+                         beruvchi matoni ko'pincha metriga
+                         narxlaydi: «4 $ metriga». Ilgari omborchi
+                         rulon narxini o'zi hisoblab kiritardi.
+                    */}
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        value={q.narxBirlik}
+                        onChange={(e) => {
+                          yangila(i, { narxBirlik: e.target.value });
+                        }}
+                        placeholder="narx"
+                        inputMode="decimal"
+                        className={`${kichik} min-w-0 flex-1`}
+                      />
+                      <select
+                        value={q.narxAsosi}
+                        onChange={(e) => {
+                          yangila(i, {
+                            narxAsosi: e.target.value === 'METR' ? 'METR' : 'BIRLIK',
+                          });
+                        }}
+                        aria-label="Narx nimaga berilgan"
+                        className={`${kichik} w-24 shrink-0`}
+                      >
+                        <option value="BIRLIK">{m?.kirimBirligi ?? 'birlik'}ga</option>
+                        <option value="METR">metriga</option>
+                      </select>
+                    </div>
 
                     <button
                       type="button"

@@ -48,6 +48,7 @@ export const XATO_BAND = {
   NARX_NOTOGRI: 'TZ 5.4',
   KOEFFITSIENT_NOTOGRI: 'TZ 5.3',
   BIRLIK_OZGARMAYDI: 'TZ 5.3',
+  MIQDOR_NOTOGRI: 'TZ 7.8 — miqdor noldan katta bo‘lishi kerak',
   TELEFON_BAND: 'TZ 10.2 — telefon boshqa xodimda',
   ROL_YOQ: 'TZ 10.3 — tanlangan rol topilmadi',
   YOZUV_YOQ: "QISM 1 §6.5 — o'chiriladigan yozuv topilmadi",

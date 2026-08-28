@@ -33,6 +33,7 @@ import { mijozModalYaratAmali } from '../mijoz/amal';
 import { buyurtmaYaratAmali, turTafsiliAmali } from './amal';
 import { BOSH_HOLAT } from './holat';
 import type { SotuvMijozi, SotuvTuri } from './malumot';
+import { QoshimchaQoshish, type QoshimchaMaterial } from './qoshimcha';
 
 const BIRLIK_MATNI: Record<SarflashBirligi, string> = {
   KV_M: 'kv.m',
@@ -55,12 +56,15 @@ interface AksessuarTanlovi {
 
 interface SavatQatori {
   readonly kalit: number;
-  readonly turId: number;
+  /** ⚠️ `null` — qo'shimcha mahsulot, tayyorlanmaydi */
+  readonly turId: number | null;
   readonly turNomi: string;
   readonly eniSm: number;
   readonly boyiSm: number;
   readonly narx: string;
   readonly yuk: unknown;
+  /** Qo'shimcha mahsulotda — nechta dona */
+  readonly soni?: number;
 }
 
 let keyingiKalit = 0;
@@ -93,6 +97,7 @@ export function SotuvFormasi({
   ozFilialId,
   mijozQoshaOladi,
   joriyKurs,
+  qoshimchalar,
 }: {
   /** Faqat nom va raqam — yengil ro'yxat (3.2) */
   turlar: readonly { id: number; nom: string }[];
@@ -107,6 +112,8 @@ export function SotuvFormasi({
    *    tanlanganda tushunarli xato chiqadi.
    */
   joriyKurs: string | null;
+  /** Alohida sotiladigan buyumlar — mexanizm, kronshteyn, zanjir */
+  qoshimchalar: readonly QoshimchaMaterial[];
 }) {
   const [holat, yubor, kutilmoqda] = useActionState(buyurtmaYaratAmali, BOSH_HOLAT);
 
@@ -749,7 +756,46 @@ export function SotuvFormasi({
       <aside className="flex flex-col gap-4 xl:sticky xl:top-20 xl:self-start">
         {/* ── 3.9 · Savat ── */}
         <section>
-          <h2 className="mb-2 text-sm font-medium text-matn-ikki">Savat ({savat.length})</h2>
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <h2 className="text-sm font-medium text-matn-ikki">Savat ({savat.length})</h2>
+
+            {/*
+              ⚠️ Mijoz «uydagi mexanizm buzilgan» desa — tayyor
+                 mahsulotsiz, alohida buyum sotiladi.
+            */}
+            <QoshimchaQoshish
+              materiallar={qoshimchalar}
+              kurs={kursObyekti}
+              qoshildi={(t) => {
+                savatniOzgartir((sv) => [
+                  ...sv,
+                  {
+                    kalit: Date.now(),
+                    turId: null,
+                    turNomi: t.nom,
+                    eniSm: 0,
+                    boyiSm: 0,
+                    soni: t.soni,
+                    narx: t.narx,
+                    yuk: {
+                      mahsulotTurId: null,
+                      qoshimchaMaterialId: t.materialId,
+                      eniSm: 0,
+                      boyiSm: 0,
+                      soni: t.soni,
+                      narxSnapshot: t.narx,
+                      chegirmaSumma: '0',
+                      xizmatHaqi: '0',
+                      /** ⚠️ Formula yo'q — bu buyum tayyorlanmaydi */
+                      formulaSnapshot: { qoshimcha: true },
+                      slotlar: [],
+                      aksessuarlar: [],
+                    },
+                  },
+                ]);
+              }}
+            />
+          </div>
 
           {savat.length === 0 ? (
             <p className="rounded-karta border border-dashed border-chegara-quyuq px-4 py-8 text-center text-[13px] text-matn-kuchsiz">
@@ -767,7 +813,13 @@ export function SotuvFormasi({
                       <td className="px-3 py-2.5">
                         <span className="font-medium text-matn">{q.turNomi}</span>
                         <span className="raqam mt-0.5 block text-left text-[12px] text-matn-kuchsiz">
-                          {q.eniSm} × {q.boyiSm} sm
+                          {/*
+                            ⚠️ Qo'shimcha mahsulotda o'lcham yo'q —
+                               u tayyorlanmaydi, ombordan olinadi.
+                          */}
+                          {q.turId === null
+                            ? `${String(q.soni ?? 1)} dona`
+                            : `${String(q.eniSm)} × ${String(q.boyiSm)} sm`}
                         </span>
                       </td>
                       <td className="raqam px-3 py-2.5 font-medium">{pulKorsat(som(q.narx))}</td>

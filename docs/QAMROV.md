@@ -8,7 +8,7 @@ majbur bo'ldi («dropdownlarda qo'shish bo'lsin»). Har safar bitta
 joy tuzatilib «bo'ldi» deyilardi. Teshik ko'rinmagani uchun shunday
 bo'ldi. Endi ko'rinadi.
 
-Oxirgi yangilanish: **2026-08-28** — 1 va 2-bo'limda ❌ QOLMADI
+Oxirgi yangilanish: **2026-08-28** — qo'shimcha mahsulot sotish
 
 ---
 
@@ -67,11 +67,11 @@ havolasi esa bor.
 
 | Ekran | Ishlaydi | Izoh |
 |---|:---:|---|
-| Sotuv | ✅ | Qo'shimcha mahsulot sotish ❌ (rejada) |
+| Sotuv | ✅ | Qo'shimcha mahsulot ham ✅ |
 | Buyurtmalar | ✅ | |
 | Yo'ldagilar | ✅ | |
 | Ombor qoldig'i | ✅ | |
-| Kirim | ✅ | Narx metr bo'yicha ❌ (rejada) |
+| Kirim | ✅ | Narx metr bo'yicha ham ✅ |
 | Chiqim | ✅ | |
 | Ko'chirish | ✅ | |
 | Inventarizatsiya | ✅ | |
@@ -86,11 +86,11 @@ havolasi esa bor.
 
 | Nima | Kim so'ragan | Holat |
 |---|---|---|
-| Kirim narxi metr bo'yicha (`4$ × 50 m`) | egasi | tasdiqlangan |
-| Rasm — mahsulot turi va matolarda | egasi | tasdiqlangan |
-| Sotuvda qo'shimcha mahsulot | egasi | tasdiqlangan |
-| Xodim yaratish | audit | tasdiqlangan |
-| To'lov ekranlariga kassa modali | audit | tasdiqlangan |
+| Rasm — mahsulot turi va matolarda | egasi | tasdiqlangan, boshlanmagan |
+| Aksessuarni ombordan yechishga ulash | audit | mexanizmi tayyor |
+
+⚠️ Bu ro'yxatda faqat BOSHLANMAGAN ish turadi. Bajarilgani darhol
+o'chiriladi — aks holda «nima qolgani» ko'rinmay qoladi.
 
 ---
 
@@ -98,6 +98,7 @@ havolasi esa bor.
 
 | Nima | Oqibati |
 |---|---|
+| **Aksessuar ombordan yechilmaydi** | Rollo sotilganda kronshteyn/zanjir puli olinadi, buyurtmada yoziladi, lekin ombor qoldig'i KAMAYMAYDI. Mexanizm (`lib/amal/dona-yechish.ts`) tayyor — uni `pozitsiya_aksessuar` ga ulash kerak |
 | Test bazasi ajratilmagan | Sinov ma'lumoti ishlaydigan bazaga yozilmoqda. Kassa testida allaqachon tishladi — pul yozuvini o'chirib bo'lmaydi |
 | Baza deyarli bo'sh | Ekranlar haqiqiy ma'lumot bilan sinalmagan |
 | Bot serverga chiqarilmagan | Render to'lov ma'lumoti kerak |

@@ -30,6 +30,18 @@ import { BiznesXato } from '@/lib/xato';
 
 // ─── 7.9 · Qo'shimcha xarajat taqsimoti ───────────────────────────────────
 
+/**
+ * Narx nimaga berilgan.
+ *
+ * ⚠️ Yetkazib beruvchi matoni ko'pincha UZUNLIK metriga narxlaydi:
+ *    «4 $ metriga, rulon 50 metr» → rulon narxi 200 $. Rulonning
+ *    ENI narxga ta'sir qilmaydi.
+ *
+ *    Ilgari faqat `BIRLIK` bor edi va omborchi 200 ni O'ZI hisoblab
+ *    kiritardi. Qo'lda hisoblash — xato manbayi.
+ */
+export type NarxAsosi = 'BIRLIK' | 'METR';
+
 export interface KirimQatori {
   readonly id: number;
   /** Kirim birligidagi miqdor (rulon, shtanga, dona) */
@@ -37,6 +49,15 @@ export interface KirimQatori {
   readonly narxBirlik: Som;
   /** Yetkazib beruvchi defekti (7.9) */
   readonly defektMiqdor: number;
+  /** Bo'sh bo'lsa `BIRLIK` — eski qatorlar shunday ishlagan */
+  readonly narxAsosi?: NarxAsosi;
+  /**
+   * `METR` bo'lsa — rulon bo'ylari yig'indisi (metrda).
+   *
+   * ⚠️ Rulonlar har xil uzunlikda keladi (50 + 30 + 45), shuning
+   *    uchun O'RTACHA emas, aynan YIG'INDI kerak.
+   */
+  readonly jamiBoyiM?: number;
 }
 
 export interface Ulush {
@@ -47,8 +68,33 @@ export interface Ulush {
   readonly ulush: Som;
 }
 
-/** Qator qiymati — `narx × miqdor` (defekt bilan birga, u ham sotib olingan). */
-export const qatorQiymati = (q: KirimQatori): Som => kopaytir(q.narxBirlik, q.miqdor);
+/**
+ * Qator qiymati — yetkazib beruvchiga to'lanadigan summa.
+ *
+ *   BIRLIK: narx × miqdor      (3 rulon × 200 $ = 600 $)
+ *   METR:   narx × jami bo'yi  (4 $ × 125 m = 500 $)
+ *
+ * ⚠️ Defekt AYIRILMAYDI — u ham sotib olingan (7.9).
+ *
+ * ⚠️ `METR` da bo'y berilmasa xato otiladi. Nolga tushirib
+ *    yuborish qatorni bepul qilib qo'yardi va tannarx butunlay
+ *    noto'g'ri chiqardi.
+ */
+export const qatorQiymati = (q: KirimQatori): Som => {
+  if ((q.narxAsosi ?? 'BIRLIK') === 'BIRLIK') {
+    return kopaytir(q.narxBirlik, q.miqdor);
+  }
+
+  const boyi = q.jamiBoyiM ?? 0;
+  if (!Number.isFinite(boyi) || boyi <= 0) {
+    throw new BiznesXato(
+      'TANNARX_NOTOGRI',
+      "metr bo'yicha narxda rulon bo'ylari kiritilishi kerak",
+    );
+  }
+
+  return kopaytir(q.narxBirlik, boyi);
+};
 
 /**
  * TZ 7.9 — «Xarajat qatorlarga SUMMA ULUSHI bo'yicha taqsimlanadi.»
@@ -104,10 +150,44 @@ export function xarajatniTaqsimla(
 export interface TannarxNatijasi {
   /** Bir kirim birligi uchun tannarx */
   readonly birlikTannarx: Som;
+  /**
+   * Qatorning to'liq qiymati — narx + qo'shimcha xarajat ulushi.
+   *
+   * ⚠️ `METR` narxida kerak: rulonlar har xil uzunlikda bo'lgani
+   *    uchun ularning tannarxi TENG EMAS va har biri o'z bo'yiga
+   *    mutanosib ulush oladi.
+   */
+  readonly jamiQiymat: Som;
   /** Omborga kiradigan miqdor (defekt qaytarilsa kamayadi) */
   readonly kirimMiqdor: number;
   /** «Yetkazib beruvchi defekti» xarajatiga tushadigan summa */
   readonly defektZarari: Som;
+}
+
+/**
+ * `METR` narxida bitta rulonning tannarxi.
+ *
+ * ⚠️ Rulonlar har xil uzunlikda keladi (50 + 30 + 45 m). Metr
+ *    narxida har rulon O'Z BO'YIGA mutanosib to'lanadi: 50 metrlik
+ *    rulon 30 metrlikdan qimmatroq turadi.
+ *
+ *    Agar qator qiymatini rulonlar SONIGA bo'lsak (BIRLIK
+ *    narxidagi kabi), qisqa rulon haddan qimmat, uzuni haddan
+ *    arzon chiqardi va kv.m tannarxi butunlay noto'g'ri bo'lardi.
+ *
+ * ⚠️ Natijada har rulonning KV.M tannarxi bir xil bo'ladi va u
+ *    faqat ENIga bog'liq — iqtisodiy jihatdan to'g'ri: metr narxi
+ *    bir xil bo'lsa, keng rulonning kv.m tannarxi arzonroq.
+ */
+export function rulonTannarxi(jamiQiymat: Som, jamiBoyiM: number, boyiM: number): Som {
+  if (!Number.isFinite(jamiBoyiM) || jamiBoyiM <= 0) {
+    throw new BiznesXato('TANNARX_NOTOGRI', "jami bo'yi noldan katta bo'lishi kerak");
+  }
+  if (!Number.isFinite(boyiM) || boyiM <= 0) {
+    throw new BiznesXato('TANNARX_NOTOGRI', "rulon bo'yi noldan katta bo'lishi kerak");
+  }
+
+  return kopaytir(bol(jamiQiymat, jamiBoyiM), boyiM);
 }
 
 export type DefektTuri = 'QAYTARILADI' | 'HISOBDAN_CHIQADI' | null;
@@ -148,7 +228,7 @@ export function birlikTannarxi(
   const kirimMiqdor =
     defektTuri === 'QAYTARILADI' ? qator.miqdor - qator.defektMiqdor : qator.miqdor;
 
-  return { birlikTannarx, kirimMiqdor, defektZarari };
+  return { birlikTannarx, jamiQiymat: jami, kirimMiqdor, defektZarari };
 }
 
 // ─── 7.8 · FIFO — dona material uchun ─────────────────────────────────────

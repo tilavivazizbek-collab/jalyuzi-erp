@@ -68,6 +68,8 @@ export async function kirimYaratAmali(
       materialId: q.materialId,
       miqdorKirim: Number(q.miqdorKirim),
       narxBirlik: q.narxBirlik,
+      /** ⚠️ `METR` — narx uzunlik metriga berilgan (7.9) */
+      narxAsosi: q.narxAsosi,
       defektMiqdor: q.defektMiqdor === undefined ? 0 : Number(q.defektMiqdor),
       defektTuri: q.defektTuri ?? null,
       bolaklar: q.bolaklar.map((b) => ({ eniM: Number(b.eniM), boyiM: Number(b.boyiM) })),

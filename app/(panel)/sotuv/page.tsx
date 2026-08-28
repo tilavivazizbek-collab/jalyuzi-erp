@@ -1,5 +1,5 @@
 import { sahifaRuxsati } from '@/lib/kirish/joriy';
-import { tikaOladiganFiliallar } from './malumot';
+import { qoshimchaMateriallar, tikaOladiganFiliallar } from './malumot';
 import { turRoyxati, turTafsili } from '@/lib/amal/katalog';
 import { SotuvFormasi } from './forma';
 import { ruxsatBormi } from '@/lib/ruxsat/tekshir';
@@ -19,11 +19,13 @@ export default async function SotuvEkrani() {
    *    Ilgari hammasi birdan yuklanardi: ~2 mln obyekt, ~230 MB
    *    JSON va sahifa bir daqiqadan ortiq ochilardi.
    */
-  const [turlar, filiallar, kurs] = await Promise.all([
+  const [turlar, filiallar, kurs, qoshimchalar] = await Promise.all([
     turRoyxati(),
     tikaOladiganFiliallar(),
     // 5.4 — dollardagi material narxini so'mga o'girish uchun
     joriyKurs(ulanishOl()),
+    // Alohida sotiladigan buyumlar — mexanizm, kronshteyn
+    qoshimchaMateriallar(f.filialId),
   ]);
 
   // Ekran bo'sh ochilmasin — birinchi turning tafsiloti darhol keladi
@@ -49,6 +51,7 @@ export default async function SotuvEkrani() {
         ozFilialId={f.filialId}
         mijozQoshaOladi={ruxsatBormi(f, 'mijoz.yarat')}
         joriyKurs={kurs}
+        qoshimchalar={qoshimchalar}
       />
     </div>
   );
