@@ -29,6 +29,7 @@ Texnik qarorlar senda. Undan **biznes** savolini so'ra, texnik savolni emas.
 docs/LOYIHA.md      ← barcha hujjat (qarorlar · texnik talab · TZ · model · audit)
 docs/QOIDALAR.md    ← bu faylning batafsil misollari
 docs/QABUL.md       ← mijoz bilan shartnoma mezonlari
+docs/QAMROV.md      ← nima bor / nima yo'q jadvali (§14)
 ```
 
 **Ustunlik tartibi:** Qarorlar (35 ta) → Texnik talablar → TZ → Audit.
@@ -259,7 +260,24 @@ Yangi kutubxona — **ruxsat so'ra**.
 
 ---
 
-## 13. ESLATMA
+## 13. TO'LIQLIK
+
+Egasi **bitta joyni** aytsa — u **hamma joyni** nazarda tutadi.
+«Mijoz dropdownida qo'shish bo'lsin» degani «hamma dropdownda
+bo'lsin» degani.
+
+Ish oxirida `docs/QAMROV.md` yangilanadi. Jadvalda ❌ qolgan bo'lsa
+**«tayyor» deb aytilmaydi**.
+
+⚠️ Bu eng ko'p takrorlangan xato: bitta joyni tuzatib «bo'ldi»
+deyish. 2026-08-28 da egasi bir narsani **uch marta** aytishga
+majbur bo'ldi. Sabab qoida yetishmagani emas — teshik
+KO'RINMAGANI. Shuning uchun qoida hujjatga emas, **jadvalga**
+bog'langan: uni ochib qarash mumkin.
+
+---
+
+## 14. ESLATMA
 
 Bu tizim ichida korxonaning **haqiqiy puli** turadi. Egasi kodni o'qiy
 olmaydi — u faqat senga ishonadi.
