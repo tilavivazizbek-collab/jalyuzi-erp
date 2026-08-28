@@ -185,6 +185,7 @@ export function MaterialFormasi({
           bandlar={guruhlar}
           boshlangich={qiymatlar.almashtirishGuruhId}
           yangiYorliq="Yangi guruh"
+            boshqaruvYoli="/guruh"
           modalSarlavha="Yangi guruh"
           qoshaOladi={guruhQoshaOladi}
           forma={(saqla, yop) => <GuruhFormasi saqlandi={saqla} bekor={yop} />}

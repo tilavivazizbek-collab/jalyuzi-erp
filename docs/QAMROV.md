@@ -8,7 +8,7 @@ majbur bo'ldi («dropdownlarda qo'shish bo'lsin»). Har safar bitta
 joy tuzatilib «bo'ldi» deyilardi. Teshik ko'rinmagani uchun shunday
 bo'ldi. Endi ko'rinadi.
 
-Oxirgi yangilanish: **2026-08-28**
+Oxirgi yangilanish: **2026-08-28** (o'chirish qo'shildi)
 
 ---
 
@@ -16,22 +16,25 @@ Oxirgi yangilanish: **2026-08-28**
 
 | Bo'lim | Ro'yxat | Qo'shish | Tahrirlash | O'chirish | Dropdownda boshqarish |
 |---|:---:|:---:|:---:|:---:|:---:|
-| Material | ✅ | ✅ | ✅ | ❌ | ❌ |
-| Mijoz | ✅ | ✅ | ✅ | ❌ | ❌ |
-| Yetkazib beruvchi | ✅ | ✅ | ✅ | ❌ | ❌ |
-| Mahsulot turi | ✅ | ✅ | ✅ | ❌ | — |
-| **Almashtirish guruhi** | ❌ | ⚠️ modal | ❌ | ❌ | ❌ |
-| Filial | ✅ | ✅ | ✅ | ❌ | ❌ |
+| Material | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Mijoz | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Yetkazib beruvchi | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Mahsulot turi | ✅ | ✅ | ✅ | ✅ | — |
+| Almashtirish guruhi | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Filial | ✅ | ✅ | ✅ | ✅ | ❌ |
 | **Kassa** | ✅ | ✅ | ❌ | ❌ | ❌ |
 | **Xodim** | ❌ | ❌ | ❌ | ❌ | ❌ |
 
-⚠️ «modal» — faqat modal oynadan qo'shiladi, o'z sahifasi yo'q.
+**O'chirish = nofaol qilish** (§3: `DELETE` yo'q). Yozuv ro'yxatdan,
+dropdowndan va sotuvdan yo'qoladi, lekin eski buyurtmada nomi
+ko'rinib turadi. Qaytarish mumkin.
 
-**O'chirish hech qayerda yo'q.** Na tugma, na amal, na ruxsat kodi.
-Ya'ni eski keraksiz material yoki guruh ro'yxatlarda abadiy qoladi.
+⚠️ Ishlatilayotgan yozuv o'chirilmaydi va SABAB aytiladi: «omborda
+4 ta bo'lak bor», «qarzi bor: 320 000 so'm». 10 test.
 
-**Xodim** — faqat urug'dagi 5 ta bor. Yangi sotuvchi ishga olsangiz
-uni tizimga qo'sha olmaysiz.
+**Kassa** — tahrirlash va o'chirish qolgan.
+**Xodim** — butun bo'lim yo'q. Yangi sotuvchi ishga olsangiz uni
+tizimga qo'sha olmaysiz.
 
 ---
 
@@ -42,12 +45,12 @@ o'chirish.
 
 | Ekran | Dropdown | Qo'shish | Boshqarish |
 |---|---|:---:|:---:|
-| Material kartochkasi | Guruh | ✅ modal | ❌ |
-| Kirim hujjati | Yetkazib beruvchi | ✅ modal | ❌ |
-| Kirim hujjati | Material | ✅ modal | ❌ |
-| Mahsulot turi | Guruh | ✅ modal | ❌ |
-| Mahsulot turi | Material | ✅ modal | ❌ |
-| Sotuv | Mijoz | ✅ modal | ❌ |
+| Material kartochkasi | Guruh | ✅ modal | ✅ `/guruh` |
+| Kirim hujjati | Yetkazib beruvchi | ✅ modal | ✅ `/yetkazib` |
+| Kirim hujjati | Material | ✅ modal | ✅ `/material` |
+| Mahsulot turi | Guruh | ✅ modal | ✅ `/guruh` |
+| Mahsulot turi | Material | ✅ modal | ✅ `/material` |
+| Sotuv | Mijoz | ✅ modal | ✅ `/mijoz` |
 | To'lov | Kassa | ❌ | ❌ |
 | Ish haqi | Kassa | ❌ | ❌ |
 | Kassa topshirish | Kassa | ❌ | ❌ |
@@ -80,7 +83,9 @@ o'chirish.
 
 | Nima | Kim so'ragan | Holat |
 |---|---|---|
-| Hamma joyda o'chirish + dropdownda boshqarish | egasi, 3 marta | tasdiqlangan |
+| Kassa tahrirlash va o'chirish | audit | **qolgan** |
+| Xodim bo'limi (butun) | audit | **qolgan** |
+| Kassa · Filial · Xodim dropdownlarida boshqarish | egasi | **qolgan** |
 | Kirim narxi metr bo'yicha (`4$ × 50 m`) | egasi | tasdiqlangan |
 | Rasm — mahsulot turi va matolarda | egasi | tasdiqlangan |
 | Sotuvda qo'shimcha mahsulot | egasi | tasdiqlangan |

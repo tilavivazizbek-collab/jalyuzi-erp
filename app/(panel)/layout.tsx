@@ -57,6 +57,7 @@ const BANDLAR: readonly Band[] = [
 
   // ─── Ma'lumotnoma — oyda bir-ikki marta ─────────────────────
   { yol: '/material', nom: 'Materiallar', kod: 'material.kor' },
+  { yol: '/guruh', nom: 'Guruhlar', kod: 'material.kor' },
   { yol: '/mahsulot', nom: 'Mahsulot turlari', kod: 'mahsulot.kor' },
 
   // ─── Kamdan-kam ─────────────────────────────────────────────

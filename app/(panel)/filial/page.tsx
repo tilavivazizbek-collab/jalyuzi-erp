@@ -3,6 +3,7 @@ import { sahifaRuxsati } from '@/lib/kirish/joriy';
 import { ruxsatBormi } from '@/lib/ruxsat/tekshir';
 import { REJIM_NOMI, rejim } from '@/lib/domain/filial';
 import { filialRoyxati } from './malumot';
+import { OchirTugma } from '../ochir-tugma';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,6 +12,7 @@ export default async function FilialRoyxati() {
   const royxat = await filialRoyxati();
 
   const yarataOladi = ruxsatBormi(f, 'filial.yarat');
+  const ozgartiraOladi = ruxsatBormi(f, 'filial.ozgartir');
 
   return (
     <div className="flex flex-col gap-6">
@@ -48,6 +50,7 @@ export default async function FilialRoyxati() {
               <th className="px-4 py-2.5 font-medium">Tikuvchi filial</th>
               <th className="px-4 py-2.5 font-medium">Kassa yopiladi</th>
               <th className="px-4 py-2.5 font-medium">Holat</th>
+              <th className="px-4 py-2.5" />
             </tr>
           </thead>
           <tbody className="divide-y divide-chegara [&>tr:nth-child(even)]:bg-fon/50">
@@ -83,6 +86,15 @@ export default async function FilialRoyxati() {
                     <span className="text-belgi-yashil">faol</span>
                   ) : (
                     <span className="text-matn-kuchsiz">nofaol</span>
+                  )}
+                </td>
+                <td className="px-4 py-2.5 text-right">
+                  {/*
+                    ⚠️ Bosh filial, qoldig'i yoki xodimi bor filial
+                       o'chirilmaydi — sabab ko'rsatiladi.
+                  */}
+                  {ozgartiraOladi && q.faol && (
+                    <OchirTugma tur="filial" id={q.id} nom={q.nom} ixcham />
                   )}
                 </td>
               </tr>

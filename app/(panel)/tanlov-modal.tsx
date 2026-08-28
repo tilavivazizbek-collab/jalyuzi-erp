@@ -40,6 +40,7 @@ export function TanlovModal({
   keng = false,
   forma,
   tanlandi,
+  boshqaruvYoli,
 }: {
   /** `name` — forma shu nom bilan yuboradi */
   nom: string;
@@ -64,6 +65,15 @@ export function TanlovModal({
   forma: (saqlandi: (y: YaratilganYozuv) => void, yop: () => void) => ReactNode;
   /** Tanlov o'zgarganda — chaqiruvchiga xabar */
   tanlandi?: (id: number | null) => void;
+  /**
+   * Ro'yxatni boshqarish sahifasi.
+   *
+   * ⚠️ Dropdown ichida faqat QO'SHISH bo'lishi yetarli emas: eski
+   *    keraksiz yozuv ro'yxatda qolib ketardi va uni olib tashlash
+   *    yo'li yo'q edi. «Ro'yxat» havolasi to'liq boshqaruvga
+   *    olib boradi — ko'rish, tahrirlash, o'chirish.
+   */
+  boshqaruvYoli?: string;
 }) {
   const [royxat, royxatniOzgartir] = useState<readonly TanlovBandi[]>(bandlar);
   const [tanlangan, tanlanganniOzgartir] = useState(boshlangich ?? '');
@@ -110,17 +120,35 @@ export function TanlovModal({
           ))}
         </select>
 
-        {qoshaOladi && (
-          <button
-            type="button"
-            onClick={() => {
-              ochiqniOzgartir(true);
-            }}
-            className="fokus self-start rounded-maydon px-1 py-0.5 text-[12px] font-medium text-brend transition-colors hover:underline"
-          >
-            + {yangiYorliq}
-          </button>
-        )}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+          {qoshaOladi && (
+            <button
+              type="button"
+              onClick={() => {
+                ochiqniOzgartir(true);
+              }}
+              className="fokus rounded-maydon px-1 py-0.5 text-[12px] font-medium text-brend transition-colors hover:underline"
+            >
+              + {yangiYorliq}
+            </button>
+          )}
+
+          {/*
+            ⚠️ Yangi oynada ochiladi — odam yarim to'ldirilgan
+               formani tashlab ketmasin. Boshqarib bo'lgach shu
+               sahifaga qaytadi va ro'yxatni yangilaydi.
+          */}
+          {boshqaruvYoli !== undefined && (
+            <a
+              href={boshqaruvYoli}
+              target="_blank"
+              rel="noopener"
+              className="fokus rounded-maydon px-1 py-0.5 text-[12px] text-matn-kuchsiz transition-colors hover:text-matn hover:underline"
+            >
+              Ro&apos;yxat ↗
+            </a>
+          )}
+        </div>
       </div>
 
       <Modal

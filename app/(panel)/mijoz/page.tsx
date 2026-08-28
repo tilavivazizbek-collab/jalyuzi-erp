@@ -5,6 +5,7 @@ import { ruxsatBormi } from '@/lib/ruxsat/tekshir';
 import { telefonKorsat } from '@/lib/domain/telefon';
 import { pulKorsat, som } from '@/lib/domain/pul';
 import { OFFSET_TURI_NOMI, type OffsetTuri } from '@/lib/sxema/mijoz';
+import { OchirTugma } from '../ochir-tugma';
 
 export const dynamic = 'force-dynamic';
 
@@ -105,12 +106,16 @@ export default async function MijozRoyxati() {
                   </td>
                   {ozgartiraOladi && (
                     <td className="px-4 py-2.5 text-right">
-                      <Link
-                        href={`/mijoz/${String(m.id)}`}
-                        className="text-matn-ikki hover:text-matn"
-                      >
-                        Tahrirlash
-                      </Link>
+                      <div className="flex items-center justify-end gap-3">
+                        <Link
+                          href={`/mijoz/${String(m.id)}`}
+                          className="text-matn-ikki hover:text-matn"
+                        >
+                          Tahrirlash
+                        </Link>
+                        {/* O'chirish = nofaol qilish; ishlatilayotgani to'siladi */}
+                        <OchirTugma tur="mijoz" id={m.id} nom={m.ism} ixcham />
+                      </div>
                     </td>
                   )}
                 </tr>

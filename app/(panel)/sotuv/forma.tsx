@@ -995,17 +995,29 @@ function MijozTanlash({
         </div>
       )}
 
-      {qoshaOladi && (
-        <button
-          type="button"
-          onClick={() => {
-            modalniOzgartir(true);
-          }}
-          className="fokus mt-1 self-start rounded-maydon px-1 py-0.5 text-[12px] font-medium text-brend transition-colors hover:underline"
+      <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1">
+        {qoshaOladi && (
+          <button
+            type="button"
+            onClick={() => {
+              modalniOzgartir(true);
+            }}
+            className="fokus rounded-maydon px-1 py-0.5 text-[12px] font-medium text-brend transition-colors hover:underline"
+          >
+            + Yangi mijoz
+          </button>
+        )}
+
+        {/* ⚠️ Yangi oynada — yarim yozilgan buyurtma tashlab ketilmasin */}
+        <a
+          href="/mijoz"
+          target="_blank"
+          rel="noopener"
+          className="fokus rounded-maydon px-1 py-0.5 text-[12px] text-matn-kuchsiz transition-colors hover:text-matn hover:underline"
         >
-          + Yangi mijoz
-        </button>
-      )}
+          Ro&apos;yxat ↗
+        </a>
+      </div>
 
       <Modal
         ochiq={modalOchiq}

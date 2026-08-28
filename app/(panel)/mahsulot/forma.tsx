@@ -462,6 +462,28 @@ export function MahsulotFormasi({
                 + Yangi material
               </button>
             )}
+
+            {/*
+              ⚠️ Ro'yxatni boshqarish — ko'rish, tahrirlash,
+                 o'chirish. Yangi oynada, chunki mahsulot turi
+                 yarim to'ldirilgan bo'lishi mumkin.
+            */}
+            <a
+              href="/guruh"
+              target="_blank"
+              rel="noopener"
+              className="fokus rounded-maydon px-1 py-0.5 text-[11px] text-matn-kuchsiz transition-colors hover:text-matn hover:underline"
+            >
+              Guruhlar ↗
+            </a>
+            <a
+              href="/material"
+              target="_blank"
+              rel="noopener"
+              className="fokus rounded-maydon px-1 py-0.5 text-[11px] text-matn-kuchsiz transition-colors hover:text-matn hover:underline"
+            >
+              Materiallar ↗
+            </a>
           </div>
 
           <Modal

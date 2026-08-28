@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { ulanishOl } from '@/lib/db';
+import { OchirTugma } from '../ochir-tugma';
 import { sahifaRuxsati } from '@/lib/kirish/joriy';
 import { ruxsatBormi } from '@/lib/ruxsat/tekshir';
 import {
@@ -111,13 +112,21 @@ export default async function MaterialRoyxati() {
                     )}
                   </td>
                   {ozgartiraOladi && (
-                    <td className="px-4 py-2.5 text-right">
-                      <Link
-                        href={`/material/${String(m.id)}`}
-                        className="text-matn-ikki hover:text-matn"
-                      >
-                        Tahrirlash
-                      </Link>
+                    <td className="px-4 py-2.5">
+                      <div className="flex items-center justify-end gap-3">
+                        <Link
+                          href={`/material/${String(m.id)}`}
+                          className="text-matn-ikki hover:text-matn"
+                        >
+                          Tahrirlash
+                        </Link>
+                        {/*
+                          ⚠️ O'chirish = nofaol qilish. Omborda
+                             qoldig'i bor material o'chirilmaydi va
+                             sabab ko'rsatiladi.
+                        */}
+                        <OchirTugma tur="material" id={m.id} nom={m.nom} ixcham />
+                      </div>
                     </td>
                   )}
                 </tr>

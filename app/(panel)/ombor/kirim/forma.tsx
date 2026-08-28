@@ -206,6 +206,7 @@ export function KirimFormasi({
             bandlar={yetkazuvchilar}
             boshMatn="— tanlang —"
             yangiYorliq="Yangi yetkazib beruvchi"
+            boshqaruvYoli="/yetkazib"
             modalSarlavha="Yangi yetkazib beruvchi"
             modalIzoh="Saqlangach hujjatga darhol biriktiriladi"
             qoshaOladi={yetkazibQoshaOladi}
@@ -298,8 +299,8 @@ export function KirimFormasi({
              o'tish va yarim to'ldirilgan hujjatni tashlab ketish
              kerak edi.
         */}
-        {materialQoshaOladi && (
-          <div className="mb-3">
+        <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1">
+          {materialQoshaOladi && (
             <button
               type="button"
               onClick={() => {
@@ -309,8 +310,17 @@ export function KirimFormasi({
             >
               + Yangi material
             </button>
-          </div>
-        )}
+          )}
+
+          <a
+            href="/material"
+            target="_blank"
+            rel="noopener"
+            className="fokus rounded-maydon px-1 py-0.5 text-[12px] text-matn-kuchsiz transition-colors hover:text-matn hover:underline"
+          >
+            Materiallar ro&apos;yxati ↗
+          </a>
+        </div>
 
         <Modal
           ochiq={materialModali}

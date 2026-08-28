@@ -3,6 +3,7 @@ import { ulanishOl } from '@/lib/db';
 import { sahifaRuxsati } from '@/lib/kirish/joriy';
 import { ruxsatBormi } from '@/lib/ruxsat/tekshir';
 import { telefonKorsat } from '@/lib/domain/telefon';
+import { OchirTugma } from '../ochir-tugma';
 
 export const dynamic = 'force-dynamic';
 
@@ -92,12 +93,16 @@ export default async function YetkazibRoyxati() {
                   </td>
                   {ozgartiraOladi && (
                     <td className="px-4 py-2.5 text-right">
-                      <Link
-                        href={`/yetkazib/${String(y.id)}`}
-                        className="text-matn-ikki hover:text-matn"
-                      >
-                        Tahrirlash
-                      </Link>
+                      <div className="flex items-center justify-end gap-3">
+                        <Link
+                          href={`/yetkazib/${String(y.id)}`}
+                          className="text-matn-ikki hover:text-matn"
+                        >
+                          Tahrirlash
+                        </Link>
+                        {/* O'chirish = nofaol qilish; ishlatilayotgani to'siladi */}
+                        <OchirTugma tur="yetkazib" id={y.id} nom={y.nom} ixcham />
+                      </div>
                     </td>
                   )}
                 </tr>
