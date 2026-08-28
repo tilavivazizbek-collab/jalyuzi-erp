@@ -6,8 +6,19 @@ import { Maydon, kirishUslubi } from '../../maydon';
 import { kirimYaratAmali } from './amal';
 import { BOSH_HOLAT } from './holat';
 import { pulKorsat, som, nolSom, qosh, kopaytir } from '@/lib/domain/pul';
-import { TanlovYokiYangi } from '../../tanlov';
-import { yetkazibTezQosh } from '../../tez-amal';
+import { TanlovModal } from '../../tanlov-modal';
+import { Modal } from '../../modal';
+import {
+  MaterialFormasi,
+  BOSH_QIYMATLAR as MATERIAL_BOSH_QIYMATLAR,
+} from '../../material/forma';
+import { materialModalYaratAmali } from '../../material/amal';
+import {
+  YetkazibFormasi,
+  BOSH_QIYMATLAR as YETKAZIB_BOSH_QIYMATLAR,
+} from '../../yetkazib/forma';
+import { yetkazibModalYaratAmali } from '../../yetkazib/amal';
+import { BIRLIK_TAVSIFI } from '@/lib/domain/birlik-tanlovi';
 
 export interface MaterialTanlovi {
   readonly id: number;
@@ -58,15 +69,26 @@ interface Qator {
 const kichik = `${kirishUslubi(false)} py-1.5`;
 
 export function KirimFormasi({
-  materiallar,
+  materiallar: boshMateriallar,
   yetkazuvchilar,
   yetkazibQoshaOladi,
+  materialQoshaOladi,
 }: {
   materiallar: readonly MaterialTanlovi[];
   yetkazuvchilar: readonly YetkazibTanlovi[];
   yetkazibQoshaOladi: boolean;
+  /** §9.4 — server amali ham `material.yarat` ni tekshiradi */
+  materialQoshaOladi: boolean;
 }) {
   const [holat, yubor, kutilmoqda] = useActionState(kirimYaratAmali, BOSH_HOLAT);
+
+  /**
+   * ⚠️ Ro'yxat shu yerda o'zgaradi: hujjat ichidan qo'shilgan
+   *    material darhol tanlanadigan bo'lishi kerak.
+   */
+  const [materiallar, setMateriallar] =
+    useState<readonly MaterialTanlovi[]>(boshMateriallar);
+  const [materialModali, materialModaliniOzgartir] = useState(false);
 
   const [valyuta, setValyuta] = useState('SOM');
   const [transport, setTransport] = useState('');
@@ -178,14 +200,25 @@ export function KirimFormasi({
             />
           </Maydon>
 
-          <TanlovYokiYangi
+          <TanlovModal
             nom="yetkazibBeruvchiId"
             yorliq="Yetkazib beruvchi"
             bandlar={yetkazuvchilar}
             boshMatn="— tanlang —"
             yangiYorliq="Yangi yetkazib beruvchi"
+            modalSarlavha="Yangi yetkazib beruvchi"
+            modalIzoh="Saqlangach hujjatga darhol biriktiriladi"
             qoshaOladi={yetkazibQoshaOladi}
-            yarat={yetkazibTezQosh}
+            keng
+            forma={(saqlandi, yop) => (
+              <YetkazibFormasi
+                amal={yetkazibModalYaratAmali}
+                qiymatlar={YETKAZIB_BOSH_QIYMATLAR}
+                tugmaMatni="Saqlash"
+                saqlandi={saqlandi}
+                bekor={yop}
+              />
+            )}
           />
 
           <Maydon nom="valyuta" yorliq="Valyuta">
@@ -258,6 +291,73 @@ export function KirimFormasi({
             + qator
           </button>
         </div>
+
+        {/*
+          ⚠️ Omborchi kirim yozayotib «bu material ro'yxatda yo'q
+             ekan» deb qolardi. Uni qo'shish uchun boshqa sahifaga
+             o'tish va yarim to'ldirilgan hujjatni tashlab ketish
+             kerak edi.
+        */}
+        {materialQoshaOladi && (
+          <div className="mb-3">
+            <button
+              type="button"
+              onClick={() => {
+                materialModaliniOzgartir(true);
+              }}
+              className="fokus rounded-maydon px-1 py-0.5 text-[12px] font-medium text-brend transition-colors hover:underline"
+            >
+              + Yangi material
+            </button>
+          </div>
+        )}
+
+        <Modal
+          ochiq={materialModali}
+          yop={() => {
+            materialModaliniOzgartir(false);
+          }}
+          sarlavha="Yangi material"
+          izoh="Saqlangach hujjatga qator qo'shishda tanlanadi"
+          keng
+          bolalar={
+            <MaterialFormasi
+              amal={materialModalYaratAmali}
+              qiymatlar={MATERIAL_BOSH_QIYMATLAR}
+              guruhlar={[]}
+              guruhQoshaOladi={false}
+              joriyKurs=""
+              oxirgiKelish={null}
+              tugmaMatni="Saqlash"
+              saqlandi={(y) => {
+                /**
+                 * ⚠️ Modal faqat raqam va nomni qaytaradi. O'lchov
+                 *    birligi va narxni bilish uchun sahifa qayta
+                 *    yuklanishi kerak — shuning uchun qator
+                 *    ehtiyotkorlik bilan RULON deb ochiladi va
+                 *    omborchi tekshiradi.
+                 */
+                setMateriallar((r) => [
+                  ...r,
+                  {
+                    id: y.id,
+                    nom: y.nom,
+                    hisobTuri: BIRLIK_TAVSIFI.RULON.hisobTuri,
+                    kirimBirligi: BIRLIK_TAVSIFI.RULON.kirimBirligi,
+                    odatdagiEniM: null,
+                    odatdagiBoyiM: null,
+                    kutilayotganNarx: null,
+                    kutilayotganValyuta: 'SOM',
+                  },
+                ]);
+                materialModaliniOzgartir(false);
+              }}
+              bekor={() => {
+                materialModaliniOzgartir(false);
+              }}
+            />
+          }
+        />
 
         {materiallar.length === 0 ? (
           <p className="text-sm text-belgi-sariq">

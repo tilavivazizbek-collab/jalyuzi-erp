@@ -9,31 +9,25 @@ export interface MenyuBandi {
   readonly nom: string;
 }
 
-export interface MenyuGuruhi {
-  readonly nom: string;
-  readonly bandlar: readonly MenyuBandi[];
-}
-
 /**
  * Chap yon menyu.
  *
- * ⚠️ Ilgari 16 ta bo'lim sarlavhada BIR QATORDA turardi: ular
- *    o'ralib ketardi, guruhsiz edi va qaysi biri qaysi ishga
- *    tegishli ekani bilinmasdi.
+ * ⚠️ BITTA RO'YXAT, guruhlarsiz. Guruh sarlavhalari («Ish»,
+ *    «Ombor», «Pul») joy egallardi va odam baribir kerakli bandni
+ *    ko'zi bilan qidirardi — egasi ularni olib tashlashni so'radi.
  *
- *    Endi chap panelda va GURUHLANGAN: kunlik ish · ombor · pul ·
- *    ma'lumotnoma. Odam «kirim qayerda?» deb butun ro'yxatni
- *    o'qib chiqmaydi.
+ *    Tartib chastota bo'yicha: eng ko'p ochiladigan ekran tepada
+ *    (`layout.tsx` dagi `BANDLAR`).
  *
  * ⚠️ Bandlar SERVERDA filtrlanadi — ruxsati yo'q bo'lim bu yerga
  *    umuman kelmaydi. Yashirish o'zi himoya emas (§9.4), lekin
  *    yopiq eshikni ko'rsatib turishning ham ma'nosi yo'q.
  */
-export function Menyu({ guruhlar }: { guruhlar: readonly MenyuGuruhi[] }) {
+export function Menyu({ bandlar }: { bandlar: readonly MenyuBandi[] }) {
   const yol = usePathname();
   const [ochiq, ochiqniOzgartir] = useState(false);
 
-  const hammaBand = guruhlar.flatMap((g) => g.bandlar);
+  const hammaBand = bandlar;
 
   /**
    * ⚠️ Aniqrog'i yutadi: `/ombor/kirim` ochilganda «Ombor» ham,
@@ -74,41 +68,22 @@ export function Menyu({ guruhlar }: { guruhlar: readonly MenyuGuruhi[] }) {
           ochiq ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        <div className="flex flex-col gap-6 px-3 py-5">
-          {guruhlar.map((g) => (
-            <div key={g.nom} className="flex flex-col gap-0.5">
-              {/*
-                ⚠️ Guruh sarlavhasi mayda va kuchsiz: u YO'L
-                   KO'RSATADI, e'tibor tortmaydi. E'tibor bandlarda
-                   bo'lishi kerak.
-              */}
-              {/*
-                ⚠️ Guruh sarlavhasi BREND rangida, lekin mayda va
-                   kuchsiz: u yo'l ko'rsatadi, e'tibor tortmaydi.
-                   Belgilar yo'q (egasi tanlovi) — shuning uchun
-                   guruhni rang ajratadi.
-              */}
-              <p className="mb-1 px-2.5 text-[11px] font-semibold tracking-[0.06em] text-brend/70 uppercase">
-                {g.nom}
-              </p>
-
-              {g.bandlar.map((b) => {
-                const faol = eng === b.yol && eng !== '';
-                return (
-                  <MenyuHavolasi
-                    key={b.yol}
-                    href={b.yol}
-                    faol={faol}
-                    onClick={() => {
-                      ochiqniOzgartir(false);
-                    }}
-                  >
-                    {b.nom}
-                  </MenyuHavolasi>
-                );
-              })}
-            </div>
-          ))}
+        <div className="flex flex-col gap-0.5 px-3 py-5">
+          {bandlar.map((b) => {
+            const faol = eng === b.yol && eng !== '';
+            return (
+              <MenyuHavolasi
+                key={b.yol}
+                href={b.yol}
+                faol={faol}
+                onClick={() => {
+                  ochiqniOzgartir(false);
+                }}
+              >
+                {b.nom}
+              </MenyuHavolasi>
+            );
+          })}
         </div>
       </nav>
     </>

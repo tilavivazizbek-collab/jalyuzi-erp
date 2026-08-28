@@ -23,6 +23,7 @@ import { yozuvKursi } from './kurs';
 import { adminlarniOgohlantir } from './bildirishnoma';
 import { pulTopshirildiMatni } from '@/lib/domain/bildirishnoma';
 import { BiznesXato } from '@/lib/xato';
+import type { KassaYaratKirimi } from '@/lib/sxema/kassa-yarat';
 
 export interface KassaYozuvi {
   readonly kassaId: number;
@@ -478,5 +479,99 @@ export async function topshiriqniQabulQil(
     }
 
     return { chiqimId, kirimId };
+  });
+}
+
+// ─── TZ 12.2 · Kassa yaratish ─────────────────────────────────────────────
+
+export interface KassaYaratNatijasi {
+  readonly id: number;
+  readonly nom: string;
+}
+
+/**
+ * Yangi kassa ochadi.
+ *
+ * ⚠️ NEGA TRANZAKSIYA
+ *
+ * TZ 12.2: «Tizimga o'tishda har kassaning mavjud puli BIRINCHI
+ * HARAKAT bo'lib yoziladi.» Ya'ni kassa va uning boshlang'ich
+ * qoldig'i bitta amal — kassa ochilib, qoldiq yozilmay qolsa
+ * balans birinchi kunidanoq noto'g'ri bo'lardi (2.1-invariant:
+ * yarim bajarilgan amal bo'lmaydi).
+ *
+ * ⚠️ QOLDIQ USTUN BO'LIB SAQLANMAYDI (2.2-invariant). U `K8`
+ *    yozuvi bo'lib tushadi va balans doim yozuvlar yig'indisidan
+ *    hisoblanadi.
+ */
+export async function kassaYarat(
+  ulanish: postgres.Sql,
+  kirim: KassaYaratKirimi,
+  xodimId: number,
+): Promise<KassaYaratNatijasi> {
+  return ulanish.begin(async (tx) => {
+    /**
+     * ⚠️ Kassa TAKRORLANMAYDI. Bazada IKKI noyob indeks bor:
+     *      · `kassa_bitta`        — bir xodimda bir turdagi bir
+     *                               valyutali bitta kassa
+     *      · `kassa_filial_bitta` — filialning ADMIN kassasi ham
+     *                               har (turi, valyuta) uchun bitta
+     *
+     *    Ikkalasi ham tekshiriladi: bazadan kelgan xato
+     *    («duplicate key value violates…») foydalanuvchiga hech
+     *    narsa aytmaydi.
+     *
+     * ⚠️ Ikkita bir xil kassa bo'lsa pul qaysi biriga tushgani
+     *    chalkashardi va kun yopishda hisob to'g'ri chiqmasdi.
+     */
+    const bor =
+      kirim.xodimId === undefined
+        ? await tx<{ id: number }[]>`
+            SELECT id FROM kassa
+            WHERE filial_id = ${kirim.filialId}
+              AND xodim_id IS NULL
+              AND turi = ${kirim.turi}
+              AND valyuta = ${kirim.valyuta}`
+        : await tx<{ id: number }[]>`
+            SELECT id FROM kassa
+            WHERE filial_id = ${kirim.filialId}
+              AND xodim_id = ${kirim.xodimId}
+              AND turi = ${kirim.turi}
+              AND valyuta = ${kirim.valyuta}`;
+
+    if (bor[0] !== undefined) {
+      throw new BiznesXato(
+        'KASSA_TAKRORLANDI',
+        kirim.xodimId === undefined
+          ? 'Bu filialda bunday admin kassasi allaqachon bor'
+          : 'Bu xodimda bunday kassa allaqachon bor',
+      );
+    }
+
+    const q = await tx<{ id: number }[]>`
+      INSERT INTO kassa (filial_id, xodim_id, turi, valyuta, nom, yaratdi_id)
+      VALUES (${kirim.filialId}, ${kirim.xodimId ?? null}, ${kirim.turi},
+              ${kirim.valyuta}, ${kirim.nom}, ${xodimId})
+      RETURNING id`;
+
+    const kassaId = q[0]?.id;
+    if (kassaId === undefined) throw new BiznesXato('KASSA_SAQLANMADI', 'Kassa saqlanmadi');
+
+    const qoldiq = kirim.boshlangichQoldiq;
+    if (qoldiq !== undefined && Number(qoldiq) > 0) {
+      /**
+       * ⚠️ `manba_id` — kassaning O'ZI. `(manba_turi, manba_id,
+       *    qator)` uchligi noyob, shuning uchun bitta kassaga
+       *    ikkinchi marta boshlang'ich qoldiq yozib bo'lmaydi.
+       */
+      await tx`
+        INSERT INTO kassa_yozuv (kassa_id, kod, summa, valyuta,
+                                 manba_turi, manba_id, izoh, xodim_id)
+        VALUES (${kassaId}, 'K8', ${qoldiq}, ${kirim.valyuta},
+                'kassa_boshlangich', ${kassaId},
+                ${"Boshlang'ich qoldiq"}, ${xodimId})`;
+    }
+
+    return { id: kassaId, nom: kirim.nom };
   });
 }

@@ -14,14 +14,34 @@ export interface MijozHolati {
   readonly maydonXatolari: MaydonXatolari;
   /** TZ 6.5 — mavjud mijoz ko'rsatiladi va uch yo'l taklif qilinadi */
   readonly dublikat: DublikatMalumoti | null;
+  /**
+   * Modal oynada yaratilgan mijoz.
+   *
+   * ⚠️ O'z sahifasida saqlangach ro'yxatga YO'NALTIRILADI, shuning
+   *    uchun bu maydon `null` bo'lib qoladi. Modalda esa
+   *    yo'naltirish yo'q — oyna yopilib, yangi mijoz darhol
+   *    tanlanishi kerak, shuning uchun uning raqami shu yerda
+   *    qaytariladi.
+   */
+  readonly yaratildi: { readonly id: number; readonly ism: string } | null;
 }
 
-export const BOSH_HOLAT: MijozHolati = { xato: null, maydonXatolari: {}, dublikat: null };
+export const BOSH_HOLAT: MijozHolati = {
+  xato: null,
+  maydonXatolari: {},
+  dublikat: null,
+  yaratildi: null,
+};
 
 export function xatolarniYig(
   xatolar: readonly { readonly path: readonly PropertyKey[]; readonly message: string }[],
 ): MijozHolati {
-  return { xato: FORMA_XATO_XABARI, maydonXatolari: maydonXatolari(xatolar), dublikat: null };
+  return {
+    xato: FORMA_XATO_XABARI,
+    maydonXatolari: maydonXatolari(xatolar),
+    dublikat: null,
+    yaratildi: null,
+  };
 }
 
 export interface QarzHolati {

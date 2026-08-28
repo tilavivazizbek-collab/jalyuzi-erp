@@ -37,10 +37,18 @@ const MAYDONLAR = [
 const formadanOqi = (forma: FormData): Record<string, string> =>
   maydonlarniOqi(forma, MAYDONLAR);
 
-export async function mijozYaratAmali(
-  _oldingi: MijozHolati,
+/**
+ * ⚠️ Yaratish mantig'i BITTA joyda (§2.2). Ikki chaqiruvchi bor:
+ *      · o'z sahifasi  — saqlagach ro'yxatga yo'naltiradi
+ *      · modal oyna    — yo'naltirmaydi, yangi mijoz raqamini
+ *                        qaytaradi, chunki u darhol tanlanishi kerak
+ *
+ *    Nusxa ko'chirilsa ikki joyda ikki xil tekshiruv bo'lib
+ *    qolardi va biri unutilardi.
+ */
+async function mijozYaratIchki(
   forma: FormData,
-): Promise<MijozHolati> {
+): Promise<MijozHolati | { readonly saqlandi: { readonly id: number; readonly ism: string } }> {
   const f = await ruxsatTalab('mijoz.yarat');
 
   const tekshiruv = mijozSxema.safeParse(formadanOqi(forma));
@@ -54,6 +62,7 @@ export async function mijozYaratAmali(
       xato: biznesXatosimi(x) ? x.message : 'Saqlashda xato yuz berdi',
       maydonXatolari: {},
       dublikat: null,
+      yaratildi: null,
     };
   }
 
@@ -71,11 +80,40 @@ export async function mijozYaratAmali(
               telefon: m.telefon === '' ? '—' : telefonKorsat(m.telefon),
               sabab: natija.dublikat.sabab ?? 'ISM',
             },
+      yaratildi: null,
     };
   }
 
   revalidatePath('/mijoz');
-  redirect('/mijoz');
+  return { saqlandi: { id: natija.id, ism: tekshiruv.data.ism } };
+}
+
+/** O'z sahifasi — saqlangach ro'yxatga qaytadi. */
+export async function mijozYaratAmali(
+  _oldingi: MijozHolati,
+  forma: FormData,
+): Promise<MijozHolati> {
+  const n = await mijozYaratIchki(forma);
+  if ('saqlandi' in n) redirect('/mijoz');
+  return n;
+}
+
+/**
+ * Modal oyna — yo'naltirmaydi.
+ *
+ * ⚠️ `redirect()` xato otish orqali ishlaydi. Uni modalda
+ *    chaqirsak butun sahifa almashib ketardi va sotuvchi yarim
+ *    yozilgan buyurtmasini yo'qotardi.
+ */
+export async function mijozModalYaratAmali(
+  _oldingi: MijozHolati,
+  forma: FormData,
+): Promise<MijozHolati> {
+  const n = await mijozYaratIchki(forma);
+  if ('saqlandi' in n) {
+    return { xato: null, maydonXatolari: {}, dublikat: null, yaratildi: n.saqlandi };
+  }
+  return n;
 }
 
 export async function mijozTahrirlaAmali(
@@ -96,6 +134,7 @@ export async function mijozTahrirlaAmali(
       xato: biznesXatosimi(x) ? x.message : 'Saqlashda xato yuz berdi',
       maydonXatolari: {},
       dublikat: null,
+      yaratildi: null,
     };
   }
 
@@ -113,6 +152,7 @@ export async function mijozTahrirlaAmali(
               telefon: m.telefon === '' ? '—' : telefonKorsat(m.telefon),
               sabab: natija.dublikat.sabab ?? 'ISM',
             },
+      yaratildi: null,
     };
   }
 

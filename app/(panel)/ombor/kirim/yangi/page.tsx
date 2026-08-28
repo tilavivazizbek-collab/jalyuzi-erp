@@ -10,6 +10,7 @@ export default async function YangiKirim() {
   const f = await sahifaRuxsati('ombor.kirim.yarat');
   // §9.4 — tugmani yashirish himoya emas, server amali ham tekshiradi
   const yetkazibQoshaOladi = ruxsatBormi(f, 'yetkazib.yarat');
+  const materialQoshaOladi = ruxsatBormi(f, 'material.yarat');
 
   const [materiallar, yetkazuvchilar] = await Promise.all([
     kirimMateriallari(),
@@ -35,6 +36,7 @@ export default async function YangiKirim() {
         materiallar={materiallar}
         yetkazuvchilar={yetkazuvchilar}
         yetkazibQoshaOladi={yetkazibQoshaOladi}
+        materialQoshaOladi={materialQoshaOladi}
       />
     </div>
   );

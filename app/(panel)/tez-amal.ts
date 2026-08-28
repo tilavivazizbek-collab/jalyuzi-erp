@@ -1,66 +1,43 @@
 'use server';
 
 /**
- * app/(panel)/tez-amal.ts — «shu yerda yangi qo'shish» server amallari.
+ * app/(panel)/tez-amal.ts — modal oynadan guruh qo'shish.
  *
- * ⚠️ Bu fayl FAQAT ruxsat tekshiradi va natijani formaga tushunarli
- *    ko'rinishda qaytaradi. Mantiq `lib/amal/tez-qosh.ts` da (§5.1).
+ * ⚠️ Ilgari bu yerda to'rtta «tez qo'shish» amali bor edi: ular
+ *    ro'yxat ostidagi tor qatorchadan faqat NOMNI olib yozuv
+ *    yaratardi. Endi hamma joyda modal oyna va TO'LIQ kartochka
+ *    ishlaydi, shuning uchun ular o'chirildi — ishlatilmaydigan
+ *    server amali baribir tashqaridan chaqirilishi mumkin edi.
  *
- * ⚠️ Ruxsat SHU YERDA tekshiriladi (§9.4). Brauzerdagi tugmaning
- *    yashirilgani himoya emas — server amali to'g'ridan-to'g'ri
- *    chaqirilishi mumkin.
+ *    Guruh qoldi, chunki unda bitta maydon bor va uning alohida
+ *    sahifasi yo'q.
+ *
+ * ⚠️ Ruxsat SHU YERDA tekshiriladi (§9.4).
  */
 
 import { revalidatePath } from 'next/cache';
 import { ruxsatTalab } from '@/lib/kirish/joriy';
-import {
-  guruhTezYarat,
-  materialTezYarat,
-  mijozTezYarat,
-  yetkazibTezYarat,
-} from '@/lib/amal/tez-qosh';
+import { guruhTezYarat } from '@/lib/amal/tez-qosh';
 import { biznesXatosimi } from '@/lib/xato';
+import type { GuruhHolati } from './guruh-holat';
 
-export type TezNatija = { id: number; nom: string } | { xato: string };
-
-async function bajar(
-  ish: () => Promise<{ id: number; nom: string }>,
-  yol: string,
-  zaxiraXato: string,
-): Promise<TezNatija> {
-  try {
-    const n = await ish();
-    revalidatePath(yol);
-    return n;
-  } catch (x) {
-    return { xato: biznesXatosimi(x) ? x.message : zaxiraXato };
-  }
-}
-
-export async function guruhTezQosh(nom: string): Promise<TezNatija> {
+export async function guruhModalYaratAmali(
+  _oldingi: GuruhHolati,
+  forma: FormData,
+): Promise<GuruhHolati> {
   const f = await ruxsatTalab('material.ozgartir');
-  return bajar(() => guruhTezYarat(nom, f.xodimId), '/material', "Guruh qo'shilmadi");
-}
 
-export async function yetkazibTezQosh(nom: string): Promise<TezNatija> {
-  const f = await ruxsatTalab('yetkazib.yarat');
-  return bajar(() => yetkazibTezYarat(nom, f.xodimId), '/yetkazib', "Qo'shilmadi");
-}
+  const nom = forma.get('nom');
+  if (typeof nom !== 'string') return { xato: 'Nom kiritilmagan', yaratildi: null };
 
-/**
- * ⚠️ Material yaratish `material.yarat` ruxsatini talab qiladi —
- *    mahsulot turini tahrirlash ruxsati o'z-o'zidan yetmaydi.
- */
-export async function materialTezQosh(nom: string, olchovBirligi: string): Promise<TezNatija> {
-  const f = await ruxsatTalab('material.yarat');
-  return bajar(
-    () => materialTezYarat(nom, olchovBirligi, f.xodimId),
-    '/material',
-    "Material qo'shilmadi",
-  );
-}
-
-export async function mijozTezQosh(nom: string): Promise<TezNatija> {
-  const f = await ruxsatTalab('mijoz.yarat');
-  return bajar(() => mijozTezYarat(nom, f.xodimId), '/mijoz', "Qo'shilmadi");
+  try {
+    const y = await guruhTezYarat(nom, f.xodimId);
+    revalidatePath('/material');
+    return { xato: null, yaratildi: { id: y.id, nom: y.nom } };
+  } catch (x) {
+    return {
+      xato: biznesXatosimi(x) ? x.message : "Guruh qo'shilmadi",
+      yaratildi: null,
+    };
+  }
 }

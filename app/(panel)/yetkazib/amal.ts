@@ -11,6 +11,7 @@ import { yetkazibSxema } from '@/lib/sxema/yetkazib';
 import { biznesXatosimi } from '@/lib/xato';
 import { maydonlarniOqi } from '../forma-yordamchi';
 import { xatolarniYig, type FormaHolati } from './holat';
+import type { YaratilganYozuv } from '../modal-holat';
 
 const MAYDONLAR = [
   'nom',
@@ -31,17 +32,22 @@ const MAYDONLAR = [
 const formadanOqi = (forma: FormData): Record<string, string> =>
   maydonlarniOqi(forma, MAYDONLAR);
 
-export async function yetkazibYaratAmali(
-  _oldingi: FormaHolati,
+/**
+ * ⚠️ Yaratish mantig'i BITTA joyda (§2.2) — sahifa ham, modal ham
+ *    shuni chaqiradi. Nusxa ko'chirilsa tekshiruvlardan biri
+ *    unutilib qolardi.
+ */
+async function yaratIchki(
   forma: FormData,
-): Promise<FormaHolati> {
+): Promise<FormaHolati | { readonly saqlandi: YaratilganYozuv }> {
   const f = await ruxsatTalab('yetkazib.yarat');
 
   const tekshiruv = yetkazibSxema.safeParse(formadanOqi(forma));
   if (!tekshiruv.success) return xatolarniYig(tekshiruv.error.issues);
 
+  let id: number;
   try {
-    await yetkazibYarat(ulanishOl(), tekshiruv.data, f.xodimId);
+    id = await yetkazibYarat(ulanishOl(), tekshiruv.data, f.xodimId);
   } catch (x) {
     return {
       xato: biznesXatosimi(x) ? x.message : 'Saqlashda xato yuz berdi',
@@ -50,7 +56,35 @@ export async function yetkazibYaratAmali(
   }
 
   revalidatePath('/yetkazib');
-  redirect('/yetkazib');
+  return { saqlandi: { id, nom: tekshiruv.data.nom } };
+}
+
+/** O'z sahifasi — saqlangach ro'yxatga qaytadi. */
+export async function yetkazibYaratAmali(
+  _oldingi: FormaHolati,
+  forma: FormData,
+): Promise<FormaHolati> {
+  const n = await yaratIchki(forma);
+  if ('saqlandi' in n) redirect('/yetkazib');
+  return n;
+}
+
+/**
+ * Modal oyna — yo'naltirmaydi.
+ *
+ * ⚠️ `redirect()` xato otish orqali ishlaydi. Modalda chaqirilsa
+ *    butun sahifa almashib ketardi va omborchi yarim yozilgan
+ *    kirim hujjatini yo'qotardi.
+ */
+export async function yetkazibModalYaratAmali(
+  _oldingi: FormaHolati,
+  forma: FormData,
+): Promise<FormaHolati> {
+  const n = await yaratIchki(forma);
+  if ('saqlandi' in n) {
+    return { xato: null, maydonXatolari: {}, yaratildi: n.saqlandi };
+  }
+  return n;
 }
 
 export async function yetkazibTahrirlaAmali(

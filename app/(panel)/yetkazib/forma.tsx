@@ -1,9 +1,10 @@
 'use client';
 
 import { useActionState } from 'react';
-import Link from 'next/link';
 import { Maydon, kirishUslubi } from '../maydon';
 import { BOSH_HOLAT, type FormaHolati } from './holat';
+import { BekorQilish, useSaqlanganda } from '../modal-forma';
+import type { YaratilganYozuv } from '../modal-holat';
 
 export interface YetkazibQiymatlari {
   readonly nom: string;
@@ -41,12 +42,19 @@ export function YetkazibFormasi({
   amal,
   qiymatlar,
   tugmaMatni,
+  saqlandi,
+  bekor,
 }: {
   amal: (holat: FormaHolati, forma: FormData) => Promise<FormaHolati>;
   qiymatlar: YetkazibQiymatlari;
   tugmaMatni: string;
+  /** Modalda beriladi — saqlangach oyna yopiladi va yozuv tanlanadi */
+  saqlandi?: (y: YaratilganYozuv) => void;
+  bekor?: () => void;
 }) {
   const [holat, yubor, kutilmoqda] = useActionState(amal, BOSH_HOLAT);
+
+  useSaqlanganda(holat.yaratildi, saqlandi);
 
   const x = (nom: string): string | undefined => holat.maydonXatolari[nom];
   const ch = (nom: string): string => kirishUslubi(x(nom) !== undefined);
@@ -204,9 +212,7 @@ export function YetkazibFormasi({
         >
           {kutilmoqda ? 'Saqlanmoqda…' : tugmaMatni}
         </button>
-        <Link href="/yetkazib" className="text-sm text-matn-ikki hover:text-matn">
-          Bekor qilish
-        </Link>
+        <BekorQilish yol="/yetkazib" bekor={bekor} />
       </div>
     </form>
   );

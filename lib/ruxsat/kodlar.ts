@@ -143,6 +143,12 @@ export const RUXSATLAR = {
   'kassa.chiqim': { nom: 'Kassa chiqim', guruh: 'Kassa', band: '14.6' },
   'kassa.ayirboshlash': { nom: 'Valyuta ayirboshlash', guruh: 'Kassa', band: '14.6' },
   'kassa.storno': { nom: 'Kassa storno', guruh: 'Kassa', band: '14.6' },
+  /**
+   * ⚠️ TZ 12.2 — kassa ochish. Ilgari bu kod YO'Q edi va kassani
+   *    umuman yaratib bo'lmasdi: jadval bo'sh turardi, ya'ni
+   *    to'lov ham, kun yopish ham ishlamasdi.
+   */
+  'kassa.yarat': { nom: 'Kassa ochish', guruh: 'Kassa', band: '12.2' },
 
   // ── Narx — TZ 20.9, 20.12 ──────────────────────────────────────────────
   'narx.standart.ozgartir': {

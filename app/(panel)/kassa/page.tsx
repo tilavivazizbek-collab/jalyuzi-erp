@@ -46,6 +46,7 @@ const pul = (summa: string, valyuta: string): string =>
 
 export default async function KassaSahifasi() {
   const f = await sahifaRuxsati('kassa.oz.kor');
+  const kassaOchaOladi = ruxsatBormi(f, 'kassa.yarat');
   // TZ 12.14 — sotuvchi FAQAT o'z kassasini ko'radi
   const barchaniKoradi = ruxsatBormi(f, 'kassa.barcha.kor');
   const stornoQilaOladi = ruxsatBormi(f, 'kassa.storno');
@@ -76,6 +77,19 @@ export default async function KassaSahifasi() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          {/*
+            ⚠️ TZ 12.2 — kassa ochish. Ilgari bu tugma yo'q edi va
+               kassa jadvali bo'sh turardi: to'lov ham, kun yopish
+               ham ishlamasdi.
+          */}
+          {kassaOchaOladi && (
+            <Link
+              href="/kassa/yangi"
+              className="rounded-maydon bg-brend px-3.5 py-2 text-sm font-medium text-white transition-all hover:bg-brend-quyuq active:scale-[0.98]"
+            >
+              + Yangi kassa
+            </Link>
+          )}
           <Link
             href="/kassa/amallar-sahifa"
             className="rounded-maydon border border-chegara-quyuq px-3.5 py-2 text-sm text-matn-ikki transition-all active:scale-[0.98] hover:bg-fon"

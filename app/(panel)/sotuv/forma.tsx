@@ -15,7 +15,7 @@
  *    biri ustun ekani noaniq bo'lib qoladi.»
  */
 
-import { useActionState, useMemo, useState, useTransition } from 'react';
+import { useActionState, useMemo, useState } from 'react';
 import { sarflashHisobla, standartQiymatlar } from '@/lib/domain/formula';
 import { sm, type SarflashBirligi } from '@/lib/domain/birlik';
 import { kurs, nolSom, pulKorsat, pulMatn, qosh, som, type Som } from '@/lib/domain/pul';
@@ -24,7 +24,12 @@ import { pozitsiyaNarxiniHisobla } from '@/lib/domain/pozitsiya-narxi';
 import { mijozOffseti } from '@/lib/domain/mijoz';
 import { biznesXatosimi } from '@/lib/xato';
 import { Maydon, kirishUslubi } from '../maydon';
-import { mijozTezQosh } from '../tez-amal';
+import { Modal } from '../modal';
+import {
+  MijozFormasi,
+  BOSH_QIYMATLAR as MIJOZ_BOSH_QIYMATLAR,
+} from '../mijoz/forma';
+import { mijozModalYaratAmali } from '../mijoz/amal';
 import { buyurtmaYaratAmali, turTafsiliAmali } from './amal';
 import { BOSH_HOLAT } from './holat';
 import type { SotuvMijozi, SotuvTuri } from './malumot';
@@ -889,45 +894,34 @@ function MijozTanlash({
   const [matn, matnniOzgartir] = useState('');
   const [topilgan, topilganniOzgartir] = useState<readonly SotuvMijozi[]>([]);
   const [qidirilmoqda, qidirilmoqdaOzgartir] = useState(false);
-  const [qoshXato, qoshXatoniOzgartir] = useState<string | null>(null);
-  const [qoshilmoqda, qoshishniBoshla] = useTransition();
+  const [modalOchiq, modalniOzgartir] = useState(false);
 
   const izlanayotgan = matn.trim();
 
   /**
-   * ⚠️ «Aynan shu ism topildi» — bo'lsa qo'shish taklif qilinmaydi.
-   *    TZ 6.5: mijoz ism bo'yicha takrorlanmaydi. Sotuvchi
-   *    ro'yxatdagini KO'RIB turib yana bittasini yaratsa, qarz
-   *    kimga yozilgani chalkashardi.
+   * ⚠️ Modalda TO'LIQ mijoz kartochkasi to'ldiriladi: telefon,
+   *    shaxs turi, offset, qarz limiti. Ilgari bu yerda faqat ism
+   *    so'ralardi va qolgani keyin qo'shilishi kerak edi —
+   *    ko'pincha unutilardi.
+   *
+   * ⚠️ Yangi mijozning OFFSETI shu yerda ma'lum emas: modal faqat
+   *    raqam va ismni qaytaradi. Shuning uchun narx odatdagi
+   *    filial narxida qoladi va offset sahifa yangilangach
+   *    ishlaydi. Boshqacha qilish uchun mijozni qaytadan
+   *    qidirtirish kerak bo'lardi — u ish oqimini uzardi.
    */
-  const aynanBor = topilgan.some((m) => m.ism.toLowerCase() === izlanayotgan.toLowerCase());
-
-  function yangiMijozQosh(): void {
-    qoshishniBoshla(() => {
-      void mijozTezQosh(izlanayotgan).then((n) => {
-        if ('xato' in n) {
-          qoshXatoniOzgartir(n.xato);
-          return;
-        }
-
-        /**
-         * ⚠️ Yangi mijozda offset ham, qarz limiti ham YO'Q —
-         *    ular kartochkasida keyin to'ldiriladi. Shuning uchun
-         *    narx odatdagi filial narxida qoladi (3.10).
-         */
-        ozgartir({
-          id: n.id,
-          ism: n.nom,
-          telefon: null,
-          qarzLimiti: null,
-          offsetTuri: null,
-          offsetQiymat: null,
-        });
-        matnniOzgartir('');
-        topilganniOzgartir([]);
-        qoshXatoniOzgartir(null);
-      });
+  function modaldaYaratildi(m: { id: number; ism: string }): void {
+    ozgartir({
+      id: m.id,
+      ism: m.ism,
+      telefon: null,
+      qarzLimiti: null,
+      offsetTuri: null,
+      offsetQiymat: null,
     });
+    matnniOzgartir('');
+    topilganniOzgartir([]);
+    modalniOzgartir(false);
   }
 
   async function qidir(q: string): Promise<void> {
@@ -1001,22 +995,42 @@ function MijozTanlash({
         </div>
       )}
 
-      {qoshaOladi && izlanayotgan.length >= 2 && !qidirilmoqda && !aynanBor && (
+      {qoshaOladi && (
         <button
           type="button"
-          disabled={qoshilmoqda}
-          onClick={yangiMijozQosh}
-          className="fokus mt-1 self-start rounded-maydon px-1 py-0.5 text-[12px] font-medium text-brend transition-colors hover:underline disabled:opacity-60"
+          onClick={() => {
+            modalniOzgartir(true);
+          }}
+          className="fokus mt-1 self-start rounded-maydon px-1 py-0.5 text-[12px] font-medium text-brend transition-colors hover:underline"
         >
-          {qoshilmoqda ? 'Qo‘shilmoqda…' : `+ «${izlanayotgan}» ni yangi mijoz qilib qo‘shish`}
+          + Yangi mijoz
         </button>
       )}
 
-      {qoshXato !== null && (
-        <p role="alert" className="text-[12px] text-belgi-qizil">
-          {qoshXato}
-        </p>
-      )}
+      <Modal
+        ochiq={modalOchiq}
+        yop={() => {
+          modalniOzgartir(false);
+        }}
+        sarlavha="Yangi mijoz"
+        izoh="Saqlangach buyurtmaga darhol biriktiriladi"
+        keng
+        bolalar={
+          <MijozFormasi
+            amal={mijozModalYaratAmali}
+            /**
+             * ⚠️ Qidiruvga yozilgan ism formaga o'tkaziladi —
+             *    sotuvchi uni ikkinchi marta terib o'tirmasin.
+             */
+            qiymatlar={{ ...MIJOZ_BOSH_QIYMATLAR, ism: izlanayotgan }}
+            tugmaMatni="Saqlash"
+            saqlandi={modaldaYaratildi}
+            bekor={() => {
+              modalniOzgartir(false);
+            }}
+          />
+        }
+      />
     </Maydon>
   );
 }

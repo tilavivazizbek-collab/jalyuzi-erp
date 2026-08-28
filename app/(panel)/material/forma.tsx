@@ -1,11 +1,12 @@
 'use client';
 
 import { useActionState, useState } from 'react';
-import Link from 'next/link';
 import { Maydon, kirishUslubi } from '../maydon';
-import { TanlovYokiYangi } from '../tanlov';
-import { guruhTezQosh } from '../tez-amal';
+import { TanlovModal } from '../tanlov-modal';
+import { GuruhFormasi } from '../guruh-forma';
 import { NarxKatagi } from './narx-katak';
+import { BekorQilish, useSaqlanganda } from '../modal-forma';
+import type { YaratilganYozuv } from '../modal-holat';
 import { BOSH_HOLAT, type FormaHolati } from './holat';
 import {
   BIRLIK_TAVSIFI,
@@ -72,6 +73,8 @@ export function MaterialFormasi({
   joriyKurs,
   oxirgiKelish,
   tugmaMatni,
+  saqlandi,
+  bekor,
 }: {
   amal: (holat: FormaHolati, forma: FormData) => Promise<FormaHolati>;
   qiymatlar: MaterialQiymatlari;
@@ -83,8 +86,13 @@ export function MaterialFormasi({
   /** TZ 5.4 — haqiqiy kelish narxi kirim hujjatidan keladi, tahrirlanmaydi */
   oxirgiKelish: OxirgiKelish | null;
   tugmaMatni: string;
+  /** Modalda beriladi — saqlangach oyna yopiladi va material tanlanadi */
+  saqlandi?: (y: YaratilganYozuv) => void;
+  bekor?: () => void;
 }) {
   const [holat, yubor, kutilmoqda] = useActionState(amal, BOSH_HOLAT);
+
+  useSaqlanganda(holat.yaratildi, saqlandi);
 
   /**
    * ⚠️ Eski material qo'lda kiritilgan birlik bilan turishi mumkin
@@ -160,18 +168,19 @@ export function MaterialFormasi({
         </div>
 
         {/*
-          ⚠️ Ro'yxat ostida «+ Yangi guruh» turadi — omborchi material
-             kiritayotib boshqa sahifaga o'tib ketmasin.
+          ⚠️ «+ Yangi guruh» modal oynada ochiladi — omborchi
+             material kiritayotib boshqa sahifaga o'tib ketmasin.
         */}
-        <TanlovYokiYangi
+        <TanlovModal
           nom="almashtirishGuruhId"
           yorliq="Guruhi"
           izoh="sotuvda shu guruh chiqadi"
           bandlar={guruhlar}
           boshlangich={qiymatlar.almashtirishGuruhId}
           yangiYorliq="Yangi guruh"
+          modalSarlavha="Yangi guruh"
           qoshaOladi={guruhQoshaOladi}
-          yarat={guruhTezQosh}
+          forma={(saqla, yop) => <GuruhFormasi saqlandi={saqla} bekor={yop} />}
         />
 
         <Maydon
@@ -488,9 +497,7 @@ export function MaterialFormasi({
         >
           {kutilmoqda ? 'Saqlanmoqda…' : tugmaMatni}
         </button>
-        <Link href="/material" className="text-sm text-matn-ikki hover:text-matn">
-          Bekor qilish
-        </Link>
+        <BekorQilish yol="/material" bekor={bekor} />
       </div>
     </form>
   );

@@ -4,8 +4,13 @@ import { useActionState, useState } from 'react';
 import Link from 'next/link';
 import { BOSH_HOLAT, type KonstruktorHolati } from './holat';
 import { TestKalkulyatori, type GuruhMalumoti } from './kalkulyator';
-import { TezQoshish } from '../tanlov';
-import { guruhTezQosh, materialTezQosh } from '../tez-amal';
+import { Modal } from '../modal';
+import { GuruhFormasi } from '../guruh-forma';
+import {
+  MaterialFormasi,
+  BOSH_QIYMATLAR as MATERIAL_BOSH_QIYMATLAR,
+} from '../material/forma';
+import { materialModalYaratAmali } from '../material/amal';
 import {
   SARF_TAVSIFI,
   SARF_TURLARI,
@@ -13,7 +18,6 @@ import {
   sarfFormulasi,
   type SarfTuri,
 } from '@/lib/domain/sarf-turi';
-import { BIRLIK_TAVSIFI } from '@/lib/domain/birlik-tanlovi';
 
 export interface MaterialTanlovi {
   readonly id: number;
@@ -175,6 +179,9 @@ export function MahsulotFormasi({
    *    ularga tayangan formulalar buzilardi.
    */
   const [parametrlar] = useState<readonly ParametrQatori[]>(qiymatlar.parametrlar);
+
+  const [guruhModali, guruhModaliniOzgartir] = useState(false);
+  const [materialModali, materialModaliniOzgartir] = useState(false);
 
   const yangila = (i: number, o: Partial<Qator>): void => {
     setQatorlar((eski) => eski.map((q, j) => (i === j ? { ...q, ...o } : q)));
@@ -433,51 +440,91 @@ export function MahsulotFormasi({
 
           <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2">
             {guruhQoshaOladi && (
-              <TezQoshish
-                ixcham
-                yangiYorliq="Yangi guruh"
-                yarat={guruhTezQosh}
-                qoshildi={(n) => {
+              <button
+                type="button"
+                onClick={() => {
+                  guruhModaliniOzgartir(true);
+                }}
+                className="fokus rounded-maydon px-1 py-0.5 text-[11px] font-medium text-brend transition-colors hover:underline"
+              >
+                + Yangi guruh
+              </button>
+            )}
+
+            {materialQoshaOladi && (
+              <button
+                type="button"
+                onClick={() => {
+                  materialModaliniOzgartir(true);
+                }}
+                className="fokus rounded-maydon px-1 py-0.5 text-[11px] font-medium text-brend transition-colors hover:underline"
+              >
+                + Yangi material
+              </button>
+            )}
+          </div>
+
+          <Modal
+            ochiq={guruhModali}
+            yop={() => {
+              guruhModaliniOzgartir(false);
+            }}
+            sarlavha="Yangi guruh"
+            bolalar={
+              <GuruhFormasi
+                saqlandi={(y) => {
+                  /**
+                   * ⚠️ Yangi guruhda hali material yo'q — shuning
+                   *    uchun birlik `KV_M` (serverdagi bilan bir xil
+                   *    standart) va narx namunasi yo'q. Kalkulyator
+                   *    uni narxsiz ko'rsatadi: bu to'g'ri, chunki
+                   *    narx haqiqatan hali yo'q.
+                   */
                   setGuruhRoyxati((r) => [
                     ...r,
                     {
-                      id: n.id,
-                      nom: n.nom,
+                      id: y.id,
+                      nom: y.nom,
                       sarflashBirligi: 'KV_M',
                       namunaNarx: null,
                       namunaNom: null,
                     },
                   ]);
+                  guruhModaliniOzgartir(false);
+                }}
+                bekor={() => {
+                  guruhModaliniOzgartir(false);
                 }}
               />
-            )}
+            }
+          />
 
-            {materialQoshaOladi && (
-              <TezQoshish
-                ixcham
-                yangiYorliq="Yangi material"
-                yaratIkki={materialTezQosh}
-                ikkinchi={{
-                  yorliq: "O'lchov birligi",
-                  boshlangich: 'DONA',
-                  /**
-                   * ⚠️ Faqat o'girish talab qilmaydigan birliklar.
-                   *    Shtanga va quti «1 shtanga necha metr» degan
-                   *    javobni talab qiladi — uni bu yerda so'ramaymiz,
-                   *    taxmin qilib qo'yish esa ombordan noto'g'ri
-                   *    miqdor yechilishiga olib kelardi (5.3).
-                   */
-                  bandlar: (['DONA', 'RULON', 'KV_M'] as const).map((b) => ({
-                    qiymat: b,
-                    nom: BIRLIK_TAVSIFI[b].nom,
-                  })),
+          <Modal
+            ochiq={materialModali}
+            yop={() => {
+              materialModaliniOzgartir(false);
+            }}
+            sarlavha="Yangi material"
+            keng
+            bolalar={
+              <MaterialFormasi
+                amal={materialModalYaratAmali}
+                qiymatlar={MATERIAL_BOSH_QIYMATLAR}
+                guruhlar={guruhRoyxati}
+                guruhQoshaOladi={false}
+                joriyKurs=""
+                oxirgiKelish={null}
+                tugmaMatni="Saqlash"
+                saqlandi={(y) => {
+                  setMaterialRoyxati((r) => [...r, y]);
+                  materialModaliniOzgartir(false);
                 }}
-                qoshildi={(n) => {
-                  setMaterialRoyxati((r) => [...r, n]);
+                bekor={() => {
+                  materialModaliniOzgartir(false);
                 }}
               />
-            )}
-          </div>
+            }
+          />
         </section>
 
         <div className="flex items-center gap-3">

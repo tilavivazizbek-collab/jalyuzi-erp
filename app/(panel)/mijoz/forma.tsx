@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState, useState } from 'react';
+import { useActionState, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { Maydon, kirishUslubi } from '../maydon';
 import { BOSH_HOLAT, type MijozHolati } from './holat';
@@ -54,12 +54,32 @@ export function MijozFormasi({
   amal,
   qiymatlar,
   tugmaMatni,
+  saqlandi,
+  bekor,
 }: {
   amal: (holat: MijozHolati, forma: FormData) => Promise<MijozHolati>;
   qiymatlar: MijozQiymatlari;
   tugmaMatni: string;
+  /**
+   * ⚠️ Modal oynada beriladi. O'z sahifasida saqlangach ro'yxatga
+   *    yo'naltiriladi, shuning uchun u yerda bu chaqirilmaydi.
+   */
+  saqlandi?: (mijoz: { id: number; ism: string }) => void;
+  /** Modalda — oynani yopadi. Sahifada — ro'yxatga havola */
+  bekor?: () => void;
 }) {
   const [holat, yubor, kutilmoqda] = useActionState(amal, BOSH_HOLAT);
+
+  /**
+   * ⚠️ Saqlangani XABAR QILINADI, lekin faqat bir marta. Aks holda
+   *    har qayta chizilganda oyna qayta-qayta yopilishga urinardi.
+   */
+  const xabarBerildi = useRef(false);
+  useEffect(() => {
+    if (holat.yaratildi === null || xabarBerildi.current) return;
+    xabarBerildi.current = true;
+    saqlandi?.(holat.yaratildi);
+  }, [holat.yaratildi, saqlandi]);
   const [shaxsTuri, setShaxsTuri] = useState<ShaxsTuri>(qiymatlar.shaxsTuri as ShaxsTuri);
   const [offsetTuri, setOffsetTuri] = useState(qiymatlar.offsetTuri);
 
@@ -88,12 +108,31 @@ export function MijozFormasi({
             <b>{holat.dublikat.ism}</b> · {holat.dublikat.telefon}
           </p>
           <div className="mt-3 flex flex-wrap items-center gap-3 text-belgi-sariq">
-            <Link
-              href={`/mijoz/${String(holat.dublikat.id)}`}
-              className="rounded-maydon bg-belgi-sariq px-3 py-1.5 text-xs font-medium text-white"
-            >
-              Mavjud mijozni ochish
-            </Link>
+            {/*
+              ⚠️ Modalda HAVOLA BERILMAYDI. Boshqa sahifaga o'tish
+                 yarim yozilgan buyurtmani yo'qotardi — modalning
+                 butun maqsadi shundan qochish edi. Uning o'rniga
+                 mavjud mijoz shu yerda tanlanadi (6.5).
+            */}
+            {saqlandi === undefined ? (
+              <Link
+                href={`/mijoz/${String(holat.dublikat.id)}`}
+                className="rounded-maydon bg-belgi-sariq px-3 py-1.5 text-xs font-medium text-white"
+              >
+                Mavjud mijozni ochish
+              </Link>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  if (holat.dublikat === null) return;
+                  saqlandi({ id: holat.dublikat.id, ism: holat.dublikat.ism });
+                }}
+                className="fokus rounded-maydon bg-belgi-sariq px-3 py-1.5 text-xs font-medium text-white"
+              >
+                Shu mijozni tanlash
+              </button>
+            )}
             <span className="text-xs">yoki ismni o&apos;zgartirib qayta saqlang</span>
           </div>
         </div>
@@ -309,9 +348,19 @@ export function MijozFormasi({
         >
           {kutilmoqda ? 'Saqlanmoqda…' : tugmaMatni}
         </button>
-        <Link href="/mijoz" className="text-sm text-matn-ikki hover:text-matn">
-          Bekor qilish
-        </Link>
+        {bekor === undefined ? (
+          <Link href="/mijoz" className="text-sm text-matn-ikki hover:text-matn">
+            Bekor qilish
+          </Link>
+        ) : (
+          <button
+            type="button"
+            onClick={bekor}
+            className="fokus rounded-maydon px-2 py-1 text-sm text-matn-ikki transition-colors hover:text-matn"
+          >
+            Bekor qilish
+          </button>
+        )}
       </div>
     </form>
   );

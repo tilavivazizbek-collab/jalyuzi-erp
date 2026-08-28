@@ -412,3 +412,46 @@ export async function topshirishNishonlari(
     ozFilialimi: r.filial_id === filialId,
   }));
 }
+
+// ─── TZ 12.2 · Kassa ochish formasi uchun ────────────────────────────────
+
+export interface FilialTanlovi {
+  readonly id: number;
+  readonly nom: string;
+}
+
+export interface XodimTanlovi {
+  readonly id: number;
+  readonly ism: string;
+  readonly filialId: number;
+}
+
+/** Kassa qaysi filialda ochilishi mumkin. */
+export async function kassaFiliallari(): Promise<FilialTanlovi[]> {
+  return ulanishOl()<FilialTanlovi[]>`
+    SELECT id, nom FROM filial WHERE faol = true ORDER BY bosh DESC, nom`;
+}
+
+/**
+ * Kassa biriktiriladigan xodimlar.
+ *
+ * ⚠️ Usta chiqmaydi: TZ 12.14 — «Usta ko'rmaydi». Unga kassa
+ *    ochish ma'nosiz, chunki u pul qabul qilmaydi.
+ */
+export async function kassaXodimlari(): Promise<XodimTanlovi[]> {
+  /**
+   * ⚠️ Xodimda BIR NECHTA rol bo'lishi mumkin (P-05). Shuning uchun
+   *    «faqat usta» degan shart `NOT EXISTS` bilan emas, aksincha:
+   *    ustadan boshqa roli ham bor xodim ro'yxatda qoladi.
+   */
+  return ulanishOl()<XodimTanlovi[]>`
+    SELECT x.id, x.ism, x.filial_id AS "filialId"
+    FROM xodim x
+    WHERE x.faol = true
+      AND EXISTS (
+        SELECT 1 FROM xodim_rol xr
+        JOIN rol r ON r.id = xr.rol_id
+        WHERE xr.xodim_id = x.id AND r.kod <> 'USTA'
+      )
+    ORDER BY x.ism`;
+}
