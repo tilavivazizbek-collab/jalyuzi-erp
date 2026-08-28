@@ -51,3 +51,46 @@ export function maydonXatolari(
 }
 
 export const FORMA_XATO_XABARI = 'Formada xato bor — qizil maydonlarni tekshiring';
+
+// ─── React 19 — forma o'zi tozalanishi ────────────────────────────────────
+
+/**
+ * ⚠️ REACT 19 FORMANI SAQLASHDAN KEYIN O'ZI TOZALAYDI.
+ *
+ *    Bu React 19 ning yangi xatti-harakati: `<form action={...}>`
+ *    amali tugagach barcha maydonlar bo'shatiladi. React amal
+ *    muvaffaqiyatli tugadimi yoki xato qaytardimi — BILMAYDI,
+ *    shuning uchun ikkala holatda ham tozalaydi.
+ *
+ *    Natijada odam formani to'ldirib «Saqlash» bosardi, tizim
+ *    «formada xato bor» derdi va SHU PAYTDA hamma yozgani
+ *    yo'qolardi. Xato qaysi maydonda ekani ko'rsatilardi, lekin
+ *    maydon endi bo'sh bo'lgani uchun odam nima noto'g'ri ekanini
+ *    tushunmasdi.
+ *
+ *    Yechim: xato bo'lganda kiritilgan qiymatlar holat bilan
+ *    QAYTARILADI va forma ularni qayta ko'rsatadi.
+ */
+export type KiritilganQiymatlar = Readonly<Record<string, string>>;
+
+export interface QaytarilganKirim {
+  /** Odam kiritgan xom qiymatlar — xato bo'lganda qaytariladi */
+  readonly kiritilgan?: KiritilganQiymatlar | null;
+  /**
+   * Urinish raqami.
+   *
+   * ⚠️ Maydonlar `key` sifatida shuni oladi: React ularni QAYTA
+   *    yaratadi va `defaultValue` yangidan qo'llanadi. Busiz
+   *    tozalangan maydon bo'sh bo'lib qolardi.
+   */
+  readonly urinish?: number;
+}
+
+/** Xato holatiga kiritilgan qiymatlarni biriktiradi. */
+export function kirimniQaytar<H extends QaytarilganKirim>(
+  holat: H,
+  oldingi: QaytarilganKirim,
+  kiritilgan: KiritilganQiymatlar,
+): H {
+  return { ...holat, kiritilgan, urinish: (oldingi.urinish ?? 0) + 1 };
+}

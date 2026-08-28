@@ -56,8 +56,13 @@ export function KassaYaratFormasi({
 
   useSaqlanganda(holat.yaratildi, saqlandi);
 
-  const [filialId, filialniOzgartir] = useState(String(ozFilialId));
-  const [turi, turniOzgartir] = useState<KassaTuri>('NAQD');
+  /** ⚠️ React 19 formani tozalaydi — server qaytargan qiymatlar qayta qo'yiladi */
+  const q = (nom: string, zaxira = ''): string => holat.kiritilgan?.[nom] ?? zaxira;
+
+  const [filialId, filialniOzgartir] = useState(q('filialId', String(ozFilialId)));
+  const [turi, turniOzgartir] = useState<KassaTuri>(
+    (q('turi', 'NAQD') || 'NAQD') as KassaTuri,
+  );
 
   const x = (nom: string): string | undefined => holat.maydonXatolari[nom];
   const ch = (nom: string): string => kirishUslubi(x(nom) !== undefined);
@@ -73,7 +78,7 @@ export function KassaYaratFormasi({
   const xodimTanlanadi = turi !== 'KARTA';
 
   return (
-    <form action={yubor} className="flex flex-col gap-4">
+    <form key={holat.urinish ?? 0} action={yubor} className="flex flex-col gap-4">
       {holat.xato !== null && (
         <p
           role="alert"
@@ -91,7 +96,14 @@ export function KassaYaratFormasi({
             izoh="masalan «Admin naqd so'm» yoki «Aziz — naqd»"
             xato={x('nom')}
           >
-            <input id="kassaNom" name="nom" required autoFocus className={ch('nom')} />
+            <input
+              id="kassaNom"
+              name="nom"
+              defaultValue={q('nom')}
+              required
+              autoFocus
+              className={ch('nom')}
+            />
           </Maydon>
         </div>
 
@@ -132,7 +144,12 @@ export function KassaYaratFormasi({
         </Maydon>
 
         <Maydon nom="kassaValyuta" yorliq="Valyuta" xato={x('valyuta')}>
-          <select id="kassaValyuta" name="valyuta" className={ch('valyuta')}>
+          <select
+            id="kassaValyuta"
+            name="valyuta"
+            defaultValue={q('valyuta', 'SOM')}
+            className={ch('valyuta')}
+          >
             <option value="SOM">so&apos;m</option>
             <option value="USD">dollar</option>
           </select>
@@ -145,7 +162,12 @@ export function KassaYaratFormasi({
             izoh="bo'sh qolsa — admin (filial) kassasi"
             xato={x('xodimId')}
           >
-            <select id="kassaXodim" name="xodimId" className={ch('xodimId')}>
+            <select
+              id="kassaXodim"
+              name="xodimId"
+              defaultValue={q('xodimId')}
+              className={ch('xodimId')}
+            >
               <option value="">Admin kassasi</option>
               {filialXodimlari.map((xo) => (
                 <option key={xo.id} value={xo.id}>
@@ -178,6 +200,7 @@ export function KassaYaratFormasi({
             <input
               id="kassaQoldiq"
               name="boshlangichQoldiq"
+              defaultValue={q('boshlangichQoldiq')}
               inputMode="decimal"
               className={ch('boshlangichQoldiq')}
             />

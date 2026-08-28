@@ -1,6 +1,11 @@
 /** `'use server'` faylidan alohida — u faqat async funksiya eksport qila oladi. */
 
-import { FORMA_XATO_XABARI, maydonXatolari, type MaydonXatolari } from '../forma-yordamchi';
+import {
+  FORMA_XATO_XABARI,
+  maydonXatolari,
+  type MaydonXatolari,
+  type QaytarilganKirim,
+} from '../forma-yordamchi';
 
 export interface DublikatMalumoti {
   readonly id: number;
@@ -9,7 +14,7 @@ export interface DublikatMalumoti {
   readonly sabab: 'TELEFON' | 'ISM';
 }
 
-export interface MijozHolati {
+export interface MijozHolati extends QaytarilganKirim {
   readonly xato: string | null;
   readonly maydonXatolari: MaydonXatolari;
   /** TZ 6.5 — mavjud mijoz ko'rsatiladi va uch yo'l taklif qilinadi */

@@ -71,6 +71,20 @@ export function MijozFormasi({
   const [holat, yubor, kutilmoqda] = useActionState(amal, BOSH_HOLAT);
 
   /**
+   * ⚠️ REACT 19 FORMANI AMALDAN KEYIN O'ZI TOZALAYDI.
+   *
+   *    Xato bo'lganda ham tozalaydi — React amal muvaffaqiyatli
+   *    tugadimi yoki yo'qmi bilmaydi. Natijada odam formani
+   *    to'ldirib «Saqlash» bosardi, «xato bor» degan xabar
+   *    chiqardi va SHU PAYTDA hamma yozgani yo'qolardi.
+   *
+   *    Server xato qaytarganda kiritilgan qiymatlarni ham
+   *    qaytaradi va ular shu yerda qayta ko'rsatiladi.
+   */
+  const q = (nom: keyof MijozQiymatlari): string =>
+    holat.kiritilgan?.[nom] ?? qiymatlar[nom];
+
+  /**
    * ⚠️ Saqlangani XABAR QILINADI, lekin faqat bir marta. Aks holda
    *    har qayta chizilganda oyna qayta-qayta yopilishga urinardi.
    */
@@ -80,14 +94,19 @@ export function MijozFormasi({
     xabarBerildi.current = true;
     saqlandi?.(holat.yaratildi);
   }, [holat.yaratildi, saqlandi]);
-  const [shaxsTuri, setShaxsTuri] = useState<ShaxsTuri>(qiymatlar.shaxsTuri as ShaxsTuri);
-  const [offsetTuri, setOffsetTuri] = useState(qiymatlar.offsetTuri);
+  const [shaxsTuri, setShaxsTuri] = useState<ShaxsTuri>(q('shaxsTuri') as ShaxsTuri);
+  const [offsetTuri, setOffsetTuri] = useState(q('offsetTuri'));
 
   const x = (nom: string): string | undefined => holat.maydonXatolari[nom];
   const ch = (nom: string): string => kirishUslubi(x(nom) !== undefined);
 
   return (
-    <form action={yubor} className="flex flex-col gap-6">
+    /**
+     * ⚠️ `key` — urinish raqami. React tozalagan maydonni QAYTA
+     *    yaratish uchun kerak: `defaultValue` faqat element
+     *    yangidan yaratilganda qo'llanadi.
+     */
+    <form key={holat.urinish ?? 0} action={yubor} className="flex flex-col gap-6">
       {holat.xato !== null && (
         <p
           role="alert"
@@ -140,7 +159,7 @@ export function MijozFormasi({
 
       <section className="grid gap-4 sm:grid-cols-2">
         <Maydon nom="ism" yorliq="Ismi" xato={x('ism')}>
-          <input id="ism" name="ism" defaultValue={qiymatlar.ism} required className={ch('ism')} />
+          <input id="ism" name="ism" defaultValue={q('ism')} required className={ch('ism')} />
         </Maydon>
 
         <Maydon
@@ -153,7 +172,7 @@ export function MijozFormasi({
             id="telefon"
             name="telefon"
             type="tel"
-            defaultValue={qiymatlar.telefon}
+            defaultValue={q('telefon')}
             placeholder="+998 90 123 45 67"
             className={ch('telefon')}
           />
@@ -164,7 +183,7 @@ export function MijozFormasi({
             <input
               id="manzil"
               name="manzil"
-              defaultValue={qiymatlar.manzil}
+              defaultValue={q('manzil')}
               className={ch('manzil')}
             />
           </Maydon>
@@ -174,7 +193,7 @@ export function MijozFormasi({
           <select
             id="shaxsTuri"
             name="shaxsTuri"
-            defaultValue={qiymatlar.shaxsTuri}
+            defaultValue={q('shaxsTuri')}
             onChange={(e) => {
               setShaxsTuri(e.target.value as ShaxsTuri);
             }}
@@ -198,7 +217,7 @@ export function MijozFormasi({
             id="qarzLimiti"
             name="qarzLimiti"
             inputMode="decimal"
-            defaultValue={qiymatlar.qarzLimiti}
+            defaultValue={q('qarzLimiti')}
             className={ch('qarzLimiti')}
           />
         </Maydon>
@@ -215,7 +234,7 @@ export function MijozFormasi({
             <select
               id="offsetTuri"
               name="offsetTuri"
-              defaultValue={qiymatlar.offsetTuri}
+              defaultValue={q('offsetTuri')}
               onChange={(e) => {
                 setOffsetTuri(e.target.value);
               }}
@@ -242,7 +261,7 @@ export function MijozFormasi({
               id="offsetQiymat"
               name="offsetQiymat"
               inputMode="decimal"
-              defaultValue={qiymatlar.offsetQiymat}
+              defaultValue={q('offsetQiymat')}
               className={ch('offsetQiymat')}
             />
           </Maydon>
@@ -266,19 +285,19 @@ export function MijozFormasi({
               <input
                 id="tashkilotNomi"
                 name="tashkilotNomi"
-                defaultValue={qiymatlar.tashkilotNomi}
+                defaultValue={q('tashkilotNomi')}
                 className={ch('tashkilotNomi')}
               />
             </Maydon>
             <Maydon nom="inn" yorliq="INN *" xato={x('inn')}>
-              <input id="inn" name="inn" defaultValue={qiymatlar.inn} className={ch('inn')} />
+              <input id="inn" name="inn" defaultValue={q('inn')} className={ch('inn')} />
             </Maydon>
             <div className="sm:col-span-2">
               <Maydon nom="yuridikManzil" yorliq="Yuridik manzil *" xato={x('yuridikManzil')}>
                 <input
                   id="yuridikManzil"
                   name="yuridikManzil"
-                  defaultValue={qiymatlar.yuridikManzil}
+                  defaultValue={q('yuridikManzil')}
                   className={ch('yuridikManzil')}
                 />
               </Maydon>
@@ -287,7 +306,7 @@ export function MijozFormasi({
               <input
                 id="bankNomi"
                 name="bankNomi"
-                defaultValue={qiymatlar.bankNomi}
+                defaultValue={q('bankNomi')}
                 className={ch('bankNomi')}
               />
             </Maydon>
@@ -295,18 +314,18 @@ export function MijozFormasi({
               <input
                 id="hisobRaqam"
                 name="hisobRaqam"
-                defaultValue={qiymatlar.hisobRaqam}
+                defaultValue={q('hisobRaqam')}
                 className={ch('hisobRaqam')}
               />
             </Maydon>
             <Maydon nom="mfo" yorliq="MFO">
-              <input id="mfo" name="mfo" defaultValue={qiymatlar.mfo} className={ch('mfo')} />
+              <input id="mfo" name="mfo" defaultValue={q('mfo')} className={ch('mfo')} />
             </Maydon>
             <Maydon nom="shartnomaRaqam" yorliq="Shartnoma raqami">
               <input
                 id="shartnomaRaqam"
                 name="shartnomaRaqam"
-                defaultValue={qiymatlar.shartnomaRaqam}
+                defaultValue={q('shartnomaRaqam')}
                 className={ch('shartnomaRaqam')}
               />
             </Maydon>
@@ -320,7 +339,7 @@ export function MijozFormasi({
                 id="ndsStavka"
                 name="ndsStavka"
                 inputMode="decimal"
-                defaultValue={qiymatlar.ndsStavka}
+                defaultValue={q('ndsStavka')}
                 className={ch('ndsStavka')}
               />
             </Maydon>
@@ -334,7 +353,7 @@ export function MijozFormasi({
             id="eslatma"
             name="eslatma"
             rows={2}
-            defaultValue={qiymatlar.eslatma}
+            defaultValue={q('eslatma')}
             className={ch('eslatma')}
           />
         </Maydon>

@@ -95,27 +95,33 @@ export function MaterialFormasi({
   useSaqlanganda(holat.yaratildi, saqlandi);
 
   /**
+   * ⚠️ React 19 formani amaldan keyin o'zi tozalaydi — xato
+   *    bo'lganda ham. Server kiritilgan qiymatlarni qaytaradi va
+   *    ular shu yerda qayta ko'rsatiladi.
+   */
+  const q = (nom: keyof MaterialQiymatlari): string =>
+    holat.kiritilgan?.[nom] ?? qiymatlar[nom];
+
+  /**
    * ⚠️ Eski material qo'lda kiritilgan birlik bilan turishi mumkin
    *    («palka», «bobina»). U ro'yxatga tushmaydi — `null` keladi
    *    va ekran eski uchta maydonni ko'rsatadi. Ma'lumot
    *    YO'QOLMAYDI va jimgina o'zgarmaydi.
    */
   const [birlik, birlikniOzgartir] = useState<OlchovBirligi | null>(
-    birlikniTop(qiymatlar.hisobTuri, qiymatlar.kirimBirligi, qiymatlar.sarflashBirligi),
+    birlikniTop(q('hisobTuri'), q('kirimBirligi'), q('sarflashBirligi')),
   );
 
   const [ozgarishMetr, ozgarishMetrniOzgartir] = useState(
-    koeffitsientniMetrga(qiymatlar.koeffitsient),
+    koeffitsientniMetrga(q('koeffitsient')),
   );
 
   const [kurs, kursniOzgartir] = useState(joriyKurs);
 
-  const [kelishNarx, kelishNarxniOzgartir] = useState(qiymatlar.kutilayotganKelishNarx);
-  const [kelishValyuta, kelishValyutaniOzgartir] = useState(
-    qiymatlar.kutilayotganKelishValyuta,
-  );
-  const [sotuvNarx, sotuvNarxniOzgartir] = useState(qiymatlar.sotuvNarx);
-  const [sotuvValyuta, sotuvValyutaniOzgartir] = useState(qiymatlar.sotuvValyuta);
+  const [kelishNarx, kelishNarxniOzgartir] = useState(q('kutilayotganKelishNarx'));
+  const [kelishValyuta, kelishValyutaniOzgartir] = useState(q('kutilayotganKelishValyuta'));
+  const [sotuvNarx, sotuvNarxniOzgartir] = useState(q('sotuvNarx'));
+  const [sotuvValyuta, sotuvValyutaniOzgartir] = useState(q('sotuvValyuta'));
 
   const tavsif = birlik === null ? null : BIRLIK_TAVSIFI[birlik];
 
@@ -125,7 +131,8 @@ export function MaterialFormasi({
   const chegara = (nom: string): string => kirishUslubi(x(nom) !== undefined);
 
   return (
-    <form action={yubor} className="flex flex-col gap-6">
+    /** `key` — tozalangan maydonlarni qayta yaratadi (`defaultValue` uchun) */
+    <form key={holat.urinish ?? 0} action={yubor} className="flex flex-col gap-6">
       {holat.xato !== null && (
         <p
           role="alert"
@@ -160,7 +167,7 @@ export function MaterialFormasi({
             <input
               id="nom"
               name="nom"
-              defaultValue={qiymatlar.nom}
+              defaultValue={q('nom')}
               required
               className={chegara('nom')}
             />
@@ -250,7 +257,7 @@ export function MaterialFormasi({
               <input
                 id="standartRulonEniM"
                 name="standartRulonEniM"
-                defaultValue={qiymatlar.standartRulonEniM}
+                defaultValue={q('standartRulonEniM')}
                 inputMode="decimal"
                 className={chegara('standartRulonEniM')}
               />
@@ -265,7 +272,7 @@ export function MaterialFormasi({
               <input
                 id="odatdagiRulonBoyiM"
                 name="odatdagiRulonBoyiM"
-                defaultValue={qiymatlar.odatdagiRulonBoyiM}
+                defaultValue={q('odatdagiRulonBoyiM')}
                 inputMode="decimal"
                 className={chegara('odatdagiRulonBoyiM')}
               />
@@ -291,7 +298,7 @@ export function MaterialFormasi({
               <input
                 id="hisobTuri"
                 name="hisobTuri"
-                defaultValue={qiymatlar.hisobTuri}
+                defaultValue={q('hisobTuri')}
                 className={chegara('hisobTuri')}
               />
             </Maydon>
@@ -299,7 +306,7 @@ export function MaterialFormasi({
               <input
                 id="kirimBirligi"
                 name="kirimBirligi"
-                defaultValue={qiymatlar.kirimBirligi}
+                defaultValue={q('kirimBirligi')}
                 className={chegara('kirimBirligi')}
               />
             </Maydon>
@@ -307,7 +314,7 @@ export function MaterialFormasi({
               <input
                 id="sarflashBirligi"
                 name="sarflashBirligi"
-                defaultValue={qiymatlar.sarflashBirligi}
+                defaultValue={q('sarflashBirligi')}
                 className={chegara('sarflashBirligi')}
               />
             </Maydon>
@@ -315,7 +322,7 @@ export function MaterialFormasi({
               <input
                 id="koeffitsient"
                 name="koeffitsient"
-                defaultValue={qiymatlar.koeffitsient}
+                defaultValue={q('koeffitsient')}
                 inputMode="decimal"
                 className={chegara('koeffitsient')}
               />
@@ -390,7 +397,7 @@ export function MaterialFormasi({
             <input
               id="minUstamaFoiz"
               name="minUstamaFoiz"
-              defaultValue={qiymatlar.minUstamaFoiz}
+              defaultValue={q('minUstamaFoiz')}
               inputMode="decimal"
               className={chegara('minUstamaFoiz')}
             />
@@ -444,7 +451,7 @@ export function MaterialFormasi({
             <input
               id="yaroqsizChegaraM"
               name="yaroqsizChegaraM"
-              defaultValue={qiymatlar.yaroqsizChegaraM}
+              defaultValue={q('yaroqsizChegaraM')}
               inputMode="decimal"
               className={chegara('yaroqsizChegaraM')}
             />
@@ -458,7 +465,7 @@ export function MaterialFormasi({
             <input
               id="kamIshlatiladiganM"
               name="kamIshlatiladiganM"
-              defaultValue={qiymatlar.kamIshlatiladiganM}
+              defaultValue={q('kamIshlatiladiganM')}
               inputMode="decimal"
               className={chegara('kamIshlatiladiganM')}
             />
@@ -467,7 +474,7 @@ export function MaterialFormasi({
             <input
               id="kamQoldiqChegaraM"
               name="kamQoldiqChegaraM"
-              defaultValue={qiymatlar.kamQoldiqChegaraM}
+              defaultValue={q('kamQoldiqChegaraM')}
               inputMode="decimal"
               className={chegara('kamQoldiqChegaraM')}
             />
@@ -481,7 +488,7 @@ export function MaterialFormasi({
             <input
               id="yaxlitlashQadami"
               name="yaxlitlashQadami"
-              defaultValue={qiymatlar.yaxlitlashQadami}
+              defaultValue={q('yaxlitlashQadami')}
               inputMode="decimal"
               className={chegara('yaxlitlashQadami')}
             />

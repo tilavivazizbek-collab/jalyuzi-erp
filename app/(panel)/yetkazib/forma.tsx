@@ -56,11 +56,15 @@ export function YetkazibFormasi({
 
   useSaqlanganda(holat.yaratildi, saqlandi);
 
+  /** ⚠️ React 19 formani tozalaydi — server qaytargan qiymatlar qayta qo'yiladi */
+  const q = (nom: keyof YetkazibQiymatlari): string =>
+    holat.kiritilgan?.[nom] ?? qiymatlar[nom];
+
   const x = (nom: string): string | undefined => holat.maydonXatolari[nom];
   const ch = (nom: string): string => kirishUslubi(x(nom) !== undefined);
 
   return (
-    <form action={yubor} className="flex flex-col gap-6">
+    <form key={holat.urinish ?? 0} action={yubor} className="flex flex-col gap-6">
       {holat.xato !== null && (
         <p
           role="alert"
@@ -72,13 +76,13 @@ export function YetkazibFormasi({
 
       <section className="grid gap-4 sm:grid-cols-2">
         <Maydon nom="nom" yorliq="Nomi" xato={x('nom')}>
-          <input id="nom" name="nom" defaultValue={qiymatlar.nom} required className={ch('nom')} />
+          <input id="nom" name="nom" defaultValue={q('nom')} required className={ch('nom')} />
         </Maydon>
         <Maydon nom="nimaYetkazadi" yorliq="Nima yetkazadi" izoh="mato, mexanizm, karniz…">
           <input
             id="nimaYetkazadi"
             name="nimaYetkazadi"
-            defaultValue={qiymatlar.nimaYetkazadi}
+            defaultValue={q('nimaYetkazadi')}
             className={ch('nimaYetkazadi')}
           />
         </Maydon>
@@ -91,7 +95,7 @@ export function YetkazibFormasi({
             <input
               id="kontaktShaxs"
               name="kontaktShaxs"
-              defaultValue={qiymatlar.kontaktShaxs}
+              defaultValue={q('kontaktShaxs')}
               className={ch('kontaktShaxs')}
             />
           </Maydon>
@@ -99,7 +103,7 @@ export function YetkazibFormasi({
             <input
               id="manzil"
               name="manzil"
-              defaultValue={qiymatlar.manzil}
+              defaultValue={q('manzil')}
               className={ch('manzil')}
             />
           </Maydon>
@@ -108,7 +112,7 @@ export function YetkazibFormasi({
               id="telefon"
               name="telefon"
               type="tel"
-              defaultValue={qiymatlar.telefon}
+              defaultValue={q('telefon')}
               placeholder="+998 90 123 45 67"
               className={ch('telefon')}
             />
@@ -118,7 +122,7 @@ export function YetkazibFormasi({
               id="qoshimchaTelefon"
               name="qoshimchaTelefon"
               type="tel"
-              defaultValue={qiymatlar.qoshimchaTelefon}
+              defaultValue={q('qoshimchaTelefon')}
               className={ch('qoshimchaTelefon')}
             />
           </Maydon>
@@ -135,7 +139,7 @@ export function YetkazibFormasi({
             <input
               id="bankNomi"
               name="bankNomi"
-              defaultValue={qiymatlar.bankNomi}
+              defaultValue={q('bankNomi')}
               className={ch('bankNomi')}
             />
           </Maydon>
@@ -143,15 +147,15 @@ export function YetkazibFormasi({
             <input
               id="hisobRaqam"
               name="hisobRaqam"
-              defaultValue={qiymatlar.hisobRaqam}
+              defaultValue={q('hisobRaqam')}
               className={ch('hisobRaqam')}
             />
           </Maydon>
           <Maydon nom="inn" yorliq="INN / STIR">
-            <input id="inn" name="inn" defaultValue={qiymatlar.inn} className={ch('inn')} />
+            <input id="inn" name="inn" defaultValue={q('inn')} className={ch('inn')} />
           </Maydon>
           <Maydon nom="mfo" yorliq="MFO">
-            <input id="mfo" name="mfo" defaultValue={qiymatlar.mfo} className={ch('mfo')} />
+            <input id="mfo" name="mfo" defaultValue={q('mfo')} className={ch('mfo')} />
           </Maydon>
         </div>
       </section>
@@ -169,7 +173,7 @@ export function YetkazibFormasi({
               id="tolovMuddatiKun"
               name="tolovMuddatiKun"
               inputMode="numeric"
-              defaultValue={qiymatlar.tolovMuddatiKun}
+              defaultValue={q('tolovMuddatiKun')}
               className={ch('tolovMuddatiKun')}
             />
           </Maydon>
@@ -177,7 +181,7 @@ export function YetkazibFormasi({
             <select
               id="valyuta"
               name="valyuta"
-              defaultValue={qiymatlar.valyuta}
+              defaultValue={q('valyuta')}
               className={ch('valyuta')}
             >
               <option value="SOM">so&apos;m</option>
@@ -198,7 +202,7 @@ export function YetkazibFormasi({
             id="eslatma"
             name="eslatma"
             rows={2}
-            defaultValue={qiymatlar.eslatma}
+            defaultValue={q('eslatma')}
             className={ch('eslatma')}
           />
         </Maydon>

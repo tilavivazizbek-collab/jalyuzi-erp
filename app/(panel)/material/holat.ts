@@ -1,9 +1,14 @@
 /** Forma holati — 'use server' faylidan alohida (u faqat async funksiya eksport qiladi). */
 
-import { FORMA_XATO_XABARI, maydonXatolari, type MaydonXatolari } from '../forma-yordamchi';
+import {
+  FORMA_XATO_XABARI,
+  maydonXatolari,
+  type MaydonXatolari,
+  type QaytarilganKirim,
+} from '../forma-yordamchi';
 import type { YaratilganYozuv } from '../modal-holat';
 
-export interface FormaHolati {
+export interface FormaHolati extends QaytarilganKirim {
   readonly xato: string | null;
   readonly maydonXatolari: MaydonXatolari;
   /** Modalda yaratilgan yozuv — sahifada har doim yo'q */

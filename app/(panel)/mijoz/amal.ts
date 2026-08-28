@@ -12,7 +12,7 @@ import { ruxsatTalab } from '@/lib/kirish/joriy';
 import { mijozSxema } from '@/lib/sxema/mijoz';
 import { telefonKorsat } from '@/lib/domain/telefon';
 import { biznesXatosimi } from '@/lib/xato';
-import { maydonlarniOqi } from '../forma-yordamchi';
+import { kirimniQaytar, maydonlarniOqi } from '../forma-yordamchi';
 import { xatolarniYig, type MijozHolati } from './holat';
 
 const MAYDONLAR = [
@@ -47,12 +47,21 @@ const formadanOqi = (forma: FormData): Record<string, string> =>
  *    qolardi va biri unutilardi.
  */
 async function mijozYaratIchki(
+  oldingi: MijozHolati,
   forma: FormData,
 ): Promise<MijozHolati | { readonly saqlandi: { readonly id: number; readonly ism: string } }> {
   const f = await ruxsatTalab('mijoz.yarat');
 
-  const tekshiruv = mijozSxema.safeParse(formadanOqi(forma));
-  if (!tekshiruv.success) return xatolarniYig(tekshiruv.error.issues);
+  /**
+   * ⚠️ Xom qiymatlar SAQLANADI — React 19 formani amaldan keyin
+   *    o'zi tozalaydi va xato bo'lganda odam yozgani yo'qolardi.
+   */
+  const kirim = formadanOqi(forma);
+
+  const tekshiruv = mijozSxema.safeParse(kirim);
+  if (!tekshiruv.success) {
+    return kirimniQaytar(xatolarniYig(tekshiruv.error.issues), oldingi, kirim);
+  }
 
   let natija;
   try {
@@ -68,20 +77,24 @@ async function mijozYaratIchki(
 
   if (natija.holat === 'DUBLIKAT') {
     const m = natija.dublikat.mavjud;
-    return {
-      xato: null,
-      maydonXatolari: {},
-      dublikat:
-        m === null
-          ? null
-          : {
-              id: m.id,
-              ism: m.ism,
-              telefon: m.telefon === '' ? '—' : telefonKorsat(m.telefon),
-              sabab: natija.dublikat.sabab ?? 'ISM',
-            },
-      yaratildi: null,
-    };
+    return kirimniQaytar<MijozHolati>(
+      {
+        xato: null,
+        maydonXatolari: {},
+        dublikat:
+          m === null
+            ? null
+            : {
+                id: m.id,
+                ism: m.ism,
+                telefon: m.telefon === '' ? '—' : telefonKorsat(m.telefon),
+                sabab: natija.dublikat.sabab ?? 'ISM',
+              },
+        yaratildi: null,
+      },
+      oldingi,
+      kirim,
+    );
   }
 
   revalidatePath('/mijoz');
@@ -90,10 +103,10 @@ async function mijozYaratIchki(
 
 /** O'z sahifasi — saqlangach ro'yxatga qaytadi. */
 export async function mijozYaratAmali(
-  _oldingi: MijozHolati,
+  oldingi: MijozHolati,
   forma: FormData,
 ): Promise<MijozHolati> {
-  const n = await mijozYaratIchki(forma);
+  const n = await mijozYaratIchki(oldingi, forma);
   if ('saqlandi' in n) redirect('/mijoz');
   return n;
 }
@@ -106,10 +119,10 @@ export async function mijozYaratAmali(
  *    yozilgan buyurtmasini yo'qotardi.
  */
 export async function mijozModalYaratAmali(
-  _oldingi: MijozHolati,
+  oldingi: MijozHolati,
   forma: FormData,
 ): Promise<MijozHolati> {
-  const n = await mijozYaratIchki(forma);
+  const n = await mijozYaratIchki(oldingi, forma);
   if ('saqlandi' in n) {
     return { xato: null, maydonXatolari: {}, dublikat: null, yaratildi: n.saqlandi };
   }

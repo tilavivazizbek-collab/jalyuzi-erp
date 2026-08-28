@@ -14,7 +14,7 @@ import { materialTahrirla, materialYarat } from '@/lib/amal/material';
 import { ruxsatTalab } from '@/lib/kirish/joriy';
 import { materialSxema } from '@/lib/sxema/material';
 import { biznesXatosimi } from '@/lib/xato';
-import { maydonlarniOqi } from '../forma-yordamchi';
+import { kirimniQaytar, maydonlarniOqi } from '../forma-yordamchi';
 import { xatolarniYig, type FormaHolati } from './holat';
 import type { YaratilganYozuv } from '../modal-holat';
 import { MATERIAL_MAYDONLARI } from './maydonlar';
@@ -26,23 +26,35 @@ const formadanOqi = (forma: FormData): Record<string, string> =>
 
 /** ⚠️ Yaratish mantig'i BITTA joyda (§2.2) — sahifa ham, modal ham shuni chaqiradi. */
 async function yaratIchki(
+  oldingi: FormaHolati,
   forma: FormData,
 ): Promise<FormaHolati | { readonly saqlandi: YaratilganYozuv }> {
   const f = await ruxsatTalab('material.yarat');
 
-  const tekshiruv = materialSxema.safeParse(formadanOqi(forma));
+  /**
+   * ⚠️ Xom qiymatlar saqlanadi — React 19 formani amaldan keyin
+   *    o'zi tozalaydi va xato bo'lganda yozilgan hammasi
+   *    yo'qolardi.
+   */
+  const kirim = formadanOqi(forma);
+
+  const tekshiruv = materialSxema.safeParse(kirim);
   if (!tekshiruv.success) {
-    return xatolarniYig(tekshiruv.error.issues);
+    return kirimniQaytar(xatolarniYig(tekshiruv.error.issues), oldingi, kirim);
   }
 
   let id: number;
   try {
     id = await materialYarat(ulanishOl(), tekshiruv.data, f.xodimId);
   } catch (x) {
-    return {
-      xato: biznesXatosimi(x) ? x.message : 'Saqlashda xato yuz berdi',
-      maydonXatolari: {},
-    };
+    return kirimniQaytar<FormaHolati>(
+      {
+        xato: biznesXatosimi(x) ? x.message : 'Saqlashda xato yuz berdi',
+        maydonXatolari: {},
+      },
+      oldingi,
+      kirim,
+    );
   }
 
   revalidatePath('/material');
@@ -51,10 +63,10 @@ async function yaratIchki(
 
 /** O'z sahifasi — saqlangach ro'yxatga qaytadi. */
 export async function materialYaratAmali(
-  _oldingi: FormaHolati,
+  oldingi: FormaHolati,
   forma: FormData,
 ): Promise<FormaHolati> {
-  const n = await yaratIchki(forma);
+  const n = await yaratIchki(oldingi, forma);
   if ('saqlandi' in n) redirect('/material');
   return n;
 }
@@ -66,10 +78,10 @@ export async function materialYaratAmali(
  *    ketardi va yarim yozilgan kirim hujjati yo'qolardi.
  */
 export async function materialModalYaratAmali(
-  _oldingi: FormaHolati,
+  oldingi: FormaHolati,
   forma: FormData,
 ): Promise<FormaHolati> {
-  const n = await yaratIchki(forma);
+  const n = await yaratIchki(oldingi, forma);
   if ('saqlandi' in n) {
     return { xato: null, maydonXatolari: {}, yaratildi: n.saqlandi };
   }

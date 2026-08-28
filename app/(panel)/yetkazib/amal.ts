@@ -9,7 +9,7 @@ import { yetkazibTahrirla, yetkazibYarat } from '@/lib/amal/yetkazib';
 import { ruxsatTalab } from '@/lib/kirish/joriy';
 import { yetkazibSxema } from '@/lib/sxema/yetkazib';
 import { biznesXatosimi } from '@/lib/xato';
-import { maydonlarniOqi } from '../forma-yordamchi';
+import { kirimniQaytar, maydonlarniOqi } from '../forma-yordamchi';
 import { xatolarniYig, type FormaHolati } from './holat';
 import type { YaratilganYozuv } from '../modal-holat';
 
@@ -38,21 +38,31 @@ const formadanOqi = (forma: FormData): Record<string, string> =>
  *    unutilib qolardi.
  */
 async function yaratIchki(
+  oldingi: FormaHolati,
   forma: FormData,
 ): Promise<FormaHolati | { readonly saqlandi: YaratilganYozuv }> {
   const f = await ruxsatTalab('yetkazib.yarat');
 
-  const tekshiruv = yetkazibSxema.safeParse(formadanOqi(forma));
-  if (!tekshiruv.success) return xatolarniYig(tekshiruv.error.issues);
+  /** ⚠️ React 19 formani o'zi tozalaydi — xom qiymatlar saqlanadi */
+  const kirim = formadanOqi(forma);
+
+  const tekshiruv = yetkazibSxema.safeParse(kirim);
+  if (!tekshiruv.success) {
+    return kirimniQaytar(xatolarniYig(tekshiruv.error.issues), oldingi, kirim);
+  }
 
   let id: number;
   try {
     id = await yetkazibYarat(ulanishOl(), tekshiruv.data, f.xodimId);
   } catch (x) {
-    return {
-      xato: biznesXatosimi(x) ? x.message : 'Saqlashda xato yuz berdi',
-      maydonXatolari: {},
-    };
+    return kirimniQaytar<FormaHolati>(
+      {
+        xato: biznesXatosimi(x) ? x.message : 'Saqlashda xato yuz berdi',
+        maydonXatolari: {},
+      },
+      oldingi,
+      kirim,
+    );
   }
 
   revalidatePath('/yetkazib');
@@ -61,10 +71,10 @@ async function yaratIchki(
 
 /** O'z sahifasi — saqlangach ro'yxatga qaytadi. */
 export async function yetkazibYaratAmali(
-  _oldingi: FormaHolati,
+  oldingi: FormaHolati,
   forma: FormData,
 ): Promise<FormaHolati> {
-  const n = await yaratIchki(forma);
+  const n = await yaratIchki(oldingi, forma);
   if ('saqlandi' in n) redirect('/yetkazib');
   return n;
 }
@@ -77,10 +87,10 @@ export async function yetkazibYaratAmali(
  *    kirim hujjatini yo'qotardi.
  */
 export async function yetkazibModalYaratAmali(
-  _oldingi: FormaHolati,
+  oldingi: FormaHolati,
   forma: FormData,
 ): Promise<FormaHolati> {
-  const n = await yaratIchki(forma);
+  const n = await yaratIchki(oldingi, forma);
   if ('saqlandi' in n) {
     return { xato: null, maydonXatolari: {}, yaratildi: n.saqlandi };
   }
