@@ -27,7 +27,7 @@ import * as filialEkrani from '@/app/(panel)/filial/malumot';
 import * as kochirishEkrani from '@/app/(panel)/ombor/kochirish/malumot';
 import * as kassaEkrani from '@/app/(panel)/kassa/malumot';
 import * as omborEkrani from '@/app/(panel)/ombor/malumot';
-import * as sotuvEkrani from '@/app/(panel)/sotuv/malumot';
+import * as sotuvEkrani from '@/app/(panel)/buyurtma/yangi/malumot';
 import * as buyurtmaEkrani from '@/app/(panel)/buyurtma/malumot';
 import * as yoldaEkrani from '@/app/(panel)/buyurtma/yolda/malumot';
 import * as boshqaruvEkrani from '@/app/(panel)/boshqaruv/malumot';

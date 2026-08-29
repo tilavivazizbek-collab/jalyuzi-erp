@@ -1,6 +1,6 @@
 /** `'use server'` faylidan alohida — u faqat async funksiya eksport qila oladi. */
 
-import type { MaydonXatolari } from '../forma-yordamchi';
+import type { MaydonXatolari } from '../../forma-yordamchi';
 
 export interface SotuvHolati {
   readonly xato: string | null;

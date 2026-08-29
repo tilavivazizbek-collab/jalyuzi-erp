@@ -56,7 +56,7 @@ export default async function MahsulotRoyxati({
       <div className="flex items-end justify-between gap-4">
         <div>
           <h1 className="text-[22px] font-semibold tracking-[-0.02em] text-matn">
-            Mahsulot turlari
+            Turlar
           </h1>
           <p className="mt-1 text-sm text-matn-kuchsiz">
             {qatorlar.length} ta · dasturchisiz yaratiladi (4.1)
@@ -73,7 +73,7 @@ export default async function MahsulotRoyxati({
               href="/mahsulot/yangi"
               className="rounded-maydon bg-brend px-3.5 py-2 text-sm font-medium text-white transition-all active:scale-[0.98] hover:bg-brend-quyuq"
             >
-              Mahsulot turi yaratish
+              Tur yaratish
             </Link>
           )}
         </div>
@@ -81,7 +81,7 @@ export default async function MahsulotRoyxati({
 
       {qatorlar.length === 0 ? (
         <p className="rounded-karta border border-dashed border-chegara-quyuq px-4 py-10 text-center text-sm text-matn-kuchsiz">
-          Hali mahsulot turi yo&apos;q.
+          Hali tur yo&apos;q.
         </p>
       ) : (
         <div className="overflow-x-auto rounded-karta border border-chegara bg-sirt">

@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * app/(panel)/sotuv/qoshimcha.tsx — savatga qo'shimcha mahsulot.
+ * app/(panel)/buyurtma/yangi/qoshimcha.tsx — savatga qo'shimcha mahsulot.
  *
  * ⚠️ NEGA KERAK
  *
@@ -14,8 +14,8 @@
  */
 
 import { useState } from 'react';
-import { Modal } from '../modal';
-import { kirishUslubi } from '../maydon';
+import { Modal } from '../../modal';
+import { kirishUslubi } from '../../maydon';
 import { pulKorsat, kopaytir } from '@/lib/domain/pul';
 import { katalogNarxi } from '@/lib/domain/narx';
 import type { Kurs } from '@/lib/domain/pul';
@@ -75,7 +75,7 @@ export function QoshimchaQoshish({
 
   function qosh(): void {
     if (tanlangan === undefined) {
-      xatoniOzgartir('Materialni tanlang');
+      xatoniOzgartir('Mahsulotni tanlang');
       return;
     }
     if (!Number.isInteger(son) || son <= 0) {
@@ -83,7 +83,7 @@ export function QoshimchaQoshish({
       return;
     }
     if (jami === null) {
-      xatoniOzgartir('Bu materialning sotuv narxi belgilanmagan');
+      xatoniOzgartir('Bu mahsulotning sotuv narxi belgilanmagan');
       return;
     }
 
@@ -133,7 +133,7 @@ export function QoshimchaQoshish({
             )}
 
             <label className="flex flex-col gap-1">
-              <span className="text-sm font-medium text-matn-ikki">Material</span>
+              <span className="text-sm font-medium text-matn-ikki">Mahsulot</span>
               <select
                 value={materialId}
                 onChange={(e) => {

@@ -8,7 +8,7 @@
 import { NextResponse } from 'next/server';
 import { joriyFoydalanuvchi } from '@/lib/kirish/joriy';
 import { ruxsatBormi } from '@/lib/ruxsat/tekshir';
-import { mijozQidir } from '@/app/(panel)/sotuv/malumot';
+import { mijozQidir } from '@/app/(panel)/buyurtma/yangi/malumot';
 
 export const dynamic = 'force-dynamic';
 

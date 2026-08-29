@@ -72,13 +72,13 @@ export default async function BuyurtmalarRoyxati({
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-[22px] font-semibold tracking-[-0.02em] text-matn">Sotuv tarixi</h1>
+          <h1 className="text-[22px] font-semibold tracking-[-0.02em] text-matn">Buyurtmalar</h1>
           <p className="mt-0.5 text-[13px] text-matn-ikki">Holat har pozitsiyada alohida (8.2)</p>
         </div>
 
         {sotaOladi && (
           <Link
-            href="/sotuv"
+            href="/buyurtma/yangi"
             className="fokus rounded-maydon bg-brend px-4 py-2.5 text-[13px] font-medium text-white transition-all active:scale-[0.98] hover:bg-brend-quyuq"
           >
             Yangi buyurtma

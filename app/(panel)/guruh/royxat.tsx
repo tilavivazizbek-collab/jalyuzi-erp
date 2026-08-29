@@ -144,7 +144,7 @@ function Qator({
           <span className="text-[13px]">
             {guruh.materialSoni > 0 && `${String(guruh.materialSoni)} material`}
             {guruh.materialSoni > 0 && guruh.slotSoni > 0 && ' · '}
-            {guruh.slotSoni > 0 && `${String(guruh.slotSoni)} mahsulot turi`}
+            {guruh.slotSoni > 0 && `${String(guruh.slotSoni)} tur`}
           </span>
         )}
       </td>

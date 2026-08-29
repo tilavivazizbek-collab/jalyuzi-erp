@@ -23,13 +23,13 @@ import { aksessuarNarxi, katalogNarxi, matoNarxi, qatorSummasi } from '@/lib/dom
 import { pozitsiyaNarxiniHisobla } from '@/lib/domain/pozitsiya-narxi';
 import { mijozOffseti } from '@/lib/domain/mijoz';
 import { biznesXatosimi } from '@/lib/xato';
-import { Maydon, kirishUslubi } from '../maydon';
-import { Modal } from '../modal';
+import { Maydon, kirishUslubi } from '../../maydon';
+import { Modal } from '../../modal';
 import {
   MijozFormasi,
   BOSH_QIYMATLAR as MIJOZ_BOSH_QIYMATLAR,
-} from '../mijoz/forma';
-import { mijozModalYaratAmali } from '../mijoz/amal';
+} from '../../mijoz/forma';
+import { mijozModalYaratAmali } from '../../mijoz/amal';
 import { buyurtmaYaratAmali, turTafsiliAmali } from './amal';
 import { BOSH_HOLAT } from './holat';
 import type { SotuvMijozi, SotuvTuri } from './malumot';
@@ -443,10 +443,10 @@ export function SotuvFormasi({
       <div className="flex flex-col gap-6">
         {/* ── 3.2 · Mahsulot turlari ── */}
         <section>
-          <h2 className="mb-1.5 text-sm font-medium text-matn-ikki">Mahsulot turi</h2>
+          <h2 className="mb-1.5 text-sm font-medium text-matn-ikki">Tur</h2>
           {turlar.length === 0 ? (
             <p className="rounded-karta border border-dashed border-chegara-quyuq px-4 py-6 text-center text-sm text-matn-kuchsiz">
-              Faol mahsulot turi yo&apos;q. Avval konstruktorda tur qo&apos;shing.
+              Faol tur yo&apos;q. Avval «Tur yig&apos;ish» bo&apos;limida tur qo&apos;shing.
             </p>
           ) : (
             <div className="flex flex-wrap gap-1.5">
@@ -943,7 +943,7 @@ export function SotuvFormasi({
           <Maydon
             nom="tikuvchi"
             yorliq="Ishlab chiqaruvchi filial"
-            izoh="Material shu filial omborida tekshiriladi (20.4.2)"
+            izoh="Mahsulot shu filial omborida tekshiriladi (20.4.2)"
           >
             <select
               id="tikuvchi"

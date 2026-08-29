@@ -54,7 +54,7 @@ export function ChiqimFormasi({
 
       {/* Nima chiqarilayotgani — omborchi adashmasligi uchun */}
       <dl className="grid grid-cols-2 gap-x-4 gap-y-2 rounded-karta border border-chegara bg-fon px-4 py-3 text-sm">
-        <dt className="text-matn-kuchsiz">Material</dt>
+        <dt className="text-matn-kuchsiz">Mahsulot</dt>
         <dd className="font-medium">{bolak.materialNomi}</dd>
         <dt className="text-matn-kuchsiz">Bo&apos;lak</dt>
         <dd className="font-mono text-xs">{bolak.kod}</dd>

@@ -305,14 +305,14 @@ export function MahsulotFormasi({
         </section>
 
         <section className="rounded-karta border border-chegara bg-sirt p-5">
-          <h2 className="mb-1 text-sm font-semibold">Materiallar</h2>
+          <h2 className="mb-1 text-sm font-semibold">Mahsulotlar</h2>
           <p className="mb-4 text-xs text-matn-kuchsiz">
             Shu mahsulotga nima ketishi. Guruh tanlansa — sotuvchi ichidan matoni tanlaydi; aniq
             material tanlansa — o&apos;zi qo&apos;shiladi.
           </p>
 
           {qatorlar.length === 0 ? (
-            <p className="mb-3 text-sm text-matn-kuchsiz">Hali material qo&apos;shilmagan.</p>
+            <p className="mb-3 text-sm text-matn-kuchsiz">Hali mahsulot qo&apos;shilmagan.</p>
           ) : (
             <div className="mb-3 flex flex-col gap-2">
               {qatorlar.map((q, i) => {
@@ -344,7 +344,7 @@ export function MahsulotFormasi({
                             </option>
                           ))}
                         </optgroup>
-                        <optgroup label="Aniq material">
+                        <optgroup label="Aniq mahsulot">
                           {materialRoyxati.map((m) => (
                             <option key={`M${String(m.id)}`} value={`M:${String(m.id)}`}>
                               {m.nom}
@@ -546,7 +546,7 @@ export function MahsulotFormasi({
             yop={() => {
               materialModaliniOzgartir(false);
             }}
-            sarlavha="Yangi material"
+            sarlavha="Yangi mahsulot"
             keng
             bolalar={
               <MaterialFormasi

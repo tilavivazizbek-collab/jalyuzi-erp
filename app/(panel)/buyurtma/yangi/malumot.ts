@@ -1,5 +1,5 @@
 /**
- * app/(panel)/sotuv/malumot.ts — TZ 3.2 · 3.3 · 3.7 · 3.10 · Q-25 · Q-26
+ * app/(panel)/buyurtma/yangi/malumot.ts — TZ 3.2 · 3.3 · 3.7 · 3.10 · Q-25 · Q-26
  *
  * Sotuv ekrani so'rovlari.
  *

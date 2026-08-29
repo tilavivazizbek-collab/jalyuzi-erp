@@ -65,7 +65,7 @@ export function QabulFormasi({
           <thead className="border-b border-chegara bg-fon text-left text-xs uppercase tracking-wide text-matn-kuchsiz">
             <tr>
               <th className="px-4 py-2.5 font-medium">Kod</th>
-              <th className="px-4 py-2.5 font-medium">Material</th>
+              <th className="px-4 py-2.5 font-medium">Mahsulot</th>
               <th className="px-4 py-2.5 font-medium">Jo&apos;natilgan</th>
               <th className="px-4 py-2.5 font-medium">Haqiqiy o&apos;lcham</th>
               <th className="px-4 py-2.5 text-right font-medium">Tannarx</th>

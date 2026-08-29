@@ -59,7 +59,7 @@ export function JonatishFormasi({
             <tr>
               <th className="w-10 px-4 py-2.5" />
               <th className="px-4 py-2.5 font-medium">Kod</th>
-              <th className="px-4 py-2.5 font-medium">Material</th>
+              <th className="px-4 py-2.5 font-medium">Mahsulot</th>
               <th className="px-4 py-2.5 font-medium">O&apos;lcham</th>
               <th className="px-4 py-2.5 text-right font-medium">Tannarx</th>
             </tr>

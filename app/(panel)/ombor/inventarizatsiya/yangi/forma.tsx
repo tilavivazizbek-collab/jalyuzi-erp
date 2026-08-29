@@ -60,7 +60,7 @@ export function VaraqaOchFormasi({
       </Maydon>
 
       <div>
-        <p className="mb-1 text-sm font-medium text-matn-ikki">Materiallar</p>
+        <p className="mb-1 text-sm font-medium text-matn-ikki">Mahsulotlar</p>
         <p className="mb-3 text-xs text-matn-kuchsiz">
           Hech narsa tanlanmasa — <b>butun ombor</b> sanaladi. Bir nechtasini tanlab qisman ham
           o&apos;tkazish mumkin (15.1).

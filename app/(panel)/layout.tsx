@@ -3,7 +3,7 @@ import { kirganBolishiShart } from '@/lib/kirish/joriy';
 import { ruxsatBormi } from '@/lib/ruxsat/tekshir';
 import type { RuxsatKod } from '@/lib/ruxsat/kodlar';
 import { chiqishAmali } from './chiqish/amal';
-import { Menyu, type MenyuBandi } from './menyu';
+import { Menyu, type MenyuGuruhi } from './menyu';
 import { BrendBelgisi } from '../kirish/belgi';
 
 export const dynamic = 'force-dynamic';
@@ -14,59 +14,93 @@ interface Band {
   readonly kod: RuxsatKod | null;
 }
 
+interface Guruh {
+  readonly nom: string;
+  readonly bandlar: readonly Band[];
+}
+
 /**
- * Menyu — BITTA RO'YXAT, ishlatilish chastotasi bo'yicha.
+ * Menyu — ICHMA-ICH BO'LIMLAR.
  *
- * ⚠️ Ilgari bandlar guruhlarga bo'lingan edi («Ish», «Ombor»,
- *    «Pul», «Ma'lumotnoma»). Egasi buni rad etdi: guruh sarlavhasi
- *    joy egallaydi va odam baribir kerakli bandni ko'zi bilan
- *    qidiradi. Endi bitta ro'yxat.
+ * ⚠️ Ilgari bitta tekis ro'yxat edi (15 band). Ro'yxat o'sib
+ *    ketdi va egasi bo'limlarga bo'lishni so'radi: har ish o'z
+ *    joyida tursin, kerakli ekran uch soniyada topilsin.
  *
- * ⚠️ TARTIB TASODIFIY EMAS — kuniga necha marta ochilishiga qarab:
+ * ⚠️ TARTIB TASODIFIY EMAS — egasi aytgan tartib, ishlatilish
+ *    chastotasi bo'yicha:
  *
- *      har kuni, kuniga o'nlab marta   →  Sotuv, Buyurtmalar
- *      har kuni bir necha marta        →  Ombor, Kirimlar
- *      har kuni bir marta              →  Kassa
- *      haftada bir necha marta         →  Mijozlar, Yetkazuvchilar
- *      oyda bir-ikki marta             →  Material, Mahsulot turi
- *      kamdan-kam, sozlash             →  Filial, Filiallararo hisob
+ *      1. Buyurtmalar      — kuniga o'nlab marta
+ *      2. Ombor            — kuniga bir necha marta
+ *      3. Mahsulotlar      — haftada bir necha marta
+ *      4. Mijozlar         — haftada bir necha marta
+ *      5. Yetkazuvchilar   — haftada bir marta
+ *      6. Kassa            — kunda bir marta (kun yopish)
+ *      7. Sozlash          — oyda yoki yilda bir marta
  *
- *    Sotuvchi ertalab birinchi «Sotuv» ni bosadi — u eng tepada.
- *    «Filiallar» esa yiliga bir marta ochiladi — eng pastda.
+ * ⚠️ «Boshqaruv» guruhsiz, eng tepada — u KUN BOSHIDA ochiladi.
  *
- * ⚠️ «Boshqaruv» eng tepada, chunki u KUN BOSHIDA ochiladi: kim
- *    qayerda ishlayapti, nima kutmoqda — bir qarashda ko'rinadi.
+ * ⚠️ NOMLAR EKRAN UCHUN. Bazada `material` va `mahsulot_tur`
+ *    nomlari qoladi — egasi ekranda «Mahsulot» va «Tur» ko'rishni
+ *    so'radi. Baza nomini o'zgartirish 40+ faylga tegadi, foydasi
+ *    yo'q va xato manbayi bo'ladi.
  */
-const BANDLAR: readonly Band[] = [
-  // ─── Kunlik ish ─────────────────────────────────────────────
-  { yol: '/boshqaruv', nom: 'Boshqaruv', kod: null },
-  { yol: '/sotuv', nom: 'Sotuv', kod: 'buyurtma.yarat' },
-  { yol: '/buyurtma', nom: 'Buyurtmalar', kod: 'buyurtma.kor' },
-  { yol: '/buyurtma/yolda', nom: "Yo'ldagilar", kod: 'buyurtma.kor' },
-
-  // ─── Ombor ──────────────────────────────────────────────────
-  { yol: '/ombor', nom: 'Ombor qoldig‘i', kod: 'ombor.qoldiq.kor' },
-  { yol: '/ombor/kirim', nom: 'Kirimlar', kod: 'ombor.qoldiq.kor' },
-
-  // ─── Pul ────────────────────────────────────────────────────
-  { yol: '/kassa', nom: 'Kassa', kod: 'kassa.oz.kor' },
-
-  // ─── Kimlar bilan ishlaymiz ─────────────────────────────────
-  { yol: '/mijoz', nom: 'Mijozlar', kod: 'mijoz.kor' },
-  { yol: '/yetkazib', nom: 'Yetkazib beruvchilar', kod: 'yetkazib.kor' },
-
-  // ─── Ma'lumotnoma — oyda bir-ikki marta ─────────────────────
-  { yol: '/material', nom: 'Materiallar', kod: 'material.kor' },
-  { yol: '/guruh', nom: 'Guruhlar', kod: 'material.kor' },
-  { yol: '/mahsulot', nom: 'Mahsulot turlari', kod: 'mahsulot.kor' },
-
-  // ─── Kamdan-kam ─────────────────────────────────────────────
-  { yol: '/ombor/inventarizatsiya', nom: 'Inventarizatsiya', kod: 'ombor.inventarizatsiya' },
-  { yol: '/ombor/kochirish', nom: "Ko'chirish", kod: 'ombor.qoldiq.kor' },
-  { yol: '/buyurtma/qayta-kesish', nom: 'Qayta kesish', kod: 'buyurtma.brak' },
-  { yol: '/filial/hisob', nom: 'Filiallararo hisob', kod: 'filial.hisob' },
-  { yol: '/xodim', nom: 'Xodimlar', kod: 'xodim.kor' },
-  { yol: '/filial', nom: 'Filiallar', kod: 'filial.kor' },
+const MENYU: readonly Guruh[] = [
+  {
+    nom: '',
+    bandlar: [{ yol: '/boshqaruv', nom: 'Boshqaruv', kod: null }],
+  },
+  {
+    nom: 'Buyurtmalar',
+    bandlar: [
+      { yol: '/buyurtma/yangi', nom: 'Yangi buyurtma', kod: 'buyurtma.yarat' },
+      { yol: '/buyurtma', nom: 'Buyurtmalar tarixi', kod: 'buyurtma.kor' },
+      { yol: '/buyurtma/yolda', nom: "Yo'ldagilar", kod: 'buyurtma.kor' },
+      { yol: '/buyurtma/qayta-kesish', nom: 'Qayta kesish', kod: 'buyurtma.brak' },
+    ],
+  },
+  {
+    nom: 'Ombor',
+    bandlar: [
+      { yol: '/ombor', nom: 'Ombor qoldig‘i', kod: 'ombor.qoldiq.kor' },
+      { yol: '/ombor/kirim', nom: 'Kirimlar', kod: 'ombor.qoldiq.kor' },
+      { yol: '/ombor/kochirish', nom: "Ko'chirish", kod: 'ombor.qoldiq.kor' },
+      {
+        yol: '/ombor/inventarizatsiya',
+        nom: 'Inventarizatsiya',
+        kod: 'ombor.inventarizatsiya',
+      },
+    ],
+  },
+  {
+    nom: 'Mahsulotlar',
+    bandlar: [
+      { yol: '/material', nom: 'Mahsulotlar', kod: 'material.kor' },
+      { yol: '/mahsulot', nom: "Tur yig'ish", kod: 'mahsulot.kor' },
+      { yol: '/guruh', nom: 'Guruhlarni boshqarish', kod: 'material.kor' },
+    ],
+  },
+  {
+    nom: 'Mijozlar',
+    bandlar: [{ yol: '/mijoz', nom: 'Mijozlar', kod: 'mijoz.kor' }],
+  },
+  {
+    nom: 'Yetkazib beruvchilar',
+    bandlar: [
+      { yol: '/yetkazib', nom: 'Yetkazib beruvchilar', kod: 'yetkazib.kor' },
+    ],
+  },
+  {
+    nom: '',
+    bandlar: [{ yol: '/kassa', nom: 'Kassa', kod: 'kassa.oz.kor' }],
+  },
+  {
+    nom: 'Sozlash',
+    bandlar: [
+      { yol: '/xodim', nom: 'Xodimlar', kod: 'xodim.kor' },
+      { yol: '/filial', nom: 'Filiallar', kod: 'filial.kor' },
+      { yol: '/filial/hisob', nom: 'Filiallararo hisob', kod: 'filial.hisob' },
+    ],
+  },
 ];
 
 /**
@@ -80,14 +114,22 @@ export default async function PanelQatlami({ children }: { children: ReactNode }
   const foydalanuvchi = await kirganBolishiShart();
   const rollar = foydalanuvchi.rollar.map((r) => r.nom).join(' · ');
 
-  /** Ruxsati yo'q band menyuga umuman kelmaydi (§9.4). */
-  const menyu: MenyuBandi[] = BANDLAR.filter(
-    (b) => b.kod === null || ruxsatBormi(foydalanuvchi, b.kod),
-  ).map(({ yol, nom }) => ({ yol, nom }));
+  /**
+   * Ruxsati yo'q band menyuga umuman kelmaydi (§9.4).
+   *
+   * ⚠️ Bandi qolmagan guruh ham yo'qoladi — bo'sh sarlavha
+   *    turishining ma'nosi yo'q.
+   */
+  const menyu: MenyuGuruhi[] = MENYU.map((g) => ({
+    nom: g.nom,
+    bandlar: g.bandlar
+      .filter((b) => b.kod === null || ruxsatBormi(foydalanuvchi, b.kod))
+      .map(({ yol, nom }) => ({ yol, nom })),
+  })).filter((g) => g.bandlar.length > 0);
 
   return (
     <div className="min-h-screen bg-fon">
-      <Menyu bandlar={menyu} />
+      <Menyu guruhlar={menyu} />
 
       {/* ⚠️ `lg:pl-60` — chap panel kengligi. Mobilda panel ustidan
           ochiladi, shuning uchun bo'shliq qo'yilmaydi. */}

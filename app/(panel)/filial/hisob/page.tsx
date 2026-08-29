@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 
 const TUR_NOMI: Record<string, string> = {
   TAYYOR_MAHSULOT: 'Tayyor mahsulot',
-  MATERIAL_KOCHIRISH: "Material ko'chirish",
+  MATERIAL_KOCHIRISH: "Mahsulot ko'chirish",
   PUL_TOPSHIRISH: 'Pul topshirish',
   TOLOV: "To'lov",
   QAYTARISH: 'Qaytarish',

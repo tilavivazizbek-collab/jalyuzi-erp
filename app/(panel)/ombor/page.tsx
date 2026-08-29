@@ -90,7 +90,7 @@ export default async function OmborQoldigi({
                 <table className="w-full text-sm">
                   <thead className="border-b border-chegara bg-fon text-left text-xs uppercase tracking-wide text-matn-kuchsiz">
                     <tr>
-                      <th className="px-4 py-2.5 font-medium">Material</th>
+                      <th className="px-4 py-2.5 font-medium">Mahsulot</th>
                       <th className="px-4 py-2.5 text-right font-medium">Jami</th>
                       <th className="px-4 py-2.5 text-right font-medium">Bo&apos;sh</th>
                       <th className="px-4 py-2.5 text-right font-medium">Band</th>
@@ -140,12 +140,12 @@ export default async function OmborQoldigi({
 
           {donali.length > 0 && (
             <section>
-              <h2 className="mb-2 text-sm font-medium text-matn-ikki">Chiziqli va dona material</h2>
+              <h2 className="mb-2 text-sm font-medium text-matn-ikki">Chiziqli va dona mahsulot</h2>
               <div className="overflow-x-auto rounded-karta border border-chegara bg-sirt">
                 <table className="w-full text-sm">
                   <thead className="border-b border-chegara bg-fon text-left text-xs uppercase tracking-wide text-matn-kuchsiz">
                     <tr>
-                      <th className="px-4 py-2.5 font-medium">Material</th>
+                      <th className="px-4 py-2.5 font-medium">Mahsulot</th>
                       <th className="px-4 py-2.5 text-right font-medium">Qoldiq</th>
                       <th className="px-4 py-2.5 font-medium">Birlik</th>
                       <th className="px-4 py-2.5" />
@@ -228,7 +228,7 @@ function BarchaFiliallar({ filiallar }: { filiallar: readonly FilialQoldigi[] })
       <table className="w-full text-sm">
         <thead className="border-b border-chegara bg-fon text-left text-xs uppercase tracking-wide text-matn-kuchsiz">
           <tr>
-            <th className="px-4 py-2.5 font-medium">Material</th>
+            <th className="px-4 py-2.5 font-medium">Mahsulot</th>
             <th className="px-4 py-2.5 font-medium">Filial</th>
             <th className="px-4 py-2.5 text-right font-medium">Jami</th>
             <th className="px-4 py-2.5 text-right font-medium">Bo&apos;sh</th>

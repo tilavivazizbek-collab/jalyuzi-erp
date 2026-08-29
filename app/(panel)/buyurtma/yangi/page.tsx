@@ -34,7 +34,7 @@ export default async function SotuvEkrani() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-[22px] font-semibold tracking-[-0.02em] text-matn">Sotuv</h1>
+        <h1 className="text-[22px] font-semibold tracking-[-0.02em] text-matn">Yangi buyurtma</h1>
         {/*
           ⚠️ «Filial #1» olib tashlandi — raqam sotuvchiga hech
              narsa aytmaydi. Filial nomi sarlavha qatorida turibdi.

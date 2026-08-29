@@ -138,7 +138,7 @@ export function VaraqaFormasi({
         <table className="w-full text-sm">
           <thead className="border-b border-chegara bg-fon text-left text-xs uppercase tracking-wide text-matn-kuchsiz">
             <tr>
-              <th className="px-3 py-2.5 font-medium">Material</th>
+              <th className="px-3 py-2.5 font-medium">Mahsulot</th>
               <th className="px-3 py-2.5 font-medium">Bo&apos;lak</th>
               <th className="px-3 py-2.5 font-medium">Band</th>
               <th className="px-3 py-2.5 text-right font-medium">Tizimda</th>

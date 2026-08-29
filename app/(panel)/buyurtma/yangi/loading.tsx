@@ -1,4 +1,4 @@
-import { KartalarSkeleti, SahifaSkeleti, SarlavhaSkeleti } from '../skelet';
+import { KartalarSkeleti, SahifaSkeleti, SarlavhaSkeleti } from '../../skelet';
 
 /**
  * Sotuv ekrani — jadval emas, tanlov kartalari.

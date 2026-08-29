@@ -19,10 +19,10 @@ export default async function YangiMahsulot() {
     <div className="flex flex-col gap-6">
       <div>
         <Link href="/mahsulot" className="text-sm text-matn-kuchsiz hover:text-matn">
-          ← Mahsulot turlari
+          ← Turlar
         </Link>
         <h1 className="mt-2 text-[22px] font-semibold tracking-[-0.02em] text-matn">
-          Yangi mahsulot turi
+          Yangi tur
         </h1>
       </div>
 

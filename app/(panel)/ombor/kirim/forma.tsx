@@ -285,7 +285,7 @@ export function KirimFormasi({
       {/* ── Qatorlar ── */}
       <section className="rounded-karta border border-chegara bg-sirt p-5">
         <div className="mb-1 flex items-center justify-between">
-          <h2 className="text-sm font-semibold">Materiallar</h2>
+          <h2 className="text-sm font-semibold">Mahsulotlar</h2>
           <button
             type="button"
             onClick={() => {
@@ -351,7 +351,7 @@ export function KirimFormasi({
           yop={() => {
             materialModaliniOzgartir(false);
           }}
-          sarlavha="Yangi material"
+          sarlavha="Yangi mahsulot"
           izoh="Saqlangach hujjatga qator qo'shishda tanlanadi"
           keng
           bolalar={

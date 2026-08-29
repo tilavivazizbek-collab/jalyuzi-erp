@@ -1,7 +1,7 @@
 'use server';
 
 /**
- * app/(panel)/sotuv/amal.ts — TZ 3.14 · 20.4 · QISM 1 §9.4
+ * app/(panel)/buyurtma/yangi/amal.ts — TZ 3.14 · 20.4 · QISM 1 §9.4
  *
  * ⚠️ Buyurtma raqami SERVERDA beriladi — brauzerdan kelgan raqamga
  *    ishonib bo'lmaydi va ikki sotuvchi bir vaqtda sotganda to'qnashuv
@@ -20,7 +20,7 @@ import { turTafsili, type SotuvTuri } from '@/lib/amal/katalog';
 import { kesimOlchami } from '@/lib/domain/kesish';
 import { ruxsatTalab } from '@/lib/kirish/joriy';
 import { sotuvSxema } from '@/lib/sxema/sotuv';
-import { matnMaydon, maydonXatolari, FORMA_XATO_XABARI } from '../forma-yordamchi';
+import { matnMaydon, maydonXatolari, FORMA_XATO_XABARI } from '../../forma-yordamchi';
 import { biznesXatosimi } from '@/lib/xato';
 import type { SotuvHolati } from './holat';
 
