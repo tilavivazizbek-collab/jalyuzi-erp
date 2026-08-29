@@ -21,7 +21,8 @@ import { sm, type SarflashBirligi } from '@/lib/domain/birlik';
 import { kurs, nolSom, pulKorsat, pulMatn, qosh, som, type Som } from '@/lib/domain/pul';
 import { aksessuarNarxi, katalogNarxi, matoNarxi, qatorSummasi } from '@/lib/domain/narx';
 import { pozitsiyaNarxiniHisobla } from '@/lib/domain/pozitsiya-narxi';
-import { mijozOffseti } from '@/lib/domain/mijoz';
+import { amaldagiOffset } from '@/lib/domain/mijoz';
+import { chegirmaMatni } from '../../mijoz/guruh/royxat';
 import { biznesXatosimi } from '@/lib/xato';
 import { Maydon, kirishUslubi } from '../../maydon';
 import { Modal } from '../../modal';
@@ -96,6 +97,7 @@ export function SotuvFormasi({
   filiallar,
   ozFilialId,
   mijozQoshaOladi,
+  mijozGuruhlari,
   joriyKurs,
   qoshimchalar,
 }: {
@@ -106,6 +108,8 @@ export function SotuvFormasi({
   filiallar: readonly { id: number; nom: string; bosh: boolean }[];
   ozFilialId: number;
   mijozQoshaOladi: boolean;
+  /** TZ 6.3 — modalda yangi mijozga darhol guruh tanlash uchun */
+  mijozGuruhlari: readonly { id: number; nom: string }[];
   /**
    * ⚠️ Dollardagi material narxini so'mga o'girish uchun (5.4).
    *    Kurs kiritilmagan bo'lsa `null` — u holda dollardagi mato
@@ -147,7 +151,16 @@ export function SotuvFormasi({
   const [tayyorlik, tayyorlikniOzgartir] = useState('');
   const [kelishilgan, kelishilganniOzgartir] = useState('');
 
-  const offset = mijozOffseti(mijoz);
+  /**
+   * TZ 6.3 — mijozning SHAXSIY chegirmasi guruhnikidan ustun.
+   *    Qoida `lib/domain/mijoz.ts` da — bot ham shuni ishlatadi.
+   */
+  const offset = amaldagiOffset(
+    mijoz,
+    mijoz === null
+      ? null
+      : { offsetTuri: mijoz.guruhOffsetTuri, offsetQiymat: mijoz.guruhOffsetQiymat },
+  );
 
   /** TZ 3.5 — har slot uchun formula bo'yicha miqdor. */
   const hisob = useMemo(() => {
@@ -938,6 +951,7 @@ export function SotuvFormasi({
             tanlangan={mijoz}
             ozgartir={mijozniOzgartir}
             qoshaOladi={mijozQoshaOladi}
+            guruhlar={mijozGuruhlari}
           />
 
           <Maydon
@@ -1033,10 +1047,13 @@ function MijozTanlash({
   tanlangan,
   ozgartir,
   qoshaOladi,
+  guruhlar,
 }: {
   tanlangan: SotuvMijozi | null;
   ozgartir: (m: SotuvMijozi | null) => void;
   qoshaOladi: boolean;
+  /** TZ 6.3 — modaldagi yangi mijozga guruh tanlash uchun */
+  guruhlar: readonly { id: number; nom: string }[];
 }) {
   const [matn, matnniOzgartir] = useState('');
   const [topilgan, topilganniOzgartir] = useState<readonly SotuvMijozi[]>([]);
@@ -1065,6 +1082,9 @@ function MijozTanlash({
       qarzLimiti: null,
       offsetTuri: null,
       offsetQiymat: null,
+      guruhNomi: null,
+      guruhOffsetTuri: null,
+      guruhOffsetQiymat: null,
     });
     matnniOzgartir('');
     topilganniOzgartir([]);
@@ -1093,6 +1113,23 @@ function MijozTanlash({
       <div className="rounded-karta border border-chegara bg-fon px-4 py-3 text-sm">
         <div className="font-medium">{tanlangan.ism}</div>
         <div className="text-xs text-matn-kuchsiz">{tanlangan.telefon ?? '—'}</div>
+
+        {/*
+          ⚠️ Chegirma KO'RINIB TURADI (3.10). Sotuvchi «narx nega
+             bunday?» degan savolga darrov javob bera olsin.
+             Shaxsiy chegirma bo'lsa guruhniki qo'llanmaydi —
+             shuning uchun ikkalasi birdan yozilmaydi.
+        */}
+        {tanlangan.offsetTuri !== null ? (
+          <div className="mt-1 text-xs text-brend">
+            Shaxsiy chegirma: {chegirmaMatni(tanlangan.offsetTuri, tanlangan.offsetQiymat)}
+          </div>
+        ) : tanlangan.guruhOffsetTuri !== null ? (
+          <div className="mt-1 text-xs text-brend">
+            {tanlangan.guruhNomi ?? 'Guruh'}:{' '}
+            {chegirmaMatni(tanlangan.guruhOffsetTuri, tanlangan.guruhOffsetQiymat)}
+          </div>
+        ) : null}
         <button
           type="button"
           onClick={() => {
@@ -1212,6 +1249,7 @@ function MijozTanlash({
              */
             qiymatlar={{ ...MIJOZ_BOSH_QIYMATLAR, ism: izlanayotgan }}
             tugmaMatni="Saqlash"
+            guruhlar={guruhlar}
             saqlandi={modaldaYaratildi}
             bekor={() => {
               modalniOzgartir(false);

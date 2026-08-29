@@ -60,13 +60,13 @@ export async function mijozYarat(
     const qator = await tx<{ id: number }[]>`
       INSERT INTO mijoz (
         ism, telefon, manzil, eslatma,
-        offset_turi, offset_qiymat, qarz_limiti,
+        mijoz_guruh_id, offset_turi, offset_qiymat, qarz_limiti,
         shaxs_turi, tashkilot_nomi, inn, yuridik_manzil,
         bank_nomi, hisob_raqam, mfo, shartnoma_raqam,
         nds_tolovchi, nds_stavka, yaratdi_id
       ) VALUES (
         ${kirim.ism}, ${telefon}, ${yoNull(kirim.manzil)}, ${yoNull(kirim.eslatma)},
-        ${yoNull(kirim.offsetTuri)}, ${yoNull(kirim.offsetQiymat)}, ${yoNull(kirim.qarzLimiti)},
+        ${kirim.mijozGuruhId ?? null}, ${yoNull(kirim.offsetTuri)}, ${yoNull(kirim.offsetQiymat)}, ${yoNull(kirim.qarzLimiti)},
         ${kirim.shaxsTuri}, ${yoNull(kirim.tashkilotNomi)}, ${yoNull(kirim.inn)},
         ${yoNull(kirim.yuridikManzil)}, ${yoNull(kirim.bankNomi)}, ${yoNull(kirim.hisobRaqam)},
         ${yoNull(kirim.mfo)}, ${yoNull(kirim.shartnomaRaqam)},
@@ -108,6 +108,7 @@ export async function mijozTahrirla(
         telefon = ${telefon},
         manzil = ${yoNull(kirim.manzil)},
         eslatma = ${yoNull(kirim.eslatma)},
+        mijoz_guruh_id = ${kirim.mijozGuruhId ?? null},
         offset_turi = ${yoNull(kirim.offsetTuri)},
         offset_qiymat = ${yoNull(kirim.offsetQiymat)},
         qarz_limiti = ${yoNull(kirim.qarzLimiti)},

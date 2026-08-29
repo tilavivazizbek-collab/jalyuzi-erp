@@ -52,6 +52,7 @@ o'chirish.
 | Mahsulot turi | Guruh | ✅ modal | ✅ `/guruh` |
 | Mahsulot turi | Material | ✅ modal | ✅ `/material` |
 | Sotuv | Mijoz | ✅ modal | ✅ `/mijoz` |
+| Mijoz kartochkasi | Mijoz guruhi | ✅ modal | ✅ `/mijoz/guruh` |
 | To'lov | Kassa | — | ✅ `/kassa/royxat` |
 | Filial kartochkasi | Xodim (tikuvchi) | — | ✅ `/xodim` |
 | Ko'chirish | Filial | — | ✅ `/filial` |
@@ -72,6 +73,7 @@ havolasi esa bor.
 | Yo'ldagilar | ✅ | |
 | Ombor qoldig'i | ✅ | |
 | Ombor tarixi | ✅ | Har harakat, sana/mahsulot/tur filtri |
+| Mijoz guruhlari | ✅ | Chegirma guruhda · shaxsiysi ustun |
 | Kirim | ✅ | Narx metr bo'yicha ham ✅ |
 | Chiqim | ✅ | |
 | Ko'chirish | ✅ | |
@@ -87,7 +89,6 @@ havolasi esa bor.
 
 | Nima | Kim so'ragan | Holat |
 |---|---|---|
-| Mijoz guruhlari (chegirma) | egasi | 3-qadam, boshlanmagan |
 | Xarajat turlarini o'zi qo'shishi | egasi | 4-qadam, boshlanmagan |
 | Guruhlarni boshqarish — bitta sahifa | egasi | 5-qadam, boshlanmagan |
 

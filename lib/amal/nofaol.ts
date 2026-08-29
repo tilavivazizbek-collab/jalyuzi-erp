@@ -30,6 +30,7 @@ export const OCHIRILADIGAN_TURLAR = [
   'material',
   'guruh',
   'mijoz',
+  'mijozGuruh',
   'yetkazib',
   'mahsulot',
   'kassa',
@@ -155,6 +156,30 @@ export const TUR_TAVSIFI: Record<OchiriladiganTur, TurTavsifi> = {
            WHERE mijoz_id = ${id} AND holat NOT IN ('TOPSHIRILDI','BEKOR')`);
       if (ochiq > 0) return `${String(ochiq)} ta tugallanmagan buyurtmasi bor`;
 
+      return null;
+    },
+  },
+
+  mijozGuruh: {
+    jadval: 'mijoz_guruh',
+    nom: 'Mijoz guruhi',
+    ruxsat: 'mijoz.ozgartir',
+    bandmi: async (tx, id) => {
+      /**
+       * ⚠️ Guruhda mijoz turgan bo'lsa o'chirilmaydi.
+       *
+       *    Avtomatik uzib qo'yish XAVFLI: o'nlab mijoz
+       *    bildirmasdan chegirmasiz qolardi va buni faqat
+       *    mijoz «narx nega oshdi?» deganda bilardik.
+       *
+       *    Shuning uchun avval mijozlarni boshqa guruhga
+       *    o'tkazish kerak — bu ongli qaror.
+       */
+      const n = await son(tx`SELECT COUNT(*)::int AS n FROM mijoz
+           WHERE mijoz_guruh_id = ${id} AND faol = true`);
+      if (n > 0) {
+        return `${String(n)} ta mijoz shu guruhda — avval ularni boshqa guruhga o'tkazing`;
+      }
       return null;
     },
   },

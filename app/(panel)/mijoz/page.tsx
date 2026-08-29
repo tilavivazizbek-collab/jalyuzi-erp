@@ -16,6 +16,7 @@ interface Qator {
   readonly telefon: string | null;
   readonly telegram_id: number | null;
   readonly shaxs_turi: string;
+  readonly guruh_nomi: string | null;
   readonly offset_turi: string | null;
   readonly offset_qiymat: string | null;
   readonly qarz_limiti: string | null;
@@ -41,9 +42,12 @@ export default async function MijozRoyxati({
     SELECT COUNT(*)::int AS n FROM mijoz WHERE faol = false`;
 
   const qatorlar = await sql<Qator[]>`
-    SELECT id, ism, telefon, telegram_id, shaxs_turi,
-           offset_turi, offset_qiymat, qarz_limiti, faol
-    FROM mijoz WHERE faol = ${!ochirilganlar} ORDER BY ism`;
+    SELECT m.id, m.ism, m.telefon, m.telegram_id, m.shaxs_turi,
+           g.nom AS guruh_nomi,
+           m.offset_turi, m.offset_qiymat, m.qarz_limiti, m.faol
+    FROM mijoz m
+    LEFT JOIN mijoz_guruh g ON g.id = m.mijoz_guruh_id AND g.faol = true
+    WHERE m.faol = ${!ochirilganlar} ORDER BY m.ism`;
 
   return (
     <div className="flex flex-col gap-6">
@@ -83,7 +87,8 @@ export default async function MijozRoyxati({
                 <th className="px-4 py-2.5 font-medium">Ismi</th>
                 <th className="px-4 py-2.5 font-medium">Telefon</th>
                 <th className="px-4 py-2.5 font-medium">Turi</th>
-                <th className="px-4 py-2.5 font-medium">Offset</th>
+                <th className="px-4 py-2.5 font-medium">Guruh</th>
+                <th className="px-4 py-2.5 font-medium">Shaxsiy chegirma</th>
                 <th className="px-4 py-2.5 text-right font-medium">Qarz limiti</th>
                 {ozgartiraOladi && <th className="px-4 py-2.5" />}
               </tr>
@@ -110,6 +115,9 @@ export default async function MijozRoyxati({
                   </td>
                   <td className="px-4 py-2.5">
                     {m.shaxs_turi === 'YURIDIK' ? 'Yuridik' : 'Jismoniy'}
+                  </td>
+                  <td className="px-4 py-2.5">
+                    {m.guruh_nomi ?? <span className="text-matn-kuchsiz">—</span>}
                   </td>
                   <td className="px-4 py-2.5">
                     {m.offset_turi === null || m.offset_qiymat === null ? (

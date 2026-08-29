@@ -20,6 +20,7 @@ const MAYDONLAR = [
   'telefon',
   'manzil',
   'eslatma',
+  'mijozGuruhId',
   'offsetTuri',
   'offsetQiymat',
   'qarzLimiti',

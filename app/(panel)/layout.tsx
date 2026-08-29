@@ -82,7 +82,10 @@ const MENYU: readonly Guruh[] = [
   },
   {
     nom: 'Mijozlar',
-    bandlar: [{ yol: '/mijoz', nom: 'Mijozlar', kod: 'mijoz.kor' }],
+    bandlar: [
+      { yol: '/mijoz', nom: 'Mijozlar', kod: 'mijoz.kor' },
+      { yol: '/mijoz/guruh', nom: 'Mijoz guruhlari', kod: 'mijoz.kor' },
+    ],
   },
   {
     nom: 'Yetkazib beruvchilar',

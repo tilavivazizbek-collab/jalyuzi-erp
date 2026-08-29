@@ -15,7 +15,7 @@ import { mijozStatusi, pozitsiyaXulosasi } from '@/lib/domain/bot';
 import type { PozitsiyaHolati } from '@/lib/domain/buyurtma';
 import { pulKorsat, som, dollar } from '@/lib/domain/pul';
 import { matoNarxi } from '@/lib/domain/narx';
-import { mijozOffseti } from '@/lib/domain/mijoz';
+import { amaldagiOffset } from '@/lib/domain/mijoz';
 import { MATN } from './matn';
 import { xavfsiz, type BotKontekst } from './yordamchi';
 
@@ -228,14 +228,28 @@ export async function katalogMatolari(
   const sql = ulanishOl();
 
   const m = await sql<
-    { offset_turi: string | null; offset_qiymat: string | null }[]
+    {
+      offset_turi: string | null;
+      offset_qiymat: string | null;
+      guruh_offset_turi: string | null;
+      guruh_offset_qiymat: string | null;
+    }[]
   >`
-    SELECT offset_turi, offset_qiymat FROM mijoz WHERE id = ${mijozId}`;
+    SELECT m.offset_turi, m.offset_qiymat,
+           g.offset_turi AS guruh_offset_turi,
+           g.offset_qiymat AS guruh_offset_qiymat
+    FROM mijoz m
+    LEFT JOIN mijoz_guruh g ON g.id = m.mijoz_guruh_id AND g.faol = true
+    WHERE m.id = ${mijozId}`;
 
-  const offset = mijozOffseti({
-    offsetTuri: m[0]?.offset_turi ?? null,
-    offsetQiymat: m[0]?.offset_qiymat ?? null,
-  });
+  /** TZ 6.3 — shaxsiy chegirma guruhnikidan ustun (saytdagi bilan bir xil) */
+  const offset = amaldagiOffset(
+    { offsetTuri: m[0]?.offset_turi ?? null, offsetQiymat: m[0]?.offset_qiymat ?? null },
+    {
+      offsetTuri: m[0]?.guruh_offset_turi ?? null,
+      offsetQiymat: m[0]?.guruh_offset_qiymat ?? null,
+    },
+  );
 
   /**
    * ⚠️ Narx bo'yicha ARZONDAN QIMMATGA (13.3). Saralash bazada

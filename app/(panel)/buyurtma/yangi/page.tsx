@@ -5,6 +5,7 @@ import { SotuvFormasi } from './forma';
 import { ruxsatBormi } from '@/lib/ruxsat/tekshir';
 import { joriyKurs } from '@/lib/amal/kurs';
 import { ulanishOl } from '@/lib/db';
+import { guruhTanlovlari } from '../../mijoz/guruh/malumot';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,13 +20,14 @@ export default async function SotuvEkrani() {
    *    Ilgari hammasi birdan yuklanardi: ~2 mln obyekt, ~230 MB
    *    JSON va sahifa bir daqiqadan ortiq ochilardi.
    */
-  const [turlar, filiallar, kurs, qoshimchalar] = await Promise.all([
+  const [turlar, filiallar, kurs, qoshimchalar, mijozGuruhlari] = await Promise.all([
     turRoyxati(),
     tikaOladiganFiliallar(),
     // 5.4 — dollardagi material narxini so'mga o'girish uchun
     joriyKurs(ulanishOl()),
     // Alohida sotiladigan buyumlar — mexanizm, kronshteyn
     qoshimchaMateriallar(f.filialId),
+    guruhTanlovlari(),
   ]);
 
   // Ekran bo'sh ochilmasin — birinchi turning tafsiloti darhol keladi
@@ -50,6 +52,7 @@ export default async function SotuvEkrani() {
         filiallar={filiallar}
         ozFilialId={f.filialId}
         mijozQoshaOladi={ruxsatBormi(f, 'mijoz.yarat')}
+        mijozGuruhlari={mijozGuruhlari}
         joriyKurs={kurs}
         qoshimchalar={qoshimchalar}
       />

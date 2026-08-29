@@ -210,12 +210,39 @@ export const xabarYuborilsinmi = (telegramId: number | null): boolean => telegra
  *    aytiladi — jimgina noto'g'ri narx chiqarishdan ko'ra
  *    ko'rinadigan cheklov yaxshi.
  */
-export function mijozOffseti(m: {
-  readonly offsetTuri: string | null;
-  readonly offsetQiymat: string | null;
-} | null): Offset | null {
+export function mijozOffseti(m: OffsetManbasi | null): Offset | null {
   if (m === null || m.offsetTuri === null || m.offsetQiymat === null) return null;
   if (m.offsetTuri === 'FOIZ') return { turi: 'FOIZ', foiz: Number(m.offsetQiymat) };
   if (m.offsetTuri === 'SOM') return { turi: 'SOM', summa: som(m.offsetQiymat) };
   return null; // USD — kurs kerak (6.3)
+}
+
+/**
+ * TZ 6.3 — mijozga AMALDA qo'llanadigan chegirma.
+ *
+ * ⚠️ SHAXSIY CHEGIRMA GURUHNIKIDAN USTUN.
+ *
+ *    «Ulgurji −10%» guruhidagi mijozga alohida −15% qo'yilgan
+ *    bo'lsa, unga 15% ishlaydi. Aniqrog'i yutadi: guruh — umumiy
+ *    qoida, kartochkadagi yozuv esa aynan shu mijoz uchun
+ *    ataylab qo'yilgan istisno.
+ *
+ * ⚠️ IKKITASI QO'SHILMAYDI. −10% guruh va −15% shaxsiy −25%
+ *    bermaydi. Qo'shilsa, guruh foizini o'zgartirgan odam
+ *    o'nlab mijozning narxini bilmasdan siljitgan bo'lardi.
+ *
+ * ⚠️ Bu qoida bir joyda turishi shart: sotuv ekrani ham, bot ham
+ *    (13.5) shu funksiyani chaqiradi. Ikki joyda yozilsa mijoz
+ *    saytda bir narx, botda boshqa narx ko'rardi (§2.2).
+ */
+export function amaldagiOffset(
+  mijoz: OffsetManbasi | null,
+  guruh: OffsetManbasi | null,
+): Offset | null {
+  return mijozOffseti(mijoz) ?? mijozOffseti(guruh);
+}
+
+export interface OffsetManbasi {
+  readonly offsetTuri: string | null;
+  readonly offsetQiymat: string | null;
 }

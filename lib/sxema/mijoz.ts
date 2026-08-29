@@ -42,6 +42,18 @@ export const mijozSxema = z
     manzil: bosMatn,
     eslatma: bosMatn,
 
+    /**
+     * TZ 6.3 — chegirma guruhi (ulgurji, doimiy, VIP).
+     *
+     * ⚠️ Bo'sh — guruhsiz mijoz, oddiy narx.
+     */
+    mijozGuruhId: z
+      .string()
+      .trim()
+      .transform((x) => (x === '' ? undefined : Number(x)))
+      .optional()
+      .refine((x) => x === undefined || (Number.isInteger(x) && x > 0), 'Guruh noto‘g‘ri'),
+
     // TZ 6.3 — offset turi va qiymati birga to'ladi yoki birga bo'sh qoladi
     offsetTuri: z
       .string()

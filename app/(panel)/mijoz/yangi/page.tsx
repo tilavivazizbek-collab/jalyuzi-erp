@@ -2,11 +2,14 @@ import Link from 'next/link';
 import { sahifaRuxsati } from '@/lib/kirish/joriy';
 import { mijozYaratAmali } from '../amal';
 import { BOSH_QIYMATLAR, MijozFormasi } from '../forma';
+import { ruxsatBormi } from '@/lib/ruxsat/tekshir';
+import { guruhTanlovlari } from '../guruh/malumot';
 
 export const dynamic = 'force-dynamic';
 
 export default async function YangiMijoz() {
-  await sahifaRuxsati('mijoz.yarat');
+  const f = await sahifaRuxsati('mijoz.yarat');
+  const guruhlar = await guruhTanlovlari();
 
   return (
     <div className="flex max-w-3xl flex-col gap-6">
@@ -18,7 +21,13 @@ export default async function YangiMijoz() {
       </div>
 
       <div className="rounded-karta border border-chegara bg-sirt p-6">
-        <MijozFormasi amal={mijozYaratAmali} qiymatlar={BOSH_QIYMATLAR} tugmaMatni="Saqlash" />
+        <MijozFormasi
+          amal={mijozYaratAmali}
+          qiymatlar={BOSH_QIYMATLAR}
+          tugmaMatni="Saqlash"
+          guruhlar={guruhlar}
+          guruhQoshaOladi={ruxsatBormi(f, 'mijoz.ozgartir')}
+        />
       </div>
     </div>
   );

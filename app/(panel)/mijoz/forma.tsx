@@ -3,6 +3,8 @@
 import { useActionState, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { Maydon, kirishUslubi } from '../maydon';
+import { TanlovModal, type TanlovBandi } from '../tanlov-modal';
+import { MijozGuruhFormasi } from './guruh/forma';
 import { BOSH_HOLAT, type MijozHolati } from './holat';
 import {
   OFFSET_TURI_NOMI,
@@ -17,6 +19,7 @@ export interface MijozQiymatlari {
   readonly telefon: string;
   readonly manzil: string;
   readonly eslatma: string;
+  readonly mijozGuruhId: string;
   readonly offsetTuri: string;
   readonly offsetQiymat: string;
   readonly qarzLimiti: string;
@@ -36,6 +39,7 @@ export const BOSH_QIYMATLAR: MijozQiymatlari = {
   telefon: '',
   manzil: '',
   eslatma: '',
+  mijozGuruhId: '',
   offsetTuri: '',
   offsetQiymat: '',
   qarzLimiti: '',
@@ -54,12 +58,17 @@ export function MijozFormasi({
   amal,
   qiymatlar,
   tugmaMatni,
+  guruhlar = [],
+  guruhQoshaOladi = false,
   saqlandi,
   bekor,
 }: {
   amal: (holat: MijozHolati, forma: FormData) => Promise<MijozHolati>;
   qiymatlar: MijozQiymatlari;
   tugmaMatni: string;
+  /** TZ 6.3 — chegirma guruhlari */
+  guruhlar?: readonly TanlovBandi[];
+  guruhQoshaOladi?: boolean;
   /**
    * ⚠️ Modal oynada beriladi. O'z sahifasida saqlangach ro'yxatga
    *    yo'naltiriladi, shuning uchun u yerda bu chaqirilmaydi.
@@ -224,11 +233,33 @@ export function MijozFormasi({
       </section>
 
       <section>
-        <h2 className="mb-1 text-sm font-semibold text-matn">Narx offseti</h2>
+        <h2 className="mb-1 text-sm font-semibold text-matn">Chegirma</h2>
         <p className="mb-3 text-xs text-matn-kuchsiz">
           Barcha matoga bir xil qo&apos;llanadi, aksessuarga tegmaydi (6.3). Manfiy qiymat —
           chegirma.
         </p>
+
+        {/*
+          ⚠️ GURUH — umumiy qoida, pastdagi maydonlar — shu mijoz
+             uchun ISTISNO. Pastdagisi to'ldirilsa u ustun turadi
+             va guruhnikini bosadi (`amaldagiOffset`).
+        */}
+        <div className="mb-4">
+          <TanlovModal
+            nom="mijozGuruhId"
+            yorliq="Mijoz guruhi"
+            izoh="ulgurji, doimiy, VIP — guruh chegirmasi avtomatik qo'llanadi"
+            bandlar={guruhlar}
+            boshlangich={q('mijozGuruhId')}
+            boshMatn="— guruhsiz —"
+            yangiYorliq="Yangi guruh"
+            boshqaruvYoli="/mijoz/guruh"
+            modalSarlavha="Yangi mijoz guruhi"
+            qoshaOladi={guruhQoshaOladi}
+            forma={(saqla, yop) => <MijozGuruhFormasi saqlandi={saqla} bekor={yop} />}
+          />
+        </div>
+
         <div className="grid gap-4 sm:grid-cols-2">
           <Maydon nom="offsetTuri" yorliq="Turi">
             <select

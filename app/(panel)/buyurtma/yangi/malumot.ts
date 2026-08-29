@@ -38,6 +38,17 @@ export interface SotuvMijozi {
   /** TZ 3.10 — «Mijoz tanlangach offseti darhol ko'rinadi va narx qayta hisoblanadi» */
   readonly offsetTuri: string | null;
   readonly offsetQiymat: string | null;
+  /**
+   * TZ 6.3 — GURUH chegirmasi.
+   *
+   * ⚠️ Ikkalasi ALOHIDA qaytariladi, bazada birlashtirilmaydi:
+   *    qaysi biri ustun turishini `amaldagiOffset()` hal qiladi
+   *    va u qoida domainda turishi shart (§2.2). SQL da
+   *    `COALESCE` qilinsa, bot boshqacha hisoblab qo'yardi.
+   */
+  readonly guruhNomi: string | null;
+  readonly guruhOffsetTuri: string | null;
+  readonly guruhOffsetQiymat: string | null;
 }
 
 export async function mijozQidir(matn: string, chegara = 10): Promise<SotuvMijozi[]> {
@@ -52,11 +63,20 @@ export async function mijozQidir(matn: string, chegara = 10): Promise<SotuvMijoz
       qarz_limiti: string | null;
       offset_turi: string | null;
       offset_qiymat: string | null;
+      guruh_nomi: string | null;
+      guruh_offset_turi: string | null;
+      guruh_offset_qiymat: string | null;
     }[]
   >`
-    SELECT id, ism, telefon, qarz_limiti, offset_turi, offset_qiymat FROM mijoz
-    WHERE faol = true AND (ism ILIKE ${`%${q}%`} OR telefon LIKE ${`%${q}%`})
-    ORDER BY ism LIMIT ${chegara}`;
+    SELECT m.id, m.ism, m.telefon, m.qarz_limiti,
+           m.offset_turi, m.offset_qiymat,
+           g.nom AS guruh_nomi,
+           g.offset_turi AS guruh_offset_turi,
+           g.offset_qiymat AS guruh_offset_qiymat
+    FROM mijoz m
+    LEFT JOIN mijoz_guruh g ON g.id = m.mijoz_guruh_id AND g.faol = true
+    WHERE m.faol = true AND (m.ism ILIKE ${`%${q}%`} OR m.telefon LIKE ${`%${q}%`})
+    ORDER BY m.ism LIMIT ${chegara}`;
 
   return qatorlar.map((r) => ({
     id: r.id,
@@ -65,6 +85,9 @@ export async function mijozQidir(matn: string, chegara = 10): Promise<SotuvMijoz
     qarzLimiti: r.qarz_limiti,
     offsetTuri: r.offset_turi,
     offsetQiymat: r.offset_qiymat,
+    guruhNomi: r.guruh_nomi,
+    guruhOffsetTuri: r.guruh_offset_turi,
+    guruhOffsetQiymat: r.guruh_offset_qiymat,
   }));
 }
 

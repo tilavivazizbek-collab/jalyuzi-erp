@@ -357,6 +357,60 @@ export const mahsulotAksessuar = pgTable(
   ],
 );
 
+// ─── 2.8.1 · mijoz_guruh — TZ 6.3 ─────────────────────────────────────────
+
+/**
+ * Mijoz guruhi — CHEGIRMA uchun.
+ *
+ * ⚠️ NEGA KERAK (egasi, 2026-08-29): «chegirma uchun: ulgurji,
+ *    doimiy, VIP». Ilgari chegirma HAR MIJOZDA alohida turardi:
+ *    ulgurjichilarga −10% berish uchun yuzta kartochkani qo'lda
+ *    o'zgartirish kerak edi va biri albatta unutilardi.
+ *
+ *    Endi chegirma guruhda turadi. Guruhdagi foizni bir marta
+ *    o'zgartirish yetarli.
+ *
+ * ⚠️ MIJOZNING SHAXSIY CHEGIRMASI USTUN TURADI.
+ *    «Ulgurji −10%» guruhidagi mijozga alohida −15% qo'yilsa,
+ *    unga 15% ishlaydi. Qoida `lib/domain/mijoz.ts` da —
+ *    `amaldagiOffset()`. Bu yerda emas, chunki uni sotuv ekrani
+ *    ham, bot ham bir xil qo'llashi shart (§2.2).
+ */
+export const mijozGuruh = pgTable(
+  'mijoz_guruh',
+  {
+    id: id(),
+    nom: text('nom').notNull(),
+
+    /**
+     * Guruh chegirmasi — mijozdagi bilan BIR XIL shaklda
+     * (TZ 6.3): `FOIZ` yoki `SOM`. `USD` yo'q, chunki u kursni
+     * talab qiladi va kurs parametr bo'lib kelishi shart.
+     */
+    offsetTuri: text('offset_turi'),
+    offsetQiymat: numeric('offset_qiymat', { precision: 14, scale: 2 }),
+
+    izoh: text('izoh'),
+
+    ...ochirilmaydi,
+    ...izlar,
+  },
+  (t) => [
+    check(
+      'mijoz_guruh_offset_turi',
+      sql`${t.offsetTuri} IS NULL OR ${t.offsetTuri} IN ('FOIZ','SOM')`,
+    ),
+    // Turi bor bo'lsa qiymat ham bo'lishi shart, aks holda chegirma ma'nosiz
+    check(
+      'mijoz_guruh_offset_toliq',
+      sql`(${t.offsetTuri} IS NULL AND ${t.offsetQiymat} IS NULL)
+          OR (${t.offsetTuri} IS NOT NULL AND ${t.offsetQiymat} IS NOT NULL)`,
+    ),
+    // Bir xil nomli ikki guruh — sotuvchi qaysi birini tanlashini bilmaydi
+    uniqueIndex('mijoz_guruh_nom').on(t.nom),
+  ],
+);
+
 // ─── 2.8 · mijoz — TZ 6 · Q-23 ────────────────────────────────────────────
 
 export const mijoz = pgTable(
@@ -367,6 +421,15 @@ export const mijoz = pgTable(
     telefon: text('telefon').unique(),
     telegramId: bigint('telegram_id', { mode: 'number' }).unique(),
     manzil: text('manzil'),
+
+    /**
+     * Chegirma guruhi — ulgurji, doimiy, VIP (TZ 6.3).
+     *
+     * ⚠️ Bo'sh bo'lishi mumkin: guruhsiz mijoz — oddiy narx.
+     */
+    mijozGuruhId: bigint('mijoz_guruh_id', { mode: 'number' }).references(
+      () => mijozGuruh.id,
+    ),
 
     /** TZ 6.3 — barcha matoga bir xil qo'llanadi, aksessuarga tegmaydi */
     offsetTuri: text('offset_turi'),

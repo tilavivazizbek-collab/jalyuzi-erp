@@ -40,7 +40,7 @@ import {
   type Qoralama,
 } from '@/lib/domain/bot-oqim';
 import { pozitsiyaNarxiniHisobla } from '@/lib/domain/pozitsiya-narxi';
-import { mijozOffseti } from '@/lib/domain/mijoz';
+import { amaldagiOffset } from '@/lib/domain/mijoz';
 import type { SarflashBirligi } from '@/lib/domain/birlik';
 import { kesimOlchami } from '@/lib/domain/kesish';
 import { kurs, pulKorsat, som, type Kurs } from '@/lib/domain/pul';
@@ -73,7 +73,7 @@ interface MijozKonteksti {
   readonly mijozId: number;
   readonly filialId: number;
   readonly tikuvchiFilialId: number;
-  readonly offset: ReturnType<typeof mijozOffseti>;
+  readonly offset: ReturnType<typeof amaldagiOffset>;
   /**
    * ⚠️ 5.4 — dollardagi material narxi so'mga SHU kurs bilan
    *    o'giriladi. Botda ham, saytda ham bir xil bo'lishi shart:
@@ -102,9 +102,19 @@ async function mijozKontekstiOl(mijozId: number): Promise<MijozKonteksti | null>
   if (filial === undefined) return null;
 
   const m = await sql<
-    { offset_turi: string | null; offset_qiymat: string | null }[]
+    {
+      offset_turi: string | null;
+      offset_qiymat: string | null;
+      guruh_offset_turi: string | null;
+      guruh_offset_qiymat: string | null;
+    }[]
   >`
-    SELECT offset_turi, offset_qiymat FROM mijoz WHERE id = ${mijozId}`;
+    SELECT m.offset_turi, m.offset_qiymat,
+           g.offset_turi AS guruh_offset_turi,
+           g.offset_qiymat AS guruh_offset_qiymat
+    FROM mijoz m
+    LEFT JOIN mijoz_guruh g ON g.id = m.mijoz_guruh_id AND g.faol = true
+    WHERE m.id = ${mijozId}`;
 
   const k = await joriyKurs(sql);
 
@@ -114,10 +124,14 @@ async function mijozKontekstiOl(mijozId: number): Promise<MijozKonteksti | null>
     tikuvchiFilialId: filial.ishlab_chiqaradi
       ? filial.id
       : (filial.standart ?? filial.id),
-    offset: mijozOffseti({
-      offsetTuri: m[0]?.offset_turi ?? null,
-      offsetQiymat: m[0]?.offset_qiymat ?? null,
-    }),
+    /** TZ 6.3 — shaxsiy chegirma guruhnikidan ustun (sayt bilan bir xil) */
+    offset: amaldagiOffset(
+      { offsetTuri: m[0]?.offset_turi ?? null, offsetQiymat: m[0]?.offset_qiymat ?? null },
+      {
+        offsetTuri: m[0]?.guruh_offset_turi ?? null,
+        offsetQiymat: m[0]?.guruh_offset_qiymat ?? null,
+      },
+    ),
     kurs: k === null ? null : kurs(k, new Date(), 'JORIY'),
   };
 }

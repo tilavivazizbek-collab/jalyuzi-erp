@@ -11,6 +11,7 @@ import { HARAKAT_NOMI, mijozQarzi } from '../qarz-malumot';
 import { tolovKassalari } from '../../buyurtma/malumot';
 import { QarzTolashFormasi } from '../qarz-forma';
 import { UmidsizQarzFormasi } from '../umidsiz-forma';
+import { guruhTanlovlari } from '../guruh/malumot';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,6 +21,7 @@ interface Qator {
   readonly telefon: string | null;
   readonly manzil: string | null;
   readonly eslatma: string | null;
+  readonly mijoz_guruh_id: number | null;
   readonly offset_turi: string | null;
   readonly offset_qiymat: string | null;
   readonly qarz_limiti: string | null;
@@ -52,6 +54,7 @@ export default async function MijozTahrirlash({ params }: { params: Promise<{ id
     telefon: m(mijoz.telefon),
     manzil: m(mijoz.manzil),
     eslatma: m(mijoz.eslatma),
+    mijozGuruhId: mijoz.mijoz_guruh_id === null ? '' : String(mijoz.mijoz_guruh_id),
     offsetTuri: m(mijoz.offset_turi),
     offsetQiymat: m(mijoz.offset_qiymat),
     qarzLimiti: m(mijoz.qarz_limiti),
@@ -70,9 +73,10 @@ export default async function MijozTahrirlash({ params }: { params: Promise<{ id
   const tolovQilaOladi = ruxsatBormi(f, 'kassa.tolov');
   // TZ 6.10 — «ADMIN qarzni hisobdan chiqara oladi»
   const hisobdanChiqaraOladi = ruxsatBormi(f, 'kassa.storno');
-  const [qarz, kassalar] = await Promise.all([
+  const [qarz, kassalar, guruhlar] = await Promise.all([
     mijozQarzi(mijozId),
     tolovQilaOladi ? tolovKassalari(f.filialId, f.xodimId) : Promise.resolve([]),
+    guruhTanlovlari(),
   ]);
 
   const amal = async (holat: MijozHolati, forma: FormData): Promise<MijozHolati> => {
@@ -167,7 +171,13 @@ export default async function MijozTahrirlash({ params }: { params: Promise<{ id
       )}
 
       <div className="rounded-karta border border-chegara bg-sirt p-6">
-        <MijozFormasi amal={amal} qiymatlar={qiymatlar} tugmaMatni="O'zgarishlarni saqlash" />
+        <MijozFormasi
+          amal={amal}
+          qiymatlar={qiymatlar}
+          tugmaMatni="O'zgarishlarni saqlash"
+          guruhlar={guruhlar}
+          guruhQoshaOladi={ruxsatBormi(f, 'mijoz.ozgartir')}
+        />
       </div>
     </div>
   );
