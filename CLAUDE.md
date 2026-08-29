@@ -251,6 +251,7 @@ test o'tmasa kommit yo'q.
 ```bash
 npm run dev · npm test · npm run typecheck · npm run lint
 npm run db:generate · npm run db:migrate · npm run db:studio
+npm run db:xato [digest]   # ishlab chiqarishdagi xatolar jurnali
 docker compose up
 ```
 

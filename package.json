@@ -25,7 +25,8 @@
     "test:hammasi": "npm run test && npm run test:baza",
     "bot": "tsx --env-file=.env bot/ishga-tushir.ts",
     "db:ruxsat": "tsx --env-file=.env lib/db/ruxsat-buyruq.ts",
-    "db:sinov-tozala": "tsx --env-file=.env lib/db/sinov-tozala.ts"
+    "db:sinov-tozala": "tsx --env-file=.env lib/db/sinov-tozala.ts",
+    "db:xato": "tsx --env-file=.env lib/db/xato-buyruq.ts"
   },
   "dependencies": {
     "@node-rs/argon2": "^2.1.0",

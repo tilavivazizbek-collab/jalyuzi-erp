@@ -100,3 +100,43 @@ export const amalKaliti = pgTable('amal_kaliti', {
     .notNull()
     .default(sql`now()`),
 });
+
+// ─── 1.9 · xato_jurnal — serverdagi kutilmagan xatolar ────────────────────
+
+/**
+ * Ishlab chiqarishdagi xatolar jurnali.
+ *
+ * ⚠️ NEGA KERAK
+ *
+ *    Next.js ishlab chiqarishda xato MATNINI ko'rsatmaydi — faqat
+ *    `digest` degan raqam beradi. Egasi menga «xato chiqdi,
+ *    raqami 2143683442» deydi va men u raqamdan hech narsa
+ *    tushunmayman: matn serverning jurnalida qoladi, unga esa
+ *    kirish yo'q.
+ *
+ *    2026-08-29 da aynan shu bo'ldi: bir xato ikki kun izlandi.
+ *
+ *    Endi har xato SHU YERGA yoziladi — digest bilan birga.
+ *    Raqamni aytish kifoya, xato bir soniyada topiladi.
+ *
+ * ⚠️ Bu jadval ISH MA'LUMOTI EMAS: unda pul ham, mijoz ham yo'q.
+ *    Shuning uchun unda `filial_id` va `xodim_id` majburiy emas —
+ *    xato kirishdan oldin ham bo'lishi mumkin.
+ */
+export const xatoJurnal = pgTable(
+  'xato_jurnal',
+  {
+    id: id(),
+    vaqt: timestamp('vaqt', { withTimezone: true })
+      .notNull()
+      .default(sql`now()`),
+    /** Next bergan raqam — egasi ekranda shuni ko'radi */
+    digest: text('digest'),
+    /** Qaysi manzilda */
+    yol: text('yol'),
+    xabar: text('xabar').notNull(),
+    stek: text('stek'),
+    xodimId: bigint('xodim_id', { mode: 'number' }),
+  },
+  (t) => [index('xato_jurnal_digest').on(t.digest), index('xato_jurnal_vaqt').on(t.vaqt)],
+);
