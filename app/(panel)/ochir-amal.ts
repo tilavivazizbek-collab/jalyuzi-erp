@@ -21,6 +21,7 @@ import {
   type OchiriladiganTur,
 } from '@/lib/amal/nofaol';
 import { biznesXatosimi } from '@/lib/xato';
+import { kutilmaganXatoniYoz } from '@/lib/xato-jurnal';
 
 export interface OchirishNatijasi {
   readonly holat: 'OCHIRILDI' | 'BAND' | 'XATO';
@@ -53,9 +54,17 @@ export async function ochirAmali(
     revalidatePath(YOLLAR[tur]);
     return { holat: n.holat, sabab: n.sabab };
   } catch (x) {
+    /**
+     * ⚠️ Biznes xatosi — odamga tushunarli sabab («qarzi bor»).
+     *    Boshqasi esa DASTUR XATOSI: u ekranda «O'chirib bo'lmadi»
+     *    bo'lib ko'rinadi va jimgina yo'qoladi. Shuning uchun
+     *    jurnalga yoziladi — `npm run db:xato` bilan ko'rinadi.
+     */
+    if (!biznesXatosimi(x)) await kutilmaganXatoniYoz(x, `ochirish:${tur}`);
+
     return {
       holat: 'XATO',
-      sabab: biznesXatosimi(x) ? x.message : "O'chirib bo'lmadi",
+      sabab: biznesXatosimi(x) ? x.message : "O'chirib bo'lmadi — dasturchiga xabar berildi",
     };
   }
 }

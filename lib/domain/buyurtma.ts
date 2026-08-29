@@ -74,15 +74,23 @@ export function tugatilgandan(sotganId: number, tikuvchiId: number): PozitsiyaHo
   return sotganId === tikuvchiId ? 'TAYYOR' : 'TAYYOR_YOLDA';
 }
 
-/** Ish oxirlangan — endi hech narsa o'zgarmaydi. */
-const YOPIQ: readonly PozitsiyaHolati[] = [
+/**
+ * Ish oxirlangan — endi hech narsa o'zgarmaydi.
+ *
+ * ⚠️ SQL so'rovlarida ham SHU RO'YXAT ishlatiladi (§2.2). Ilgari
+ *    `lib/amal/nofaol.ts` da qo'lda `('TOPSHIRILDI','BEKOR')` deb
+ *    yozilgan edi — qaytarilgan va rad etilgan buyurtma «ochiq»
+ *    bo'lib hisoblanardi va mijozni o'chirishga to'sqinlik
+ *    qilardi.
+ */
+export const YOPIQ_HOLATLAR: readonly PozitsiyaHolati[] = [
   'TOPSHIRILDI',
   'QAYTARILGAN',
   'RAD_ETILGAN',
   'BEKOR',
 ];
 
-export const yopiqmi = (h: PozitsiyaHolati): boolean => YOPIQ.includes(h);
+export const yopiqmi = (h: PozitsiyaHolati): boolean => YOPIQ_HOLATLAR.includes(h);
 
 /**
  * TZ 8.7 — «Pozitsiya "Ishlab chiqarilmoqda" ga O'TMAGUNCHA tahrirlanadi.»

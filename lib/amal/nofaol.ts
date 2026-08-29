@@ -25,6 +25,7 @@
 import type postgres from 'postgres';
 import { BiznesXato } from '@/lib/xato';
 import type { RuxsatKod } from '@/lib/ruxsat/kodlar';
+import { YOPIQ_HOLATLAR } from '@/lib/domain/buyurtma';
 
 export const OCHIRILADIGAN_TURLAR = [
   'material',
@@ -152,8 +153,21 @@ export const TUR_TAVSIFI: Record<OchiriladiganTur, TurTavsifi> = {
         return `qarzi bor: ${r} — avval yopish yoki hisobdan chiqarish kerak (6.10)`;
       }
 
-      const ochiq = await son(tx`SELECT COUNT(*)::int AS n FROM buyurtma
-           WHERE mijoz_id = ${id} AND holat NOT IN ('TOPSHIRILDI','BEKOR')`);
+      /**
+       * ⚠️ 2026-08-29: bu yerda `buyurtma.holat` yozilgan edi —
+       *    BUNDAY USTUN YO'Q. TZ 8.2: «buyurtmaning umumiy
+       *    statusi yo'q», holat har POZITSIYADA turadi.
+       *
+       *    Natijada har «o'chirish» SQL xatosi bilan yiqilardi
+       *    va mijoz ro'yxatda qolaverardi. Ekranda esa faqat
+       *    «O'chirib bo'lmadi» degan qisqa yozuv chiqardi.
+       */
+      const ochiq = await son(tx`
+        SELECT COUNT(DISTINCT b.id)::int AS n
+        FROM buyurtma b
+        JOIN buyurtma_pozitsiya p ON p.buyurtma_id = b.id
+        WHERE b.mijoz_id = ${id}
+          AND p.holat <> ALL (${YOPIQ_HOLATLAR})`);
       if (ochiq > 0) return `${String(ochiq)} ta tugallanmagan buyurtmasi bor`;
 
       return null;
@@ -220,7 +234,7 @@ export const TUR_TAVSIFI: Record<OchiriladiganTur, TurTavsifi> = {
        */
       const ochiq = await son(tx`SELECT COUNT(*)::int AS n FROM buyurtma_pozitsiya
            WHERE mahsulot_tur_id = ${id}
-             AND holat NOT IN ('TOPSHIRILDI','BEKOR')`);
+             AND holat <> ALL (${YOPIQ_HOLATLAR})`);
       if (ochiq > 0) return `${String(ochiq)} ta tugallanmagan buyurtmada ishlatilmoqda`;
 
       return null;
