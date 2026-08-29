@@ -21,6 +21,7 @@
  */
 
 import { useState } from 'react';
+import type { NARX_MAYDONLARI } from './maydonlar';
 import { Maydon, kirishUslubi } from '../maydon';
 import {
   hamrohQiymat,
@@ -29,8 +30,15 @@ import {
   type NarxJufti,
 } from '@/lib/domain/narx-kalkulyatori';
 
+/**
+ * ⚠️ Nomlar `NARX_MAYDONLARI` dan olinadi va TIP bilan
+ *    cheklangan: xato matn yozib bo'lmaydi, `tsc` to'xtatadi.
+ */
+type NarxMaydoni = (typeof NARX_MAYDONLARI)[number];
+
 export function NarxKatagi({
   nom,
+  valyutaNom,
   yorliq,
   izoh,
   boshNarx,
@@ -39,8 +47,21 @@ export function NarxKatagi({
   xato,
   ozgardi,
 }: {
-  /** Yashirin maydonlar: narx `nom` bilan, valyuta `${nom}Valyuta` bilan */
-  nom: string;
+  /**
+   * Narx yashirin maydonining nomi.
+   *
+   * ⚠️ 2026-08-29: valyuta maydoni ilgari `${nom}Valyuta` dan
+   *    YASALARDI va `sotuvNarxValyuta` chiqardi — sxema esa
+   *    `sotuvValyuta` kutardi. Natijada valyuta hech qachon
+   *    yetib bormadi va MATERIAL UMUMAN SAQLANMADI: forma
+   *    «qizil maydonlarni to'ldiring» derdi, qizil maydon esa
+   *    yo'q edi (valyuta ekranda alohida maydon emas).
+   *
+   *    Endi ikkala nom TASHQARIDAN, `NARX_MAYDONLARI` dan
+   *    keladi va test ularni sxema bilan solishtiradi.
+   */
+  nom: NarxMaydoni['narx'];
+  valyutaNom: NarxMaydoni['valyuta'];
   yorliq: string;
   izoh?: string;
   boshNarx: string;
@@ -121,7 +142,7 @@ export function NarxKatagi({
              hal qiladi.
         */}
         <input type="hidden" name={nom} value={saqlanadigan.narx} />
-        <input type="hidden" name={`${nom}Valyuta`} value={saqlanadigan.valyuta} />
+        <input type="hidden" name={valyutaNom} value={saqlanadigan.valyuta} />
 
         <div className="grid grid-cols-2 gap-2">
           <div className="flex items-center gap-1.5">

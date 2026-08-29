@@ -60,6 +60,6 @@ export async function filialNarxiAmali(
   }
 
   revalidatePath(`/material/${String(tekshiruv.data.materialId)}`);
-  revalidatePath('/sotuv');
+  revalidatePath('/buyurtma/yangi');
   return { xato: null, bajarildi: true };
 }

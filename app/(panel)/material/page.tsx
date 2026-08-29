@@ -68,7 +68,7 @@ export default async function MaterialRoyxati({
     <div className="flex flex-col gap-6">
       <div className="flex items-end justify-between gap-4">
         <div>
-          <h1 className="text-[22px] font-semibold tracking-[-0.02em] text-matn">Materiallar</h1>
+          <h1 className="text-[22px] font-semibold tracking-[-0.02em] text-matn">Mahsulotlar</h1>
           <p className="mt-1 text-sm text-matn-kuchsiz">
             {qatorlar.length} ta · barcha filial uchun umumiy (Q-26)
           </p>

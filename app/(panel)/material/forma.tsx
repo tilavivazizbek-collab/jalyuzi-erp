@@ -4,6 +4,7 @@ import { useActionState, useState } from 'react';
 import { Maydon, kirishUslubi } from '../maydon';
 import { TanlovModal } from '../tanlov-modal';
 import { GuruhFormasi } from '../guruh-forma';
+import { NARX_MAYDONLARI } from './maydonlar';
 import { NarxKatagi } from './narx-katak';
 import { RasmYuklash } from '../rasm-yuklash';
 import { BekorQilish, useSaqlanganda } from '../modal-forma';
@@ -349,7 +350,8 @@ export function MaterialFormasi({
 
         <div className="grid gap-4 sm:grid-cols-2">
           <NarxKatagi
-            nom="kutilayotganKelishNarx"
+            nom={NARX_MAYDONLARI[1].narx}
+            valyutaNom={NARX_MAYDONLARI[1].valyuta}
             yorliq="Kelish narxi"
             izoh={
               tavsif === null
@@ -359,7 +361,7 @@ export function MaterialFormasi({
             boshNarx={qiymatlar.kutilayotganKelishNarx}
             boshValyuta={qiymatlar.kutilayotganKelishValyuta}
             kurs={kurs}
-            xato={x('kutilayotganKelishNarx')}
+            xato={x('kutilayotganKelishNarx') ?? x('kutilayotganKelishValyuta')}
             ozgardi={(n, v) => {
               kelishNarxniOzgartir(n);
               kelishValyutaniOzgartir(v);
@@ -367,13 +369,14 @@ export function MaterialFormasi({
           />
 
           <NarxKatagi
-            nom="sotuvNarx"
+            nom={NARX_MAYDONLARI[0].narx}
+            valyutaNom={NARX_MAYDONLARI[0].valyuta}
             yorliq="Sotish narxi"
             izoh={tavsif === null ? undefined : `1 ${tavsif.narxBirligi} uchun`}
             boshNarx={qiymatlar.sotuvNarx}
             boshValyuta={qiymatlar.sotuvValyuta}
             kurs={kurs}
-            xato={x('sotuvNarx')}
+            xato={x('sotuvNarx') ?? x('sotuvValyuta')}
             ozgardi={(n, v) => {
               sotuvNarxniOzgartir(n);
               sotuvValyutaniOzgartir(v);
@@ -442,7 +445,7 @@ export function MaterialFormasi({
 
         {tavsif?.sarflashBirligi === 'SM' && (
           <p className="mt-3 rounded-maydon bg-belgi-sariq-fon px-3 py-2 text-xs text-belgi-sariq ">
-            Bu material <b>santimetrda</b> sarflanadi, narxi esa <b>1 metr</b> uchun yoziladi.
+            Bu mahsulot <b>santimetrda</b> sarflanadi, narxi esa <b>1 metr</b> uchun yoziladi.
             Tizim o&apos;zi ÷100 qiladi (Q-01).
           </p>
         )}

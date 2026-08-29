@@ -33,3 +33,19 @@ export const MATERIAL_MAYDONLARI = [
   // Katalog rasmi — `data:` matn yoki `OCHIR` (3.3)
   'rasm',
 ];
+
+/**
+ * Narx va uning valyutasi — JUFTLIK.
+ *
+ * ⚠️ Valyuta ekranda alohida maydon EMAS: u narx katagining
+ *    ichidagi tanlov. Shuning uchun uning nomi xato bo'lsa,
+ *    xato hech qayerda ko'rinmaydi — forma jimgina rad etadi.
+ *    2026-08-29 da aynan shu bo'ldi.
+ *
+ *    `test/sxema/material-maydonlari.test.ts` har juftlikning
+ *    ikkala nomi ham sxemada borligini tekshiradi.
+ */
+export const NARX_MAYDONLARI = [
+  { narx: 'sotuvNarx', valyuta: 'sotuvValyuta' },
+  { narx: 'kutilayotganKelishNarx', valyuta: 'kutilayotganKelishValyuta' },
+] as const;
