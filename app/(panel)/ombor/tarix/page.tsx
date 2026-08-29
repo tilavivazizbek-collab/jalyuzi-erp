@@ -8,7 +8,13 @@ import {
   yonalish,
   type Yonalish,
 } from '@/lib/domain/ombor-harakat';
-import { BOSH_FILTR, omborTarixi, tarixMateriallari, type TarixFiltri } from './malumot';
+import {
+  BOSH_FILTR,
+  omborTarixi,
+  sanaFiltri,
+  tarixMateriallari,
+  type TarixFiltri,
+} from './malumot';
 
 export const dynamic = 'force-dynamic';
 
@@ -59,8 +65,9 @@ export default async function OmborTarixi({
   const materialId = sonYoki(s.material, 0);
   const filtr: TarixFiltri = {
     ...BOSH_FILTR,
-    dan: s.dan ?? '',
-    gacha: s.gacha ?? '',
+    /** ⚠️ Yaroqsiz sana filtrsiz deb qabul qilinadi — sahifa yiqilmaydi */
+    dan: sanaFiltri(s.dan),
+    gacha: sanaFiltri(s.gacha),
     materialId: materialId > 0 ? materialId : null,
     /** ⚠️ Noma'lum tur so'ralsa — filtrsiz, xato emas */
     turi: HARAKAT_TURLARI.includes(s.turi as never) ? (s.turi ?? '') : '',

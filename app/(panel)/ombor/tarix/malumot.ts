@@ -45,6 +45,25 @@ export const BOSH_FILTR: TarixFiltri = {
   turi: '',
 };
 
+/**
+ * Sana filtrini TOZALAYDI.
+ *
+ * ⚠️ 2026-08-29: manzilga `?dan=notdate` yozilsa sahifa BUTUNLAY
+ *    yiqilardi — «RangeError: Invalid time value». Manzilni odam
+ *    qo'lda o'zgartirishi yoki eski havola qolishi mumkin, va
+ *    bunday holatda ekran ochilmay qolishi kerak emas.
+ *
+ * ⚠️ Yaroqsiz sana FILTRSIZ deb qabul qilinadi: xato ko'rsatib
+ *    ishni to'xtatishdan ko'ra, hamma harakatni ko'rsatgan
+ *    yaxshiroq — odam sanani qaytadan tanlaydi.
+ */
+export function sanaFiltri(xom: string | undefined): string {
+  if (xom === undefined || xom === '') return '';
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(xom)) return '';
+  const d = new Date(`${xom}T00:00:00Z`);
+  return Number.isNaN(d.getTime()) ? '' : xom;
+}
+
 /** Bir sahifada nechta qator — ko'p bo'lsa ekran og'irlashadi */
 export const SAHIFA_HAJMI = 50;
 
