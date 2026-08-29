@@ -53,3 +53,52 @@ export async function materiallarniOl(): Promise<MaterialTanlovi[]> {
   return ulanishOl()<MaterialTanlovi[]>`
     SELECT id, nom FROM material WHERE faol = true ORDER BY nom`;
 }
+
+// ─── Tur ro'yxati ekrani (TZ 4) ───────────────────────────────────────────
+
+/**
+ * ⚠️ NEGA BU YERDA
+ *
+ *    So'rov ilgari `page.tsx` ichida yozilgan edi va HECH QANDAY
+ *    test uni ko'rmasdi. 2026-08-29 da o'sha so'rovda `WHERE`
+ *    `GROUP BY` dan KEYIN qolib ketdi — Postgres «syntax error at
+ *    or near WHERE» dedi va butun sahifa ochilmay qoldi.
+ *
+ *    `tsc` buni ko'rmaydi: SQL — shunchaki matn. Endi so'rov shu
+ *    yerda va `test/integratsiya/ekran-sorovlari.test.ts` uni
+ *    haqiqiy bazada chaqiradi.
+ */
+export interface TurQatori {
+  readonly id: number;
+  readonly nom: string;
+  readonly xizmat_haqi: string | null;
+  readonly oynada_korinadi: boolean;
+  readonly botda_korinadi: boolean;
+  readonly faol: boolean;
+  readonly slot_soni: number;
+  readonly guruhsiz_slot: number;
+  readonly aksessuar_soni: number;
+}
+
+export async function turlarRoyxati(ochirilganlar: boolean): Promise<readonly TurQatori[]> {
+  return await ulanishOl()<TurQatori[]>`
+    SELECT t.id, t.nom, t.xizmat_haqi, t.oynada_korinadi, t.botda_korinadi, t.faol,
+           COUNT(s.id) FILTER (WHERE s.faol)::int AS slot_soni,
+           COUNT(s.id) FILTER (WHERE s.faol AND s.almashtirish_guruh_id IS NULL)::int
+             AS guruhsiz_slot,
+           (SELECT COUNT(*)::int FROM mahsulot_aksessuar a
+            WHERE a.mahsulot_tur_id = t.id AND a.faol) AS aksessuar_soni
+    FROM mahsulot_tur t
+    LEFT JOIN mahsulot_slot s ON s.mahsulot_tur_id = t.id
+    -- ⚠️ WHERE «GROUP BY» dan OLDIN turadi
+    WHERE t.faol = ${!ochirilganlar}
+    GROUP BY t.id
+    ORDER BY t.tartib, t.nom`;
+}
+
+export async function turOchirilganSoni(): Promise<number> {
+  const q = await ulanishOl()<
+    { n: number }[]
+  >`SELECT COUNT(*)::int AS n FROM mahsulot_tur WHERE faol = false`;
+  return q[0]?.n ?? 0;
+}

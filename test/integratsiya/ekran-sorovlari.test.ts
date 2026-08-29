@@ -32,6 +32,9 @@ import * as buyurtmaEkrani from '@/app/(panel)/buyurtma/malumot';
 import * as yoldaEkrani from '@/app/(panel)/buyurtma/yolda/malumot';
 import * as boshqaruvEkrani from '@/app/(panel)/boshqaruv/malumot';
 import * as katalog from '@/lib/amal/katalog';
+import * as mahsulotEkrani from '@/app/(panel)/mahsulot/malumot';
+import * as mijozGuruhEkrani from '@/app/(panel)/mijoz/guruh/malumot';
+import * as tarixEkrani from '@/app/(panel)/ombor/tarix/malumot';
 
 let sql: Ulanish;
 let filialId = 1;
@@ -253,5 +256,50 @@ describe('Buyurtma ekranlari', () => {
     await expect(
       boshqaruvEkrani.kimIshlamoqda(xodimId, filialId),
     ).resolves.toBeDefined();
+  });
+});
+
+/**
+ * ⚠️ 2026-08-29 — `/mahsulot` sahifasi BUTUNLAY ochilmay qoldi:
+ *    so'rovda `WHERE` `GROUP BY` dan keyin qolib ketgan edi
+ *    («syntax error at or near WHERE»).
+ *
+ *    Sabab: SQL `page.tsx` ICHIDA yozilgan edi va bu test uni
+ *    ko'rmasdi. Endi so'rov `malumot.ts` da va shu yerda
+ *    chaqiriladi.
+ */
+describe('Spravochnik ekranlari', () => {
+  it('tur ro‘yxati — faol va o‘chirilgan', async () => {
+    await expect(mahsulotEkrani.turlarRoyxati(false)).resolves.toBeDefined();
+    await expect(mahsulotEkrani.turlarRoyxati(true)).resolves.toBeDefined();
+    await expect(mahsulotEkrani.turOchirilganSoni()).resolves.toBeTypeOf('number');
+    await expect(mahsulotEkrani.guruhlarniOl()).resolves.toBeDefined();
+    await expect(mahsulotEkrani.materiallarniOl()).resolves.toBeDefined();
+  });
+
+  it('mijoz guruhlari — TZ 6.3', async () => {
+    await expect(mijozGuruhEkrani.mijozGuruhRoyxati(false)).resolves.toBeDefined();
+    await expect(mijozGuruhEkrani.mijozGuruhRoyxati(true)).resolves.toBeDefined();
+    await expect(mijozGuruhEkrani.mijozGuruhOchirilganSoni()).resolves.toBeTypeOf('number');
+    await expect(mijozGuruhEkrani.guruhTanlovlari()).resolves.toBeDefined();
+  });
+
+  it('ombor tarixi — filtrsiz va filtr bilan (7.11)', async () => {
+    await expect(
+      tarixEkrani.omborTarixi(filialId, tarixEkrani.BOSH_FILTR, 0),
+    ).resolves.toBeDefined();
+    await expect(
+      tarixEkrani.omborTarixi(
+        filialId,
+        {
+          dan: '2020-01-01',
+          gacha: '2030-12-31',
+          materialId,
+          turi: 'KIRIM',
+        },
+        1,
+      ),
+    ).resolves.toBeDefined();
+    await expect(tarixEkrani.tarixMateriallari(filialId)).resolves.toBeDefined();
   });
 });

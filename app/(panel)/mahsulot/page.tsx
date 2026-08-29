@@ -1,24 +1,13 @@
 import Link from 'next/link';
-import { ulanishOl } from '@/lib/db';
 import { sahifaRuxsati } from '@/lib/kirish/joriy';
 import { ruxsatBormi } from '@/lib/ruxsat/tekshir';
 import { pulKorsat, som } from '@/lib/domain/pul';
 import { OchirTugma } from '../ochir-tugma';
 import { OchirilganlarHavolasi, QaytarTugma } from '../ochirilganlar';
+import { turOchirilganSoni, turlarRoyxati } from './malumot';
 
 export const dynamic = 'force-dynamic';
 
-interface Qator {
-  readonly id: number;
-  readonly nom: string;
-  readonly xizmat_haqi: string | null;
-  readonly oynada_korinadi: boolean;
-  readonly botda_korinadi: boolean;
-  readonly faol: boolean;
-  readonly slot_soni: number;
-  readonly guruhsiz_slot: number;
-  readonly aksessuar_soni: number;
-}
 
 export default async function MahsulotRoyxati({
   searchParams,
@@ -33,23 +22,14 @@ export default async function MahsulotRoyxati({
   const yarataOladi = ruxsatBormi(f, 'mahsulot.yarat');
   const ozgartiraOladi = ruxsatBormi(f, 'mahsulot.ozgartir');
 
-  const sql = ulanishOl();
-
-  const ochirilganSoni = await sql<{ n: number }[]>`
-    SELECT COUNT(*)::int AS n FROM mahsulot_tur WHERE faol = false`;
-
-  const qatorlar = await sql<Qator[]>`
-    SELECT t.id, t.nom, t.xizmat_haqi, t.oynada_korinadi, t.botda_korinadi, t.faol,
-           COUNT(s.id) FILTER (WHERE s.faol)::int AS slot_soni,
-           COUNT(s.id) FILTER (WHERE s.faol AND s.almashtirish_guruh_id IS NULL)::int
-             AS guruhsiz_slot,
-           (SELECT COUNT(*)::int FROM mahsulot_aksessuar a
-            WHERE a.mahsulot_tur_id = t.id AND a.faol) AS aksessuar_soni
-    FROM mahsulot_tur t
-    LEFT JOIN mahsulot_slot s ON s.mahsulot_tur_id = t.id
-    GROUP BY t.id
-    WHERE t.faol = ${!ochirilganlar}
-    ORDER BY t.tartib, t.nom`;
+  /**
+   * ⚠️ So'rovlar `malumot.ts` da — sahifa ichidagi SQL ni hech
+   *    qanday test ko'rmaydi (2026-08-29 xatosi).
+   */
+  const [ochirilganSoni, qatorlar] = await Promise.all([
+    turOchirilganSoni(),
+    turlarRoyxati(ochirilganlar),
+  ]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -64,7 +44,7 @@ export default async function MahsulotRoyxati({
         </div>
         <div className="flex items-center gap-3">
           <OchirilganlarHavolasi
-            soni={ochirilganSoni[0]?.n ?? 0}
+            soni={ochirilganSoni}
             korsatilmoqda={ochirilganlar}
           />
 
