@@ -67,10 +67,11 @@ havolasi esa bor.
 
 | Ekran | Ishlaydi | Izoh |
 |---|:---:|---|
-| Sotuv | ✅ | Qo'shimcha mahsulot ham ✅ |
-| Buyurtmalar | ✅ | |
+| Yangi buyurtma | ✅ | Qo'shimcha mahsulot ham ✅ · `/buyurtma/yangi` |
+| Buyurtmalar tarixi | ✅ | |
 | Yo'ldagilar | ✅ | |
 | Ombor qoldig'i | ✅ | |
+| Ombor tarixi | ✅ | Har harakat, sana/mahsulot/tur filtri |
 | Kirim | ✅ | Narx metr bo'yicha ham ✅ |
 | Chiqim | ✅ | |
 | Ko'chirish | ✅ | |
@@ -86,7 +87,9 @@ havolasi esa bor.
 
 | Nima | Kim so'ragan | Holat |
 |---|---|---|
-| Rasm — mahsulot turi va matolarda | egasi | tasdiqlangan, boshlanmagan |
+| Mijoz guruhlari (chegirma) | egasi | 3-qadam, boshlanmagan |
+| Xarajat turlarini o'zi qo'shishi | egasi | 4-qadam, boshlanmagan |
+| Guruhlarni boshqarish — bitta sahifa | egasi | 5-qadam, boshlanmagan |
 
 ⚠️ Bu ro'yxatda faqat BOSHLANMAGAN ish turadi. Bajarilgani darhol
 o'chiriladi — aks holda «nima qolgani» ko'rinmay qoladi.

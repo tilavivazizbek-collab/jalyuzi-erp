@@ -62,6 +62,7 @@ const MENYU: readonly Guruh[] = [
     nom: 'Ombor',
     bandlar: [
       { yol: '/ombor', nom: 'Ombor qoldig‘i', kod: 'ombor.qoldiq.kor' },
+      { yol: '/ombor/tarix', nom: 'Ombor tarixi', kod: 'ombor.qoldiq.kor' },
       { yol: '/ombor/kirim', nom: 'Kirimlar', kod: 'ombor.qoldiq.kor' },
       { yol: '/ombor/kochirish', nom: "Ko'chirish", kod: 'ombor.qoldiq.kor' },
       {

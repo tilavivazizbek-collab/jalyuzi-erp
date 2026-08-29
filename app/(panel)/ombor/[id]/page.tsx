@@ -5,13 +5,13 @@ import { ruxsatBormi } from '@/lib/ruxsat/tekshir';
 import { BekorTugmasi } from '../chiqim/bekor';
 import { pulKorsat, som } from '@/lib/domain/pul';
 import { daraja } from '@/lib/domain/kesish';
+import { harakatNomi, miqdorMatni } from '@/lib/domain/ombor-harakat';
 import {
   materialBolaklari,
   materialHarakatlari,
   materialSarlavhasi,
   oxirgiSanoq,
   type BolakQatori,
-  type HarakatQatori,
 } from '../malumot';
 
 export const dynamic = 'force-dynamic';
@@ -25,18 +25,6 @@ const HOLAT_NOMI: Record<string, string> = {
   CHIQINDI: 'chiqindi',
 };
 
-const HARAKAT_NOMI: Record<string, string> = {
-  KIRIM: 'Kirim',
-  KESIM: 'Kesim',
-  OSTATKA: 'Qoldiq kesma',
-  CHIQINDI: 'Chiqindi',
-  BRAK: 'Hisobdan chiqarildi',
-  KOCHIRISH_CHIQDI: "Ko'chirish — chiqdi",
-  KOCHIRISH_KIRDI: "Ko'chirish — kirdi",
-  INVENTARIZATSIYA: 'Inventarizatsiya',
-  STORNO: 'Storno',
-  BOSHLANGICH: "Boshlang'ich qoldiq",
-};
 
 const CHEGARALAR = { yaroqsizM: null, kamIshlatiladiganM: null };
 
@@ -49,13 +37,6 @@ function darajaBelgisi(b: BolakQatori): string | null {
   return null;
 }
 
-function miqdorKorinishi(h: HarakatQatori): string {
-  if (h.miqdorKvM !== null) return `${h.miqdorKvM.toFixed(4)} kv.m`;
-  // Q-01 — smda saqlanadi, metrda ko'rsatiladi
-  if (h.miqdorSm !== null) return `${(h.miqdorSm / 100).toFixed(2)} m`;
-  if (h.miqdorDona !== null) return `${String(h.miqdorDona)} dona`;
-  return '—';
-}
 
 export default async function MaterialKartochkasi({ params }: { params: Promise<{ id: string }> }) {
   const f = await sahifaRuxsati('ombor.qoldiq.kor');
@@ -223,9 +204,9 @@ export default async function MaterialKartochkasi({ params }: { params: Promise<
                         year: 'numeric',
                       })}
                     </td>
-                    <td className="px-4 py-2.5">{HARAKAT_NOMI[h.turi] ?? h.turi}</td>
+                    <td className="px-4 py-2.5">{harakatNomi(h.turi)}</td>
                     <td className="px-4 py-2.5 font-mono text-xs">{h.bolakKod}</td>
-                    <td className="raqam px-4 py-2.5">{miqdorKorinishi(h)}</td>
+                    <td className="raqam px-4 py-2.5">{miqdorMatni(h)}</td>
                     <td className="raqam px-4 py-2.5">{pulKorsat(som(h.tannarxSumma))}</td>
                     <td className="px-4 py-2.5 text-matn-kuchsiz">{h.xodimIsmi}</td>
                     {chiqaraOladi && (
