@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { kamQoldiqmi } from '@/lib/domain/birlik-tanlovi';
 import { sahifaRuxsati } from '@/lib/kirish/joriy';
 import { ruxsatBormi, yigindiQamrov } from '@/lib/ruxsat/tekshir';
 import { SARFLASH_BIRLIGI_NOMI, type SarflashBirligi } from '@/lib/sxema/material';
@@ -160,10 +161,8 @@ export default async function OmborQoldigi({
                           ? `${(q.miqdor / 100).toFixed(2)} m`
                           : `${String(q.miqdor)} ${SARFLASH_BIRLIGI_NOMI[birlik]}`;
 
-                      const kamqoldiq =
-                        birlik === 'SM' &&
-                        q.kamQoldiqChegaraM !== null &&
-                        q.miqdor / 100 < q.kamQoldiqChegaraM;
+                      /** Q-10 — hisob bitta joyda: dona mahsulotda ham ishlaydi */
+                      const kamqoldiq = kamQoldiqmi(birlik, q.miqdor, q.kamQoldiqChegaraM);
 
                       return (
                         <tr key={q.materialId}>

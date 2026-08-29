@@ -76,6 +76,18 @@ export const RUXSATLAR = {
     guruh: 'Ombor',
     band: '15.1',
   },
+  /**
+   * ⚠️ FAQAT ADMIN. Qoldiqni to'g'rilash — pulga tegadigan amal:
+   *    har o'zgarish tannarx farqini yozadi. Omborchida
+   *    inventarizatsiya bor, lekin u varaqa ochib, sanab,
+   *    sabab yozib yakunlaydi. Bu esa tezkor yo'l va u
+   *    nazoratsiz qolmasligi kerak.
+   */
+  'ombor.tuzatish': {
+    nom: "Qoldiqni to'g'rilash (admin)",
+    guruh: 'Ombor',
+    band: '15.1',
+  },
   'ombor.boshlangich': {
     nom: "Boshlang'ich qoldiq kiritish",
     guruh: 'Ombor',

@@ -172,3 +172,46 @@ export function koeffitsientniMetrga(koeffitsient: string): string {
   if (!Number.isFinite(n) || n <= 0) return '';
   return String(n / 100);
 }
+
+// ─── Q-10 · Kam qoldiq ogohlantirishi ─────────────────────────────────────
+
+/**
+ * Ostatka (yaroqsiz / kam ishlatiladigan) chegaralari SHU MAHSULOTGA
+ * tegishlimi.
+ *
+ * ⚠️ Faqat METRLI mahsulotda ma'noli. Dona mexanizmda «yaroqsiz eni»
+ *    degan narsa yo'q — u yo butun, yo yo'q. Egasi (2026-08-29):
+ *    «mahsulot donaga bo'lsa yaroqsiz yoki ostatkalar yo'qoladi,
+ *    faqat metrda bo'ladi».
+ */
+export function ostatkaChegarasiKerakmi(sarflashBirligi: string): boolean {
+  return sarflashBirligi !== 'DONA';
+}
+
+/**
+ * Q-10 — qoldiq chegaradan kam tushdimi.
+ *
+ * ⚠️ MIQDOR BAZADAGI KO'RINISHDA keladi: chiziqli mahsulot
+ *    SANTIMETRDA (Q-01), qolganlari o'z birligida. Chegara esa
+ *    doim ODAM YOZGAN birlikda: metrli mahsulotda metr, donada
+ *    dona. Shuning uchun solishtirishdan oldin ikkisi bir
+ *    birlikka keltiriladi.
+ *
+ * ⚠️ Ustun nomi `kam_qoldiq_chegara_m` — «m» tarixiy nom. Dona
+ *    mahsulotda u DONA saqlaydi. Ustunni qayta nomlash 40+ faylga
+ *    tegadi, foydasi yo'q.
+ */
+export function kamQoldiqmi(
+  sarflashBirligi: string,
+  miqdor: number,
+  chegara: number | null,
+): boolean {
+  if (chegara === null) return false;
+  const oz = sarflashBirligi === 'SM' ? miqdor / 100 : miqdor;
+  return oz < chegara;
+}
+
+/** Chegara qaysi birlikda yoziladi — ekrandagi yorliq uchun */
+export function chegaraBirligi(sarflashBirligi: string): string {
+  return sarflashBirligi === 'DONA' ? 'dona' : 'm';
+}

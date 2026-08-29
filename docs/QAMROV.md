@@ -73,6 +73,8 @@ havolasi esa bor.
 | Yo'ldagilar | ✅ | |
 | Ombor qoldig'i | ✅ | |
 | Ombor tarixi | ✅ | Har harakat, sana/mahsulot/tur filtri |
+| Boshlang'ich zahira | ✅ | Mahsulot saqlangach o'zi so'raladi |
+| Qoldiqni to'g'rilash | ✅ | **Faqat admin** · `ombor.tuzatish` |
 | Mijoz guruhlari | ✅ | Chegirma guruhda · shaxsiysi ustun |
 | Kirim | ✅ | Narx metr bo'yicha ham ✅ |
 | Chiqim | ✅ | |

@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { sahifaRuxsati } from '@/lib/kirish/joriy';
 import { ruxsatBormi } from '@/lib/ruxsat/tekshir';
 import { BekorTugmasi } from '../chiqim/bekor';
+import { TuzatishTugmasi } from './tuzatish-tugma';
 import { pulKorsat, som } from '@/lib/domain/pul';
 import { daraja } from '@/lib/domain/kesish';
 import { harakatNomi, miqdorMatni } from '@/lib/domain/ombor-harakat';
@@ -43,6 +44,8 @@ export default async function MaterialKartochkasi({ params }: { params: Promise<
   // TZ 14.6 — omborchida kirim bor, chiqim yo'q bo'lishi mumkin
   const chiqaraOladi = ruxsatBormi(f, 'ombor.chiqim');
   const boshlangichQilaOladi = ruxsatBormi(f, 'ombor.boshlangich');
+  // TZ 15.1 — qoldiqni to'g'rilash faqat adminda
+  const tuzataOladi = ruxsatBormi(f, 'ombor.tuzatish');
 
   const { id } = await params;
   const materialId = Number(id);
@@ -73,14 +76,25 @@ export default async function MaterialKartochkasi({ params }: { params: Promise<
           {/* TZ 15.1 — oxirgi sanoq kartochkada ko'rinadi */}
           {sanoq !== null && ` · oxirgi sanoq ${sanoq.sana} (${sanoq.kim})`}
         </p>
-        {boshlangichQilaOladi && bolaklar.length === 0 && (
-          <Link
-            href={`/ombor/boshlangich/${String(materialId)}`}
-            className="mt-3 inline-block rounded-maydon border border-chegara-quyuq px-3 py-1.5 text-sm text-matn-ikki transition-all active:scale-[0.98] hover:bg-fon"
-          >
-            Boshlang&apos;ich qoldiq kiritish
-          </Link>
-        )}
+        <div className="mt-3 flex flex-wrap items-start gap-3">
+          {boshlangichQilaOladi && bolaklar.length === 0 && (
+            <Link
+              href={`/ombor/boshlangich/${String(materialId)}`}
+              className="inline-block rounded-maydon border border-chegara-quyuq px-3 py-1.5 text-sm text-matn-ikki transition-all hover:bg-fon active:scale-[0.98]"
+            >
+              Boshlang&apos;ich qoldiq kiritish
+            </Link>
+          )}
+
+          {/*
+            ⚠️ Faqat ADMIN. Miqdorni to'g'rilash — omborda turgan
+               mahsulotning pul qiymatiga tegadi, shuning uchun
+               tezkor yo'l nazoratsiz qolmaydi (15.1).
+          */}
+          {tuzataOladi && bolaklar.length > 0 && (
+            <TuzatishTugmasi materialId={materialId} />
+          )}
+        </div>
       </div>
 
       {/* ── Qoldiq tarkibi (7.11) ── */}

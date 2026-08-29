@@ -14,6 +14,8 @@ import {
   BIRLIK_TAVSIFI,
   OLCHOV_BIRLIKLARI,
   birlikniTop,
+  chegaraBirligi,
+  ostatkaChegarasiKerakmi,
   koeffitsientniMetrga,
   metrniKoeffitsientga,
   ozgarishSavoli,
@@ -129,6 +131,15 @@ export function MaterialFormasi({
   const [sotuvValyuta, sotuvValyutaniOzgartir] = useState(q('sotuvValyuta'));
 
   const tavsif = birlik === null ? null : BIRLIK_TAVSIFI[birlik];
+
+  /**
+   * ⚠️ Dona mahsulotda ostatka chegaralari KO'RSATILMAYDI (5.5).
+   *    Birlik hali tanlanmagan bo'lsa ko'rsatiladi — eski
+   *    mahsulotlarda birlik topilmasligi mumkin va maydonlar
+   *    jimgina yo'qolib qolmasin.
+   */
+  const ostatkaBor =
+    tavsif === null || ostatkaChegarasiKerakmi(tavsif.sarflashBirligi);
 
   const ustama = ustamaFoizi(kelishNarx, kelishValyuta, sotuvNarx, sotuvValyuta);
 
@@ -454,12 +465,29 @@ export function MaterialFormasi({
       <section>
         <h2 className="mb-1 text-sm font-semibold text-matn">Chegaralar</h2>
         <p className="mb-3 text-xs text-matn-kuchsiz">
-          Ostatka chegaralari <b>eni bo&apos;yicha, metrda</b> (5.5). Kam qoldiq chegarasi —
-          uzunlik bo&apos;yicha (Q-10).
+          {ostatkaBor ? (
+            <>
+              Ostatka chegaralari <b>eni bo&apos;yicha, metrda</b> (5.5). Kam qoldiq
+              chegarasi — uzunlik bo&apos;yicha (Q-10).
+            </>
+          ) : (
+            <>
+              Dona mahsulotda ostatka bo&apos;lmaydi — u yo butun, yo yo&apos;q. Kam
+              qoldiq chegarasi <b>donada</b> yoziladi (Q-10).
+            </>
+          )}
         </p>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Maydon
-            nom="yaroqsizChegaraM"
+          {/*
+            ⚠️ «Yaroqsiz» va «kam ishlatiladigan» — KESILGAN QOLDIQ
+               enining darajasi (5.5). Dona mahsulotda kesim ham,
+               qoldiq eni ham yo'q, shuning uchun bu ikki maydon
+               umuman ko'rsatilmaydi.
+          */}
+          {ostatkaBor && (
+            <>
+              <Maydon
+                nom="yaroqsizChegaraM"
             yorliq="Yaroqsiz (m)"
             izoh="standart 0.5"
             xato={x('yaroqsizChegaraM')}
@@ -485,8 +513,16 @@ export function MaterialFormasi({
               inputMode="decimal"
               className={chegara('kamIshlatiladiganM')}
             />
-          </Maydon>
-          <Maydon nom="kamQoldiqChegaraM" yorliq="Kam qoldiq (m)" xato={x('kamQoldiqChegaraM')}>
+              </Maydon>
+            </>
+          )}
+
+          <Maydon
+            nom="kamQoldiqChegaraM"
+            yorliq={`Kam qoldiq (${chegaraBirligi(tavsif?.sarflashBirligi ?? '')})`}
+            izoh={ostatkaBor ? undefined : 'masalan 10 — 10 donadan kam qolsa ogohlantiradi'}
+            xato={x('kamQoldiqChegaraM')}
+          >
             <input
               id="kamQoldiqChegaraM"
               name="kamQoldiqChegaraM"

@@ -12,6 +12,7 @@ import { redirect } from 'next/navigation';
 import { ulanishOl } from '@/lib/db';
 import { materialTahrirla, materialYarat } from '@/lib/amal/material';
 import { ruxsatTalab } from '@/lib/kirish/joriy';
+import { ruxsatBormi } from '@/lib/ruxsat/tekshir';
 import { materialSxema } from '@/lib/sxema/material';
 import { biznesXatosimi } from '@/lib/xato';
 import { kirimniQaytar, maydonlarniOqi } from '../forma-yordamchi';
@@ -29,7 +30,10 @@ const formadanOqi = (forma: FormData): Record<string, string> =>
 async function yaratIchki(
   oldingi: FormaHolati,
   forma: FormData,
-): Promise<FormaHolati | { readonly saqlandi: YaratilganYozuv }> {
+): Promise<
+  | FormaHolati
+  | { readonly saqlandi: YaratilganYozuv; readonly boshlangichQilaOladi: boolean }
+> {
   const f = await ruxsatTalab('material.yarat');
 
   /**
@@ -64,16 +68,38 @@ async function yaratIchki(
   }
 
   revalidatePath('/material');
-  return { saqlandi: { id, nom: tekshiruv.data.nom } };
+  return {
+    saqlandi: { id, nom: tekshiruv.data.nom },
+    boshlangichQilaOladi: ruxsatBormi(f, 'ombor.boshlangich'),
+  };
 }
 
-/** O'z sahifasi — saqlangach ro'yxatga qaytadi. */
+/**
+ * O'z sahifasi — saqlangach BOSHLANG'ICH QOLDIQ ekraniga o'tadi.
+ *
+ * ⚠️ Ilgari ro'yxatga qaytardi va «omborda hozir nechta bor?»
+ *    degan savol berilmasdi. Natijada yangi mahsulot qoldig'i
+ *    nol bo'lib turardi: sotuvda «material yetmadi» chiqardi,
+ *    omborchi esa mato javonda turganini ko'rib turardi.
+ *
+ *    Endi savol darhol beriladi. Zahira yo'q bo'lsa o'sha
+ *    ekranda «O'tkazib yuborish» bosiladi.
+ *
+ * ⚠️ Ruxsati yo'q odam (masalan sotuvchi) ro'yxatga qaytadi —
+ *    unga bu ekran ochilmaydi (§9.4).
+ */
 export async function materialYaratAmali(
   oldingi: FormaHolati,
   forma: FormData,
 ): Promise<FormaHolati> {
   const n = await yaratIchki(oldingi, forma);
-  if ('saqlandi' in n) redirect('/material');
+  if ('saqlandi' in n) {
+    redirect(
+      n.boshlangichQilaOladi
+        ? `/ombor/boshlangich/${String(n.saqlandi.id)}?yangi=1`
+        : '/material',
+    );
+  }
   return n;
 }
 

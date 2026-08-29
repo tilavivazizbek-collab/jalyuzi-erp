@@ -34,11 +34,14 @@ export function BoshlangichFormasi({
   materialNomi,
   rulon,
   birlikNomi,
+  yangiMahsulot = false,
 }: {
   materialId: number;
   materialNomi: string;
   rulon: boolean;
   birlikNomi: string;
+  /** Mahsulot endi qo'shildi — «bekor» ro'yxatga qaytaradi */
+  yangiMahsulot?: boolean;
 }) {
   const [holat, yubor, kutilmoqda] = useActionState(boshlangichAmali, BOSH_HOLAT);
   const [olchamlar, olchamlarniOzgartir] = useState<Olcham[]>(() => [yangiOlcham()]);
@@ -182,11 +185,17 @@ export function BoshlangichFormasi({
         >
           {kutilmoqda ? 'Kiritilmoqda…' : 'Qoldiqni kiritish'}
         </button>
+        {/*
+          ⚠️ Yangi mahsulot qo'shilganda bu ekran O'ZI ochiladi.
+             Zahirasi yo'q mahsulot ham bo'ladi (masalan hali
+             kelmagan mato) — shuning uchun chiqish yo'li ochiq
+             va u ro'yxatga qaytaradi, orqaga emas.
+        */}
         <Link
-          href={`/ombor/${String(materialId)}`}
+          href={yangiMahsulot ? '/material' : `/ombor/${String(materialId)}`}
           className="text-sm text-matn-kuchsiz hover:text-matn"
         >
-          Bekor qilish
+          {yangiMahsulot ? "O'tkazib yuborish" : 'Bekor qilish'}
         </Link>
       </div>
     </form>
