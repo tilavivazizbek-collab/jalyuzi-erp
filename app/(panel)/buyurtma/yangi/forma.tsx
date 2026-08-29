@@ -26,6 +26,7 @@ import { chegirmaMatni } from '../../mijoz/guruh/royxat';
 import { biznesXatosimi } from '@/lib/xato';
 import { Maydon, kirishUslubi } from '../../maydon';
 import { Modal } from '../../modal';
+import { RasmKorish } from '../../rasm-korish';
 import {
   MijozFormasi,
   BOSH_QIYMATLAR as MIJOZ_BOSH_QIYMATLAR,
@@ -624,20 +625,10 @@ export function SotuvFormasi({
                                uchun TANLANGANI yonida turadi.
                           */}
                           {q.material?.rasmBormi === true && (
-                            <a
-                              href={`/api/rasm/material/${String(q.material.id)}`}
-                              target="_blank"
-                              rel="noopener"
-                              title="Kattalashtirish"
-                              className="fokus mt-1 block w-fit"
-                            >
-                              <img
-                                src={`/api/rasm/material/${String(q.material.id)}`}
-                                alt={q.material.nom}
-                                loading="lazy"
-                                className="size-12 rounded-maydon border border-chegara object-cover"
-                              />
-                            </a>
+                            <RasmKorish
+                              manzil={`/api/rasm/material/${String(q.material.id)}`}
+                              nom={q.material.nom}
+                            />
                           )}
                         </td>
                         <td className="raqam px-3 py-2">
