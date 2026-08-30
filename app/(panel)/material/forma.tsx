@@ -24,7 +24,7 @@ import {
   ozgarishSavoli,
   type OlchovBirligi,
 } from '@/lib/domain/birlik-tanlovi';
-import { ustamaFoizi } from '@/lib/domain/narx-kalkulyatori';
+import { hamrohQiymat, ustamaFoizi } from '@/lib/domain/narx-kalkulyatori';
 import type { OxirgiKelish } from './malumot';
 
 export interface Guruh {
@@ -167,6 +167,25 @@ export function MaterialFormasi({
     tavsif === null || ostatkaChegarasiKerakmi(tavsif.sarflashBirligi);
 
   const ustama = ustamaFoizi(kelishNarx, kelishValyuta, sotuvNarx, sotuvValyuta);
+
+  /**
+   * Kelish narxining SO'MDAGI qiymati.
+   *
+   * ⚠️ Egasi (2026-08-30): «mahsulotning narxi doim 2 xil qiymatda
+   *    bo'ladi: $ qiymati va so'm qiymati».
+   *
+   *    To'g'ri: narx katagida ikkalasi ham turadi, bazaga esa
+   *    faqat bittasi yoziladi (1.3-invariant). Zahira tannarxi
+   *    SO'MDA saqlanadi, shuning uchun bu yerda so'mdagisi
+   *    olinadi — dollarda yozilgan bo'lsa kurs bo'yicha.
+   *
+   * ⚠️ Kurs yo'q bo'lsa bo'sh qoladi: taxminiy kurs bilan tannarx
+   *    yozib qo'yish butun foyda hisobotini buzardi.
+   */
+  const kelishSom =
+    kelishValyuta === 'SOM'
+      ? kelishNarx
+      : hamrohQiymat(kelishNarx, kurs, 'USD_DAN_SOMGA');
 
   const x = (nom: string): string | undefined => holat.maydonXatolari[nom];
   const chegara = (nom: string): string => kirishUslubi(x(nom) !== undefined);
@@ -672,8 +691,9 @@ export function MaterialFormasi({
            *    Dollardagi narx to'g'ridan-to'g'ri qo'yilsa,
            *    50 so'm bo'lib yozilib ketardi.
            */
-          boshNarx={kelishValyuta === 'SOM' ? kelishNarx : ''}
+          boshNarx={kelishSom}
           narxValyutasi={kelishValyuta}
+          kursBormi={kurs.trim() !== ''}
         />
       )}
 

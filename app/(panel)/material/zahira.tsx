@@ -38,6 +38,7 @@ export function ZahiraBolimi({
   boshBoyi,
   boshNarx,
   narxValyutasi,
+  kursBormi,
 }: {
   /** Rulon bo'lsa har rulonning eni × bo'yi so'raladi */
   rulonmi: boolean;
@@ -51,8 +52,10 @@ export function ZahiraBolimi({
   boshBoyi: string;
   /** Kartochkadagi kelish narxi — so'mda bo'lsa shu yerga ham qo'yiladi */
   boshNarx: string;
-  /** Kelish narxi qaysi valyutada — dollarda bo'lsa ogohlantiriladi */
+  /** Kelish narxi qaysi valyutada — dollarda bo'lsa kurs kerak */
   narxValyutasi: string;
+  /** Kurs belgilanganmi — dollardagi narxni so'mga o'girish uchun */
+  kursBormi: boolean;
 }) {
   const [ochiq, ochiqniOzgartir] = useState(false);
   const [olchamlar, olchamlarniOzgartir] = useState<Olcham[]>(() => [
@@ -327,10 +330,10 @@ export function ZahiraBolimi({
                bo'lak tannarxi so'mda saqlanadi va 50 $ «50 so'm»
                bo'lib yozilib ketardi.
           */}
-          {narxValyutasi === 'USD' && narx.trim() === '' && (
+          {narxValyutasi === 'USD' && !kursBormi && (
             <p className="text-[12px] text-belgi-sariq">
-              Kartochkadagi kelish narxi dollarda — bu yerga so&apos;mdagi tannarxni
-              kiriting.
+              Kelish narxi dollarda, kurs esa belgilanmagan — so&apos;mdagi tannarxni
+              qo&apos;lda kiriting yoki avval kursni belgilang.
             </p>
           )}
 
