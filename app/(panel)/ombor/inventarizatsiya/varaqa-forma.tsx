@@ -12,6 +12,7 @@
  *    SANALADI, lekin omborchi nimaga solishtirayotganini bilishi kerak.
  */
 
+import { enterYuborilmasin } from '../../forma-yordamchi';
 import { useActionState, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { kirishUslubi } from '../../maydon';
@@ -114,7 +115,7 @@ export function VaraqaFormasi({
   const farqli = Object.values(farqlar).filter((f) => f !== null && f !== 0).length;
 
   return (
-    <form action={yubor} className="flex flex-col gap-4">
+    <form action={yubor} onKeyDown={enterYuborilmasin} className="flex flex-col gap-4">
       <input type="hidden" name="varaqaId" value={varaqaId} />
       <input type="hidden" name="qatorlar" value={JSON.stringify(yuborilajak)} />
 

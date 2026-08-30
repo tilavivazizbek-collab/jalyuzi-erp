@@ -1,5 +1,6 @@
 'use client';
 
+import { enterYuborilmasin } from '../forma-yordamchi';
 import { useActionState, useState } from 'react';
 import Link from 'next/link';
 import { BOSH_HOLAT, type KonstruktorHolati } from './holat';
@@ -220,7 +221,7 @@ export function MahsulotFormasi({
 
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
-      <form action={yubor} className="flex flex-col gap-6">
+      <form action={yubor} onKeyDown={enterYuborilmasin} className="flex flex-col gap-6">
         {/* Dinamik qatorlar JSON bo'lib yuboriladi — tartibi ham saqlanadi */}
         <input type="hidden" name="slotlar" value={JSON.stringify(slotlar)} />
         <input type="hidden" name="parametrlar" value={JSON.stringify(parametrlar)} />

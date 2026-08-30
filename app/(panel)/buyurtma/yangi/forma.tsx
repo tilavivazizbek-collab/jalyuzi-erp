@@ -15,6 +15,7 @@
  *    biri ustun ekani noaniq bo'lib qoladi.»
  */
 
+import { enterYuborilmasin } from '../../forma-yordamchi';
 import { useActionState, useMemo, useState } from 'react';
 import { sarflashHisobla, standartQiymatlar } from '@/lib/domain/formula';
 import { sm, type SarflashBirligi } from '@/lib/domain/birlik';
@@ -425,7 +426,7 @@ export function SotuvFormasi({
      * ⚠️ Tor ekranda bir ustun bo'lib qoladi: telefonda yon ustun
      *    joy yeydi.
      */
-    <form action={yubor} className="grid gap-6 xl:grid-cols-[1fr_360px]">
+    <form action={yubor} onKeyDown={enterYuborilmasin} className="grid gap-6 xl:grid-cols-[1fr_360px]">
       <input type="hidden" name="buyurtma" value={JSON.stringify(yuborilajak)} />
 
       {/* Xabarlar ikki ustunning USTIDA — ko'zdan qochmasin */}

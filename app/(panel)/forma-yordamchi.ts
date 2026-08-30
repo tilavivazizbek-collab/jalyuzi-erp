@@ -94,3 +94,34 @@ export function kirimniQaytar<H extends QaytarilganKirim>(
 ): H {
   return { ...holat, kiritilgan, urinish: (oldingi.urinish ?? 0) + 1 };
 }
+
+/**
+ * Enter bosilganda forma YUBORILMASIN.
+ *
+ * ⚠️ NEGA KERAK (egasi, 2026-08-30): «kirim qilish payti mahsulot
+ *    tanlab, donasini kiritmoqchi bo'lsam sahifa o'zidan-o'zi
+ *    yangilanib ketayapti, birinchi qandaydir alert chiqib».
+ *
+ *    Sabab: HTML da bitta katakda Enter bosilsa forma yuboriladi.
+ *    Ko'p qatorli formada (kirim, sotuv, inventarizatsiya) odam
+ *    Enter ni «keyingi katakka o'tish» deb bosadi — forma esa
+ *    yuborilib, brauzer to'ldirilmagan maydon ustida ogohlantirish
+ *    oynachasini chiqaradi va terilgan qatorlar yo'qoladi.
+ *
+ * ⚠️ `textarea` va tugmalar TEGILMAYDI: u yerda Enter o'z ishini
+ *    qilishi kerak (yangi qator, tugmani bosish).
+ *
+ * ⚠️ Saqlash faqat «Saqlash» tugmasi bilan bo'ladi — bu ataylab:
+ *    hujjat pulga tegadi, tasodifan yuborilmasligi kerak.
+ */
+export function enterYuborilmasin(hodisa: React.KeyboardEvent<HTMLFormElement>): void {
+  if (hodisa.key !== 'Enter') return;
+
+  const nishon = hodisa.target;
+  if (!(nishon instanceof HTMLElement)) return;
+
+  const nomi = nishon.tagName;
+  if (nomi === 'TEXTAREA' || nomi === 'BUTTON') return;
+
+  hodisa.preventDefault();
+}

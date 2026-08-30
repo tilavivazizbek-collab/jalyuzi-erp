@@ -6,6 +6,7 @@
  * Hech narsa tanlanmasa — butun ombor.
  */
 
+import { enterYuborilmasin } from '../../../forma-yordamchi';
 import { useActionState, useState } from 'react';
 import Link from 'next/link';
 import { Maydon, kirishUslubi } from '../../../maydon';
@@ -37,7 +38,7 @@ export function VaraqaOchFormasi({
     .reduce((s, m) => s + m.bolakSoni, 0);
 
   return (
-    <form action={yubor} className="flex max-w-2xl flex-col gap-6">
+    <form action={yubor} onKeyDown={enterYuborilmasin} className="flex max-w-2xl flex-col gap-6">
       <input type="hidden" name="materialIdlar" value={JSON.stringify(tanlangan)} />
 
       {holat.xato !== null && (

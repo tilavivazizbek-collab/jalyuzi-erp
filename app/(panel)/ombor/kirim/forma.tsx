@@ -1,5 +1,6 @@
 'use client';
 
+import { enterYuborilmasin } from '../../forma-yordamchi';
 import { useActionState, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Maydon, kirishUslubi } from '../../maydon';
@@ -258,7 +259,7 @@ export function KirimFormasi({
   };
 
   return (
-    <form action={yubor} className="flex flex-col gap-6">
+    <form action={yubor} onKeyDown={enterYuborilmasin} className="flex flex-col gap-6">
       <input type="hidden" name="qatorlar" value={JSON.stringify(qatorlar)} />
 
       {holat.xato !== null && (

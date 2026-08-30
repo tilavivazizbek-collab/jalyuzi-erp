@@ -1,5 +1,6 @@
 'use client';
 
+import { enterYuborilmasin } from '../forma-yordamchi';
 import { ZahiraBolimi } from './zahira';
 import { SARFLASH_BIRLIGI_NOMI } from '@/lib/sxema/material';
 import { useActionState, useState } from 'react';
@@ -163,7 +164,7 @@ export function MaterialFormasi({
 
   return (
     /** `key` — tozalangan maydonlarni qayta yaratadi (`defaultValue` uchun) */
-    <form key={holat.urinish ?? 0} action={yubor} className="flex flex-col gap-6">
+    <form key={holat.urinish ?? 0} action={yubor} onKeyDown={enterYuborilmasin} className="flex flex-col gap-6">
       {holat.xato !== null && (
         <p
           role="alert"

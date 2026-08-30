@@ -10,6 +10,7 @@
  * ⚠️ Q-05 — kv.m KIRITILMAYDI: rulon uchun eni va bo'yi alohida.
  */
 
+import { enterYuborilmasin } from '../../forma-yordamchi';
 import { useActionState, useState } from 'react';
 import Link from 'next/link';
 import { Maydon, kirishUslubi } from '../../maydon';
@@ -57,7 +58,7 @@ export function BoshlangichFormasi({
     );
 
   return (
-    <form action={yubor} className="flex max-w-xl flex-col gap-6">
+    <form action={yubor} onKeyDown={enterYuborilmasin} className="flex max-w-xl flex-col gap-6">
       <input type="hidden" name="materialId" value={materialId} />
       <input type="hidden" name="bolaklar" value={JSON.stringify(rulon ? tayyor : [])} />
 

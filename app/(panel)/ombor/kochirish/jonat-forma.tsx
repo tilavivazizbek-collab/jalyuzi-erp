@@ -8,6 +8,7 @@
  *    (EC-FQ-06) va audit jurnaliga tushadi.
  */
 
+import { enterYuborilmasin } from '../../forma-yordamchi';
 import { useActionState, useMemo, useState } from 'react';
 import { Maydon, kirishUslubi } from '../../maydon';
 import { pulKorsat, som } from '@/lib/domain/pul';
@@ -42,7 +43,7 @@ export function JonatishFormasi({
   }
 
   return (
-    <form action={yubor} className="flex flex-col gap-4">
+    <form action={yubor} onKeyDown={enterYuborilmasin} className="flex flex-col gap-4">
       <input type="hidden" name="kochirishId" value={kochirishId} />
       <input type="hidden" name="bolakIdlar" value={JSON.stringify(tanlangan)} />
       {qoldaMi && <input type="hidden" name="qarzSumma" value={qarzSumma} />}
