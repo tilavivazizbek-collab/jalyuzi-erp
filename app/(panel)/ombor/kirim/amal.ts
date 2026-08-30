@@ -4,6 +4,7 @@
  * app/(panel)/ombor/kirim/amal.ts — TZ 7.9 · QISM 1 §9.4, §11
  */
 
+import { xatoXabari } from '../../xato-xabari';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { ulanishOl } from '@/lib/db';
@@ -11,7 +12,6 @@ import { kirimYarat, type KirimKirimi } from '@/lib/amal/kirim';
 import { ruxsatTalab } from '@/lib/kirish/joriy';
 import { kirimSxema } from '@/lib/sxema/kirim';
 import { matnMaydon } from '../../forma-yordamchi';
-import { biznesXatosimi } from '@/lib/xato';
 import type { KirimHolati } from './holat';
 
 function jsonOqi(forma: FormData, nom: string): unknown {
@@ -81,7 +81,7 @@ export async function kirimYaratAmali(
     natija = await kirimYarat(ulanishOl(), kirim, f.xodimId);
   } catch (x) {
     return {
-      xato: biznesXatosimi(x) ? x.message : 'Saqlashda xato yuz berdi',
+      xato: await xatoXabari(x, 'ombor/kirim/amal', 'Saqlashda xato yuz berdi'),
       ogohlantirishlar: [],
       saqlandi: false,
     };

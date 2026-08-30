@@ -11,6 +11,7 @@
  *    qo'shilmasdi.
  */
 
+import { xatoXabari } from './xato-xabari';
 import { revalidatePath } from 'next/cache';
 import { ulanishOl } from '@/lib/db';
 import { ruxsatTalab } from '@/lib/kirish/joriy';
@@ -64,7 +65,7 @@ export async function ochirAmali(
 
     return {
       holat: 'XATO',
-      sabab: biznesXatosimi(x) ? x.message : "O'chirib bo'lmadi — dasturchiga xabar berildi",
+      sabab: await xatoXabari(x, 'ochir-amal', "O'chirib bo'lmadi — dasturchiga xabar berildi"),
     };
   }
 }
@@ -89,7 +90,7 @@ export async function qaytarAmali(
   } catch (x) {
     return {
       holat: 'XATO',
-      sabab: biznesXatosimi(x) ? x.message : 'Qaytarib bo\'lmadi',
+      sabab: await xatoXabari(x, 'ochir-amal', "Qaytarib bo'lmadi"),
     };
   }
 }

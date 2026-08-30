@@ -7,6 +7,7 @@
  * yashirish yetarli emas.
  */
 
+import { xatoXabari } from '../xato-xabari';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { ulanishOl } from '@/lib/db';
@@ -133,7 +134,7 @@ async function yaratIchki(
   } catch (x) {
     return kirimniQaytar<FormaHolati>(
       {
-        xato: biznesXatosimi(x) ? x.message : 'Saqlashda xato yuz berdi',
+        xato: await xatoXabari(x, 'material/amal', 'Saqlashda xato yuz berdi'),
         maydonXatolari: {},
       },
       oldingi,
@@ -260,7 +261,7 @@ export async function materialTahrirlaAmali(
     );
   } catch (x) {
     return {
-      xato: biznesXatosimi(x) ? x.message : 'Saqlashda xato yuz berdi',
+      xato: await xatoXabari(x, 'material/amal', 'Saqlashda xato yuz berdi'),
       maydonXatolari: {},
     };
   }

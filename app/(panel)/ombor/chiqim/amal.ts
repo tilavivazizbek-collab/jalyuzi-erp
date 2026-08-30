@@ -7,6 +7,7 @@
  * tugmani yashirish himoya emas.
  */
 
+import { xatoXabari } from '../../xato-xabari';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { ulanishOl } from '@/lib/db';
@@ -20,7 +21,6 @@ import {
   maydonXatolari,
   FORMA_XATO_XABARI,
 } from '../../forma-yordamchi';
-import { biznesXatosimi } from '@/lib/xato';
 import { BOSH_HOLAT, type ChiqimHolati } from './holat';
 
 export async function hisobdanChiqarAmali(
@@ -66,7 +66,7 @@ export async function hisobdanChiqarAmali(
     );
   } catch (x) {
     return {
-      xato: biznesXatosimi(x) ? x.message : 'Hisobdan chiqarishda xato yuz berdi',
+      xato: await xatoXabari(x, 'ombor/chiqim/amal', 'Hisobdan chiqarishda xato yuz berdi'),
       maydonlar: {},
     };
   }
@@ -113,7 +113,7 @@ export async function chiqimBekorAmali(
     );
   } catch (x) {
     return {
-      xato: biznesXatosimi(x) ? x.message : 'Bekor qilishda xato yuz berdi',
+      xato: await xatoXabari(x, 'ombor/chiqim/amal', 'Bekor qilishda xato yuz berdi'),
       maydonlar: {},
     };
   }
@@ -151,7 +151,7 @@ export async function kirimStornoAmali(
     await kirimniStorno(ulanishOl(), tekshiruv.data.kirimId, tekshiruv.data.sabab, f.xodimId);
   } catch (x) {
     return {
-      xato: biznesXatosimi(x) ? x.message : 'Storno qilishda xato yuz berdi',
+      xato: await xatoXabari(x, 'ombor/chiqim/amal', 'Storno qilishda xato yuz berdi'),
       maydonlar: {},
     };
   }

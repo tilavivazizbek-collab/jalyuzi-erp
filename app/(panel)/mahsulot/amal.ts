@@ -8,13 +8,13 @@
  * (`slot.0.nom`) o'rniga bitta maydon, chunki qatorlar tartibi ham muhim.
  */
 
+import { xatoXabari } from '../xato-xabari';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { ulanishOl } from '@/lib/db';
 import { mahsulotTuriTahrirla, mahsulotTuriYarat } from '@/lib/amal/konstruktor';
 import { ruxsatTalab } from '@/lib/kirish/joriy';
 import { mahsulotTurSxema } from '@/lib/sxema/konstruktor';
-import { biznesXatosimi } from '@/lib/xato';
 import type { KonstruktorHolati } from './holat';
 import { rasmniOqi } from '@/lib/domain/rasm';
 
@@ -77,7 +77,7 @@ export async function mahsulotYaratAmali(
     );
   } catch (x) {
     return {
-      xato: biznesXatosimi(x) ? x.message : 'Saqlashda xato yuz berdi',
+      xato: await xatoXabari(x, 'mahsulot/amal', 'Saqlashda xato yuz berdi'),
       nuqsonlar: [],
     };
   }
@@ -112,7 +112,7 @@ export async function mahsulotTahrirlaAmali(
     );
   } catch (x) {
     return {
-      xato: biznesXatosimi(x) ? x.message : 'Saqlashda xato yuz berdi',
+      xato: await xatoXabari(x, 'mahsulot/amal', 'Saqlashda xato yuz berdi'),
       nuqsonlar: [],
     };
   }

@@ -2,13 +2,13 @@
 
 /** app/(panel)/yetkazib/amal.ts — TZ 9 · QISM 1 §9.4, §11 */
 
+import { xatoXabari } from '../xato-xabari';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { ulanishOl } from '@/lib/db';
 import { yetkazibTahrirla, yetkazibYarat } from '@/lib/amal/yetkazib';
 import { ruxsatTalab } from '@/lib/kirish/joriy';
 import { yetkazibSxema } from '@/lib/sxema/yetkazib';
-import { biznesXatosimi } from '@/lib/xato';
 import { kirimniQaytar, maydonlarniOqi } from '../forma-yordamchi';
 import { xatolarniYig, type FormaHolati } from './holat';
 import type { YaratilganYozuv } from '../modal-holat';
@@ -57,7 +57,7 @@ async function yaratIchki(
   } catch (x) {
     return kirimniQaytar<FormaHolati>(
       {
-        xato: biznesXatosimi(x) ? x.message : 'Saqlashda xato yuz berdi',
+        xato: await xatoXabari(x, 'yetkazib/amal', 'Saqlashda xato yuz berdi'),
         maydonXatolari: {},
       },
       oldingi,
@@ -111,7 +111,7 @@ export async function yetkazibTahrirlaAmali(
     await yetkazibTahrirla(ulanishOl(), yetkazibId, tekshiruv.data, f.xodimId);
   } catch (x) {
     return {
-      xato: biznesXatosimi(x) ? x.message : 'Saqlashda xato yuz berdi',
+      xato: await xatoXabari(x, 'yetkazib/amal', 'Saqlashda xato yuz berdi'),
       maydonXatolari: {},
     };
   }

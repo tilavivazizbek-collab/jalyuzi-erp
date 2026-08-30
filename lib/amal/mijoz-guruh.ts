@@ -22,17 +22,27 @@ import { BiznesXato } from '@/lib/xato';
 const yoNull = (x: string | undefined): string | null => x ?? null;
 
 /** Bir xil nomli faol guruh bormi (o'zidan boshqa) */
+/**
+ * Nom bandmi va u O'CHIRILGAN yozuvdami.
+ *
+ * ⚠️ O'chirilgan guruh nomi ham band turadi (yagonalik cheklovi
+ *    faol/nofaolni ajratmaydi). Buni aytmasak, egasi «bunday
+ *    guruh yo'q-ku» deb hayron bo'lardi (2026-08-30).
+ */
 async function nomBandmi(
   tx: postgres.TransactionSql,
   nom: string,
   ozId: number | null,
-): Promise<boolean> {
-  const q = await tx<{ id: number }[]>`
-    SELECT id FROM mijoz_guruh
+): Promise<'BOSH' | 'FAOL' | 'OCHIRILGAN'> {
+  const q = await tx<{ faol: boolean }[]>`
+    SELECT faol FROM mijoz_guruh
     WHERE lower(btrim(nom)) = lower(btrim(${nom}))
       AND (${ozId}::bigint IS NULL OR id <> ${ozId})
     LIMIT 1`;
-  return q[0] !== undefined;
+
+  const b = q[0];
+  if (b === undefined) return 'BOSH';
+  return b.faol ? 'FAOL' : 'OCHIRILGAN';
 }
 
 export async function mijozGuruhYarat(
@@ -41,8 +51,16 @@ export async function mijozGuruhYarat(
   xodimId: number,
 ): Promise<{ readonly id: number; readonly nom: string }> {
   return ulanish.begin(async (tx) => {
-    if (await nomBandmi(tx, kirim.nom, null)) {
+    const band = await nomBandmi(tx, kirim.nom, null);
+    if (band === 'FAOL') {
       throw new BiznesXato('MIJOZ_GURUH_BOR', `«${kirim.nom}» nomli guruh allaqachon bor`);
+    }
+    if (band === 'OCHIRILGAN') {
+      throw new BiznesXato(
+        'OCHIRILGANDA_BAND',
+        `«${kirim.nom}» nomli guruh o'chirilgan. Uni «O'chirilganlar» dan qaytaring ` +
+          `yoki boshqa nom tanlang.`,
+      );
     }
 
     const q = await tx<{ id: number }[]>`
@@ -69,8 +87,15 @@ export async function mijozGuruhTahrirla(
       SELECT id FROM mijoz_guruh WHERE id = ${guruhId} FOR UPDATE`;
     if (bor[0] === undefined) throw new BiznesXato('MIJOZ_GURUH_TOPILMADI', String(guruhId));
 
-    if (await nomBandmi(tx, kirim.nom, guruhId)) {
+    const band = await nomBandmi(tx, kirim.nom, guruhId);
+    if (band === 'FAOL') {
       throw new BiznesXato('MIJOZ_GURUH_BOR', `«${kirim.nom}» nomli guruh allaqachon bor`);
+    }
+    if (band === 'OCHIRILGAN') {
+      throw new BiznesXato(
+        'OCHIRILGANDA_BAND',
+        `«${kirim.nom}» nomli guruh o'chirilgan — bu nomni olib bo'lmaydi.`,
+      );
     }
 
     await tx`

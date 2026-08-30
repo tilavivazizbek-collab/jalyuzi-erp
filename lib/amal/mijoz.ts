@@ -14,6 +14,7 @@ import { dublikatTekshir, type DublikatNatijasi, type MavjudMijoz } from '@/lib/
 import { telefonKanonik } from '@/lib/domain/telefon';
 import type { MijozKirimi } from '@/lib/sxema/mijoz';
 import { BiznesXato } from '@/lib/xato';
+import { ochirilganEgasi } from './ochirilgan-tekshir';
 
 export type MijozNatijasi =
   | { readonly holat: 'SAQLANDI'; readonly id: number }
@@ -55,6 +56,23 @@ export async function mijozYarat(
     const dublikat = dublikatTekshir(kirim.ism, telefon ?? '', await nomzodlar(tx, kirim.ism, telefon));
     if (dublikat.dublikatmi) {
       return { holat: 'DUBLIKAT', dublikat } as const;
+    }
+
+    /**
+     * ⚠️ O'CHIRILGAN mijozning telefoni ham bandligicha qoladi —
+     *    yagonalik cheklovi faol/nofaolni ajratmaydi. Dublikat
+     *    tekshiruvi esa faqat faol mijozlarni qaraydi.
+     *
+     *    Bu yerda aytilmasa, baza «Saqlashda xato yuz berdi»
+     *    degan tushunarsiz xabar berardi (2026-08-30).
+     */
+    const ochirilgan = await ochirilganEgasi(tx, 'mijoz', telefon);
+    if (ochirilgan !== null) {
+      throw new BiznesXato(
+        'OCHIRILGANDA_BAND',
+        `Bu telefon o'chirilgan mijozga tegishli: ${ochirilgan}. ` +
+          `Mijozlar ro'yxatidagi «O'chirilganlar» dan uni qaytaring.`,
+      );
     }
 
     const qator = await tx<{ id: number }[]>`

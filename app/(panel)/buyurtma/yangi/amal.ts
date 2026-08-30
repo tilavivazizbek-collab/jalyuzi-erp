@@ -9,6 +9,7 @@
  *    bilan bir xil yondashuv).
  */
 
+import { xatoXabari } from '../../xato-xabari';
 import { revalidatePath } from 'next/cache';
 import { ulanishOl } from '@/lib/db';
 import {
@@ -21,7 +22,6 @@ import { kesimOlchami } from '@/lib/domain/kesish';
 import { ruxsatTalab } from '@/lib/kirish/joriy';
 import { sotuvSxema } from '@/lib/sxema/sotuv';
 import { matnMaydon, maydonXatolari, FORMA_XATO_XABARI } from '../../forma-yordamchi';
-import { biznesXatosimi } from '@/lib/xato';
 import type { SotuvHolati } from './holat';
 
 function jsonOqi(forma: FormData, nom: string): unknown {
@@ -118,7 +118,7 @@ export async function buyurtmaYaratAmali(
     };
   } catch (x) {
     return {
-      xato: biznesXatosimi(x) ? x.message : 'Buyurtma saqlanmadi',
+      xato: await xatoXabari(x, 'buyurtma/yangi/amal', 'Buyurtma saqlanmadi'),
       maydonlar: {},
       materialgaKutmoqda: [],
       buyurtmaRaqam: null,

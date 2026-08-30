@@ -52,6 +52,7 @@ export const XATO_MATNI: Record<XatoKod, string> = {
   MATERIAL_SAQLANMADI: "Materialni saqlab bo'lmadi",
   MATERIAL_TOPILMADI: "Material topilmadi",
   MIJOZ_SAQLANMADI: "Mijozni saqlab bo'lmadi",
+  OCHIRILGANDA_BAND: "Bu qiymat o'chirilgan yozuvda band turibdi",
   MIJOZ_GURUH_BOR: 'Bunday nomli guruh allaqachon bor',
   MIJOZ_GURUH_TOPILMADI: 'Mijoz guruhi topilmadi',
   MIJOZ_GURUH_SAQLANMADI: "Guruhni saqlab bo'lmadi",

@@ -17,6 +17,7 @@
 
 import { ulanishOl } from '@/lib/db';
 import { OCHIRILADIGAN_TURLAR, TUR_TAVSIFI } from '@/lib/amal/nofaol';
+import { YAGONA_USTUNLAR, ochirilganEgasi } from '@/lib/amal/ochirilgan-tekshir';
 
 const sql = ulanishOl();
 let xato = 0;
@@ -31,6 +32,23 @@ try {
     } catch (x) {
       xato += 1;
       console.log(`  XATO  ${tur.padEnd(12)} ${x instanceof Error ? x.message : String(x)}`);
+    }
+  }
+
+  /**
+   * ⚠️ «O'chirilgan yozuvda band» so'rovi ham SHU YERDA
+   *    tekshiriladi: u faqat odam yangi yozuv qo'shganda ishga
+   *    tushadi va ustun nomi xato bo'lsa hech qayerda ko'rinmaydi
+   *    (2026-08-30 da aynan shunday bo'ldi).
+   */
+  console.log('\nO‘chirilgan yozuv tekshiruvi:');
+  for (const jadval of Object.keys(YAGONA_USTUNLAR) as (keyof typeof YAGONA_USTUNLAR)[]) {
+    try {
+      await ochirilganEgasi(sql as never, jadval, 'sinov-qiymat');
+      console.log(`  ok    ${jadval}`);
+    } catch (x) {
+      xato += 1;
+      console.log(`  XATO  ${jadval} ${x instanceof Error ? x.message : String(x)}`);
     }
   }
 

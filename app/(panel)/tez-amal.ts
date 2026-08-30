@@ -15,10 +15,10 @@
  * ⚠️ Ruxsat SHU YERDA tekshiriladi (§9.4).
  */
 
+import { xatoXabari } from './xato-xabari';
 import { revalidatePath } from 'next/cache';
 import { ruxsatTalab } from '@/lib/kirish/joriy';
 import { guruhTezYarat } from '@/lib/amal/tez-qosh';
-import { biznesXatosimi } from '@/lib/xato';
 import type { GuruhHolati } from './guruh-holat';
 
 export async function guruhModalYaratAmali(
@@ -36,7 +36,7 @@ export async function guruhModalYaratAmali(
     return { xato: null, yaratildi: { id: y.id, nom: y.nom } };
   } catch (x) {
     return {
-      xato: biznesXatosimi(x) ? x.message : "Guruh qo'shilmadi",
+      xato: await xatoXabari(x, 'tez-amal', "Guruh qo'shilmadi"),
       yaratildi: null,
     };
   }

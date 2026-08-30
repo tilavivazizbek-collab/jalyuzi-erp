@@ -125,6 +125,8 @@ export const XATO_BAND = {
   MAHSULOT_SAQLANMADI: 'TZ 4.1',
   MIJOZ_TOPILMADI: 'TZ 6.1',
   MIJOZ_SAQLANMADI: 'TZ 6.2',
+  /** ⚠️ O'chirilgan yozuvning telefoni/nomi band turadi (2026-08-30) */
+  OCHIRILGANDA_BAND: 'TZ 6.5',
   MIJOZ_GURUH_BOR: 'TZ 6.3',
   MIJOZ_GURUH_TOPILMADI: 'TZ 6.3',
   MIJOZ_GURUH_SAQLANMADI: 'TZ 6.3',

@@ -7,13 +7,13 @@
  *    yetarli emas.
  */
 
+import { xatoXabari } from '../xato-xabari';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { ulanishOl } from '@/lib/db';
 import { kassaYarat } from '@/lib/amal/kassa';
 import { ruxsatTalab } from '@/lib/kirish/joriy';
 import { kassaYaratSxema } from '@/lib/sxema/kassa-yarat';
-import { biznesXatosimi } from '@/lib/xato';
 import { kirimniQaytar, maydonlarniOqi } from '../forma-yordamchi';
 import { kassaXatolariniYig, type KassaYaratHolati } from './yarat-holat';
 import type { YaratilganYozuv } from '../modal-holat';
@@ -48,7 +48,7 @@ async function yaratIchki(
   } catch (x) {
     return kirimniQaytar<KassaYaratHolati>(
       {
-        xato: biznesXatosimi(x) ? x.message : 'Saqlashda xato yuz berdi',
+        xato: await xatoXabari(x, 'kassa/yarat-amal', 'Saqlashda xato yuz berdi'),
         maydonXatolari: {},
         yaratildi: null,
       },

@@ -4,6 +4,7 @@
  * app/(panel)/kurs/amal.ts — TZ 14.5 · QISM 1 §9.4
  */
 
+import { xatoXabari } from '../xato-xabari';
 import { revalidatePath } from 'next/cache';
 import { ulanishOl } from '@/lib/db';
 import { kursniBelgila } from '@/lib/amal/kurs-belgila';
@@ -25,7 +26,7 @@ export async function kursAmali(
   } catch (x) {
     if (!biznesXatosimi(x)) await kutilmaganXatoniYoz(x, 'kurs');
     return {
-      xato: biznesXatosimi(x) ? x.message : "Kursni saqlab bo'lmadi",
+      xato: await xatoXabari(x, 'kurs/amal', "Kursni saqlab bo'lmadi"),
       saqlandi: false,
     };
   }

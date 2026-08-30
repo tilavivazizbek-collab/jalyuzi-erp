@@ -4,12 +4,12 @@
  * app/(panel)/kassa/ish-haqi-amal.ts — TZ 10.15 · QISM 1 §9.4 · Q-25
  */
 
+import { xatoXabari } from '../xato-xabari';
 import { revalidatePath } from 'next/cache';
 import { ulanishOl } from '@/lib/db';
 import { ishHaqiTola } from '@/lib/amal/tolov';
 import { ruxsatTalab } from '@/lib/kirish/joriy';
 import { matnMaydon } from '../forma-yordamchi';
-import { biznesXatosimi } from '@/lib/xato';
 import type { IshHaqiHolati } from './holat';
 
 export async function ishHaqiAmali(
@@ -70,7 +70,7 @@ export async function ishHaqiAmali(
     return { xato: null, balansdan: n.balansdanYechildi, bajarildi: true };
   } catch (x) {
     return {
-      xato: biznesXatosimi(x) ? x.message : "To'lovni saqlashda xato yuz berdi",
+      xato: await xatoXabari(x, 'kassa/ish-haqi-amal', "To'lovni saqlashda xato yuz berdi"),
       balansdan: null,
       bajarildi: false,
     };

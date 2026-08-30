@@ -8,13 +8,13 @@
  *    ichidan u OLIB TASHLANADI.
  */
 
+import { xatoXabari } from '../xato-xabari';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { ulanishOl } from '@/lib/db';
 import { xodimTahrirla, xodimYarat } from '@/lib/amal/xodim';
 import { ruxsatTalab } from '@/lib/kirish/joriy';
 import { xodimSxema } from '@/lib/sxema/xodim';
-import { biznesXatosimi } from '@/lib/xato';
 import { kirimniQaytar, maydonlarniOqi } from '../forma-yordamchi';
 import { xodimXatolariniYig, type XodimHolati } from './holat';
 
@@ -54,7 +54,7 @@ export async function xodimYaratAmali(
   } catch (x) {
     return kirimniQaytar<XodimHolati>(
       {
-        xato: biznesXatosimi(x) ? x.message : 'Saqlashda xato yuz berdi',
+        xato: await xatoXabari(x, 'xodim/amal', 'Saqlashda xato yuz berdi'),
         maydonXatolari: {},
       },
       oldingi,
@@ -89,7 +89,7 @@ export async function xodimTahrirlaAmali(
   } catch (x) {
     return kirimniQaytar<XodimHolati>(
       {
-        xato: biznesXatosimi(x) ? x.message : 'Saqlashda xato yuz berdi',
+        xato: await xatoXabari(x, 'xodim/amal', 'Saqlashda xato yuz berdi'),
         maydonXatolari: {},
       },
       oldingi,

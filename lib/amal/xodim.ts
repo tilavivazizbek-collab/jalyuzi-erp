@@ -10,6 +10,7 @@
 
 import type postgres from 'postgres';
 import { BiznesXato } from '@/lib/xato';
+import { ochirilganEgasi } from './ochirilgan-tekshir';
 import { telefonKanonik } from '@/lib/domain/telefon';
 import { parolHash } from '@/lib/kirish/parol';
 import type { XodimKirimi } from '@/lib/sxema/xodim';
@@ -59,6 +60,16 @@ export async function xodimYarat(
 
     if (rollar.length !== kirim.rolIdlar.length) {
       throw new BiznesXato('ROL_YOQ', 'Tanlangan rol topilmadi');
+    }
+
+    /** ⚠️ O'chirilgan xodimning telefoni ham band turadi (2026-08-30) */
+    const ochirilgan = await ochirilganEgasi(tx, 'xodim', kirim.telefon);
+    if (ochirilgan !== null) {
+      throw new BiznesXato(
+        'OCHIRILGANDA_BAND',
+        `Bu telefon o'chirilgan xodimga tegishli: ${ochirilgan}. ` +
+          `Xodimlar ro'yxatidagi «O'chirilganlar» dan uni qaytaring.`,
+      );
     }
 
     const q = await tx<{ id: number }[]>`

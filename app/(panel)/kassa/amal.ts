@@ -4,6 +4,7 @@
  * app/(panel)/kassa/amal.ts — TZ 12.7 · 12.15 · QISM 1 §9.4 · Q-25
  */
 
+import { xatoXabari } from '../xato-xabari';
 import { revalidatePath } from 'next/cache';
 import { ulanishOl } from '@/lib/db';
 import {
@@ -19,7 +20,6 @@ import type { XarajatModdasi } from '@/lib/domain/balans';
 import { ruxsatTalab } from '@/lib/kirish/joriy';
 import { ruxsatBormi } from '@/lib/ruxsat/tekshir';
 import { matnMaydon } from '../forma-yordamchi';
-import { biznesXatosimi } from '@/lib/xato';
 import type {
   AyirboshlashHolati,
   KassaAmalHolati,
@@ -55,7 +55,7 @@ export async function stornoAmali(
     await kassaStorno(sql, yozuvId, sabab, f.xodimId);
   } catch (x) {
     return {
-      xato: biznesXatosimi(x) ? x.message : 'Storno qilishda xato yuz berdi',
+      xato: await xatoXabari(x, 'kassa/amal', 'Storno qilishda xato yuz berdi'),
       bajarildi: false,
     };
   }
@@ -94,7 +94,7 @@ export async function topshiriqQabulAmali(
     await topshiriqniQabulQil(sql, topshiriqId, f.xodimId);
   } catch (x) {
     return {
-      xato: biznesXatosimi(x) ? x.message : 'Qabul qilishda xato yuz berdi',
+      xato: await xatoXabari(x, 'kassa/amal', 'Qabul qilishda xato yuz berdi'),
       bajarildi: false,
     };
   }
@@ -164,7 +164,7 @@ export async function kunniYopAmali(
     return { xato: null, farq: n.farq, yopildi: true };
   } catch (x) {
     return {
-      xato: biznesXatosimi(x) ? x.message : 'Kunni yopishda xato yuz berdi',
+      xato: await xatoXabari(x, 'kassa/amal', 'Kunni yopishda xato yuz berdi'),
       farq: null,
       yopildi: false,
     };
@@ -199,7 +199,7 @@ export async function kunniQaytaOchAmali(
     await kunniQaytaOch(sql, kunId, sabab, f.xodimId);
   } catch (x) {
     return {
-      xato: biznesXatosimi(x) ? x.message : 'Qayta ochishda xato yuz berdi',
+      xato: await xatoXabari(x, 'kassa/amal', 'Qayta ochishda xato yuz berdi'),
       bajarildi: false,
     };
   }
@@ -261,7 +261,7 @@ export async function ayirboshlashAmali(
     return { xato: null, kirgan: n.kirgan, bajarildi: true };
   } catch (x) {
     return {
-      xato: biznesXatosimi(x) ? x.message : 'Ayirboshlashda xato yuz berdi',
+      xato: await xatoXabari(x, 'kassa/amal', 'Ayirboshlashda xato yuz berdi'),
       kirgan: null,
       bajarildi: false,
     };
@@ -305,7 +305,7 @@ export async function xarajatAmali(
     );
   } catch (x) {
     return {
-      xato: biznesXatosimi(x) ? x.message : 'Xarajatni saqlashda xato yuz berdi',
+      xato: await xatoXabari(x, 'kassa/amal', 'Xarajatni saqlashda xato yuz berdi'),
       bajarildi: false,
     };
   }
@@ -356,7 +356,7 @@ export async function qolMaHodisaAmali(
     }
   } catch (x) {
     return {
-      xato: biznesXatosimi(x) ? x.message : 'Saqlashda xato yuz berdi',
+      xato: await xatoXabari(x, 'kassa/amal', 'Saqlashda xato yuz berdi'),
       bajarildi: false,
     };
   }
@@ -427,7 +427,7 @@ export async function topshiriqYuborAmali(
     );
   } catch (x) {
     return {
-      xato: biznesXatosimi(x) ? x.message : 'Topshiriq yuborilmadi',
+      xato: await xatoXabari(x, 'kassa/amal', 'Topshiriq yuborilmadi'),
       bajarildi: false,
     };
   }

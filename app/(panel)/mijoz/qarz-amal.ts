@@ -4,13 +4,13 @@
  * app/(panel)/mijoz/qarz-amal.ts — TZ 6.9 · QISM 1 §9.4
  */
 
+import { xatoXabari } from '../xato-xabari';
 import { revalidatePath } from 'next/cache';
 import { ulanishOl } from '@/lib/db';
 import { qarzniTola } from '@/lib/amal/tolov';
 import { umidsizQarz } from '@/lib/amal/ayirboshlash';
 import { ruxsatTalab } from '@/lib/kirish/joriy';
 import { matnMaydon } from '../forma-yordamchi';
-import { biznesXatosimi } from '@/lib/xato';
 import type { QarzHolati, UmidsizHolati } from './holat';
 
 /** Pul summasi shakli — brauzerdan kelgan qiymatga ishonilmaydi. */
@@ -51,7 +51,7 @@ export async function qarzTolashAmali(
     return { xato: null, qolganQarz: n.qolganQarz, bajarildi: true };
   } catch (x) {
     return {
-      xato: biznesXatosimi(x) ? x.message : "To'lovni saqlashda xato yuz berdi",
+      xato: await xatoXabari(x, 'mijoz/qarz-amal', "To'lovni saqlashda xato yuz berdi"),
       qolganQarz: null,
       bajarildi: false,
     };
@@ -92,7 +92,7 @@ export async function umidsizQarzAmali(
     );
   } catch (x) {
     return {
-      xato: biznesXatosimi(x) ? x.message : 'Hisobdan chiqarishda xato yuz berdi',
+      xato: await xatoXabari(x, 'mijoz/qarz-amal', 'Hisobdan chiqarishda xato yuz berdi'),
       bajarildi: false,
     };
   }

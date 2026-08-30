@@ -7,6 +7,7 @@
  * ichida qoladi (Q-25).
  */
 
+import { xatoXabari } from '../../xato-xabari';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { ulanishOl } from '@/lib/db';
@@ -20,7 +21,6 @@ import {
 } from '@/lib/sxema/chiqim';
 import { varaqaTafsiloti } from '../malumot';
 import { matnMaydon, maydonXatolari, FORMA_XATO_XABARI } from '../../forma-yordamchi';
-import { biznesXatosimi } from '@/lib/xato';
 import type { InvHolati } from './holat';
 
 function jsonOqi(forma: FormData, nom: string): unknown {
@@ -69,7 +69,7 @@ export async function varaqaOchAmali(
     varaqaId = n.varaqaId;
   } catch (x) {
     return {
-      xato: biznesXatosimi(x) ? x.message : 'Varaqa ochilmadi',
+      xato: await xatoXabari(x, 'ombor/inventarizatsiya/amal', 'Varaqa ochilmadi'),
       maydonlar: {},
       manfiyQoldiq: [],
     };
@@ -126,7 +126,7 @@ export async function varaqaYakunlaAmali(
     return { xato: null, maydonlar: {}, manfiyQoldiq: n.manfiyQoldiq };
   } catch (x) {
     return {
-      xato: biznesXatosimi(x) ? x.message : 'Yakunlashda xato yuz berdi',
+      xato: await xatoXabari(x, 'ombor/inventarizatsiya/amal', 'Yakunlashda xato yuz berdi'),
       maydonlar: {},
       manfiyQoldiq: [],
     };
@@ -175,7 +175,7 @@ export async function boshlangichAmali(
     );
   } catch (x) {
     return {
-      xato: biznesXatosimi(x) ? x.message : 'Boshlang\'ich qoldiq kiritilmadi',
+      xato: await xatoXabari(x, 'ombor/inventarizatsiya/amal', "Boshlang'ich qoldiq kiritilmadi"),
       maydonlar: {},
       manfiyQoldiq: [],
     };

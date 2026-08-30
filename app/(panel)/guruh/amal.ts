@@ -8,11 +8,11 @@
  *    dublikat tekshiruvi bir joyda qolib ketardi.
  */
 
+import { xatoXabari } from '../xato-xabari';
 import { revalidatePath } from 'next/cache';
 import { ulanishOl } from '@/lib/db';
 import { ruxsatTalab } from '@/lib/kirish/joriy';
 import { guruhTezYarat } from '@/lib/amal/tez-qosh';
-import { biznesXatosimi } from '@/lib/xato';
 import type { GuruhHolati } from '../guruh-holat';
 
 /** Ro'yxat sahifasidan yangi guruh qo'shish. */
@@ -32,7 +32,7 @@ export async function guruhYaratAmali(
     return { xato: null, yaratildi: { id: y.id, nom: y.nom } };
   } catch (x) {
     return {
-      xato: biznesXatosimi(x) ? x.message : "Guruh qo'shilmadi",
+      xato: await xatoXabari(x, 'guruh/amal', "Guruh qo'shilmadi"),
       yaratildi: null,
     };
   }
@@ -77,6 +77,6 @@ export async function guruhNominiOzgartir(
     revalidatePath('/material');
     return { xato: null };
   } catch (x) {
-    return { xato: biznesXatosimi(x) ? x.message : "O'zgartirib bo'lmadi" };
+    return { xato: await xatoXabari(x, 'guruh/amal', "O'zgartirib bo'lmadi") };
   }
 }

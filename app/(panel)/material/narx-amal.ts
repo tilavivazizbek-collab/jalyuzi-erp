@@ -6,13 +6,13 @@
  * Filial narx istisnosi. Ruxsat SERVER tomonda tekshiriladi (§9.4).
  */
 
+import { xatoXabari } from '../xato-xabari';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { ulanishOl } from '@/lib/db';
 import { filialNarxiBelgila } from '@/lib/amal/filial-narx';
 import { ruxsatTalab } from '@/lib/kirish/joriy';
 import { matnMaydon } from '../forma-yordamchi';
-import { biznesXatosimi } from '@/lib/xato';
 import type { NarxHolati } from './narx-holat';
 
 const sxema = z.object({
@@ -54,7 +54,7 @@ export async function filialNarxiAmali(
     );
   } catch (x) {
     return {
-      xato: biznesXatosimi(x) ? x.message : 'Narx saqlanmadi',
+      xato: await xatoXabari(x, 'material/narx-amal', 'Narx saqlanmadi'),
       bajarildi: false,
     };
   }

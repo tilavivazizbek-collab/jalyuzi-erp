@@ -4,6 +4,7 @@
  * app/(panel)/mijoz/amal.ts — TZ 6 · QISM 1 §9.4, §11
  */
 
+import { xatoXabari } from '../xato-xabari';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { ulanishOl } from '@/lib/db';
@@ -11,7 +12,6 @@ import { mijozTahrirla, mijozYarat } from '@/lib/amal/mijoz';
 import { ruxsatTalab } from '@/lib/kirish/joriy';
 import { mijozSxema } from '@/lib/sxema/mijoz';
 import { telefonKorsat } from '@/lib/domain/telefon';
-import { biznesXatosimi } from '@/lib/xato';
 import { kirimniQaytar, maydonlarniOqi } from '../forma-yordamchi';
 import { xatolarniYig, type MijozHolati } from './holat';
 
@@ -69,7 +69,7 @@ async function mijozYaratIchki(
     natija = await mijozYarat(ulanishOl(), tekshiruv.data, f.xodimId);
   } catch (x) {
     return {
-      xato: biznesXatosimi(x) ? x.message : 'Saqlashda xato yuz berdi',
+      xato: await xatoXabari(x, 'mijoz/amal', 'Saqlashda xato yuz berdi'),
       maydonXatolari: {},
       dublikat: null,
       yaratildi: null,
@@ -145,7 +145,7 @@ export async function mijozTahrirlaAmali(
     natija = await mijozTahrirla(ulanishOl(), mijozId, tekshiruv.data, f.xodimId);
   } catch (x) {
     return {
-      xato: biznesXatosimi(x) ? x.message : 'Saqlashda xato yuz berdi',
+      xato: await xatoXabari(x, 'mijoz/amal', 'Saqlashda xato yuz berdi'),
       maydonXatolari: {},
       dublikat: null,
       yaratildi: null,

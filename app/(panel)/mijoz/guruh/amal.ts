@@ -7,12 +7,12 @@
  *    formasidagi modal ham shu funksiyani chaqiradi.
  */
 
+import { xatoXabari } from '../../xato-xabari';
 import { revalidatePath } from 'next/cache';
 import { ulanishOl } from '@/lib/db';
 import { ruxsatTalab } from '@/lib/kirish/joriy';
 import { mijozGuruhTahrirla, mijozGuruhYarat } from '@/lib/amal/mijoz-guruh';
 import { mijozGuruhSxema } from '@/lib/sxema/mijoz-guruh';
-import { biznesXatosimi } from '@/lib/xato';
 import { kirimniQaytar, maydonlarniOqi } from '../../forma-yordamchi';
 import { GURUH_MAYDONLARI, xatolarniYig, type GuruhFormaHolati } from './holat';
 
@@ -41,7 +41,7 @@ export async function guruhYaratAmali(
   } catch (x) {
     return kirimniQaytar<GuruhFormaHolati>(
       {
-        xato: biznesXatosimi(x) ? x.message : "Guruhni saqlab bo'lmadi",
+        xato: await xatoXabari(x, 'mijoz/guruh/amal', "Guruhni saqlab bo'lmadi"),
         maydonXatolari: {},
       },
       oldingi,
@@ -77,7 +77,7 @@ export async function guruhTahrirlaAmali(
   } catch (x) {
     return kirimniQaytar<GuruhFormaHolati>(
       {
-        xato: biznesXatosimi(x) ? x.message : "Guruhni saqlab bo'lmadi",
+        xato: await xatoXabari(x, 'mijoz/guruh/amal', "Guruhni saqlab bo'lmadi"),
         maydonXatolari: {},
       },
       oldingi,

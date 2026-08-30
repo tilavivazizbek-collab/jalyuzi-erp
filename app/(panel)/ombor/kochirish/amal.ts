@@ -8,6 +8,7 @@
  * bajaradi (20.7.1).
  */
 
+import { xatoXabari } from '../../xato-xabari';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { ulanishOl } from '@/lib/db';
@@ -25,7 +26,6 @@ import {
   kochirishSoraSxema,
 } from '@/lib/sxema/kochirish';
 import { matnMaydon, maydonXatolari, FORMA_XATO_XABARI } from '../../forma-yordamchi';
-import { biznesXatosimi } from '@/lib/xato';
 import type { KochirishHolati } from './holat';
 
 function jsonOqi(forma: FormData, nom: string): unknown {
@@ -82,7 +82,7 @@ export async function kochirishSoraAmali(
     id = n.id;
   } catch (x) {
     return {
-      xato: biznesXatosimi(x) ? x.message : "So'rov yaratilmadi",
+      xato: await xatoXabari(x, 'ombor/kochirish/amal', "So'rov yaratilmadi"),
       maydonlar: {},
       bajarildi: false,
     };
@@ -128,7 +128,7 @@ export async function kochirishJonatAmali(
     );
   } catch (x) {
     return {
-      xato: biznesXatosimi(x) ? x.message : "Jo'natilmadi",
+      xato: await xatoXabari(x, 'ombor/kochirish/amal', "Jo'natilmadi"),
       maydonlar: {},
       bajarildi: false,
     };
@@ -172,7 +172,7 @@ export async function kochirishQabulAmali(
     );
   } catch (x) {
     return {
-      xato: biznesXatosimi(x) ? x.message : 'Qabul qilinmadi',
+      xato: await xatoXabari(x, 'ombor/kochirish/amal', 'Qabul qilinmadi'),
       maydonlar: {},
       bajarildi: false,
     };
@@ -214,7 +214,7 @@ export async function kochirishBekorAmali(
     );
   } catch (x) {
     return {
-      xato: biznesXatosimi(x) ? x.message : 'Bekor qilinmadi',
+      xato: await xatoXabari(x, 'ombor/kochirish/amal', 'Bekor qilinmadi'),
       maydonlar: {},
       bajarildi: false,
     };

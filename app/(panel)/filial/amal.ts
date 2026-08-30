@@ -6,6 +6,7 @@
  * Filiallararo hisob amallari. Ruxsat SERVER tomonda tekshiriladi.
  */
 
+import { xatoXabari } from '../xato-xabari';
 import { revalidatePath } from 'next/cache';
 import { ulanishOl } from '@/lib/db';
 import { filialQarzTolovi } from '@/lib/amal/filial-hisob';
@@ -16,7 +17,6 @@ import { filialTolovSxema, qoldaTuzatishSxema } from '@/lib/sxema/kochirish';
 import { filialSxema } from '@/lib/sxema/filial';
 import { redirect } from 'next/navigation';
 import { matnMaydon, maydonXatolari, FORMA_XATO_XABARI } from '../forma-yordamchi';
-import { biznesXatosimi } from '@/lib/xato';
 import type { FilialHolati } from './holat';
 
 /** TZ 22.6.3 — qarz to'lovi: C12 chiqim + K11 kirim + TOLOV yozuvi. */
@@ -45,7 +45,7 @@ export async function filialTolovAmali(
     await filialQarzTolovi(ulanishOl(), tekshiruv.data, f.xodimId);
   } catch (x) {
     return {
-      xato: biznesXatosimi(x) ? x.message : "To'lov o'tmadi",
+      xato: await xatoXabari(x, 'filial/amal', "To'lov o'tmadi"),
       maydonlar: {},
       bajarildi: false,
     };
@@ -85,7 +85,7 @@ export async function qoldaTuzatishAmali(
     await qoldaTuzatish(ulanishOl(), tekshiruv.data, f.xodimId);
   } catch (x) {
     return {
-      xato: biznesXatosimi(x) ? x.message : 'Tuzatish yozilmadi',
+      xato: await xatoXabari(x, 'filial/amal', 'Tuzatish yozilmadi'),
       maydonlar: {},
       bajarildi: false,
     };
@@ -151,7 +151,7 @@ export async function filialYaratAmali(
     filialId = n.filialId;
   } catch (x) {
     return {
-      xato: biznesXatosimi(x) ? x.message : 'Filial saqlanmadi',
+      xato: await xatoXabari(x, 'filial/amal', 'Filial saqlanmadi'),
       maydonlar: {},
       bajarildi: false,
     };
@@ -200,7 +200,7 @@ export async function filialOzgartirAmali(
     );
   } catch (x) {
     return {
-      xato: biznesXatosimi(x) ? x.message : "Filial o'zgartirilmadi",
+      xato: await xatoXabari(x, 'filial/amal', "Filial o'zgartirilmadi"),
       maydonlar: {},
       bajarildi: false,
     };
