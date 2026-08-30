@@ -733,7 +733,21 @@ export function KirimFormasi({
                       */}
                       {jamiKvM(q) > 0 && (
                         <p className="mt-2 text-[12px] text-matn-kuchsiz">
-                          Jami: <b className="raqam">{jamiKvM(q).toFixed(2)}</b> kv.m
+                          {/*
+                            ⚠️ Qaysi usul ishlayotgani OCHIQ yoziladi.
+                               Egasi «bo'yiga» deb belgilab qo'yib,
+                               ekranda faqat kv.m ni ko'rgach «narxni
+                               kv.m ga hisoblayapti» deb o'ylagan edi
+                               (2026-08-30). Hisob to'g'ri edi, ko'rinish
+                               tushuntirmasdi.
+                          */}
+                          {q.narxAsosi === 'METR'
+                            ? `Bo'yiga: ${jamiBoyi(q).toFixed(2)} m × ${q.narxBirlik || '—'}`
+                            : q.narxAsosi === 'KV_M'
+                              ? `Kv.m ga: ${jamiKvM(q).toFixed(2)} kv.m × ${q.narxBirlik || '—'}`
+                              : `${q.miqdorKirim || '—'} × ${q.narxBirlik || '—'}`}
+                          {' · '}
+                          <b className="raqam">{jamiKvM(q).toFixed(2)}</b> kv.m
                           {((): React.ReactNode => {
                             const qiymat = qatorQiymatlari[i];
                             if (qiymat === undefined || qiymat === null) return null;

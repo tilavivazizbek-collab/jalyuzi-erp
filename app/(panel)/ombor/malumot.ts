@@ -216,17 +216,36 @@ export async function materialHarakatlari(
   }));
 }
 
-export async function materialSarlavhasi(
-  materialId: number,
-): Promise<{ nom: string; hisobTuri: string; sarflashBirligi: string } | null> {
+export async function materialSarlavhasi(materialId: number): Promise<{
+  nom: string;
+  hisobTuri: string;
+  sarflashBirligi: string;
+  /** Q-14 — boshlang'ich qoldiq shu o'lchamlar bilan ochiladi */
+  odatdagiEniM: string | null;
+  odatdagiBoyiM: string | null;
+} | null> {
   const q = await ulanishOl()<
-    { nom: string; hisob_turi: string; sarflash_birligi: string }[]
-  >`SELECT nom, hisob_turi, sarflash_birligi FROM material WHERE id = ${materialId}`;
+    {
+      nom: string;
+      hisob_turi: string;
+      sarflash_birligi: string;
+      eni: string | null;
+      boyi: string | null;
+    }[]
+  >`SELECT nom, hisob_turi, sarflash_birligi,
+           standart_rulon_eni_m::text AS eni, odatdagi_rulon_boyi_m::text AS boyi
+    FROM material WHERE id = ${materialId}`;
 
   const m = q[0];
   return m === undefined
     ? null
-    : { nom: m.nom, hisobTuri: m.hisob_turi, sarflashBirligi: m.sarflash_birligi };
+    : {
+        nom: m.nom,
+        hisobTuri: m.hisob_turi,
+        sarflashBirligi: m.sarflash_birligi,
+        odatdagiEniM: m.eni,
+        odatdagiBoyiM: m.boyi,
+      };
 }
 
 // ─── 7.10 · Hisobdan chiqariladigan bo'lak ────────────────────────────────

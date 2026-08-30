@@ -36,16 +36,35 @@ export function BoshlangichFormasi({
   rulon,
   birlikNomi,
   yangiMahsulot = false,
+  boshEni = '',
+  boshBoyi = '',
+  smda = false,
 }: {
   materialId: number;
   materialNomi: string;
   rulon: boolean;
   birlikNomi: string;
+  /** Kartochkadagi odatdagi o'lchamlar — rulon qatorlari shu bilan ochiladi */
+  boshEni?: string;
+  boshBoyi?: string;
+  /**
+   * Q-01 — chiziqli mahsulot bazada SANTIMETRDA yuritiladi.
+   *
+   * ⚠️ Egasi (2026-08-30): «boshlang'ich qoldiqda metri
+   *    kiritilyaptimi yoki rulonimi — bu qayerdan biladi?»
+   *    Odam metr bilan ishlaydi, shuning uchun ekranda METR
+   *    so'raladi va ×100 tizim o'zi qiladi.
+   */
+  smda?: boolean;
   /** Mahsulot endi qo'shildi — «bekor» ro'yxatga qaytaradi */
   yangiMahsulot?: boolean;
 }) {
   const [holat, yubor, kutilmoqda] = useActionState(boshlangichAmali, BOSH_HOLAT);
-  const [olchamlar, olchamlarniOzgartir] = useState<Olcham[]>(() => [yangiOlcham()]);
+  const [olchamlar, olchamlarniOzgartir] = useState<Olcham[]>(() => [
+    { ...yangiOlcham(), eniM: boshEni, boyiM: boshBoyi },
+  ]);
+  /** Ekranda METR, bazaga SM (Q-01) */
+  const [metr, metrniOzgartir] = useState('');
 
   const yoz = (i: number, maydon: keyof Olcham, qiymat: string): void => {
     olchamlarniOzgartir((o) => o.map((x, j) => (i === j ? { ...x, [maydon]: qiymat } : x)));
@@ -126,7 +145,11 @@ export function BoshlangichFormasi({
           <button
             type="button"
             onClick={() => {
-              olchamlarniOzgartir((x) => [...x, yangiOlcham()]);
+              /** ⚠️ Yangi rulon ham kartochkadagi o'lcham bilan ochiladi */
+              olchamlarniOzgartir((x) => [
+                ...x,
+                { ...yangiOlcham(), eniM: boshEni, boyiM: boshBoyi },
+              ]);
             }}
             className="mt-2 text-sm text-matn-kuchsiz underline underline-offset-2 hover:text-matn"
           >
@@ -136,16 +159,52 @@ export function BoshlangichFormasi({
       ) : (
         <Maydon
           nom="miqdor"
-          yorliq={`Miqdor (${birlikNomi})`}
-          izoh="Omborda hozir turgan miqdor"
+          yorliq={`Miqdor (${smda ? 'metr' : birlikNomi})`}
+          izoh={
+            smda
+              ? "metrda kiriting — tizim o'zi santimetrga o'giradi (Q-01)"
+              : 'Omborda hozir turgan miqdor'
+          }
           xato={holat.maydonlar.miqdor}
         >
-          <input
-            id="miqdor"
-            name="miqdor"
-            inputMode="decimal"
-            className={kirishUslubi(holat.maydonlar.miqdor !== undefined)}
-          />
+          {smda ? (
+            <>
+              {/*
+                ⚠️ Ekranda METR, bazaga SANTIMETR. Odam metr bilan
+                   ishlaydi; santimetr so'ralsa 50 metrni 5000 deb
+                   yozish kerak bo'lardi va bir kunmas-bir kun
+                   kimdir 50 deb yozib qo'yardi.
+              */}
+              <input
+                id="miqdor"
+                value={metr}
+                onChange={(e) => {
+                  metrniOzgartir(e.target.value);
+                }}
+                inputMode="decimal"
+                className={kirishUslubi(holat.maydonlar.miqdor !== undefined)}
+              />
+              <input
+                type="hidden"
+                name="miqdor"
+                value={
+                  Number(metr) > 0 ? String(Math.round(Number(metr) * 100)) : ''
+                }
+              />
+              {Number(metr) > 0 && (
+                <p className="mt-1 text-[12px] text-matn-kuchsiz">
+                  = {String(Math.round(Number(metr) * 100))} sm
+                </p>
+              )}
+            </>
+          ) : (
+            <input
+              id="miqdor"
+              name="miqdor"
+              inputMode="decimal"
+              className={kirishUslubi(holat.maydonlar.miqdor !== undefined)}
+            />
+          )}
         </Maydon>
       )}
 

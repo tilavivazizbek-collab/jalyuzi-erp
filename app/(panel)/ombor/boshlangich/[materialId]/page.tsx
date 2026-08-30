@@ -71,6 +71,9 @@ export default async function BoshlangichSahifasi({
             SARFLASH_BIRLIGI_NOMI[m.sarflashBirligi as SarflashBirligi] ?? m.sarflashBirligi
           }
           yangiMahsulot={yangi}
+          boshEni={m.odatdagiEniM ?? ''}
+          boshBoyi={m.odatdagiBoyiM ?? ''}
+          smda={m.sarflashBirligi === 'SM'}
         />
       )}
     </div>

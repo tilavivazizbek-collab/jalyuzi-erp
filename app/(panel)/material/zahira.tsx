@@ -132,30 +132,48 @@ export function ZahiraBolimi({
    *
    * ⚠️ Hisob DOMAINDAN — kirim bilan bir xil funksiya (§2.2).
    */
-  const jamiQiymat = ((): { jami: string; olchov: string } | null => {
+  const jamiQiymat = ((): { jami: string; formula: string } | null => {
     if (narx.trim() === '') return null;
 
     try {
       if (rulonmi) {
         if (tannarx === null) return null;
+
         const kvM = olchamlar.reduce((y, o) => {
           const e = Number(o.eniM);
           const b = Number(o.boyiM);
           return e > 0 && b > 0 ? y + e * b : y;
         }, 0);
+        const metr = olchamlar.reduce((y, o) => {
+          const b = Number(o.boyiM);
+          return b > 0 ? y + b : y;
+        }, 0);
         if (kvM <= 0) return null;
 
-        return {
-          jami: pulMatn(kopaytir(som(tannarx), kvM)),
-          olchov: `${kvM.toFixed(2)} kv.m`,
-        };
+        /**
+         * ⚠️ FORMULA OCHIQ YOZILADI. Egasi (2026-08-30): «tepada
+         *    belgilayapman narx bo'yicha deb, lekin bu to'liq
+         *    kv.m ni hisoblayapti narxga».
+         *
+         *    Hisob to'g'ri edi, lekin ekranda faqat natija va
+         *    «170 kv.m» turardi — qaysi usul ishlayotgani
+         *    ko'rinmasdi. Endi ko'paytirishning o'zi yoziladi.
+         */
+        const formula =
+          narxAsosi === 'KV_M'
+            ? `${kvM.toFixed(2)} kv.m × ${narx}`
+            : narxAsosi === 'BIRLIK'
+              ? `${String(olchamlar.length)} rulon × ${narx}`
+              : `${metr.toFixed(2)} m × ${narx}`;
+
+        return { jami: pulMatn(kopaytir(som(tannarx), kvM)), formula };
       }
 
       const m = Number(miqdor);
       if (!Number.isFinite(m) || m <= 0) return null;
       return {
         jami: pulMatn(kopaytir(som(narx), m)),
-        olchov: `${String(m)} ${birlikNomi}`,
+        formula: `${String(m)} ${birlikNomi} × ${narx}`,
       };
     } catch {
       return null;
@@ -313,7 +331,7 @@ export function ZahiraBolimi({
             <div className="rounded-maydon bg-fon px-3 py-2.5 text-[13px] text-matn-ikki">
               {jamiQiymat !== null && (
                 <p>
-                  Jami <b className="raqam">{jamiQiymat.olchov}</b> ·{' '}
+                  {usulMatni}: <b className="raqam">{jamiQiymat.formula}</b> ={' '}
                   <b className="raqam text-matn">{jamiQiymat.jami}</b> so&apos;m
                 </p>
               )}
