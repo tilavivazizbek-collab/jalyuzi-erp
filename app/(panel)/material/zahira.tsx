@@ -21,7 +21,7 @@
 import { useState } from 'react';
 import { Maydon, kirishUslubi } from '../maydon';
 import { rulonKvMTannarxi } from '@/lib/domain/boshlangich-narx';
-import { som } from '@/lib/domain/pul';
+import { kopaytir, pulMatn, som } from '@/lib/domain/pul';
 import type { MaydonXatolari } from '../forma-yordamchi';
 
 interface Olcham {
@@ -36,6 +36,8 @@ export function ZahiraBolimi({
   xatolar,
   boshEni,
   boshBoyi,
+  boshNarx,
+  narxValyutasi,
 }: {
   /** Rulon bo'lsa har rulonning eni × bo'yi so'raladi */
   rulonmi: boolean;
@@ -47,6 +49,10 @@ export function ZahiraBolimi({
   /** Kartochkadagi odatdagi o'lchamlar — birinchi qator shu bilan ochiladi */
   boshEni: string;
   boshBoyi: string;
+  /** Kartochkadagi kelish narxi — so'mda bo'lsa shu yerga ham qo'yiladi */
+  boshNarx: string;
+  /** Kelish narxi qaysi valyutada — dollarda bo'lsa ogohlantiriladi */
+  narxValyutasi: string;
 }) {
   const [ochiq, ochiqniOzgartir] = useState(false);
   const [olchamlar, olchamlarniOzgartir] = useState<Olcham[]>(() => [
@@ -80,7 +86,17 @@ export function ZahiraBolimi({
     );
   }
   const [miqdor, miqdorniOzgartir] = useState('');
-  const [narx, narxniOzgartir] = useState('');
+  const [narx, narxniOzgartir] = useState(boshNarx);
+
+  /**
+   * ⚠️ Yuqoridagi «Kelish narxi» o'zgarsa bu ham ERGASHADI —
+   *    lekin egasi bu yerda o'zi yozgan bo'lsa tegilmaydi.
+   */
+  const [oldingiNarx, oldingiNarxniOzgartir] = useState(boshNarx);
+  if (oldingiNarx !== boshNarx) {
+    oldingiNarxniOzgartir(boshNarx);
+    if (narx === '' || narx === oldingiNarx) narxniOzgartir(boshNarx);
+  }
 
   /**
    * ⚠️ Hisob EKRANDA ko'rsatiladi. Egasi «metriga 5 $» deb yozadi,
@@ -99,6 +115,45 @@ export function ZahiraBolimi({
         som(narx),
         b,
       );
+    } catch {
+      return null;
+    }
+  })();
+
+  /**
+   * Kiritilgan zahira JAMI QANCHAGA tushayotgani.
+   *
+   * ⚠️ Egasi (2026-08-30): «qo'shimcha mahsulot umumiy narxi
+   *    qanchaga kelayotgani menga o'sha yerning o'zida avtomatik
+   *    hisoblab bersin va 1 kv qanchaga tushayotgani ham».
+   *
+   * ⚠️ Hisob DOMAINDAN — kirim bilan bir xil funksiya (§2.2).
+   */
+  const jamiQiymat = ((): { jami: string; olchov: string } | null => {
+    if (narx.trim() === '') return null;
+
+    try {
+      if (rulonmi) {
+        if (tannarx === null) return null;
+        const kvM = olchamlar.reduce((y, o) => {
+          const e = Number(o.eniM);
+          const b = Number(o.boyiM);
+          return e > 0 && b > 0 ? y + e * b : y;
+        }, 0);
+        if (kvM <= 0) return null;
+
+        return {
+          jami: pulMatn(kopaytir(som(tannarx), kvM)),
+          olchov: `${kvM.toFixed(2)} kv.m`,
+        };
+      }
+
+      const m = Number(miqdor);
+      if (!Number.isFinite(m) || m <= 0) return null;
+      return {
+        jami: pulMatn(kopaytir(som(narx), m)),
+        olchov: `${String(m)} ${birlikNomi}`,
+      };
     } catch {
       return null;
     }
@@ -251,9 +306,31 @@ export function ZahiraBolimi({
             />
           </Maydon>
 
-          {tannarx !== null && (
-            <p className="rounded-maydon bg-fon px-3 py-2 text-[13px] text-matn-ikki">
-              1 kv.m tannarxi: <b className="raqam">{tannarx}</b>
+          {(tannarx !== null || jamiQiymat !== null) && (
+            <div className="rounded-maydon bg-fon px-3 py-2.5 text-[13px] text-matn-ikki">
+              {jamiQiymat !== null && (
+                <p>
+                  Jami <b className="raqam">{jamiQiymat.olchov}</b> ·{' '}
+                  <b className="raqam text-matn">{jamiQiymat.jami}</b> so&apos;m
+                </p>
+              )}
+              {tannarx !== null && (
+                <p className={jamiQiymat === null ? '' : 'mt-0.5'}>
+                  1 kv.m tannarxi: <b className="raqam">{tannarx}</b> so&apos;m
+                </p>
+              )}
+            </div>
+          )}
+
+          {/*
+            ⚠️ Dollardagi kelish narxi bu yerga O'ZI QO'YILMAYDI:
+               bo'lak tannarxi so'mda saqlanadi va 50 $ «50 so'm»
+               bo'lib yozilib ketardi.
+          */}
+          {narxValyutasi === 'USD' && narx.trim() === '' && (
+            <p className="text-[12px] text-belgi-sariq">
+              Kartochkadagi kelish narxi dollarda — bu yerga so&apos;mdagi tannarxni
+              kiriting.
             </p>
           )}
 

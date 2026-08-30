@@ -664,6 +664,16 @@ export function MaterialFormasi({
           xatolar={holat.zahiraXatolari ?? {}}
           boshEni={rulonEni}
           boshBoyi={rulonBoyi}
+          /**
+           * ⚠️ Kelish narxi SHU YERDAN keladi — egasi uni ikkinchi
+           *    marta terishi shart emas (2026-08-30).
+           *
+           * ⚠️ Faqat SO'MDA: bo'lak tannarxi so'mda saqlanadi.
+           *    Dollardagi narx to'g'ridan-to'g'ri qo'yilsa,
+           *    50 so'm bo'lib yozilib ketardi.
+           */
+          boshNarx={kelishValyuta === 'SOM' ? kelishNarx : ''}
+          narxValyutasi={kelishValyuta}
         />
       )}
 
