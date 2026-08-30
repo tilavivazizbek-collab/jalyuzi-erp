@@ -102,6 +102,7 @@ export function SotuvFormasi({
   mijozGuruhlari,
   joriyKurs,
   qoshimchalar,
+  kassalar,
 }: {
   /** Faqat nom va raqam — yengil ro'yxat (3.2) */
   turlar: readonly { id: number; nom: string; rasmBormi: boolean }[];
@@ -120,6 +121,11 @@ export function SotuvFormasi({
   joriyKurs: string | null;
   /** Alohida sotiladigan buyumlar — mexanizm, kronshteyn, zanjir */
   qoshimchalar: readonly QoshimchaMaterial[];
+  /**
+   * TZ 12.2 — oldindan to'lov tushadigan kassalar. Bo'sh bo'lsa
+   * to'lov qismi ko'rinmaydi: sotuvchida kassa huquqi yo'q.
+   */
+  kassalar: readonly { id: number; nom: string; turi: string; valyuta: string }[];
 }) {
   const [holat, yubor, kutilmoqda] = useActionState(buyurtmaYaratAmali, BOSH_HOLAT);
 
@@ -423,6 +429,25 @@ export function SotuvFormasi({
 
   const kelishilganSom = son(kelishilgan);
   const chegirma = kelishilganSom === null ? null : Number(pulMatn(savatJami)) - kelishilganSom;
+
+  /**
+   * OLDINDAN TO'LOV — TZ 12.5.
+   *
+   * ⚠️ Kassa BIRINCHISI bilan ochiladi: sotuvchida odatda bitta
+   *    naqd kassa bo'ladi va undan savol so'rashning ma'nosi yo'q.
+   */
+  const [tolovSumma, tolovSummaniOzgartir] = useState('');
+  const [tolovKassaId, tolovKassaIdniOzgartir] = useState(
+    kassalar[0] === undefined ? '' : String(kassalar[0].id),
+  );
+
+  /** Qancha qarz qoladi — sotuvchi mijozga shuni aytadi */
+  const tolovQoldiq = ((): number | null => {
+    const t = Number(tolovSumma);
+    if (tolovSumma.trim() === '' || !Number.isFinite(t) || t < 0) return null;
+    const jami = kelishilganSom ?? Number(pulMatn(savatJami));
+    return Number((jami - t).toFixed(2));
+  })();
 
   const yuborilajak = {
     mijozId: mijoz?.id ?? null,
@@ -1087,6 +1112,77 @@ export function SotuvFormasi({
               </div>
             )}
           </div>
+
+          {/*
+            ⚠️ OLDINDAN TO'LOV — TZ 12.5 (K1).
+
+               Egasi (2026-08-30): «mijoz to'lov qilishi uchun input
+               hech qayerda yo'q». Mijoz buyurtma berayotganda odatda
+               oldindan to'laydi; ilgari buni yozish uchun buyurtmani
+               saqlab, kartochkasini ochib, «To'lov» tugmasini bosish
+               kerak edi.
+
+            ⚠️ Kassasi yo'q sotuvchida bu qism KO'RINMAYDI — u pul
+               qabul qila olmaydi (12.2).
+          */}
+          {kassalar.length > 0 && (
+            <div className="border-t border-chegara pt-3">
+              <label
+                htmlFor="oldindanTolov"
+                className="block text-[12px] tracking-[0.03em] text-matn-kuchsiz uppercase"
+              >
+                Mijoz to&apos;ladi
+              </label>
+
+              <div className="mt-1 flex flex-col gap-2">
+                <input
+                  id="oldindanTolov"
+                  name="oldindanTolov"
+                  value={tolovSumma}
+                  onChange={(e) => {
+                    tolovSummaniOzgartir(e.target.value);
+                  }}
+                  inputMode="decimal"
+                  placeholder="0 — to'lamadi"
+                  className={kirishUslubi(false)}
+                />
+
+                {/* Bitta kassa bo'lsa tanlov ko'rsatilmaydi — ortiqcha savol */}
+                {kassalar.length > 1 ? (
+                  <select
+                    name="tolovKassaId"
+                    value={tolovKassaId}
+                    onChange={(e) => {
+                      tolovKassaIdniOzgartir(e.target.value);
+                    }}
+                    className={kirishUslubi(false)}
+                  >
+                    {kassalar.map((k) => (
+                      <option key={k.id} value={k.id}>
+                        {k.nom} · {k.valyuta}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <input type="hidden" name="tolovKassaId" value={tolovKassaId} />
+                )}
+
+                {tolovQoldiq !== null && (
+                  <p
+                    className={`text-[12px] ${
+                      tolovQoldiq > 0 ? 'text-belgi-sariq' : 'text-belgi-yashil'
+                    }`}
+                  >
+                    {tolovQoldiq > 0
+                      ? `qarz qoladi: ${pulKorsat(som(tolovQoldiq.toFixed(2)))}`
+                      : tolovQoldiq === 0
+                        ? "to'liq to'landi"
+                        : `ortiqcha: ${pulKorsat(som(Math.abs(tolovQoldiq).toFixed(2)))}`}
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
 
           <button
             type="submit"

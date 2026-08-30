@@ -1,5 +1,6 @@
 import { sahifaRuxsati } from '@/lib/kirish/joriy';
 import { qoshimchaMateriallar, tikaOladiganFiliallar } from './malumot';
+import { tolovKassalari } from '../malumot';
 import { turRoyxati, turTafsili } from '@/lib/amal/katalog';
 import { SotuvFormasi } from './forma';
 import { ruxsatBormi } from '@/lib/ruxsat/tekshir';
@@ -20,15 +21,23 @@ export default async function SotuvEkrani() {
    *    Ilgari hammasi birdan yuklanardi: ~2 mln obyekt, ~230 MB
    *    JSON va sahifa bir daqiqadan ortiq ochilardi.
    */
-  const [turlar, filiallar, kurs, qoshimchalar, mijozGuruhlari] = await Promise.all([
-    turRoyxati(),
-    tikaOladiganFiliallar(),
-    // 5.4 — dollardagi material narxini so'mga o'girish uchun
-    joriyKurs(ulanishOl()),
-    // Alohida sotiladigan buyumlar — mexanizm, kronshteyn
-    qoshimchaMateriallar(f.filialId),
-    guruhTanlovlari(),
-  ]);
+  const [turlar, filiallar, kurs, qoshimchalar, mijozGuruhlari, kassalar] =
+    await Promise.all([
+      turRoyxati(),
+      tikaOladiganFiliallar(),
+      // 5.4 — dollardagi material narxini so'mga o'girish uchun
+      joriyKurs(ulanishOl()),
+      // Alohida sotiladigan buyumlar — mexanizm, kronshteyn
+      qoshimchaMateriallar(f.filialId),
+      guruhTanlovlari(),
+      /**
+       * TZ 12.2 — sotuvchi faqat O'Z naqd kassasiga oladi, karta
+       * esa to'g'ridan-to'g'ri admin kassasiga tushadi.
+       */
+      ruxsatBormi(f, 'kassa.tolov')
+        ? tolovKassalari(f.filialId, f.xodimId)
+        : Promise.resolve([]),
+    ]);
 
   // Ekran bo'sh ochilmasin — birinchi turning tafsiloti darhol keladi
   const birinchiTur = turlar[0] === undefined ? null : await turTafsili(turlar[0].id, f.filialId);
@@ -53,6 +62,7 @@ export default async function SotuvEkrani() {
         ozFilialId={f.filialId}
         mijozQoshaOladi={ruxsatBormi(f, 'mijoz.yarat')}
         mijozGuruhlari={mijozGuruhlari}
+        kassalar={kassalar}
         joriyKurs={kurs}
         qoshimchalar={qoshimchalar}
       />

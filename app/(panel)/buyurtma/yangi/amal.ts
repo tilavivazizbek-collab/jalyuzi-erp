@@ -18,6 +18,7 @@ import {
   type PozitsiyaKirimi,
 } from '@/lib/amal/buyurtma';
 import { turTafsili, type SotuvTuri } from '@/lib/amal/katalog';
+import { buyurtmaTolovi } from '@/lib/amal/tolov';
 import { kesimOlchami } from '@/lib/domain/kesish';
 import { ruxsatTalab } from '@/lib/kirish/joriy';
 import { sotuvSxema } from '@/lib/sxema/sotuv';
@@ -83,6 +84,35 @@ export async function buyurtmaYaratAmali(
     })),
   }));
 
+  /**
+   * ⚠️ To'lov BUYURTMADAN OLDIN tekshiriladi: summa yoki kassa
+   *    xato bo'lsa, buyurtma umuman yaratilmaydi va sotuvchi
+   *    yarim ish bilan qolmaydi.
+   */
+  const tolovSumma = matnMaydon(forma, 'oldindanTolov').trim();
+  const tolovKassaId = Number(matnMaydon(forma, 'tolovKassaId'));
+
+  let tolov: { kassaId: number; summa: string; valyuta: 'SOM' | 'USD' } | null = null;
+  if (tolovSumma !== '' && Number(tolovSumma) > 0) {
+    if (!/^\d+(\.\d{1,2})?$/.test(tolovSumma)) {
+      return {
+        xato: "To'lov summasi noto'g'ri",
+        maydonlar: {},
+        materialgaKutmoqda: [],
+        buyurtmaRaqam: null,
+      };
+    }
+    if (!Number.isSafeInteger(tolovKassaId) || tolovKassaId <= 0) {
+      return {
+        xato: "To'lov uchun kassa tanlanmagan",
+        maydonlar: {},
+        materialgaKutmoqda: [],
+        buyurtmaRaqam: null,
+      };
+    }
+    tolov = { kassaId: tolovKassaId, summa: tolovSumma, valyuta: d.valyuta };
+  }
+
   try {
     const raqam = await buyurtmaRaqamiOl(sql);
 
@@ -104,11 +134,47 @@ export async function buyurtmaYaratAmali(
       f.xodimId,
     );
 
+    /**
+     * OLDINDAN TO'LOV — TZ 12.5 (K1).
+     *
+     * ⚠️ Egasi (2026-08-30): «mijoz to'lov qilishi uchun input
+     *    hech qayerda yo'q». Mijoz buyurtma berayotganda odatda
+     *    oldindan to'laydi; ilgari buni yozish uchun buyurtmani
+     *    saqlab, kartochkasini ochib, «To'lov» tugmasini bosish
+     *    kerak edi — uch qadam, ko'pincha unutilardi.
+     *
+     * ⚠️ ALOHIDA TRANZAKSIYA. To'lov yiqilsa buyurtma qoladi va
+     *    xabar aytiladi: buyurtma bekor bo'lgandan ko'ra, to'lovni
+     *    kartochkadan qayta kiritish yengilroq.
+     */
+    let tolovXatosi: string | null = null;
+    if (tolov !== null) {
+      try {
+        await buyurtmaTolovi(
+          sql,
+          {
+            buyurtmaId: n.buyurtmaId,
+            qatorlar: [tolov],
+            izoh: 'Buyurtma berilganda',
+          },
+          f.xodimId,
+          'K1',
+        );
+        revalidatePath('/kassa');
+      } catch (x) {
+        tolovXatosi = await xatoXabari(
+          x,
+          'buyurtma/yangi/amal-tolov',
+          `Buyurtma ${n.raqam} saqlandi, lekin to'lov yozilmadi`,
+        );
+      }
+    }
+
     revalidatePath('/ombor');
     revalidatePath('/buyurtma');
 
     return {
-      xato: null,
+      xato: tolovXatosi,
       maydonlar: {},
       // Q-03 — material yetmagan pozitsiyalar sotuvchiga AYTILADI
       materialgaKutmoqda: n.pozitsiyalar
