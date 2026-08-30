@@ -455,7 +455,15 @@ export function MaterialFormasi({
                to'lov hujjatlarida yoziladi (9.6) — u yerda qotib
                qoladi va keyin o'zgarmaydi.
           */}
-          <Maydon nom="kurs" yorliq="Kurs" izoh="bugungi kurs, faqat ko'rsatish uchun">
+          <Maydon
+            nom="kurs"
+            yorliq="Kurs"
+            izoh={
+              joriyKurs === ''
+                ? "belgilanmagan — Sozlash → Dollar kursi"
+                : "bugungi kurs, faqat ko'rsatish uchun"
+            }
+          >
             <input
               id="kurs"
               value={kurs}
@@ -464,8 +472,24 @@ export function MaterialFormasi({
               }}
               inputMode="decimal"
               placeholder="masalan 12800"
-              className={kirishUslubi(false)}
+              className={kirishUslubi(joriyKurs === '')}
             />
+            {/*
+              ⚠️ Kurs bazada belgilanmagan bo'lsa, bu yerda yozilgani
+                 SAQLANMAYDI — u faqat shu ekranda ko'rsatish uchun.
+                 Havola aynan shuni aytadi, aks holda egasi har
+                 mahsulotda qaytadan terardi (2026-08-30).
+            */}
+            {joriyKurs === '' && (
+              <a
+                href="/kurs"
+                target="_blank"
+                rel="noopener"
+                className="mt-1 inline-block text-[12px] text-brend hover:underline"
+              >
+                Kursni belgilash ↗
+              </a>
+            )}
           </Maydon>
 
           <Maydon

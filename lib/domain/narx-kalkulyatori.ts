@@ -142,6 +142,21 @@ export function narxJuftiniYangila(
    *    egasi qotirgan raqam, uni kurs o'zgartirmaydi.
    */
   if (yaxlitlangan) return joriy;
+
+  /**
+   * ⚠️ 2026-08-30: bu yerda faqat DOLLARDAN so'mga hisoblanardi.
+   *    Egasi ko'pincha teskari ishlaydi: avval so'm narxini
+   *    yozadi, keyin kursni kiritadi. O'sha payt dollar bo'sh
+   *    bo'lgani uchun so'm ham BO'SHATILARDI — yozilgan raqam
+   *    ko'z oldida yo'qolardi.
+   *
+   *    Endi qaysi katak to'lgan bo'lsa, ikkinchisi o'shandan
+   *    hisoblanadi.
+   */
+  if (joriy.dollar === '' && joriy.som !== '') {
+    return { dollar: hamrohQiymat(joriy.som, qiymat, 'SOM_DAN_USDGA'), som: joriy.som };
+  }
+
   return { dollar: joriy.dollar, som: hamrohQiymat(joriy.dollar, qiymat, 'USD_DAN_SOMGA') };
 }
 

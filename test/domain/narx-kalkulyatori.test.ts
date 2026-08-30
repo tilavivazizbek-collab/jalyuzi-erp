@@ -215,3 +215,48 @@ describe("katalogNarxi — dollardagi material narxi (5.4 · 1.3-invariant)", ()
     expect(natija).toBe('otildi');
   });
 });
+
+/**
+ * ⚠️ 2026-08-30 — egasi: «material qo'shishda dollar kursi inputi
+ *    bor, undagi so'm avtomatik to'lsin».
+ *
+ *    Sabab: kurs kiritilganda faqat DOLLARDAN so'mga hisoblanardi.
+ *    Egasi esa avval so'm narxini yozib, keyin kursni kiritardi —
+ *    o'sha payt yozilgan so'm YO'QOLARDI.
+ */
+describe('Kurs keyin kiritilsa yozilgan raqam yo‘qolmaydi', () => {
+  it("so'm yozilgan, keyin kurs — so'm joyida qoladi", () => {
+    let j = { dollar: '', som: '' };
+    j = narxJuftiniYangila(j, 'SOM', '600000', '', false);
+    j = narxJuftiniYangila(j, 'KURS', '12800', '12800', false);
+
+    expect(j.som).toBe('600000');
+    // 600000 / 12800 = 46.875
+    expect(Number(j.dollar)).toBeCloseTo(46.88, 1);
+  });
+
+  it('dollar yozilgan, keyin kurs — so‘m hisoblanadi', () => {
+    let j = { dollar: '', som: '' };
+    j = narxJuftiniYangila(j, 'DOLLAR', '50', '', false);
+    j = narxJuftiniYangila(j, 'KURS', '12800', '12800', false);
+
+    expect(j.dollar).toBe('50');
+    expect(Number(j.som)).toBe(640000);
+  });
+
+  it('ikkalasi bo‘sh bo‘lsa — bo‘sh qoladi, xato yo‘q', () => {
+    const j = narxJuftiniYangila({ dollar: '', som: '' }, 'KURS', '12800', '12800', false);
+    expect(j).toEqual({ dollar: '', som: '' });
+  });
+
+  it('yaxlitlangan so‘m kurs o‘zgarsa ham qotib turadi', () => {
+    const j = narxJuftiniYangila(
+      { dollar: '50', som: '600000' },
+      'KURS',
+      '13000',
+      '13000',
+      true,
+    );
+    expect(j.som).toBe('600000');
+  });
+});
