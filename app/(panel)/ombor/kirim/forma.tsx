@@ -525,9 +525,30 @@ export function KirimFormasi({
                       onChange={(e) => {
                         const yangiId = Number(e.target.value);
                         const yangiM = materiallar.find((z) => z.id === yangiId);
+                        /**
+                         * ⚠️ Material almashsa rulon qatorlari YANGI
+                         *    mahsulotning odatdagi o'lchami bilan
+                         *    qayta ochiladi. Ilgari ular bo'shatib
+                         *    yuborilardi va omborchi eni-bo'yini
+                         *    qaytadan terardi (2026-08-30).
+                         */
+                        const soni = Number(q.miqdorKirim);
+                        const rulon = yangiM?.hisobTuri === 'RULON';
+                        const yangiBolaklar =
+                          yangiM !== undefined &&
+                          rulon &&
+                          Number.isInteger(soni) &&
+                          soni > 0 &&
+                          soni <= 50
+                            ? Array.from({ length: soni }, () => ({
+                                eniM: yangiM.odatdagiEniM ?? '',
+                                boyiM: yangiM.odatdagiBoyiM ?? '',
+                              }))
+                            : [];
+
                         yangila(i, {
                           materialId: yangiId,
-                          bolaklar: [],
+                          bolaklar: yangiBolaklar,
                           narxBirlik:
                             yangiM === undefined ? '' : boshlangichNarx(yangiM, valyuta),
                           narxAsosi: yangiM === undefined ? 'BIRLIK' : qatorAsosi(yangiM),

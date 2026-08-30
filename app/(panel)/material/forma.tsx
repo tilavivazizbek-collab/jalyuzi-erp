@@ -154,6 +154,15 @@ export function MaterialFormasi({
    */
   const [narxAsosi, narxAsosiniOzgartir] = useState(q('kirimNarxAsosi'));
 
+  /**
+   * ⚠️ Odatdagi o'lchamlar BOSHQARILADI: ular kirimni ham,
+   *    «Omborda hozir bor» bo'limini ham oldindan to'ldiradi.
+   *    Ilgari zahira qatorlari bo'sh ochilar va egasi eni-bo'yini
+   *    ikkinchi marta terardi.
+   */
+  const [rulonEni, rulonEniniOzgartir] = useState(q('standartRulonEniM'));
+  const [rulonBoyi, rulonBoyiniOzgartir] = useState(q('odatdagiRulonBoyiM'));
+
   const ostatkaBor =
     tavsif === null || ostatkaChegarasiKerakmi(tavsif.sarflashBirligi);
 
@@ -304,10 +313,18 @@ export function MaterialFormasi({
               izoh="kirimda oldindan to'ldiriladi"
               xato={x('standartRulonEniM')}
             >
+              {/*
+                ⚠️ Boshqariladigan katak: shu yerda yozilgan eni
+                   «Omborda hozir bor» bo'limidagi rulon qatorlarini
+                   ham O'ZI to'ldiradi (2026-08-30).
+              */}
               <input
                 id="standartRulonEniM"
                 name="standartRulonEniM"
-                defaultValue={q('standartRulonEniM')}
+                value={rulonEni}
+                onChange={(e) => {
+                  rulonEniniOzgartir(e.target.value);
+                }}
                 inputMode="decimal"
                 className={chegara('standartRulonEniM')}
               />
@@ -351,7 +368,10 @@ export function MaterialFormasi({
               <input
                 id="odatdagiRulonBoyiM"
                 name="odatdagiRulonBoyiM"
-                defaultValue={q('odatdagiRulonBoyiM')}
+                value={rulonBoyi}
+                onChange={(e) => {
+                  rulonBoyiniOzgartir(e.target.value);
+                }}
                 inputMode="decimal"
                 className={chegara('odatdagiRulonBoyiM')}
               />
@@ -642,8 +662,8 @@ export function MaterialFormasi({
           }
           narxAsosi={narxAsosi}
           xatolar={holat.zahiraXatolari ?? {}}
-          boshEni=""
-          boshBoyi=""
+          boshEni={rulonEni}
+          boshBoyi={rulonBoyi}
         />
       )}
 

@@ -29,8 +29,6 @@ interface Olcham {
   boyiM: string;
 }
 
-const BOSH_OLCHAM: Olcham = { eniM: '', boyiM: '' };
-
 export function ZahiraBolimi({
   rulonmi,
   birlikNomi,
@@ -54,6 +52,33 @@ export function ZahiraBolimi({
   const [olchamlar, olchamlarniOzgartir] = useState<Olcham[]>(() => [
     { eniM: boshEni, boyiM: boshBoyi },
   ]);
+
+  /**
+   * ⚠️ Yuqorida «Rulon eni» yoki «Rulon bo'yi» o'zgarsa, shu
+   *    yerdagi qatorlar ham ERGASHADI — lekin faqat egasi
+   *    o'zgartirmaganlari.
+   *
+   *    Egasi (2026-08-30): «inputlar avtomatik to'ladi, agar
+   *    o'zgartirish kerak bo'lsa o'zgartiriladi». Ya'ni qo'lda
+   *    yozilgan raqam ustidan yozilmasligi kerak.
+   *
+   * ⚠️ React ning «render paytida holatni moslash» usuli —
+   *    `useEffect` dan farqli o'laroq katak miltillamaydi.
+   */
+  const [oldingiBosh, oldingiBoshniOzgartir] = useState({
+    eni: boshEni,
+    boyi: boshBoyi,
+  });
+
+  if (oldingiBosh.eni !== boshEni || oldingiBosh.boyi !== boshBoyi) {
+    oldingiBoshniOzgartir({ eni: boshEni, boyi: boshBoyi });
+    olchamlarniOzgartir((x) =>
+      x.map((o) => ({
+        eniM: o.eniM === '' || o.eniM === oldingiBosh.eni ? boshEni : o.eniM,
+        boyiM: o.boyiM === '' || o.boyiM === oldingiBosh.boyi ? boshBoyi : o.boyiM,
+      })),
+    );
+  }
   const [miqdor, miqdorniOzgartir] = useState('');
   const [narx, narxniOzgartir] = useState('');
 
@@ -165,7 +190,8 @@ export function ZahiraBolimi({
               <button
                 type="button"
                 onClick={() => {
-                  olchamlarniOzgartir((x) => [...x, BOSH_OLCHAM]);
+                  /** ⚠️ Yangi rulon ham kartochkadagi o'lcham bilan ochiladi */
+                  olchamlarniOzgartir((x) => [...x, { eniM: boshEni, boyiM: boshBoyi }]);
                 }}
                 className="fokus mt-2 rounded-maydon text-sm text-matn-kuchsiz underline underline-offset-2 hover:text-matn"
               >
