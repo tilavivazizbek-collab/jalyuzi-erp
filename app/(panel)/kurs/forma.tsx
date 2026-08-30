@@ -2,7 +2,8 @@
 
 import { useActionState } from 'react';
 import { Maydon, kirishUslubi } from '../maydon';
-import { BOSH_KURS_HOLATI, kursAmali } from './amal';
+import { kursAmali } from './amal';
+import { BOSH_KURS_HOLATI } from './holat';
 
 export function KursFormasi({ joriy }: { joriy: string | null }) {
   const [holat, yubor, kutilmoqda] = useActionState(kursAmali, BOSH_KURS_HOLATI);

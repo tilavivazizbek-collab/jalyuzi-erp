@@ -11,13 +11,7 @@ import { ruxsatTalab } from '@/lib/kirish/joriy';
 import { biznesXatosimi } from '@/lib/xato';
 import { kutilmaganXatoniYoz } from '@/lib/xato-jurnal';
 import { matnMaydon } from '../forma-yordamchi';
-
-export interface KursHolati {
-  readonly xato: string | null;
-  readonly saqlandi: boolean;
-}
-
-export const BOSH_KURS_HOLATI: KursHolati = { xato: null, saqlandi: false };
+import type { KursHolati } from './holat';
 
 export async function kursAmali(
   _oldingi: KursHolati,
