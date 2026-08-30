@@ -40,7 +40,14 @@ import { BiznesXato } from '@/lib/xato';
  *    Ilgari faqat `BIRLIK` bor edi va omborchi 200 ni O'ZI hisoblab
  *    kiritardi. Qo'lda hisoblash — xato manbayi.
  */
-export type NarxAsosi = 'BIRLIK' | 'METR';
+/**
+ * ⚠️ `KV_M` — egasi (2026-08-30): «rulon bo'lsa narx 2 xil
+ *    bo'ladi: 1) bo'yi × narx — 50 × 5 $ = 250 $;
+ *    2) bo'yi × eni × narx — 50 × 3 × 5 $ = 750 $».
+ *
+ *    Bu FAQAT KIRIMDA. Sotuvda har doim kv.m ishlaydi.
+ */
+export type NarxAsosi = 'BIRLIK' | 'METR' | 'KV_M';
 
 export interface KirimQatori {
   readonly id: number;
@@ -58,6 +65,12 @@ export interface KirimQatori {
    *    uchun O'RTACHA emas, aynan YIG'INDI kerak.
    */
   readonly jamiBoyiM?: number;
+  /**
+   * `KV_M` bo'lsa — rulonlar MAYDONLARI yig'indisi (kv.m).
+   *
+   * ⚠️ Bu ham YIG'INDI: har rulonning eni ham, bo'yi ham boshqa.
+   */
+  readonly jamiKvM?: number;
 }
 
 export interface Ulush {
@@ -81,8 +94,21 @@ export interface Ulush {
  *    noto'g'ri chiqardi.
  */
 export const qatorQiymati = (q: KirimQatori): Som => {
-  if ((q.narxAsosi ?? 'BIRLIK') === 'BIRLIK') {
+  const asos = q.narxAsosi ?? 'BIRLIK';
+
+  if (asos === 'BIRLIK') {
     return kopaytir(q.narxBirlik, q.miqdor);
+  }
+
+  if (asos === 'KV_M') {
+    const maydon = q.jamiKvM ?? 0;
+    if (!Number.isFinite(maydon) || maydon <= 0) {
+      throw new BiznesXato(
+        'TANNARX_NOTOGRI',
+        "kv.m bo'yicha narxda rulon eni va bo'yi kiritilishi kerak",
+      );
+    }
+    return kopaytir(q.narxBirlik, maydon);
   }
 
   const boyi = q.jamiBoyiM ?? 0;
@@ -180,14 +206,34 @@ export interface TannarxNatijasi {
  *    bir xil bo'lsa, keng rulonning kv.m tannarxi arzonroq.
  */
 export function rulonTannarxi(jamiQiymat: Som, jamiBoyiM: number, boyiM: number): Som {
-  if (!Number.isFinite(jamiBoyiM) || jamiBoyiM <= 0) {
-    throw new BiznesXato('TANNARX_NOTOGRI', "jami bo'yi noldan katta bo'lishi kerak");
+  return mutanosibNarx(jamiQiymat, jamiBoyiM, boyiM, "bo'yi");
+}
+
+/**
+ * Qator qiymatini bo'laklarga MUTANOSIB bo'lish.
+ *
+ * ⚠️ Bitta hisob, ikki ishlatilish (§2.2):
+ *      `METR` narxida  — o'lchov rulonning BO'YI
+ *      `KV_M` narxida  — o'lchov rulonning MAYDONI
+ *
+ *    Ikkalasi ham «qatorga to'langan pulni bo'laklar orasida
+ *    ularning ulushiga qarab bo'lish» degani. Formula bir xil,
+ *    faqat o'lchov boshqa.
+ */
+export function mutanosibNarx(
+  jamiQiymat: Som,
+  jamiOlchov: number,
+  olchov: number,
+  nomi: string,
+): Som {
+  if (!Number.isFinite(jamiOlchov) || jamiOlchov <= 0) {
+    throw new BiznesXato('TANNARX_NOTOGRI', `jami ${nomi} noldan katta bo'lishi kerak`);
   }
-  if (!Number.isFinite(boyiM) || boyiM <= 0) {
-    throw new BiznesXato('TANNARX_NOTOGRI', "rulon bo'yi noldan katta bo'lishi kerak");
+  if (!Number.isFinite(olchov) || olchov <= 0) {
+    throw new BiznesXato('TANNARX_NOTOGRI', `rulon ${nomi} noldan katta bo'lishi kerak`);
   }
 
-  return kopaytir(bol(jamiQiymat, jamiBoyiM), boyiM);
+  return kopaytir(bol(jamiQiymat, jamiOlchov), olchov);
 }
 
 export type DefektTuri = 'QAYTARILADI' | 'HISOBDAN_CHIQADI' | null;

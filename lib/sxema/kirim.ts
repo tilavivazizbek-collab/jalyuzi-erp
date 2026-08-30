@@ -35,7 +35,7 @@ export const kirimQatorSxema = z
      * ⚠️ `METR` — narx uzunlik metriga berilgan (mato rulonlari).
      *    Rulonning ENI narxga ta'sir qilmaydi.
      */
-    narxAsosi: z.enum(['BIRLIK', 'METR']).default('BIRLIK'),
+    narxAsosi: z.enum(['BIRLIK', 'METR', 'KV_M']).default('BIRLIK'),
     narxBirlik: z
       .string()
       .trim()

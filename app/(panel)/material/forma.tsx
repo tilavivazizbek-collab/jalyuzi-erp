@@ -45,6 +45,7 @@ export interface MaterialQiymatlari {
   readonly kamQoldiqChegaraM: string;
   readonly standartRulonEniM: string;
   readonly odatdagiRulonBoyiM: string;
+  readonly kirimNarxAsosi: string;
   readonly almashtirishGuruhId: string;
   readonly yaxlitlashQadami: string;
 }
@@ -65,6 +66,7 @@ export const BOSH_QIYMATLAR: MaterialQiymatlari = {
   kamQoldiqChegaraM: '',
   standartRulonEniM: '',
   odatdagiRulonBoyiM: '',
+  kirimNarxAsosi: 'METR',
   almashtirishGuruhId: '',
   yaxlitlashQadami: '',
 };
@@ -177,6 +179,15 @@ export function MaterialFormasi({
         </>
       )}
 
+      {/*
+        ⚠️ Rulon bo'lmasa tanlov ko'rinmaydi, lekin qiymat baribir
+           YUBORILADI: bo'sh maydon `z.enum` da xato beradi va u
+           xato ekranda hech qayerda ko'rinmasdi.
+      */}
+      {tavsif?.olchamliMi !== true && (
+        <input type="hidden" name="kirimNarxAsosi" value="BIRLIK" />
+      )}
+
       <section className="grid gap-4 sm:grid-cols-2">
         <div className="sm:col-span-2">
           {/*
@@ -286,6 +297,32 @@ export function MaterialFormasi({
                 inputMode="decimal"
                 className={chegara('standartRulonEniM')}
               />
+            </Maydon>
+
+            {/*
+              ⚠️ Egasi (2026-08-30): «rulon bo'lsa narx 2 xil
+                 bo'ladi: bo'yi × narx (50 × 5 $ = 250 $) yoki
+                 bo'yi × eni × narx (50 × 3 × 5 $ = 750 $)».
+
+              ⚠️ FAQAT KIRIMGA taalluqli. Sotuvda har doim kv.m
+                 ishlaydi — bu tanlov sotuv narxiga tegmaydi.
+            */}
+            <Maydon
+              nom="kirimNarxAsosi"
+              yorliq="Kirimda narx qanday hisoblanadi"
+              izoh="sotuvga tegmaydi"
+              xato={x('kirimNarxAsosi')}
+            >
+              <select
+                id="kirimNarxAsosi"
+                name="kirimNarxAsosi"
+                defaultValue={q('kirimNarxAsosi')}
+                className={chegara('kirimNarxAsosi')}
+              >
+                <option value="METR">Bo&apos;yiga — 50 m × 5 = 250</option>
+                <option value="KV_M">Kv.m ga — 50 × 3 × 5 = 750</option>
+                <option value="BIRLIK">Rulonga — 1 rulon narxi</option>
+              </select>
             </Maydon>
 
             <Maydon

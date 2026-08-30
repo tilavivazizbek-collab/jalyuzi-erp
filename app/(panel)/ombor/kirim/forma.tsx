@@ -43,6 +43,8 @@ export interface MaterialTanlovi {
    */
   readonly kutilayotganNarx: string | null;
   readonly kutilayotganValyuta: string;
+  /** Kartochkada belgilangan usul — qator shu bilan ochiladi (7.9) */
+  readonly kirimNarxAsosi: string;
 }
 
 export interface YetkazibTanlovi {
@@ -69,7 +71,7 @@ interface Qator {
    *    Ilgari faqat rulon narxi bor edi va omborchi 200 ni O'ZI
    *    hisoblab kiritardi.
    */
-  narxAsosi: 'BIRLIK' | 'METR';
+  narxAsosi: 'BIRLIK' | 'METR' | 'KV_M';
   defektMiqdor: string;
   defektTuri: 'QAYTARILADI' | 'HISOBDAN_CHIQADI' | null;
   bolaklar: BolakQatori[];
@@ -297,12 +299,7 @@ export function KirimFormasi({
                     materialId: birinchi.id,
                     miqdorKirim: '',
                     narxBirlik: boshlangichNarx(birinchi, valyuta),
-                    /**
-                     * ⚠️ Rulon materialda odatda METR narxi
-                     *    ishlatiladi — mato metriga narxlanadi.
-                     *    Boshqa turlarda birlik narxi.
-                     */
-                    narxAsosi: birinchi.hisobTuri === 'RULON' ? 'METR' : 'BIRLIK',
+                    narxAsosi: qatorAsosi(birinchi),
                     defektMiqdor: '',
                     defektTuri: null,
                     bolaklar: [],
@@ -382,6 +379,8 @@ export function KirimFormasi({
                     odatdagiBoyiM: null,
                     kutilayotganNarx: null,
                     kutilayotganValyuta: 'SOM',
+                    /** Modalda yaratilgan material — standart usul */
+                    kirimNarxAsosi: 'METR',
                   },
                 ]);
                 materialModaliniOzgartir(false);
@@ -425,6 +424,7 @@ export function KirimFormasi({
                           bolaklar: [],
                           narxBirlik:
                             yangiM === undefined ? '' : boshlangichNarx(yangiM, valyuta),
+                          narxAsosi: yangiM === undefined ? 'BIRLIK' : qatorAsosi(yangiM),
                         });
                       }}
                       className={kichik}
@@ -462,18 +462,26 @@ export function KirimFormasi({
                         inputMode="decimal"
                         className={`${kichik} w-full min-w-16 flex-1`}
                       />
+                      {/*
+                        ⚠️ Rulonda uchta usul: bo'yiga, kv.m ga,
+                           rulonga. Kartochkadagi usul o'zi
+                           tanlangan bo'lib keladi.
+                      */}
                       <select
                         value={q.narxAsosi}
                         onChange={(e) => {
+                          const v = e.target.value;
                           yangila(i, {
-                            narxAsosi: e.target.value === 'METR' ? 'METR' : 'BIRLIK',
+                            narxAsosi:
+                              v === 'METR' ? 'METR' : v === 'KV_M' ? 'KV_M' : 'BIRLIK',
                           });
                         }}
                         aria-label="Narx nimaga berilgan"
-                        className={`${kichik} w-24 shrink-0`}
+                        className={`${kichik} w-28 shrink-0`}
                       >
                         <option value="BIRLIK">{m?.kirimBirligi ?? 'birlik'}ga</option>
-                        <option value="METR">metriga</option>
+                        {rulonmi && <option value="METR">metriga</option>}
+                        {rulonmi && <option value="KV_M">kv.m ga</option>}
                       </select>
                     </div>
 
@@ -665,6 +673,20 @@ export function KirimFormasi({
  * ⚠️ Bu shunchaki BOSHLANG'ICH qiymat. Omborchi uni o'zgartiradi
  *    va tannarx doim u kiritgan narxdan hisoblanadi (5.4).
  */
+/**
+ * Qator qaysi usul bilan ochiladi.
+ *
+ * ⚠️ Rulon bo'lmasa usul har doim `BIRLIK`: dona mexanizmning
+ *    «metr narxi» degan tushunchasi yo'q. Kartochkadagi qiymat
+ *    faqat rulonga taalluqli.
+ */
+function qatorAsosi(m: MaterialTanlovi): 'BIRLIK' | 'METR' | 'KV_M' {
+  if (m.hisobTuri !== 'RULON') return 'BIRLIK';
+  if (m.kirimNarxAsosi === 'KV_M') return 'KV_M';
+  if (m.kirimNarxAsosi === 'BIRLIK') return 'BIRLIK';
+  return 'METR';
+}
+
 function boshlangichNarx(m: MaterialTanlovi, hujjatValyutasi: string): string {
   if (m.kutilayotganNarx === null) return '';
   if (m.kutilayotganValyuta !== hujjatValyutasi) return '';

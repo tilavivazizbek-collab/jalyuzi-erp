@@ -35,6 +35,7 @@ const MATERIAL: MaterialKirimi = {
   koeffitsient: '1',
   sotuvNarx: '120000',
   sotuvValyuta: 'SOM',
+  kirimNarxAsosi: 'METR',
   kutilayotganKelishNarx: undefined,
   kutilayotganKelishValyuta: 'SOM',
   minUstamaFoiz: undefined,

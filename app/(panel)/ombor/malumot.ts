@@ -773,10 +773,12 @@ export async function kirimMateriallari(): Promise<MaterialTanlovi[]> {
       odatdagi_rulon_boyi_m: string | null;
       kutilayotgan_kelish_narx: string | null;
       kutilayotgan_kelish_valyuta: string;
+      kirim_narx_asosi: string;
     }[]
   >`SELECT id, nom, hisob_turi, kirim_birligi,
            standart_rulon_eni_m::text, odatdagi_rulon_boyi_m::text,
-           kutilayotgan_kelish_narx::text, kutilayotgan_kelish_valyuta
+           kutilayotgan_kelish_narx::text, kutilayotgan_kelish_valyuta,
+           kirim_narx_asosi
     FROM material WHERE faol = true ORDER BY nom`;
 
   return qatorlar.map((x) => ({
@@ -794,6 +796,12 @@ export async function kirimMateriallari(): Promise<MaterialTanlovi[]> {
     odatdagiBoyiM: x.odatdagi_rulon_boyi_m,
     kutilayotganNarx: x.kutilayotgan_kelish_narx,
     kutilayotganValyuta: x.kutilayotgan_kelish_valyuta,
+    /**
+     * ⚠️ Kirim qatori SHU usul bilan ochiladi. Omborchi
+     *    o'zgartira oladi — bir marta boshqacha narxlangan
+     *    partiya kelishi mumkin.
+     */
+    kirimNarxAsosi: x.kirim_narx_asosi,
   }));
 }
 

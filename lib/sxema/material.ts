@@ -95,6 +95,26 @@ export const materialSxema = z
       .transform((x) => (x === '' ? undefined : Number(x)))
       .optional(),
 
+    /**
+     * TZ 7.9 — KIRIMDA narx nimaga berilgani.
+     *
+     * ⚠️ Sotuvga tegmaydi: sotuvda har doim kv.m ishlaydi.
+     */
+    /**
+     * ⚠️ Bo'sh matn STANDART qiymatga aylanadi.
+     *
+     *    Tanlov faqat RULON mahsulotda ko'rinadi. Dona mahsulotda
+     *    forma bu maydonni bo'sh yuboradi va `z.enum` uni rad
+     *    etardi — xato esa EKRANDA HECH QAYERDA ko'rinmasdi
+     *    (maydonning o'zi yo'q). 2026-08-29 da `sotuvValyuta`
+     *    bilan aynan shu bo'lgan va material umuman
+     *    saqlanmagan edi.
+     */
+    kirimNarxAsosi: z.preprocess(
+      (x) => (x === '' || x === undefined || x === null ? 'METR' : x),
+      z.enum(['BIRLIK', 'METR', 'KV_M']),
+    ),
+
     yaxlitlashQadami: ixtiyoriySon('Yaxlitlash qadami'),
     eslatma: ixtiyoriyMatn,
   })

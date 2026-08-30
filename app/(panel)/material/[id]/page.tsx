@@ -39,6 +39,7 @@ interface Qator {
   readonly odatdagi_rulon_boyi_m: string | null;
   readonly almashtirish_guruh_id: number | null;
   readonly yaxlitlash_qadami: string | null;
+  readonly kirim_narx_asosi: string;
 }
 
 /** `NUMERIC` bazadan matn bo'lib keladi; bo'sh maydon formada '' bo'ladi. */
@@ -64,6 +65,7 @@ export default async function MaterialTahrirlash({ params }: { params: Promise<{
            kutilayotgan_kelish_valyuta, min_ustama_foiz, yaroqsiz_chegara_m,
            kam_ishlatiladigan_m, kam_qoldiq_chegara_m, standart_rulon_eni_m,
            odatdagi_rulon_boyi_m, almashtirish_guruh_id, yaxlitlash_qadami,
+           kirim_narx_asosi,
            (rasm IS NOT NULL) AS rasm_bormi,
            to_char(ozgartirildi, 'YYYYMMDDHH24MISS') AS ozgartirildi
     FROM material WHERE id = ${materialId}`;
@@ -102,6 +104,7 @@ export default async function MaterialTahrirlash({ params }: { params: Promise<{
     almashtirishGuruhId:
       material.almashtirish_guruh_id === null ? '' : String(material.almashtirish_guruh_id),
     yaxlitlashQadami: m(material.yaxlitlash_qadami),
+    kirimNarxAsosi: material.kirim_narx_asosi,
   };
 
   const amal = async (holat: FormaHolati, forma: FormData): Promise<FormaHolati> => {

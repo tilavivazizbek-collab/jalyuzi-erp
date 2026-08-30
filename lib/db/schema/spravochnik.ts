@@ -113,6 +113,22 @@ export const material = pgTable(
     kamIshlatiladiganM: numeric('kam_ishlatiladigan_m', { precision: 6, scale: 2 }),
     /** Q-10 — kam qoldiq chegarasi UZUNLIK bo'yicha, metrda */
     kamQoldiqChegaraM: numeric('kam_qoldiq_chegara_m', { precision: 6, scale: 2 }),
+
+    /**
+     * KIRIMDA narx nimaga berilgani — TZ 7.9.
+     *
+     * ⚠️ Egasi (2026-08-30): «rulon bo'lsa narx 2 xil bo'ladi:
+     *    bo'yi × narx (50 × 5 $ = 250 $) yoki bo'yi × eni × narx
+     *    (50 × 3 × 5 $ = 750 $). Bu tepada belgilanadi.»
+     *
+     * ⚠️ FAQAT KIRIMGA taalluqli. SOTUVDA har doim kv.m ishlaydi —
+     *    bu ustun sotuv narxiga umuman tegmaydi.
+     *
+     * ⚠️ Kirimda o'zgartirsa bo'ladi: bir marta boshqacha
+     *    narxlangan partiya kelishi mumkin. Bu qiymat faqat
+     *    ODATDAGI holatni beradi.
+     */
+    kirimNarxAsosi: text('kirim_narx_asosi').notNull().default('METR'),
     /** Q-14 — chegarani kv.m ga o'girish uchun. Bo'sh → oxirgi kirimdan olinadi */
     standartRulonEniM: numeric('standart_rulon_eni_m', { precision: 6, scale: 2 }),
 
@@ -177,6 +193,10 @@ export const material = pgTable(
     ),
     // TZ 5.8 — «Bloklaydi: koeffitsient 0 yoki manfiy»
     check('material_koeffitsient_musbat', sql`${t.koeffitsient} > 0`),
+    check(
+      'material_kirim_narx_asosi',
+      sql`${t.kirimNarxAsosi} IN ('BIRLIK','METR','KV_M')`,
+    ),
     // TZ 5.8 — «Bloklaydi: sotuv narxi manfiy»
     check('material_narx_manfiy_emas', sql`${t.sotuvNarx} IS NULL OR ${t.sotuvNarx} >= 0`),
     index('material_guruh').on(t.almashtirishGuruhId),

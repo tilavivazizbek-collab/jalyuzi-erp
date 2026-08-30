@@ -19,6 +19,8 @@ import Decimal from 'decimal.js';
 import {
   birlikTannarxi,
   rulonTannarxi,
+  type NarxAsosi,
+  mutanosibNarx,
   ustamaniTekshir,
   xarajatniTaqsimla,
   type DefektTuri,
@@ -42,7 +44,7 @@ export interface QatorKirimi {
    * ⚠️ `METR` — narx uzunlik metriga (mato rulonlari). Bo'sh
    *    bo'lsa `BIRLIK`: eski hujjatlar shunday ishlagan.
    */
-  readonly narxAsosi?: 'BIRLIK' | 'METR';
+  readonly narxAsosi?: NarxAsosi;
   readonly defektMiqdor: number;
   readonly defektTuri: DefektTuri;
   /**
@@ -141,6 +143,13 @@ export async function kirimYarat(
     const jamiBoyi = (q: (typeof kirim.qatorlar)[number]): number =>
       q.bolaklar.reduce((y, b) => y + b.boyiM, 0);
 
+    /**
+     * ⚠️ `KV_M` narxida qator qiymati rulonlar MAYDONLARI
+     *    yig'indisiga ko'paytiriladi: 50 × 3 × 5 $ = 750 $.
+     */
+    const jamiKvM = (q: (typeof kirim.qatorlar)[number]): number =>
+      q.bolaklar.reduce((y, b) => y + b.eniM * b.boyiM, 0);
+
     const domenQatorlar: KirimQatori[] = kirim.qatorlar.map((q, i) => ({
       id: i,
       miqdor: q.miqdorKirim,
@@ -148,6 +157,7 @@ export async function kirimYarat(
       defektMiqdor: q.defektMiqdor,
       narxAsosi: q.narxAsosi,
       jamiBoyiM: jamiBoyi(q),
+      jamiKvM: jamiKvM(q),
     }));
     const ulushlar = xarajatniTaqsimla(domenQatorlar, xarajat);
 
@@ -185,6 +195,7 @@ export async function kirimYarat(
           defektMiqdor: q.defektMiqdor,
           narxAsosi: q.narxAsosi,
           jamiBoyiM: jamiBoyi(q),
+          jamiKvM: jamiKvM(q),
         },
         ulush.ulush,
         q.defektTuri,
@@ -243,10 +254,18 @@ export async function kirimYarat(
            *    Natijada kv.m tannarxi faqat ENIga bog'liq bo'ladi —
            *    metr narxi bir xil bo'lsa keng rulon arzonroq.
            */
+          /**
+           * ⚠️ `KV_M` narxida har rulon O'Z MAYDONIGA mutanosib:
+           *    keng va uzun rulon ko'proq to'lanadi. Natijada
+           *    kv.m tannarxi hamma rulonda BIR XIL chiqadi —
+           *    aynan kelishilgan narx.
+           */
           const rulonNarxi =
             q.narxAsosi === 'METR'
               ? rulonTannarxi(tannarx.jamiQiymat, jamiBoyi(q), olcham.boyiM)
-              : tannarx.birlikTannarx;
+              : q.narxAsosi === 'KV_M'
+                ? mutanosibNarx(tannarx.jamiQiymat, jamiKvM(q), maydon, 'maydoni')
+                : tannarx.birlikTannarx;
 
           const kvMTannarx = new Decimal(pulMatn(rulonNarxi)).div(maydon);
 

@@ -33,6 +33,7 @@ export interface MaterialQatori {
   readonly kutilayotgan_kelish_valyuta: string;
   readonly almashtirish_guruh_id: number | null;
   readonly yaxlitlash_qadami: string | null;
+  readonly kirim_narx_asosi: string;
   readonly faol: boolean;
 }
 
@@ -61,6 +62,7 @@ function auditQiymatlari(m: MaterialQatori): Qiymatlar {
     odatdagi_rulon_boyi_m: m.odatdagi_rulon_boyi_m,
     almashtirish_guruh_id: m.almashtirish_guruh_id,
     yaxlitlash_qadami: m.yaxlitlash_qadami,
+    kirim_narx_asosi: m.kirim_narx_asosi,
   };
 }
 
@@ -81,7 +83,7 @@ export async function materialYarat(
         min_ustama_foiz,
         yaroqsiz_chegara_m, kam_ishlatiladigan_m, kam_qoldiq_chegara_m,
         standart_rulon_eni_m, odatdagi_rulon_boyi_m,
-        almashtirish_guruh_id, yaxlitlash_qadami,
+        almashtirish_guruh_id, yaxlitlash_qadami, kirim_narx_asosi,
         yaratdi_id
       ) VALUES (
         ${kirim.nom}, ${kirim.hisobTuri}, ${kirim.kirimBirligi},
@@ -93,6 +95,7 @@ export async function materialYarat(
         ${yoNull(kirim.kamQoldiqChegaraM)}, ${yoNull(kirim.standartRulonEniM)},
         ${yoNull(kirim.odatdagiRulonBoyiM)},
         ${kirim.almashtirishGuruhId ?? null}, ${yoNull(kirim.yaxlitlashQadami)},
+        ${kirim.kirimNarxAsosi},
         ${xodimId}
       ) RETURNING id`;
 
@@ -201,6 +204,7 @@ export async function materialTahrirla(
         odatdagi_rulon_boyi_m = ${yoNull(kirim.odatdagiRulonBoyiM)},
         almashtirish_guruh_id = ${kirim.almashtirishGuruhId ?? null},
         yaxlitlash_qadami = ${yoNull(kirim.yaxlitlashQadami)},
+        kirim_narx_asosi = ${kirim.kirimNarxAsosi},
         ozgartirildi = now(), ozgartirdi_id = ${xodimId}
       WHERE id = ${materialId}`;
 

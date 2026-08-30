@@ -30,6 +30,8 @@ export const MATERIAL_MAYDONLARI = [
   'odatdagiRulonBoyiM',
   'almashtirishGuruhId',
   'yaxlitlashQadami',
+  // TZ 7.9 — kirimda narx bo'yiga yoki kv.m ga
+  'kirimNarxAsosi',
   // Katalog rasmi — `data:` matn yoki `OCHIR` (3.3)
   'rasm',
 ];

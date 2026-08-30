@@ -116,6 +116,7 @@ describe('2. Kartochkada to‘ldirilgani saqlanadi', () => {
         koeffitsient: '1',
         sotuvNarx: '120000',
         sotuvValyuta: 'SOM',
+        kirimNarxAsosi: 'METR',
         kutilayotganKelishNarx: '78000',
         kutilayotganKelishValyuta: 'SOM',
         minUstamaFoiz: undefined,

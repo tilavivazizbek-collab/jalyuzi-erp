@@ -1,0 +1,2 @@
+ALTER TABLE "material" ADD COLUMN "kirim_narx_asosi" text DEFAULT 'METR' NOT NULL;--> statement-breakpoint
+ALTER TABLE "material" ADD CONSTRAINT "material_kirim_narx_asosi" CHECK ("material"."kirim_narx_asosi" IN ('BIRLIK','METR','KV_M'));
