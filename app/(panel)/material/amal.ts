@@ -13,9 +13,20 @@ import { ulanishOl } from '@/lib/db';
 import { materialTahrirla, materialYarat } from '@/lib/amal/material';
 import { ruxsatTalab } from '@/lib/kirish/joriy';
 import { ruxsatBormi } from '@/lib/ruxsat/tekshir';
-import { materialSxema } from '@/lib/sxema/material';
+import { materialSxema, zahiraSxema, type ZahiraKirimi } from '@/lib/sxema/material';
 import { biznesXatosimi } from '@/lib/xato';
-import { kirimniQaytar, maydonlarniOqi } from '../forma-yordamchi';
+import {
+  FORMA_XATO_XABARI,
+  kirimniQaytar,
+  matnMaydon,
+  maydonXatolari,
+  maydonlarniOqi,
+  type MaydonXatolari,
+} from '../forma-yordamchi';
+import { boshlangichQoldiq } from '@/lib/amal/boshlangich';
+import { rulonKvMTannarxi } from '@/lib/domain/boshlangich-narx';
+import { som } from '@/lib/domain/pul';
+import { kutilmaganXatoniYoz } from '@/lib/xato-jurnal';
 import { rasmniOqi } from '@/lib/domain/rasm';
 import { xatolarniYig, type FormaHolati } from './holat';
 import type { YaratilganYozuv } from '../modal-holat';
@@ -25,6 +36,53 @@ const MAYDONLAR = MATERIAL_MAYDONLARI;
 
 const formadanOqi = (forma: FormData): Record<string, string> =>
   maydonlarniOqi(forma, MAYDONLAR);
+
+/**
+ * «Omborda hozir bor» bo'limi — TZ 7.10.
+ *
+ * ⚠️ Bo'sh bo'lsa `null` qaytadi va hech narsa yozilmaydi.
+ *    Zahirasi yo'q mahsulot ham bo'ladi.
+ */
+function zahiraniOqi(forma: FormData): ZahiraKirimi | 'YOQ' | { xatolar: MaydonXatolari } {
+  const narx = matnMaydon(forma, 'zahiraNarx');
+  const miqdor = matnMaydon(forma, 'zahiraMiqdor');
+  const xomBolaklar = matnMaydon(forma, 'zahiraBolaklar');
+
+  let bolaklar: unknown = [];
+  if (xomBolaklar !== '') {
+    try {
+      bolaklar = JSON.parse(xomBolaklar);
+    } catch {
+      bolaklar = [];
+    }
+  }
+
+  const bolakBor = Array.isArray(bolaklar) && bolaklar.length > 0;
+
+  /** Hech narsa kiritilmagan — bo'lim ochilmagan */
+  if (narx === '' && miqdor === '' && !bolakBor) return 'YOQ';
+
+  const n = zahiraSxema.safeParse({
+    bolaklar,
+    miqdor: miqdor === '' ? null : Number(miqdor),
+    narx,
+    asos: matnMaydon(forma, 'kirimNarxAsosi'),
+    izoh: matnMaydon(forma, 'zahiraIzoh'),
+  });
+
+  if (!n.success) return { xatolar: maydonXatolari(n.error.issues) };
+
+  /**
+   * ⚠️ Miqdor ham, o'lcham ham yo'q — «narxni yozdim, miqdorni
+   *    unutdim» holati. Jimgina o'tkazib yuborilsa, egasi
+   *    zahira kiritdim deb o'ylab qolardi.
+   */
+  if (n.data.bolaklar.length === 0 && n.data.miqdor === null) {
+    return { xatolar: { miqdor: "Miqdorni yoki rulon o'lchamini kiriting" } };
+  }
+
+  return n.data;
+}
 
 /** ⚠️ Yaratish mantig'i BITTA joyda (§2.2) — sahifa ham, modal ham shuni chaqiradi. */
 async function yaratIchki(
@@ -48,6 +106,22 @@ async function yaratIchki(
     return kirimniQaytar(xatolarniYig(tekshiruv.error.issues), oldingi, kirim);
   }
 
+  /** ⚠️ Zahira MAHSULOTDAN OLDIN tekshiriladi — yarim ish qolmasin */
+  const zahira = zahiraniOqi(forma);
+  if (typeof zahira === 'object' && 'xatolar' in zahira) {
+    return kirimniQaytar<FormaHolati>(
+      {
+        xato: FORMA_XATO_XABARI,
+        maydonXatolari: {},
+        zahiraXatolari: zahira.xatolar,
+      },
+      oldingi,
+      kirim,
+    );
+  }
+
+  const rulonmi = tekshiruv.data.hisobTuri === 'RULON';
+
   let id: number;
   try {
     id = await materialYarat(
@@ -67,7 +141,47 @@ async function yaratIchki(
     );
   }
 
+  /**
+   * ⚠️ Mahsulot SAQLANDI. Zahira esa alohida tranzaksiya —
+   *    u yiqilsa mahsulot qolaveradi va egasi zahirani
+   *    keyin «Boshlang'ich qoldiq» ekranidan kiritadi.
+   *
+   *    Shuning uchun tekshiruv MAHSULOTDAN OLDIN qilingan:
+   *    noto'g'ri raqam bilan yarim ish qolmasin.
+   */
+  if (zahira !== 'YOQ') {
+    try {
+      await boshlangichQoldiq(
+        ulanishOl(),
+        {
+          materialId: id,
+          filialId: f.filialId,
+          bolaklar: zahira.bolaklar,
+          miqdor: zahira.miqdor,
+          tannarxBirlik: rulonmi
+            ? rulonKvMTannarxi(zahira.asos, som(zahira.narx), zahira.bolaklar)
+            : zahira.narx,
+          izoh: zahira.izoh ?? null,
+        },
+        f.xodimId,
+      );
+    } catch (x) {
+      await kutilmaganXatoniYoz(x, 'material-zahira');
+      return kirimniQaytar<FormaHolati>(
+        {
+          xato: biznesXatosimi(x)
+            ? `Mahsulot saqlandi, lekin zahira yozilmadi: ${x.message}`
+            : "Mahsulot saqlandi, lekin zahira yozilmadi — «Boshlang'ich qoldiq» dan kiriting",
+          maydonXatolari: {},
+        },
+        oldingi,
+        kirim,
+      );
+    }
+  }
+
   revalidatePath('/material');
+  revalidatePath('/ombor');
   return {
     saqlandi: { id, nom: tekshiruv.data.nom },
     boshlangichQilaOladi: ruxsatBormi(f, 'ombor.boshlangich'),

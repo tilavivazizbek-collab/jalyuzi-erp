@@ -1,5 +1,7 @@
 'use client';
 
+import { ZahiraBolimi } from './zahira';
+import { SARFLASH_BIRLIGI_NOMI } from '@/lib/sxema/material';
 import { useActionState, useState } from 'react';
 import { Maydon, kirishUslubi } from '../maydon';
 import { TanlovModal } from '../tanlov-modal';
@@ -82,6 +84,7 @@ export function MaterialFormasi({
   saqlandi,
   bekor,
   rasmManzili,
+  zahiraSoraladi = false,
 }: {
   amal: (holat: FormaHolati, forma: FormData) => Promise<FormaHolati>;
   qiymatlar: MaterialQiymatlari;
@@ -98,6 +101,14 @@ export function MaterialFormasi({
   bekor?: () => void;
   /** Mavjud rasm manzili — TZ 3.3 katalogi uchun */
   rasmManzili?: string | null;
+  /**
+   * YANGI mahsulotda «omborda hozir bor» bo'limi ko'rinadi (7.10).
+   *
+   * ⚠️ Tahrirlashda ko'rinmaydi: qoldiq allaqachon bor va uni
+   *    ikkinchi marta qo'shish ombor hisobini ikki barobar
+   *    qilib yuborardi.
+   */
+  zahiraSoraladi?: boolean;
 }) {
   const [holat, yubor, kutilmoqda] = useActionState(amal, BOSH_HOLAT);
 
@@ -140,6 +151,8 @@ export function MaterialFormasi({
    *    mahsulotlarda birlik topilmasligi mumkin va maydonlar
    *    jimgina yo'qolib qolmasin.
    */
+  const [narxAsosi, narxAsosiniOzgartir] = useState(q('kirimNarxAsosi'));
+
   const ostatkaBor =
     tavsif === null || ostatkaChegarasiKerakmi(tavsif.sarflashBirligi);
 
@@ -316,7 +329,10 @@ export function MaterialFormasi({
               <select
                 id="kirimNarxAsosi"
                 name="kirimNarxAsosi"
-                defaultValue={q('kirimNarxAsosi')}
+                value={narxAsosi}
+                onChange={(e) => {
+                  narxAsosiniOzgartir(e.target.value);
+                }}
                 className={chegara('kirimNarxAsosi')}
               >
                 <option value="METR">Bo&apos;yiga — 50 m × 5 = 250</option>
@@ -584,6 +600,27 @@ export function MaterialFormasi({
           </Maydon>
         </div>
       </section>
+
+      {/*
+        ⚠️ Zahira bo'limi eng oxirida: avval mahsulot ta'riflanadi
+           (nomi, birligi, narxi), keyin «hozir nechta bor?»
+           deb so'raladi. Teskarisi mantiqsiz bo'lardi.
+      */}
+      {zahiraSoraladi && (
+        <ZahiraBolimi
+          rulonmi={tavsif?.olchamliMi === true}
+          birlikNomi={
+            tavsif === null
+              ? 'birlik'
+              : (SARFLASH_BIRLIGI_NOMI[tavsif.sarflashBirligi] ??
+                tavsif.sarflashBirligi)
+          }
+          narxAsosi={narxAsosi}
+          xatolar={holat.zahiraXatolari ?? {}}
+          boshEni=""
+          boshBoyi=""
+        />
+      )}
 
       <div className="flex items-center gap-3">
         <button

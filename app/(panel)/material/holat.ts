@@ -13,6 +13,13 @@ export interface FormaHolati extends QaytarilganKirim {
   readonly maydonXatolari: MaydonXatolari;
   /** Modalda yaratilgan yozuv — sahifada har doim yo'q */
   readonly yaratildi?: YaratilganYozuv | null;
+  /**
+   * «Omborda hozir bor» bo'limining xatolari.
+   *
+   * ⚠️ Alohida turadi: uning maydonlari material sxemasida yo'q
+   *    va nomlari to'qnashib ketishi mumkin edi («izoh»).
+   */
+  readonly zahiraXatolari?: MaydonXatolari;
 }
 
 export const BOSH_HOLAT: FormaHolati = { xato: null, maydonXatolari: {} };

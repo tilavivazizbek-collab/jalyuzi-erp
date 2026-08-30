@@ -12,6 +12,8 @@ export default async function YangiMaterial() {
   const f = await sahifaRuxsati('material.yarat');
   // §9.4 — tugmani yashirish himoya emas, server ham tekshiradi
   const guruhQoshaOladi = ruxsatBormi(f, 'material.ozgartir');
+  /** ⚠️ Zahira kiritish alohida ruxsat (7.10) — sotuvchida yo'q */
+  const boshlangichQilaOladi = ruxsatBormi(f, 'ombor.boshlangich');
 
   const ulanish = ulanishOl();
 
@@ -42,6 +44,7 @@ export default async function YangiMaterial() {
           joriyKurs={kurs ?? ''}
           oxirgiKelish={null}
           tugmaMatni="Saqlash"
+          zahiraSoraladi={boshlangichQilaOladi}
         />
       </div>
     </div>

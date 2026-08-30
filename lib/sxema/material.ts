@@ -143,3 +143,44 @@ export function koeffitsientIzohi(
   const b = SARFLASH_BIRLIGI_NOMI[sarflashBirligi];
   return `1 ${kirimBirligi || 'kirim birligi'} = necha ${b}`;
 }
+
+// ─── 7.10 · Mahsulot qo'shishdagi «omborda hozir bor» ─────────────────────
+
+/**
+ * Boshlang'ich zahira — mahsulot formasining ICHIDA.
+ *
+ * ⚠️ Egasi (2026-08-30): «saqlanmasdan yangi material qo'shishning
+ *    o'zida bo'lsin». Ilgari mahsulot saqlangach alohida ekran
+ *    ochilardi — ikki qadam, ikki tugma.
+ *
+ * ⚠️ HAMMASI IXTIYORIY. Zahirasi yo'q mahsulot ham bo'ladi
+ *    (masalan hali kelmagan mato) — u holda bu bo'lim bo'sh
+ *    qoldiriladi va hech narsa yozilmaydi.
+ */
+export const zahiraSxema = z.object({
+  /** RULON — har rulon alohida */
+  bolaklar: z
+    .array(
+      z.object({
+        eniM: z.number().positive("Rulon eni noldan katta bo'lsin"),
+        boyiM: z.number().positive("Rulon bo'yi noldan katta bo'lsin"),
+      }),
+    )
+    .default([]),
+  /** DONA va CHIZIQLI uchun — sarflash birligida */
+  miqdor: z.number().positive("Miqdor noldan katta bo'lsin").nullable().default(null),
+  /**
+   * Narx — `asos` ga qarab talqin qilinadi.
+   *
+   * ⚠️ Rulonda bu 1 kv.m TANNARXI EMAS: u `asos` bilan birga
+   *    hisoblanadi (`lib/domain/boshlangich-narx.ts`).
+   */
+  narx: z
+    .string()
+    .trim()
+    .regex(/^\d+(\.\d{1,4})?$/, "Narx noto'g'ri"),
+  asos: z.enum(['BIRLIK', 'METR', 'KV_M']).default('METR'),
+  izoh: ixtiyoriyMatn,
+});
+
+export type ZahiraKirimi = z.infer<typeof zahiraSxema>;
