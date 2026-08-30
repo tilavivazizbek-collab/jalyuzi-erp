@@ -169,11 +169,23 @@ export function KirimFormasi({
   const domenQatorlar = useMemo(
     () =>
       qatorlar.map((q, i) => {
-        const narx = Number(q.narxBirlik);
+        /**
+         * ⚠️ 2026-08-30: bu yerda faqat `Number.isFinite` tekshirilardi.
+         *    `Number('')` esa NOL — ya'ni BO'SH katak «to'g'ri son»
+         *    bo'lib o'tib ketardi va `som('')` butun sahifani
+         *    yiqitardi: «Pul qiymati noto'g'ri — qiymat: ».
+         *
+         *    Yangi qator har doim bo'sh narx bilan ochiladi, ya'ni
+         *    xato har «+ qator» da chiqardi.
+         */
+        const xom = q.narxBirlik.trim();
+        const narx = Number(xom);
+        const narxYaroqli = xom !== '' && Number.isFinite(narx) && narx >= 0;
+
         return {
           id: i,
           miqdor: Number(q.miqdorKirim) || 0,
-          narxBirlik: som(Number.isFinite(narx) && narx >= 0 ? q.narxBirlik : '0'),
+          narxBirlik: som(narxYaroqli ? xom : '0'),
           defektMiqdor: Number(q.defektMiqdor) || 0,
           narxAsosi: q.narxAsosi,
           jamiBoyiM: jamiBoyi(q),

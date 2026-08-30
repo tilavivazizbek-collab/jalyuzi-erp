@@ -193,3 +193,31 @@ describe('ko\'rsatish — §19 formati', () => {
     expect(pulKorsat(som(-1_140_000))).toBe('−1 140 000');
   });
 });
+
+/**
+ * ⚠️ 2026-08-30 — kirim ekrani YIQILDI: «Pul qiymati noto'g'ri —
+ *    qiymat: » (bo'sh).
+ *
+ *    Sabab: formada `Number.isFinite(Number(katak))` bilan
+ *    tekshirilardi. `Number('')` esa NOL — bo'sh katak «to'g'ri
+ *    son» bo'lib o'tib ketdi va `som('')` otildi.
+ *
+ *    `som('')` ning otishi TO'G'RI: bo'sh qiymatni jimgina nolga
+ *    aylantirish pul hisobida eng xavfli xato bo'lardi. Xato
+ *    chaqiruvchi tomonda edi.
+ */
+describe("Bo'sh va noto'g'ri pul qiymati", () => {
+  it("bo'sh matn — xato otiladi, jimgina nol emas", () => {
+    expect(() => som('')).toThrow();
+    expect(() => som('   ')).toThrow();
+  });
+
+  it('son bo‘lmagan matn — xato', () => {
+    expect(() => som('abc')).toThrow();
+  });
+
+  it("⚠️ Number('') NOL — shuning uchun uni tekshiruv sifatida ishlatib bo'lmaydi", () => {
+    expect(Number('')).toBe(0);
+    expect(Number.isFinite(Number(''))).toBe(true);
+  });
+});
