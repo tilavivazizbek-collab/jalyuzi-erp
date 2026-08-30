@@ -5,7 +5,13 @@ import Link from 'next/link';
 import { Maydon, kirishUslubi } from '../../maydon';
 import { kirimYaratAmali } from './amal';
 import { BOSH_HOLAT } from './holat';
-import { pulKorsat, som, nolSom, qosh, kopaytir } from '@/lib/domain/pul';
+import Decimal from 'decimal.js';
+import { pulKorsat, pulMatn, som, nolSom, qosh, bol, type Som } from '@/lib/domain/pul';
+import {
+  bolakUlushi,
+  qatorQiymati,
+  xarajatniTaqsimla,
+} from '@/lib/domain/tannarx';
 import { TanlovModal } from '../../tanlov-modal';
 import { Modal } from '../../modal';
 import {
@@ -146,23 +152,110 @@ export function KirimFormasi({
       return Number.isFinite(n) && n > 0 ? y + n : y;
     }, 0);
 
-  const jami = useMemo(() => {
-    let s = nolSom();
-    for (const q of qatorlar) {
-      const narx = Number(q.narxBirlik);
-      if (!Number.isFinite(narx) || narx < 0) continue;
+  /** `KV_M` narxida qator qiymati MAYDONLAR yig'indisiga ko'paytiriladi */
+  const jamiKvM = (q: Qator): number =>
+    q.bolaklar.reduce((y, b) => {
+      const e = Number(b.eniM);
+      const o = Number(b.boyiM);
+      return Number.isFinite(e) && Number.isFinite(o) && e > 0 && o > 0 ? y + e * o : y;
+    }, 0);
 
-      const kopaytmа = q.narxAsosi === 'METR' ? jamiBoyi(q) : Number(q.miqdorKirim);
-      if (Number.isFinite(kopaytmа) && kopaytmа > 0) {
-        s = qosh(s, kopaytir(som(q.narxBirlik), kopaytmа));
-      }
-    }
+  /**
+   * ⚠️ Qiymat DOMAINDAN hisoblanadi (§2.2) — server ham aynan shu
+   *    funksiyani chaqiradi. Ilgari bu yerda o'z hisobi bor edi va
+   *    u `KV_M` usulini bilmasdi: ekranda jami noto'g'ri chiqardi.
+   */
+  const domenQatorlar = useMemo(
+    () =>
+      qatorlar.map((q, i) => {
+        const narx = Number(q.narxBirlik);
+        return {
+          id: i,
+          miqdor: Number(q.miqdorKirim) || 0,
+          narxBirlik: som(Number.isFinite(narx) && narx >= 0 ? q.narxBirlik : '0'),
+          defektMiqdor: Number(q.defektMiqdor) || 0,
+          narxAsosi: q.narxAsosi,
+          jamiBoyiM: jamiBoyi(q),
+          jamiKvM: jamiKvM(q),
+        };
+      }),
+    [qatorlar],
+  );
+
+  /** Qator qiymati — o'lchamlar to'liq bo'lmasa `null` */
+  const qatorQiymatlari = useMemo(
+    () =>
+      domenQatorlar.map((d) => {
+        try {
+          return d.miqdor > 0 ? qatorQiymati(d) : null;
+        } catch {
+          return null;
+        }
+      }),
+    [domenQatorlar],
+  );
+
+  const xarajat = useMemo(() => {
+    let x = nolSom();
     const t = Number(transport);
     const b = Number(bojxona);
-    if (Number.isFinite(t) && t > 0) s = qosh(s, som(transport));
-    if (Number.isFinite(b) && b > 0) s = qosh(s, som(bojxona));
-    return s;
-  }, [qatorlar, transport, bojxona]);
+    if (Number.isFinite(t) && t > 0) x = qosh(x, som(transport));
+    if (Number.isFinite(b) && b > 0) x = qosh(x, som(bojxona));
+    return x;
+  }, [transport, bojxona]);
+
+  const jami = useMemo(() => {
+    let s = nolSom();
+    for (const q of qatorQiymatlari) if (q !== null) s = qosh(s, q);
+    return qosh(s, xarajat);
+  }, [qatorQiymatlari, xarajat]);
+
+  /** Xarajat ulushlari — tannarxni ekranda ANIQ ko'rsatish uchun */
+  const ulushlar = useMemo(() => {
+    const tayyor = domenQatorlar.filter((_, i) => qatorQiymatlari[i] !== null);
+    if (tayyor.length === 0) return new Map<number, Som>();
+    try {
+      return new Map(xarajatniTaqsimla(tayyor, xarajat).map((u) => [u.id, u.ulush]));
+    } catch {
+      return new Map<number, Som>();
+    }
+  }, [domenQatorlar, qatorQiymatlari, xarajat]);
+
+  /**
+   * Bitta rulon bizga 1 kv.m dan qanchaga tushayotgani.
+   *
+   * ⚠️ Egasi (2026-08-30): «maxsulotni bizga kirim kv rati
+   *    qanchadan tushayotgani aniq ko'rinib turishi kerak».
+   *
+   * ⚠️ Transport va bojxona ULUSHI BILAN — omborga aynan shu
+   *    raqam yoziladi. Xarajatsiz ko'rsatish yolg'on tasalli
+   *    bo'lardi: sotuv narxi shu tannarxdan hisoblanadi.
+   */
+  const kvMNarxi = (i: number, b: BolakQatori): string | null => {
+    const qiymat = qatorQiymatlari[i];
+    const d = domenQatorlar[i];
+    if (qiymat === undefined || qiymat === null || d === undefined) return null;
+
+    const eni = Number(b.eniM);
+    const boyi = Number(b.boyiM);
+    if (!(eni > 0) || !(boyi > 0)) return null;
+
+    try {
+      const jamiQiymat = qosh(qiymat, ulushlar.get(i) ?? nolSom());
+      const ulush = bolakUlushi({
+        asos: d.narxAsosi,
+        jamiQiymat,
+        birlikTannarx: bol(jamiQiymat, d.miqdor),
+        jamiBoyiM: d.jamiBoyiM,
+        jamiKvM: d.jamiKvM,
+        boyiM: boyi,
+        maydonKvM: eni * boyi,
+      });
+      return new Decimal(pulMatn(ulush)).div(eni * boyi).toFixed(2);
+    } catch {
+      return null;
+    }
+  };
 
   return (
     <form action={yubor} className="flex flex-col gap-6">
@@ -557,9 +650,70 @@ export function KirimFormasi({
                               inputMode="decimal"
                               className={`${kichik} max-w-28`}
                             />
+
+                            {/*
+                              ⚠️ Egasi (2026-08-30): «bizga kirim
+                                 kv rati qanchadan tushayotgani
+                                 aniq ko'rinib turishi kerak».
+
+                                 Transport va bojxona ULUSHI BILAN —
+                                 omborga aynan shu raqam yoziladi.
+                            */}
+                            {(() => {
+                              const narx = kvMNarxi(i, b);
+                              const eni = Number(b.eniM);
+                              const boyi = Number(b.boyiM);
+                              const maydon =
+                                eni > 0 && boyi > 0 ? (eni * boyi).toFixed(2) : null;
+
+                              if (maydon === null) {
+                                return (
+                                  <span className="text-[12px] text-belgi-sariq">
+                                    eni va bo&apos;yini kiriting
+                                  </span>
+                                );
+                              }
+
+                              return (
+                                <span className="text-[12px] text-matn-kuchsiz">
+                                  {maydon} kv.m
+                                  {narx !== null && (
+                                    <>
+                                      {' · '}
+                                      <b className="raqam text-matn-ikki">
+                                        1 kv.m {narx} {valyuta === 'USD' ? '$' : "so'm"}
+                                      </b>
+                                    </>
+                                  )}
+                                </span>
+                              );
+                            })()}
                           </div>
                         ))}
                       </div>
+
+                      {/*
+                        ⚠️ Qatorning jami maydoni ham ko'rinadi —
+                           «10 rulon oldim, nechа kv.m bo'ldi?»
+                           degan savol har kirimda chiqadi.
+                      */}
+                      {jamiKvM(q) > 0 && (
+                        <p className="mt-2 text-[12px] text-matn-kuchsiz">
+                          Jami: <b className="raqam">{jamiKvM(q).toFixed(2)}</b> kv.m
+                          {((): React.ReactNode => {
+                            const qiymat = qatorQiymatlari[i];
+                            if (qiymat === undefined || qiymat === null) return null;
+                            return (
+                              <>
+                                {' · qator qiymati '}
+                                <b className="raqam">
+                                  {pulKorsat(qiymat)} {valyuta === 'USD' ? '$' : "so'm"}
+                                </b>
+                              </>
+                            );
+                          })()}
+                        </p>
+                      )}
                     </div>
                   )}
 

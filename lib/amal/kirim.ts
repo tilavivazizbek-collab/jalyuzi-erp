@@ -18,9 +18,8 @@ import type postgres from 'postgres';
 import Decimal from 'decimal.js';
 import {
   birlikTannarxi,
-  rulonTannarxi,
+  bolakUlushi,
   type NarxAsosi,
-  mutanosibNarx,
   ustamaniTekshir,
   xarajatniTaqsimla,
   type DefektTuri,
@@ -260,12 +259,15 @@ export async function kirimYarat(
            *    kv.m tannarxi hamma rulonda BIR XIL chiqadi —
            *    aynan kelishilgan narx.
            */
-          const rulonNarxi =
-            q.narxAsosi === 'METR'
-              ? rulonTannarxi(tannarx.jamiQiymat, jamiBoyi(q), olcham.boyiM)
-              : q.narxAsosi === 'KV_M'
-                ? mutanosibNarx(tannarx.jamiQiymat, jamiKvM(q), maydon, 'maydoni')
-                : tannarx.birlikTannarx;
+          const rulonNarxi = bolakUlushi({
+            asos: q.narxAsosi ?? 'BIRLIK',
+            jamiQiymat: tannarx.jamiQiymat,
+            birlikTannarx: tannarx.birlikTannarx,
+            jamiBoyiM: jamiBoyi(q),
+            jamiKvM: jamiKvM(q),
+            boyiM: olcham.boyiM,
+            maydonKvM: maydon,
+          });
 
           const kvMTannarx = new Decimal(pulMatn(rulonNarxi)).div(maydon);
 

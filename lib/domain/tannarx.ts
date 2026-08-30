@@ -385,3 +385,39 @@ export function bolakQiymati(b: BolakOlchovi): Som {
   const kvM = new Decimal(b.eniM ?? 0).times(b.boyiM ?? 0);
   return kopaytir(b.tannarxBirlik, kvM.toString());
 }
+
+// ─── 7.9 · Rulonning qator qiymatidagi ulushi ────────────────────────────
+
+export interface BolakUlushiKirimi {
+  readonly asos: NarxAsosi;
+  /** Qatorga to'langan JAMI pul — xarajat ulushi bilan birga */
+  readonly jamiQiymat: Som;
+  /** `BIRLIK` narxida — bitta rulonning tannarxi */
+  readonly birlikTannarx: Som;
+  readonly jamiBoyiM: number;
+  readonly jamiKvM: number;
+  /** Shu rulonning o'lchamlari */
+  readonly boyiM: number;
+  readonly maydonKvM: number;
+}
+
+/**
+ * Bitta rulonga qator qiymatining qancha qismi to'g'ri keladi.
+ *
+ * ⚠️ Uch usul — bitta joyda (§2.2). Ilgari bu tanlov
+ *    `lib/amal/kirim.ts` ichida uchlik shart bo'lib turardi va
+ *    ekranga ko'chirilsa nusxa bo'lib ketardi.
+ *
+ *      METR    — rulon O'Z BO'YIGA mutanosib
+ *      KV_M    — rulon O'Z MAYDONIGA mutanosib
+ *      BIRLIK  — har rulon bir xil (rulonga narx berilgan)
+ */
+export function bolakUlushi(k: BolakUlushiKirimi): Som {
+  if (k.asos === 'METR') {
+    return mutanosibNarx(k.jamiQiymat, k.jamiBoyiM, k.boyiM, "bo'yi");
+  }
+  if (k.asos === 'KV_M') {
+    return mutanosibNarx(k.jamiQiymat, k.jamiKvM, k.maydonKvM, 'maydoni');
+  }
+  return k.birlikTannarx;
+}
