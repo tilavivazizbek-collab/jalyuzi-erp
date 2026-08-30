@@ -42,7 +42,7 @@ export function RasmKorish({
         }}
         title="Kattalashtirish"
         aria-label={`${nom} — rasmini kattalashtirish`}
-        className={`fokus mt-1 block w-fit rounded-maydon transition-transform active:scale-[0.97]`}
+        className="fokus block w-fit rounded-maydon transition-transform active:scale-[0.97]"
       >
         <img
           src={manzil}

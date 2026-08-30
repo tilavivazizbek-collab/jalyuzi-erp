@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { RasmKorish } from '../rasm-korish';
 import { ulanishOl } from '@/lib/db';
 import { OchirTugma } from '../ochir-tugma';
 import { OchirilganlarHavolasi, QaytarTugma } from '../ochirilganlar';
@@ -25,6 +26,8 @@ interface Qator {
   readonly sotuv_valyuta: string;
   readonly guruh_nomi: string | null;
   readonly faol: boolean;
+  readonly rasm_bormi: boolean;
+  readonly ozgartirildi: Date | null;
 }
 
 /** Narx birligi — TZ 5.4: mato 1 kv.m, karniz 1 METR, aksessuar 1 dona. */
@@ -55,6 +58,7 @@ export default async function MaterialRoyxati({
   const qatorlar = await sql<Qator[]>`
     SELECT m.id, m.nom, m.hisob_turi, m.kirim_birligi, m.sarflash_birligi,
            m.koeffitsient, m.sotuv_narx, m.sotuv_valyuta, m.faol,
+           (m.rasm IS NOT NULL) AS rasm_bormi, m.ozgartirildi,
            g.nom AS guruh_nomi
     FROM material m
     LEFT JOIN almashtirish_guruh g ON g.id = m.almashtirish_guruh_id
@@ -99,6 +103,12 @@ export default async function MaterialRoyxati({
           <table className="w-full text-sm">
             <thead className="border-b border-chegara bg-fon text-left text-xs uppercase tracking-wide text-matn-kuchsiz">
               <tr>
+                {/*
+                  ⚠️ Egasi (2026-08-30): «mahsulotlar ro'yxat bo'lib
+                     turadi-ku — o'sha payt rasmlari bilan tursin».
+                     Matoni nomidan emas, RANGIDAN tanish osonroq.
+                */}
+                <th className="w-12 px-4 py-2.5 font-medium" />
                 <th className="px-4 py-2.5 font-medium">Nomi</th>
                 <th className="px-4 py-2.5 font-medium">Hisob turi</th>
                 <th className="px-4 py-2.5 font-medium">Guruh</th>
@@ -110,6 +120,18 @@ export default async function MaterialRoyxati({
             <tbody className="divide-y divide-chegara [&>tr:nth-child(even)]:bg-fon/50">
               {qatorlar.map((m) => (
                 <tr key={m.id} className={m.faol ? '' : 'bg-fon text-matn-kuchsiz'}>
+                  <td className="py-2 pl-4 pr-0">
+                    {m.rasm_bormi ? (
+                      <RasmKorish
+                        manzil={`/api/rasm/material/${String(m.id)}?v=${String(m.ozgartirildi?.getTime() ?? 0)}`}
+                        nom={m.nom}
+                        olcham="size-10"
+                      />
+                    ) : (
+                      /** Rasm yo'q — joy baribir band, qatorlar tekis tursin */
+                      <div className="size-10 rounded-maydon border border-dashed border-chegara-quyuq" />
+                    )}
+                  </td>
                   <td className="px-4 py-2.5 font-medium">{m.nom}</td>
                   <td className="px-4 py-2.5">
                     {HISOB_TURI_NOMI[m.hisob_turi as HisobTuri] ?? m.hisob_turi}

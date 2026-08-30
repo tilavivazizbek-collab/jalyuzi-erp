@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { RasmKorish } from '../rasm-korish';
 import { sahifaRuxsati } from '@/lib/kirish/joriy';
 import { ruxsatBormi } from '@/lib/ruxsat/tekshir';
 import { pulKorsat, som } from '@/lib/domain/pul';
@@ -68,6 +69,8 @@ export default async function MahsulotRoyxati({
           <table className="w-full text-sm">
             <thead className="border-b border-chegara bg-fon text-left text-xs uppercase tracking-wide text-matn-kuchsiz">
               <tr>
+                {/* ⚠️ Ro'yxat rasm bilan — tur nomidan emas, ko'rinishidan tanish oson */}
+                <th className="w-12 px-4 py-2.5 font-medium" />
                 <th className="px-4 py-2.5 font-medium">Nomi</th>
                 <th className="px-4 py-2.5 font-medium">Slotlar</th>
                 <th className="px-4 py-2.5 font-medium">Aksessuar</th>
@@ -79,6 +82,17 @@ export default async function MahsulotRoyxati({
             <tbody className="divide-y divide-chegara [&>tr:nth-child(even)]:bg-fon/50">
               {qatorlar.map((t) => (
                 <tr key={t.id} className={t.faol ? '' : 'bg-fon text-matn-kuchsiz'}>
+                  <td className="py-2 pl-4 pr-0">
+                    {t.rasm_bormi ? (
+                      <RasmKorish
+                        manzil={`/api/rasm/mahsulot/${String(t.id)}?v=${String(t.ozgartirildi?.getTime() ?? 0)}`}
+                        nom={t.nom}
+                        olcham="size-10"
+                      />
+                    ) : (
+                      <div className="size-10 rounded-maydon border border-dashed border-chegara-quyuq" />
+                    )}
+                  </td>
                   <td className="px-4 py-2.5 font-medium">
                     {t.nom}
                     {!t.faol && <span className="ml-2 text-xs">(nofaol)</span>}

@@ -78,11 +78,15 @@ export interface TurQatori {
   readonly slot_soni: number;
   readonly guruhsiz_slot: number;
   readonly aksessuar_soni: number;
+  /** TZ 3.3 — ro'yxatda kichik rasm ko'rinadi */
+  readonly rasm_bormi: boolean;
+  readonly ozgartirildi: Date | null;
 }
 
 export async function turlarRoyxati(ochirilganlar: boolean): Promise<readonly TurQatori[]> {
   return await ulanishOl()<TurQatori[]>`
     SELECT t.id, t.nom, t.xizmat_haqi, t.oynada_korinadi, t.botda_korinadi, t.faol,
+           (t.rasm IS NOT NULL) AS rasm_bormi, t.ozgartirildi,
            COUNT(s.id) FILTER (WHERE s.faol)::int AS slot_soni,
            COUNT(s.id) FILTER (WHERE s.faol AND s.almashtirish_guruh_id IS NULL)::int
              AS guruhsiz_slot,

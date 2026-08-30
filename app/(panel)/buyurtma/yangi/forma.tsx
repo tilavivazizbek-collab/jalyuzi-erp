@@ -626,10 +626,12 @@ export function SotuvFormasi({
                                uchun TANLANGANI yonida turadi.
                           */}
                           {q.material?.rasmBormi === true && (
-                            <RasmKorish
-                              manzil={`/api/rasm/material/${String(q.material.id)}`}
-                              nom={q.material.nom}
-                            />
+                            <div className="mt-1">
+                              <RasmKorish
+                                manzil={`/api/rasm/material/${String(q.material.id)}`}
+                                nom={q.material.nom}
+                              />
+                            </div>
                           )}
                         </td>
                         <td className="raqam px-3 py-2">
