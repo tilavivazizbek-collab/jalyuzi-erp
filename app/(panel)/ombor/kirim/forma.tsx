@@ -407,7 +407,14 @@ export function KirimFormasi({
 
               return (
                 <div key={i} className="rounded-maydon border border-chegara p-3">
-                  <div className="grid gap-2 sm:grid-cols-[1fr_100px_130px_32px]">
+                  {/*
+                    ⚠️ Narx ustuni KENG bo'lishi shart. Ilgari u
+                       130px edi va ichiga narx katagi ham,
+                       «metriga / donaga» tanlovi ham sig'dirilgan
+                       edi — narxga ~28px qolib, egasi uni umuman
+                       ko'rmagan: «narx inputi yo'q» degan.
+                  */}
+                  <div className="grid gap-2 sm:grid-cols-[1fr_100px_230px_32px]">
                     <select
                       value={q.materialId}
                       onChange={(e) => {
@@ -453,7 +460,7 @@ export function KirimFormasi({
                         }}
                         placeholder="narx"
                         inputMode="decimal"
-                        className={`${kichik} min-w-0 flex-1`}
+                        className={`${kichik} w-full min-w-16 flex-1`}
                       />
                       <select
                         value={q.narxAsosi}
@@ -481,6 +488,30 @@ export function KirimFormasi({
                       ✕
                     </button>
                   </div>
+
+                  {/*
+                    ⚠️ Narx bo'sh chiqsa SABABI aytiladi. Aks holda
+                       omborchi «tizim narxni bilmaydi» deb o'ylaydi
+                       va har kirimda qo'lda teradi — kartochkadagi
+                       teshik esa yillab tuzatilmay qoladi.
+                  */}
+                  {m !== undefined && m.kutilayotganNarx === null && (
+                    <p className="mt-1.5 text-[12px] text-matn-kuchsiz">
+                      <b>{m.nom}</b> kartochkasida kelish narxi belgilanmagan — narxni
+                      qo&apos;lda kiriting.
+                    </p>
+                  )}
+
+                  {m !== undefined &&
+                    m.kutilayotganNarx !== null &&
+                    m.kutilayotganValyuta !== valyuta && (
+                      <p className="mt-1.5 text-[12px] text-belgi-sariq">
+                        Kartochkadagi narx {m.kutilayotganValyuta === 'USD' ? '$' : "so'm"} da
+                        ({m.kutilayotganNarx}), hujjat esa{' '}
+                        {valyuta === 'USD' ? '$' : "so'm"} da — narx o&apos;zi
+                        qo&apos;yilmadi.
+                      </p>
+                    )}
 
                   {/* TZ 7.9 — rulon uchun har birining o'lchami */}
                   {rulonmi && q.bolaklar.length > 0 && (
