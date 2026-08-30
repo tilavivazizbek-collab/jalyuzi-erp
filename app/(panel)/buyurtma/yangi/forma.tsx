@@ -335,9 +335,29 @@ export function SotuvFormasi({
   // Q-03 — yetmaydigan matolar (ogohlantirish, bloklamaydi)
   const yetmaydiganlar = (hisob?.qatorlar ?? []).filter((q) => !q.yetarlimi);
 
+  /**
+   * Pozitsiya narxi — SOTUVCHI TUZATISHI MUMKIN (3.8).
+   *
+   * ⚠️ Egasi (2026-08-30): «savatga qo'shishdan oldin pastda narx
+   *    hisoblanadi — o'shani ham o'zgartirib bo'lsin, narx inputda
+   *    tursin».
+   *
+   * ⚠️ `null` — «hisoblangani ishlatiladi». Sotuvchi tegsa, raqam
+   *    QOTADI va o'lchamlar o'zgarganda ham o'zgarmaydi: u mijoz
+   *    bilan kelishilgan narx.
+   */
+  const [qoldaNarx, qoldaNarxniOzgartir] = useState<string | null>(null);
+
+  const hisoblanganNarx = hisob === null ? '' : pulMatn(hisob.jami);
+  const korsatiladiganNarx = qoldaNarx ?? hisoblanganNarx;
+
+  /** Kiritilgan narx pul sifatida yaroqlimi */
+  const narxYaroqli = /^\d+(\.\d{1,2})?$/.test(korsatiladiganNarx.trim());
+
   const savatgaQoshilsinmi =
     hisob !== null &&
     tur !== null &&
+    narxYaroqli &&
     tur.slotlar.filter((s) => s.majburiy).every((s) => (slotlar[s.id]?.materialId ?? '') !== '');
 
   function savatgaQosh(): void {
@@ -349,7 +369,8 @@ export function SotuvFormasi({
       eniSm: hisob.eniSm,
       boyiSm: hisob.boyiSm,
       soni: 1,
-      narxSnapshot: pulMatn(hisob.jami),
+      /** ⚠️ Sotuvchi tuzatgan bo'lsa — o'sha raqam, aks holda hisoblangani */
+      narxSnapshot: qoldaNarx ?? pulMatn(hisob.jami),
       chegirmaSumma: '0',
       xizmatHaqi: pulMatn(hisob.xizmat),
       // TZ 4.10 — konstruktor holati QOTADI
@@ -388,13 +409,16 @@ export function SotuvFormasi({
         turNomi: tur.nom,
         eniSm: hisob.eniSm,
         boyiSm: hisob.boyiSm,
-        narx: pulMatn(hisob.jami),
+        /** ⚠️ Savatdagi raqam ham TUZATILGANI — jami shundan chiqadi */
+        narx: qoldaNarx ?? pulMatn(hisob.jami),
         yuk,
       },
     ]);
 
     slotlarniOzgartir({});
     aksessuarlarniOzgartir({});
+    /** Keyingi pozitsiya yana hisoblangan narxdan boshlanadi */
+    qoldaNarxniOzgartir(null);
   }
 
   const kelishilganSom = son(kelishilgan);
@@ -823,12 +847,53 @@ export function SotuvFormasi({
             {/* ── 3.8 · Pozitsiya narxi ── */}
             <div className="flex flex-wrap items-center justify-between gap-4 rounded-karta border border-chegara bg-sirt px-5 py-4">
               <div>
-                <p className="text-[12px] tracking-[0.03em] text-matn-kuchsiz uppercase">
+                <label
+                  htmlFor="pozitsiyaNarxi"
+                  className="block text-[12px] tracking-[0.03em] text-matn-kuchsiz uppercase"
+                >
                   Pozitsiya narxi
-                </p>
-                <b className="raqam block text-[20px] leading-tight font-semibold tracking-[-0.02em]">
-                  {pulKorsat(hisob?.jami ?? nolSom())}
-                </b>
+                </label>
+
+                {/*
+                  ⚠️ Narx TUZATILADI (3.8). Mijoz bilan kelishilgan
+                     raqam hisoblanganidan boshqa bo'lishi mumkin.
+                     Sotuvchi tegsa — raqam QOTADI: o'lchamlar
+                     o'zgarsa ham o'zgarmaydi.
+                */}
+                <input
+                  id="pozitsiyaNarxi"
+                  value={korsatiladiganNarx}
+                  onChange={(e) => {
+                    qoldaNarxniOzgartir(e.target.value);
+                  }}
+                  inputMode="decimal"
+                  aria-invalid={!narxYaroqli}
+                  className={`raqam mt-0.5 w-44 rounded-maydon border bg-fon px-3 py-1.5 text-[20px] leading-tight font-semibold tracking-[-0.02em] ${
+                    narxYaroqli ? 'border-chegara' : 'border-belgi-qizil'
+                  }`}
+                />
+
+                {qoldaNarx !== null && qoldaNarx !== hisoblanganNarx && (
+                  <span className="mt-1 block text-[12px] text-belgi-sariq">
+                    hisoblangani {pulKorsat(hisob?.jami ?? nolSom())} —{' '}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        qoldaNarxniOzgartir(null);
+                      }}
+                      className="fokus rounded-maydon underline underline-offset-2"
+                    >
+                      qaytarish
+                    </button>
+                  </span>
+                )}
+
+                {!narxYaroqli && (
+                  <span role="alert" className="mt-1 block text-[12px] text-belgi-qizil">
+                    Narx — faqat son (masalan 678400)
+                  </span>
+                )}
+
                 {tur.xizmatHaqi !== null && Number(tur.xizmatHaqi) > 0 && (
                   <span className="mt-0.5 block text-[12px] text-matn-kuchsiz">
                     xizmat haqi {pulKorsat(som(tur.xizmatHaqi))} bilan
