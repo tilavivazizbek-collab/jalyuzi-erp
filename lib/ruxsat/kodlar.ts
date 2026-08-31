@@ -135,6 +135,13 @@ export const RUXSATLAR = {
   'buyurtma.bekor': { nom: 'Buyurtmani bekor qilish', guruh: 'Sotuv', band: '8.8' },
   // ⚠️ Kod `guruh.amal` ko'rinishida bo'lishi shart (14.6) — pastki
   //    chiziq ishlatilmaydi, shuning uchun `qayta_kesish` emas `brak`.
+  /**
+   * ⚠️ 2026-08-30: ish oqimi FAQAT BOTDA edi va veb-da buyurtmani
+   *    oldinga siljitib bo'lmasdi. Bu ikki kod veb tugmalarini
+   *    ochadi — botdagi mantiq bilan bir xil funksiyani chaqiradi.
+   */
+  'ish.ol': { nom: 'Ishni olish', guruh: 'Sotuv', band: '8.5' },
+  'ish.tugat': { nom: "«Tugatdim» — ishni yakunlash", guruh: 'Sotuv', band: '7.6' },
   'buyurtma.brak': {
     nom: 'Ishlab chiqarish brakini hal qilish (8.17)',
     guruh: 'Sotuv',

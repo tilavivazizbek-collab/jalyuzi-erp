@@ -13,11 +13,18 @@ import {
   tasdiqlanadimi,
   type PozitsiyaHolati,
 } from '@/lib/domain/buyurtma';
-import { buyurtmaTafsili, tolovHolati, tolovKassalari } from '../malumot';
+import {
+  bandBolaklar,
+  buyurtmaTafsili,
+  ishOlaOladiganlar,
+  tolovHolati,
+  tolovKassalari,
+} from '../malumot';
 import { TasdiqlashTugmasi } from '../tasdiqla';
 import { BekorTugmasi, QaytaribOlishTugmasi } from '../amallar';
 import { QaytarishTugmasi, RadEtishTugmasi, TopshirishTugmasi, YetibKeldiTugmasi } from '../hayot';
 import { TolovFormasi } from '../tolov-forma';
+import { IshniBoshlashTugmasi, TugatdimTugmasi, type UstaTanlovi } from '../ish';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,9 +44,24 @@ export default async function BuyurtmaKartochkasi({ params }: { params: Promise<
   if (b === null) notFound();
 
   const tolovQilaOladi = ruxsatBormi(f, 'kassa.tolov');
-  const [tolov, kassalar] = await Promise.all([
+
+  /**
+   * ⚠️ 2026-08-30 — ish oqimi VEB-DA. Ilgari «Ishni oldim» va
+   *    «Tugatdim» faqat botda edi va buyurtma tasdiqdan keyin
+   *    qotib qolardi.
+   */
+  const ishniOlaOladi = ruxsatBormi(f, 'ish.ol');
+  const ishniTugataOladi = ruxsatBormi(f, 'ish.tugat');
+
+  const [tolov, kassalar, ustalar, bandlar] = await Promise.all([
     tolovHolati(buyurtmaId, f.filialId),
     tolovQilaOladi ? tolovKassalari(f.filialId, f.xodimId) : Promise.resolve([]),
+    ishniOlaOladi
+      ? ishOlaOladiganlar(f.filialId)
+      : Promise.resolve([] as readonly UstaTanlovi[]),
+    ishniTugataOladi
+      ? bandBolaklar(b.pozitsiyalar.map((p) => p.id))
+      : Promise.resolve([]),
   ]);
 
   /**
@@ -263,6 +285,12 @@ export default async function BuyurtmaKartochkasi({ params }: { params: Promise<
                 tahrirlayOladi={tahrirlayOladi}
                 tolovQilaOladi={tolovQilaOladi}
                 kassalar={kassalar}
+                ishniOlaOladi={ishniOlaOladi}
+                ishniTugataOladi={ishniTugataOladi}
+                ustalar={ustalar}
+                band={bandlar.find((x) => x.pozitsiyaId === p.id) ?? null}
+                eniSm={p.eniSm}
+                boyiSm={p.boyiSm}
               />
             </div>
           ))}
@@ -291,6 +319,12 @@ function PozitsiyaAmallari({
   tahrirlayOladi,
   tolovQilaOladi,
   kassalar,
+  ishniOlaOladi,
+  ishniTugataOladi,
+  ustalar,
+  band,
+  eniSm,
+  boyiSm,
 }: {
   holat: PozitsiyaHolati;
   pozitsiyaId: number;
@@ -300,6 +334,13 @@ function PozitsiyaAmallari({
   tahrirlayOladi: boolean;
   tolovQilaOladi: boolean;
   kassalar: readonly { id: number; nom: string; turi: string; valyuta: string }[];
+  ishniOlaOladi: boolean;
+  ishniTugataOladi: boolean;
+  ustalar: readonly UstaTanlovi[];
+  /** Pozitsiyaga band qilingan bo'lak — «Tugatdim» oynasida ko'rinadi */
+  band: { kod: string; eniM: number | null; boyiM: number | null } | null;
+  eniSm: number;
+  boyiSm: number;
 }) {
   const bekor = bekorQilaOladi && bekorQilinadimi(holat);
   // 20.5.1 — yo'ldagi tayyor mahsulotni sotgan filial qabul qiladi
@@ -312,12 +353,40 @@ function PozitsiyaAmallari({
   // 8.10 — qaytarish faqat TOPSHIRILGANDAN keyin
   const qaytar = tolovQilaOladi && holat === 'TOPSHIRILDI';
 
-  if (!bekor && !qaytaribOl && !topshir && !radEt && !qaytar && !yetibKeldi) {
+  /**
+   * 8.5 — ish TASDIQLANGAN yoki materialga kutayotgan pozitsiyadan
+   * olinadi. 7.6 — «Tugatdim» faqat ish ketayotganda.
+   */
+  const boshla =
+    ishniOlaOladi && (holat === 'TASDIQLANGAN' || holat === 'MATERIALGA_KUTMOQDA');
+  const tugat = ishniTugataOladi && holat === 'ISHLAB_CHIQARILMOQDA';
+
+  if (
+    !bekor &&
+    !qaytaribOl &&
+    !topshir &&
+    !radEt &&
+    !qaytar &&
+    !yetibKeldi &&
+    !boshla &&
+    !tugat
+  ) {
     return null;
   }
 
   return (
     <div className="flex flex-wrap items-start gap-6 border-t border-chegara px-4 py-3">
+      {boshla && <IshniBoshlashTugmasi pozitsiyaId={pozitsiyaId} ustalar={ustalar} />}
+      {tugat && (
+        <TugatdimTugmasi
+          pozitsiyaId={pozitsiyaId}
+          manbaKod={band?.kod ?? null}
+          manbaEniM={band?.eniM ?? null}
+          manbaBoyiM={band?.boyiM ?? null}
+          mahsulotEniSm={eniSm}
+          mahsulotBoyiSm={boyiSm}
+        />
+      )}
       {yetibKeldi && <YetibKeldiTugmasi pozitsiyaId={pozitsiyaId} />}
       {topshir && <TopshirishTugmasi pozitsiyaId={pozitsiyaId} />}
       {radEt && <RadEtishTugmasi pozitsiyaId={pozitsiyaId} />}

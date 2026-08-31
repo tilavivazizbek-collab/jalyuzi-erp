@@ -557,3 +557,65 @@ export async function tolovKassalari(
     ORDER BY turi, valyuta`;
   return q;
 }
+
+// ─── 8.5 · Ish oqimi uchun ───────────────────────────────────────────────
+
+export interface UstaQatori {
+  readonly id: number;
+  readonly ism: string;
+}
+
+/**
+ * Ishni ola oladigan xodimlar.
+ *
+ * ⚠️ Rol bo'yicha emas, RUXSAT bo'yicha tanlanadi: kimda `ish.ol`
+ *    bo'lsa, u ishni oladi. Rol nomi o'zgarishi mumkin, ruxsat
+ *    esa — tizimning haqiqiy qoidasi (§9.4).
+ */
+export async function ishOlaOladiganlar(filialId: number): Promise<readonly UstaQatori[]> {
+  return await ulanishOl()<UstaQatori[]>`
+    SELECT DISTINCT x.id, x.ism
+    FROM xodim x
+    JOIN xodim_rol xr ON xr.xodim_id = x.id
+    JOIN rol_ruxsat rr ON rr.rol_id = xr.rol_id
+    WHERE x.faol = true AND x.filial_id = ${filialId}
+      AND rr.ruxsat_kod = 'ish.ol'
+    ORDER BY x.ism`;
+}
+
+export interface BandBolak {
+  readonly pozitsiyaId: number;
+  readonly kod: string;
+  readonly eniM: number | null;
+  readonly boyiM: number | null;
+}
+
+/**
+ * TZ 7.3 — pozitsiyaga band qilingan bo'lak.
+ *
+ * «Tugatdim» oynasida ko'rsatiladi: usta nimadan kesayotganini
+ * va uning o'lchamini ko'rib turishi kerak.
+ */
+export async function bandBolaklar(
+  pozitsiyaIdlar: readonly number[],
+): Promise<readonly BandBolak[]> {
+  if (pozitsiyaIdlar.length === 0) return [];
+
+  const q = await ulanishOl()<
+    { pozitsiya_id: number; kod: string; eni_m: string | null; boyi_m: string | null }[]
+  >`
+    SELECT bd.buyurtma_pozitsiya_id AS pozitsiya_id, bo.kod,
+           bo.eni_m::text, bo.boyi_m::text
+    FROM band bd
+    JOIN bolak bo ON bo.id = bd.bolak_id
+    WHERE bd.buyurtma_pozitsiya_id = ANY(${pozitsiyaIdlar as number[]})
+      AND bd.holat = 'FAOL'
+    ORDER BY bd.id`;
+
+  return q.map((x) => ({
+    pozitsiyaId: x.pozitsiya_id,
+    kod: x.kod,
+    eniM: x.eni_m === null ? null : Number(x.eni_m),
+    boyiM: x.boyi_m === null ? null : Number(x.boyi_m),
+  }));
+}
