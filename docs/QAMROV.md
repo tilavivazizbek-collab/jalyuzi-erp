@@ -76,7 +76,9 @@ havolasi esa bor.
 | Boshlang'ich zahira | ✅ | Mahsulot saqlangach o'zi so'raladi |
 | Qoldiqni to'g'rilash | ✅ | **Faqat admin** · `ombor.tuzatish` |
 | Mijoz guruhlari | ✅ | Chegirma guruhda · shaxsiysi ustun |
-| Kirim | ✅ | Narx metr bo'yicha ham ✅ |
+| Kirim | ✅ | Narx metr/kv.m ✅ · yetkazuvchiga to'lov ✅ |
+| Ish oqimi (boshlash / tugatdim) | ✅ | Veb-da, botdagi mantiq bilan |
+| Yetkazuvchi qarzi va to'lovi | ✅ | Kartochkada qarz, tarix, to'lov |
 | Chiqim | ✅ | |
 | Ko'chirish | ✅ | |
 | Inventarizatsiya | ✅ | |

@@ -144,3 +144,47 @@ export async function yetkazibBalansi(
 
   return q.map((x) => ({ valyuta: x.valyuta, qarz: x.qarz }));
 }
+
+export interface YetkazibHarakati {
+  readonly id: number;
+  readonly sana: Date;
+  readonly turi: string;
+  readonly summa: string;
+  readonly valyuta: string;
+  readonly izoh: string | null;
+  readonly kim: string;
+}
+
+/**
+ * Yetkazib beruvchi bilan HAMMA hisob-kitob.
+ *
+ * ⚠️ Xarid MUSBAT, to'lov MANFIY — ekranda ham shu ko'rinishda
+ *    turadi. «Qarz oshdi / kamaydi» degan ustun qo'shish emas,
+ *    raqamning o'zi gapiradi.
+ */
+export async function yetkazibHarakatlari(
+  soruvchi: postgres.Sql,
+  yetkazibBeruvchiId: number,
+  chegara = 50,
+): Promise<readonly YetkazibHarakati[]> {
+  const q = await soruvchi<
+    {
+      id: number;
+      sana: Date;
+      turi: string;
+      summa: string;
+      valyuta: string;
+      izoh: string | null;
+      kim: string;
+    }[]
+  >`
+    SELECT h.id, h.sana, h.turi, h.summa::text, h.valyuta, h.izoh,
+           COALESCE(x.ism, '—') AS kim
+    FROM yetkazib_beruvchi_harakat h
+    LEFT JOIN xodim x ON x.id = h.xodim_id
+    WHERE h.yetkazib_beruvchi_id = ${yetkazibBeruvchiId}
+    ORDER BY h.sana DESC, h.id DESC
+    LIMIT ${chegara}`;
+
+  return q;
+}
