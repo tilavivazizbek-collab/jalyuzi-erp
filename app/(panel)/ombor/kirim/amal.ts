@@ -40,6 +40,9 @@ export async function kirimYaratAmali(
     bojxonaSumma: matnMaydon(forma, 'bojxonaSumma'),
     tolovMuddati: matnMaydon(forma, 'tolovMuddati'),
     qatorlar: jsonOqi(forma, 'qatorlar'),
+    /** TZ 12.6 — mol kelganda darhol to'langan summa */
+    tolovSumma: matnMaydon(forma, 'tolovSumma'),
+    tolovKassaId: matnMaydon(forma, 'tolovKassaId'),
   };
 
   const tekshiruv = kirimSxema.safeParse(xom);
@@ -64,6 +67,8 @@ export async function kirimYaratAmali(
     transportSumma: d.transportSumma ?? '0',
     bojxonaSumma: d.bojxonaSumma ?? '0',
     tolovMuddati: d.tolovMuddati ?? null,
+    tolovSumma: d.tolovSumma,
+    tolovKassaId: d.tolovKassaId,
     qatorlar: d.qatorlar.map((q) => ({
       materialId: q.materialId,
       miqdorKirim: Number(q.miqdorKirim),

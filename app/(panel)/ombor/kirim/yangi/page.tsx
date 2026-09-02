@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { sahifaRuxsati } from '@/lib/kirish/joriy';
 import { ruxsatBormi } from '@/lib/ruxsat/tekshir';
 import { kirimMateriallari, kirimYetkazuvchilari } from '../../malumot';
+import { tolovKassalari } from '@/app/(panel)/buyurtma/malumot';
 import { KirimFormasi } from '../forma';
 
 export const dynamic = 'force-dynamic';
@@ -11,6 +12,15 @@ export default async function YangiKirim() {
   // §9.4 — tugmani yashirish himoya emas, server amali ham tekshiradi
   const yetkazibQoshaOladi = ruxsatBormi(f, 'yetkazib.yarat');
   const materialQoshaOladi = ruxsatBormi(f, 'material.yarat');
+
+  /**
+   * ⚠️ TZ 12.6 — to'lov faqat kassasi bor odamda ko'rinadi.
+   *    `kassa.tolov` ruxsati yo'q bo'lsa ro'yxat bo'sh keladi va
+   *    to'lov qismi umuman chizilmaydi (§9.4).
+   */
+  const kassalar = ruxsatBormi(f, 'kassa.tolov')
+    ? await tolovKassalari(f.filialId, f.xodimId)
+    : [];
 
   const [materiallar, yetkazuvchilar] = await Promise.all([
     kirimMateriallari(),
@@ -33,6 +43,7 @@ export default async function YangiKirim() {
       </div>
 
       <KirimFormasi
+        kassalar={kassalar}
         materiallar={materiallar}
         yetkazuvchilar={yetkazuvchilar}
         yetkazibQoshaOladi={yetkazibQoshaOladi}

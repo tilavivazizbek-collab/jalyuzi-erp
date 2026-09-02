@@ -27,6 +27,7 @@ import {
 } from '@/lib/domain/tannarx';
 import { kopaytir, nolSom, pulMatn, qosh, som, type Som } from '@/lib/domain/pul';
 import { BiznesXato } from '@/lib/xato';
+import { yetkazibToloviTx } from './yetkazib-tolov';
 
 /** Rulon uchun har bo'lak o'z o'lchami bilan (7.9). */
 export interface BolakOlchami {
@@ -64,6 +65,16 @@ export interface KirimKirimi {
   readonly bojxonaSumma: string;
   readonly tolovMuddati: string | null;
   readonly qatorlar: readonly QatorKirimi[];
+
+  /**
+   * TZ 12.6 — mol kelganda darhol to'langan summa.
+   *
+   * ⚠️ Bo'sh bo'lsa mol QARZGA qoladi. To'lov shu yerda bo'lsa,
+   *    u KIRIM BILAN BITTA TRANZAKSIYADA yoziladi (2.1): mol
+   *    kirdi-yu pul chiqmay qoldi — bunday holat bo'lmaydi.
+   */
+  readonly tolovSumma?: string;
+  readonly tolovKassaId?: number;
 }
 
 /** TZ 7.9 — ustama chegaradan past bo'lsa OGOHLANTIRISH, bloklamaydi. */
@@ -356,6 +367,29 @@ export async function kirimYarat(
       VALUES (${kirim.yetkazibBeruvchiId}, ${kirim.filialId}, 'XARID',
               ${pulMatn(xaridSummasi)}, ${kirim.valyuta}, ${kirim.kursSnapshot},
               'kirim', ${kirimId}, ${`Kirim ${kirim.raqam}`}, ${xodimId})`;
+
+    /**
+     * ⚠️ To'lov SHU TRANZAKSIYADA — mol kirdi, pul chiqdi.
+     *    Alohida qilinса, biri o'tib ikkinchisi yiqilishi
+     *    mumkin edi va balans jimgina buzilardi (2.1-invariant).
+     */
+    const tolov = Number(kirim.tolovSumma ?? '0');
+    if (tolov > 0 && kirim.tolovKassaId !== undefined) {
+      await yetkazibToloviTx(
+        tx,
+        {
+          yetkazibBeruvchiId: kirim.yetkazibBeruvchiId,
+          filialId: kirim.filialId,
+          kassaId: kirim.tolovKassaId,
+          summa: tolov.toFixed(2),
+          valyuta: kirim.valyuta,
+          kursSnapshot: kirim.kursSnapshot,
+          izoh: `Kirim ${kirim.raqam} uchun to'lov`,
+          kirimId,
+        },
+        xodimId,
+      );
+    }
 
     return { kirimId, bolakSoni, defektZarari, ogohlantirishlar };
   });

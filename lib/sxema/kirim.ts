@@ -74,7 +74,25 @@ export const kirimSxema = z
       .transform((x) => (x === '' ? undefined : x))
       .optional(),
     qatorlar: z.array(kirimQatorSxema).min(1, "Kamida bitta qator bo'lishi kerak"),
+
+    /**
+     * TZ 12.6 — mol kelganda darhol to'langan summa (C1).
+     *
+     * ⚠️ Bo'sh bo'lsa hech narsa yozilmaydi va mol QARZGA qoladi.
+     *    Ilgari to'lov yozadigan joy umuman yo'q edi va qarz
+     *    faqat o'sib borardi (2026-08-30).
+     */
+    tolovSumma: ixtiyoriyMusbat("To'lov summasi"),
+    tolovKassaId: z
+      .string()
+      .trim()
+      .transform((x) => (x === '' ? undefined : Number(x)))
+      .optional(),
   })
+  .refine(
+    (k) => k.tolovSumma === undefined || Number(k.tolovSumma) === 0 || k.tolovKassaId !== undefined,
+    { message: "To'lov qaysi kassadan chiqishini tanlang", path: ['tolovKassaId'] },
+  )
   .refine((k) => k.valyuta !== 'USD' || (k.kursSnapshot !== undefined && Number(k.kursSnapshot) > 0), {
     // TZ 9.6 — tannarx kirim kunidagi kursda QOTADI, kurssiz qotib bo'lmaydi
     message: "Dollarli kirimda kurs majburiy — tannarx shu kursda qotadi",

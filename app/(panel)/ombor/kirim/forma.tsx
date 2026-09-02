@@ -91,12 +91,21 @@ export function KirimFormasi({
   yetkazuvchilar,
   yetkazibQoshaOladi,
   materialQoshaOladi,
+  kassalar,
 }: {
   materiallar: readonly MaterialTanlovi[];
   yetkazuvchilar: readonly YetkazibTanlovi[];
   yetkazibQoshaOladi: boolean;
   /** §9.4 — server amali ham `material.yarat` ni tekshiradi */
   materialQoshaOladi: boolean;
+  /**
+   * TZ 12.6 — to'lov qaysi kassadan chiqadi.
+   *
+   * ⚠️ Bo'sh bo'lsa to'lov qismi umuman ko'rinmaydi: pul qabul
+   *    qila olmaydigan odamga to'lov katagini ko'rsatishning
+   *    ma'nosi yo'q (12.2).
+   */
+  kassalar: readonly { id: number; nom: string; valyuta: string }[];
 }) {
   const [holat, yubor, kutilmoqda] = useActionState(kirimYaratAmali, BOSH_HOLAT);
 
@@ -111,6 +120,8 @@ export function KirimFormasi({
   const [valyuta, setValyuta] = useState('SOM');
   const [transport, setTransport] = useState('');
   const [bojxona, setBojxona] = useState('');
+  const [tolov, setTolov] = useState('');
+  const [tolovKassa, setTolovKassa] = useState('');
   const [qatorlar, setQatorlar] = useState<Qator[]>([]);
 
   const material = (id: number): MaterialTanlovi | undefined =>
@@ -222,6 +233,27 @@ export function KirimFormasi({
     for (const q of qatorQiymatlari) if (q !== null) s = qosh(s, q);
     return qosh(s, xarajat);
   }, [qatorQiymatlari, xarajat]);
+
+  /** ⚠️ Faqat hujjat valyutasidagi kassa (1.3-invariant) */
+  const mosKassalar = useMemo(
+    () => kassalar.filter((k) => k.valyuta === valyuta),
+    [kassalar, valyuta],
+  );
+
+  /**
+   * To'lovdan keyin qarzga nima qoladi.
+   *
+   * ⚠️ Transport va bojxona qarzga KIRMAYDI (7.9) — ular alohida
+   *    to'lanadi. Shuning uchun bu yerda faqat qatorlar summasi.
+   */
+  const qolganQarz = useMemo((): number | null => {
+    const t = Number(tolov);
+    if (!Number.isFinite(t) || t <= 0) return null;
+
+    let mol = 0;
+    for (const q of qatorQiymatlari) if (q !== null) mol += Number(pulMatn(q));
+    return Number((mol - t).toFixed(2));
+  }, [tolov, qatorQiymatlari]);
 
   /** Xarajat ulushlari — tannarxni ekranda ANIQ ko'rsatish uchun */
   const ulushlar = useMemo(() => {
@@ -839,6 +871,80 @@ export function KirimFormasi({
           </Maydon>
         </div>
       </section>
+
+      {/* ── TZ 12.6 · Yetkazib beruvchiga to'lov ── */}
+      {mosKassalar.length > 0 && (
+        <section className="rounded-karta border border-chegara bg-sirt p-5">
+          <h2 className="mb-1 text-sm font-semibold">To&apos;lov</h2>
+          <p className="mb-3 text-xs text-matn-kuchsiz">
+            Hozir to&apos;lasangiz shu yerda yozing — kassadan pul chiqadi va qarz
+            shuncha kamayadi. Bo&apos;sh qoldirsangiz mol <b>qarzga</b> qoladi.
+          </p>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Maydon nom="tolovSumma" yorliq="Hozir to'ladim">
+              <input
+                id="tolovSumma"
+                name="tolovSumma"
+                value={tolov}
+                onChange={(e) => {
+                  setTolov(e.target.value);
+                }}
+                inputMode="decimal"
+                placeholder="0"
+                className={kirishUslubi(false)}
+              />
+            </Maydon>
+
+            {/*
+              ⚠️ Kassa faqat MOS VALYUTADA ko'rsatiladi: so'm
+                 kassasidan dollar chiqib ketsa qoldiq ma'nosini
+                 yo'qotardi (1.3-invariant).
+            */}
+            <Maydon nom="tolovKassaId" yorliq="Qaysi kassadan">
+              <select
+                id="tolovKassaId"
+                name="tolovKassaId"
+                value={tolovKassa}
+                onChange={(e) => {
+                  setTolovKassa(e.target.value);
+                }}
+                className={kirishUslubi(false)}
+              >
+                <option value="">— tanlang —</option>
+                {mosKassalar.map((k) => (
+                  <option key={k.id} value={k.id}>
+                    {k.nom}
+                  </option>
+                ))}
+              </select>
+            </Maydon>
+          </div>
+
+          {/*
+            ⚠️ Qarzga nima qolishi DARHOL ko'rinadi — omborchi
+               «to'liq to'ladim» deb o'ylab yarmini qoldirmasin.
+          */}
+          {qolganQarz !== null && (
+            <p className="mt-3 rounded-maydon bg-fon px-3 py-2 text-[13px] text-matn-ikki">
+              {qolganQarz > 0 ? (
+                <>
+                  Qarzga qoladi:{' '}
+                  <b className="raqam text-matn">{qolganQarz.toFixed(2)}</b>{' '}
+                  {valyuta === 'USD' ? '$' : "so'm"}
+                </>
+              ) : qolganQarz === 0 ? (
+                <span className="text-belgi-yashil">To&apos;liq to&apos;landi</span>
+              ) : (
+                <span className="text-belgi-sariq">
+                  To&apos;lov hujjat summasidan {(-qolganQarz).toFixed(2)} ortiq — avans
+                  bo&apos;lib qoladi
+                </span>
+              )}
+            </p>
+          )}
+        </section>
+      )}
 
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
