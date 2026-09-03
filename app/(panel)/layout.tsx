@@ -98,6 +98,24 @@ const MENYU: readonly Guruh[] = [
     bandlar: [{ yol: '/kassa', nom: 'Kassa', kod: 'kassa.oz.kor' }],
   },
   {
+    // TZ 11.10 — ruxsatga qarab bloklar yashiriladi. Menyuda ham shunday:
+    // ombor hisobotini ko'ra olmaydigan odamga havola umuman ko'rinmaydi.
+    nom: 'Hisobotlar',
+    bandlar: [
+      /**
+       * ⚠️ Bosh sahifa hammaga ochiq (`null`), chunki menyu bandi BITTA
+       *    kod bilan cheklanadi, 11.10 esa bo'limga qarab huquq beradi:
+       *    omborchida ombor, sotuvchida sotuv va mijozlar. Sahifaning
+       *    O'ZI ruxsatga qarab qatorlarni filtrlaydi va huquq umuman
+       *    bo'lmasa buni aytadi. Har HISOBOT sahifasi esa serverda
+       *    o'z kodini talab qiladi — manzilni qo'lda yozib kirib
+       *    bo'lmaydi. Usta saytga umuman kirmaydi (Q-04).
+       */
+      { yol: '/hisobot', nom: 'Hisobotlar', kod: null },
+      { yol: '/hisobot/ombor', nom: 'Ombor hisobotlari', kod: 'hisobot.ombor.kor' },
+    ],
+  },
+  {
     nom: 'Sozlash',
     bandlar: [
       { yol: '/kurs', nom: 'Dollar kursi', kod: 'sozlama.kor' },

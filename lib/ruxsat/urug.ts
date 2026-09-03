@@ -67,10 +67,17 @@ export const ROL_URUGI: readonly RolUrugi[] = [
       ['kassa.tolov', 'OZ_FILIALI'],
       // TZ 10.15 — «Kim qila oladi: admin, SOTUVCHI, omborchi»
       ['kassa.ish.haqi', 'OZ_FILIALI'],
+      // TZ 11.10 — «Sotuv, mijozlar, kassa oqimi. Tannarx, foyda va
+      // ish haqi yo'q». Shuning uchun ombor hisoboti BERILMAYDI: unda
+      // tannarx bor (11.7.1, 11.7.5).
+      ['hisobot.sotuv.kor', 'OZ_FILIALI'],
+      ['hisobot.mijoz.kor', 'OZ_FILIALI'],
       // BERILMAYDI: buyurtma.qayta_kesish — 8.17.2 «ADMIN ko'radi va
       //             qaror qiladi». Sotuvchi ishlab chiqarish brakini
       //             tasdiqlamaydi.
     ],
+    // BERILMAYDI: hisobot.ombor.kor va hisobot.moliya.kor — 11.10
+    //             «tannarx, foyda va ish haqi yo'q»
     // BERILMAYDI: kassa.barcha.kor (12.14 «faqat o'z kassasi»),
     //             kassa.ayirboshlash va kassa.storno (14.6 misolida ☐),
     //             ombor.kirim.yarat / chiqim / storno / narx.ozgartir
@@ -107,6 +114,8 @@ export const ROL_URUGI: readonly RolUrugi[] = [
       ['ombor.kochirish.qabul', 'OZ_FILIALI'], // 20.7.1
       ['kassa.oz.kor', 'OZ_FILIALI'], // 12.14
       ['kassa.chiqim', 'OZ_FILIALI'], // 12.14 — yetkazib beruvchiga to'lov
+      // TZ 11.10 — «Omborchi: faqat ombor hisobotlari»
+      ['hisobot.ombor.kor', 'OZ_FILIALI'],
       // Kirim hujjati material va yetkazib beruvchini tanlashni talab qiladi (9.2)
       ['material.kor', 'BARCHA'],
       ['yetkazib.kor', 'BARCHA'],

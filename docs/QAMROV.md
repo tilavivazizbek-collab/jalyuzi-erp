@@ -129,12 +129,14 @@ ikki varaqli Excel.
 
 | Hisobot | Hisob | So'rov | Ekran | Eksport |
 |---|:---:|:---:|:---:|:---:|
-| Davr filtri va taqqoslash (11.1) | ✅ | — | ❌ | — |
-| ABC tahlil — mijoz va ombor (11.6.2) | ✅ | ❌ | ❌ | ❌ |
-| Bashorat: tezlik → tugash muddati | ✅ | ❌ | ❌ | ❌ |
-| Ustama eroziyasi (11.7.5) | ✅ | ❌ | ❌ | ❌ |
-| Muzlab qolgan pul (11.7.6) | ✅ | ❌ | ❌ | ❌ |
-| Qoldiq va qiymati (11.7.1) | ❌ | ❌ | ❌ | ❌ |
+| Davr filtri va taqqoslash (11.1) | ✅ | — | ✅ | — |
+| ABC tahlil — ombor (11.6.2 mexanizmi) | ✅ | ✅ | ✅ | ❌ |
+| Bashorat: tezlik → tugash muddati | ✅ | ✅ | ✅ | ❌ |
+| Ustama eroziyasi (11.7.5) | ✅ | ✅ | ✅ | ❌ |
+| Muzlab qolgan pul (11.7.6) | ✅ | ✅ | ✅ | ❌ |
+| Qoldiq qiymati — jami (11.7.1) | ✅ | ✅ | ✅ | ❌ |
+| Qoldiq — material kesimida (11.7.1) | ❌ | ❌ | ❌ | ❌ |
+| ABC tahlil — mijoz (11.6.2) | ✅ | ❌ | ❌ | ❌ |
 | Material harakati (11.7.2) | ❌ | ❌ | ❌ | ❌ |
 | Kam qolgan va tugagan (11.7.3) | ❌ | ❌ | ❌ | ❌ |
 | Chiqindi va brak (11.7.4) | ❌ | ❌ | ❌ | ❌ |
@@ -153,6 +155,13 @@ tekshirilganini bildiradi.
 
 **K-08 (ustama eroziyasi, 37.4%) yopildi** — `test/domain/hisobot-ombor.test.ts`.
 Shu bilan CLAUDE.md §6 dagi 11 ta kanonik raqamning hammasi TAYYOR.
+
+**Ruxsat (11.10):** `hisobot.ombor.kor` · `hisobot.sotuv.kor` ·
+`hisobot.mijoz.kor` · `hisobot.moliya.kor`. Ombor hisobotida TANNARX bor,
+shuning uchun u sotuvchiga urug'da berilmaydi.
+
+**So'rovlar `ekran-sorovlari.test.ts` da qoplangan** (T-01) va ishchi bazada
+bir marta o'qish rejimida yurgizib ko'rilgan.
 
 Yangi statistikalar ro'yxati va chart mosligi: `docs/HISOBOTLAR-ISH.md`.
 

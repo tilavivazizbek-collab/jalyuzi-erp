@@ -35,6 +35,8 @@ import * as katalog from '@/lib/amal/katalog';
 import * as mahsulotEkrani from '@/app/(panel)/mahsulot/malumot';
 import * as mijozGuruhEkrani from '@/app/(panel)/mijoz/guruh/malumot';
 import * as tarixEkrani from '@/app/(panel)/ombor/tarix/malumot';
+import * as hisobotEkrani from '@/app/(panel)/hisobot/malumot';
+import { davrYasa } from '@/lib/domain/hisobot/davr';
 
 let sql: Ulanish;
 let filialId = 1;
@@ -301,5 +303,50 @@ describe('Spravochnik ekranlari', () => {
       ),
     ).resolves.toBeDefined();
     await expect(tarixEkrani.tarixMateriallari(filialId)).resolves.toBeDefined();
+  });
+});
+
+/**
+ * TZ 11.7 — hisobot so'rovlari.
+ *
+ * ⚠️ Bu so'rovlar boshqalardan MURAKKABROQ: ichma-ich `SELECT`, `HAVING`
+ *    va `FILTER` ishlatiladi. Ustun nomidagi xato faqat hisobotni ochgan
+ *    odamga bilinardi va u odam odatda EGASI bo'ladi.
+ *
+ * ⚠️ Bo'sh baza ham to'g'ri natija: hisobot yiqilmasligi kerak. Nolga
+ *    bo'linish va `NULL` dan pul yasash — aynan shu yerda chiqadi.
+ */
+describe('Hisobot ekranlari — TZ 11.7', () => {
+  it('ombor qiymati va ustama eroziyasi (11.7.1, 11.7.5)', async () => {
+    await expect(hisobotEkrani.omborQiymati(filialId)).resolves.toBeTypeOf('string');
+
+    const ustama = await hisobotEkrani.ustamaHisoboti(filialId);
+    expect(ustama.jamiSoni).toBe(ustama.qatorlar.length);
+    expect(ustama.pastSoni).toBeLessThanOrEqual(ustama.jamiSoni);
+  });
+
+  it('muzlab qolgan pul — uch bo‘lak (11.7.6)', async () => {
+    const m = await hisobotEkrani.muzlaganPulHisoboti(filialId);
+    // Qo'sh sanash bo'lmasligi kerak: ostatka uchinchi bo'lakdan ayirilgan
+    expect(m.kesishgan).toEqual([]);
+    expect(m.ostatkalar.soni).toBe(m.ostatkaQatorlari.length);
+  });
+
+  it('sarflanish tezligi — har davr uchun (§3.1 №13–14)', async () => {
+    for (const turi of ['HAFTA', 'OY', 'YIL'] as const) {
+      const davr = davrYasa(turi, new Date());
+      await expect(hisobotEkrani.sarflanishTezligi(filialId, davr)).resolves.toBeDefined();
+    }
+  });
+
+  it('ABC tahlil — ombor (§3.1 №17)', async () => {
+    const abc = await hisobotEkrani.omborAbc(filialId);
+    expect(abc.soni.A + abc.soni.B + abc.soni.C).toBe(abc.qatorlar.length);
+  });
+
+  it('mavjud bo‘lmagan filialda ham yiqilmaydi', async () => {
+    await expect(hisobotEkrani.ustamaHisoboti(YOQ)).resolves.toBeDefined();
+    await expect(hisobotEkrani.muzlaganPulHisoboti(YOQ)).resolves.toBeDefined();
+    await expect(hisobotEkrani.omborAbc(YOQ)).resolves.toBeDefined();
   });
 });

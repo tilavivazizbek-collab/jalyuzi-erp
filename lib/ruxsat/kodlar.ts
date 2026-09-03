@@ -23,6 +23,7 @@ export const GURUHLAR = [
   'Kassa',
   'Narx',
   'Spravochnik',
+  'Hisobot',
 ] as const;
 export type Guruh = (typeof GURUHLAR)[number];
 
@@ -180,6 +181,25 @@ export const RUXSATLAR = {
     guruh: 'Narx',
     band: '20.9.1',
   },
+
+  // ── Hisobotlar — TZ 11.10 ──────────────────────────────────────────────
+  /**
+   * TZ 11.10 ruxsat jadvali bo'lim darajasida yozilgan, shuning uchun
+   * kodlar ham bo'limga qarab ajratilgan — bitta «hisobot.kor» bayrog'i
+   * 11.10 ni ifodalay olmaydi:
+   *
+   *   Admin     — hammasi
+   *   Sotuvchi  — sotuv, mijozlar, kassa oqimi. Tannarx va foyda YO'Q
+   *   Omborchi  — faqat ombor hisobotlari
+   *   Usta      — hech narsa
+   *
+   * ⚠️ Ombor hisobotlarida TANNARX bor (11.7.1, 11.7.5, 11.7.6). Shuning
+   *    uchun `hisobot.ombor.kor` sotuvchiga urug'da BERILMAYDI.
+   */
+  'hisobot.ombor.kor': { nom: "Ombor hisobotlari", guruh: 'Hisobot', band: '11.7' },
+  'hisobot.sotuv.kor': { nom: 'Sotuv hisobotlari', guruh: 'Hisobot', band: '11.5' },
+  'hisobot.mijoz.kor': { nom: 'Mijozlar hisobotlari', guruh: 'Hisobot', band: '11.6' },
+  'hisobot.moliya.kor': { nom: 'Moliya hisobotlari', guruh: 'Hisobot', band: '11.4' },
 
   // ── Spravochniklar — TZ 4, 5, 6, 9 ─────────────────────────────────────
   'material.kor': { nom: "Materiallarni ko'rish", guruh: 'Spravochnik', band: '5.1' },
