@@ -23,6 +23,8 @@ export interface BuyurtmaQatori {
   readonly tolangan: string;
   /** Holat → soni (8.2) */
   readonly holatlar: Readonly<Record<string, number>>;
+  /** TZ 8.9 — yopilgan buyurtmadan chek chiqariladi */
+  readonly yopilganmi: boolean;
 }
 
 export type BuyurtmaFiltri =
@@ -69,9 +71,11 @@ export async function buyurtmalar(
       pozitsiya_soni: number;
       jami: string | null;
       tolangan: string | null;
+      yopilganmi: boolean;
     }[]
   >`
     SELECT b.id, b.raqam, b.sana, m.ism AS mijoz_ismi, b.manba, b.valyuta,
+           (b.yopildi IS NOT NULL) AS yopilganmi,
            b.tayyorlik_sana::text AS tayyorlik_sana,
            COUNT(p.id)::int AS pozitsiya_soni,
            SUM(p.narx_snapshot - COALESCE(p.chegirma_summa, 0))::text AS jami,
@@ -142,6 +146,7 @@ export async function buyurtmalar(
     jami: q.jami ?? '0',
     tolangan: q.tolangan ?? '0',
     holatlar: holatBoyicha.get(q.id) ?? {},
+    yopilganmi: q.yopilganmi,
   }));
 }
 

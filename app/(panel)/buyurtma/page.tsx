@@ -120,6 +120,7 @@ export default async function BuyurtmalarRoyxati({
                 <th className="px-4 py-3">To&apos;lov</th>
                 <th className="px-4 py-3">Holat</th>
                 <th className="px-4 py-3">Muddat</th>
+                <th className="px-4 py-3" />
               </tr>
             </thead>
 
@@ -203,6 +204,22 @@ export default async function BuyurtmalarRoyxati({
 
                     <td className="px-4 py-3 whitespace-nowrap text-matn-ikki">
                       {b.tayyorlikSana ?? <span className="text-matn-kuchsiz">—</span>}
+                    </td>
+
+                    {/*
+                      TZ 8.9 — chek yopilgan buyurtmada. Mijoz chekni
+                      yo'qotsa, sotuvchi ro'yxatdan qayta chiqaradi:
+                      kartochkani ochib o'tirish shart emas.
+                    */}
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      {b.yopilganmi && (
+                        <Link
+                          href={`/buyurtma/${String(b.id)}/chek`}
+                          className="text-[12px] text-brend hover:underline"
+                        >
+                          Chek
+                        </Link>
+                      )}
                     </td>
                   </tr>
                 );
