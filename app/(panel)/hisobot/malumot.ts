@@ -698,3 +698,165 @@ export async function kamQolganlar(
     /** Tugaganlar tepada — ular shoshilinch */
     .sort((a, b) => Number(b.tugadimi) - Number(a.tugadimi) || a.nom.localeCompare(b.nom));
 }
+
+
+// ─── 11.6.1 · Mijozlar bazasi ─────────────────────────────────────────────
+
+export interface MijozBazasi {
+  readonly jami: number;
+  /** Davr ichida BIRINCHI buyurtmasini bergan */
+  readonly yangi: number;
+  /** Davrda xarid qilgan va undan oldin ham xaridi bo'lgan */
+  readonly takroriy: number;
+  /**
+   * TZ 11.6.1 — «uxlab qolgan»: oxirgi xaridi 90 kundan oldin.
+   *
+   * ⚠️ Hech qachon xarid qilmagan mijoz BU YERGA KIRMAYDI —
+   *    u «uxlab qolgan» emas, hali uyg'onmagan. Ularni aralashtirsak
+   *    «mijozlarning yarmi ketib qoldi» degan soxta xavotir chiqardi.
+   */
+  readonly uxlagan: number;
+  readonly hechQachonXaridQilmagan: number;
+  /** Davr ichidagi o'rtacha chek (so'm) */
+  readonly ortachaChek: string;
+  /** Davrdagi buyurtmalar soni */
+  readonly buyurtmaSoni: number;
+}
+
+const UXLAGAN_KUN = 90;
+
+/**
+ * TZ 11.6.1 — mijozlar bazasi: yangi, takroriy, uxlab qolgan,
+ * o'rtacha chek.
+ *
+ * ⚠️ Buyurtma summasi `buyurtma_pozitsiya` dan yig'iladi:
+ *    `narx_snapshot - chegirma_summa + xizmat_haqi`. Snapshot
+ *    ATAYLAB — kechagi buyurtma bugungi narxda qayta
+ *    hisoblanmaydi (2.3-invariant).
+ *
+ * ⚠️ BEKOR va RAD ETILGAN pozitsiyalar chiqmaydi: ular tushum
+ *    emas. Aks holda «o'rtacha chek» soxta oshib ketardi.
+ */
+export async function mijozBazasi(filialId: number, davr: Davr): Promise<MijozBazasi> {
+  const q = await ulanishOl()<
+    {
+      jami: number;
+      yangi: number;
+      takroriy: number;
+      uxlagan: number;
+      hech_qachon: number;
+      ortacha_chek: string | null;
+      buyurtma_soni: number;
+    }[]
+  >`
+    WITH pozitsiya AS (
+      SELECT p.buyurtma_id,
+             SUM(COALESCE(p.narx_snapshot, 0)
+                 - COALESCE(p.chegirma_summa, 0)
+                 + COALESCE(p.xizmat_haqi, 0)) AS summa
+      FROM buyurtma_pozitsiya p
+      WHERE p.holat NOT IN ('BEKOR','RAD_ETILGAN')
+      GROUP BY p.buyurtma_id
+    ),
+    xarid AS (
+      SELECT b.mijoz_id, b.id, b.sana, COALESCE(pz.summa, 0) AS summa
+      FROM buyurtma b
+      LEFT JOIN pozitsiya pz ON pz.buyurtma_id = b.id
+      WHERE b.sotgan_filial_id = ${filialId}
+    ),
+    mijoz_holati AS (
+      SELECT m.id,
+             MIN(x.sana) AS birinchi,
+             MAX(x.sana) AS oxirgi,
+             COUNT(x.id) FILTER (
+               WHERE x.sana >= ${davr.boshi} AND x.sana < ${davr.oxiri}
+             )::int AS davrda
+      FROM mijoz m
+      LEFT JOIN xarid x ON x.mijoz_id = m.id
+      WHERE m.faol = true
+      GROUP BY m.id
+    )
+    SELECT
+      COUNT(*)::int AS jami,
+      COUNT(*) FILTER (
+        WHERE birinchi >= ${davr.boshi} AND birinchi < ${davr.oxiri}
+      )::int AS yangi,
+      COUNT(*) FILTER (WHERE davrda > 0 AND birinchi < ${davr.boshi})::int AS takroriy,
+      COUNT(*) FILTER (
+        WHERE oxirgi IS NOT NULL AND oxirgi < now() - make_interval(days => ${UXLAGAN_KUN})
+      )::int AS uxlagan,
+      COUNT(*) FILTER (WHERE oxirgi IS NULL)::int AS hech_qachon,
+      (SELECT AVG(summa)::numeric(14,2)::text FROM xarid
+        WHERE sana >= ${davr.boshi} AND sana < ${davr.oxiri}) AS ortacha_chek,
+      (SELECT COUNT(*)::int FROM xarid
+        WHERE sana >= ${davr.boshi} AND sana < ${davr.oxiri}) AS buyurtma_soni
+    FROM mijoz_holati`;
+
+  const r = q[0];
+  return {
+    jami: r?.jami ?? 0,
+    yangi: r?.yangi ?? 0,
+    takroriy: r?.takroriy ?? 0,
+    uxlagan: r?.uxlagan ?? 0,
+    hechQachonXaridQilmagan: r?.hech_qachon ?? 0,
+    ortachaChek: r?.ortacha_chek ?? '0',
+    buyurtmaSoni: r?.buyurtma_soni ?? 0,
+  };
+}
+
+// ─── 11.6.2 · ABC — mijozlar ──────────────────────────────────────────────
+
+export interface MijozAbcQatori {
+  readonly mijozId: number;
+  readonly ism: string;
+  readonly tushum: string;
+  readonly buyurtmaSoni: number;
+}
+
+/**
+ * TZ 11.6.2 — «Tushumning 80% qaysi mijozlardan».
+ *
+ * ⚠️ Mexanizm ombor ABC si bilan BITTA (`lib/domain/hisobot/abc.ts`) —
+ *    chegara qoidasi va manfiy qiymat qoidasi ikki joyda
+ *    takrorlanmaydi (§2.2).
+ */
+export async function mijozAbc(
+  filialId: number,
+  davr: Davr,
+): Promise<{
+  readonly natija: AbcNatija<number>;
+  readonly buyurtmaSoni: ReadonlyMap<number, number>;
+}> {
+  const q = await ulanishOl()<
+    { mijoz_id: number; ism: string; tushum: string | null; soni: number }[]
+  >`
+    WITH pozitsiya AS (
+      SELECT p.buyurtma_id,
+             SUM(COALESCE(p.narx_snapshot, 0)
+                 - COALESCE(p.chegirma_summa, 0)
+                 + COALESCE(p.xizmat_haqi, 0)) AS summa
+      FROM buyurtma_pozitsiya p
+      WHERE p.holat NOT IN ('BEKOR','RAD_ETILGAN')
+      GROUP BY p.buyurtma_id
+    )
+    SELECT m.id AS mijoz_id, m.ism,
+           SUM(COALESCE(pz.summa, 0))::numeric(14,2)::text AS tushum,
+           COUNT(b.id)::int AS soni
+    FROM buyurtma b
+    JOIN mijoz m ON m.id = b.mijoz_id
+    LEFT JOIN pozitsiya pz ON pz.buyurtma_id = b.id
+    WHERE b.sotgan_filial_id = ${filialId}
+      AND b.sana >= ${davr.boshi} AND b.sana < ${davr.oxiri}
+    GROUP BY m.id, m.ism
+    ORDER BY 3 DESC NULLS LAST`;
+
+  const soni = new Map<number, number>();
+  for (const x of q) soni.set(x.mijoz_id, x.soni);
+
+  return {
+    natija: abcTahlil(
+      q.map((x) => ({ kalit: x.mijoz_id, nom: x.ism, qiymat: som(x.tushum ?? '0') })),
+    ),
+    buyurtmaSoni: soni,
+  };
+}

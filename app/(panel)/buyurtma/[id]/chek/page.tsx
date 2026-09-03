@@ -92,7 +92,14 @@ export default async function ChekSahifasi({ params }: { params: Promise<{ id: s
  */
 function ChekBlogi({ chek, qrSvg }: { chek: Chek; qrSvg: string }) {
   return (
-    <div className="chek border border-chegara bg-white p-[3mm] text-black">
+    <>
+      {/*
+        ⚠️ Sahifa o'lchami SHU YERDA: chek 80 mm lentaga chiqadi.
+           Global qoidaga qo'yilsa, A4 hujjatlar ham lentaga
+           siqilib chiqardi.
+      */}
+      <style>{'@media print { @page { size: 80mm auto; margin: 0 } }'}</style>
+      <div className="chek border border-chegara bg-white p-[3mm] text-black">
       {/* ── Korxona (14.3) ── */}
       <div className="text-center leading-tight">
         {chek.korxonaNom !== null && (
@@ -195,7 +202,8 @@ function ChekBlogi({ chek, qrSvg }: { chek: Chek; qrSvg: string }) {
         {chek.botUsername !== null && <div>Balansni @{chek.botUsername} da tekshiring</div>}
         <div className="mt-[1mm] text-[9pt] font-semibold">Rahmat!</div>
       </div>
-    </div>
+      </div>
+    </>
   );
 }
 

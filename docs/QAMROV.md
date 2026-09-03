@@ -136,7 +136,7 @@ ikki varaqli Excel.
 | Muzlab qolgan pul (11.7.6) | ✅ | ✅ | ✅ | ❌ |
 | Qoldiq qiymati — jami (11.7.1) | ✅ | ✅ | ✅ | ❌ |
 | Qoldiq — material kesimida (11.7.1) | — | ✅ | ✅ | ❌ |
-| ABC tahlil — mijoz (11.6.2) | ✅ | ❌ | ❌ | ❌ |
+| ABC tahlil — mijoz (11.6.2) | ✅ | ✅ | ✅ | ❌ |
 | Material harakati (11.7.2) | — | ✅ | ✅ | ❌ |
 | Kam qolgan va tugagan (11.7.3) | ✅ | ✅ | ✅ | ❌ |
 | Chiqindi va brak (11.7.4) | — | ✅ | ✅ | ❌ |

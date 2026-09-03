@@ -388,8 +388,35 @@ describe('Hisobot ekranlari — TZ 11.7', () => {
     }
   });
 
+  it('mijozlar bazasi (11.6.1)', async () => {
+    const davr = davrYasa('YIL', new Date());
+    const b = await hisobotEkrani.mijozBazasi(filialId, davr);
+
+    /**
+     * ⚠️ «Yangi» va «takroriy» — DAVR ichida xarid qilganlar,
+     *    ular jamidan oshib ketmasligi kerak. Oshsa — CTE dagi
+     *    filtr tushib qolgan degani.
+     */
+    expect(b.yangi + b.takroriy).toBeLessThanOrEqual(b.jami);
+    expect(b.hechQachonXaridQilmagan).toBeLessThanOrEqual(b.jami);
+    expect(b.ortachaChek).toBeTypeOf('string');
+  });
+
+  it('mijoz ABC — toifalar yig‘indisi qatorlar soniga teng (11.6.2)', async () => {
+    const davr = davrYasa('YIL', new Date());
+    const a = await hisobotEkrani.mijozAbc(filialId, davr);
+    const s = a.natija.soni;
+    expect(s.A + s.B + s.C).toBe(a.natija.qatorlar.length);
+
+    // Har qatorga buyurtma soni topilishi kerak
+    for (const q of a.natija.qatorlar) {
+      expect(a.buyurtmaSoni.has(q.kalit)).toBe(true);
+    }
+  });
+
   it('mavjud bo‘lmagan filialda ham yiqilmaydi', async () => {
     const davr = davrYasa('OY', new Date());
+    await expect(hisobotEkrani.mijozBazasi(YOQ, davr)).resolves.toBeDefined();
     await expect(hisobotEkrani.ustamaHisoboti(YOQ)).resolves.toBeDefined();
     await expect(hisobotEkrani.muzlaganPulHisoboti(YOQ)).resolves.toBeDefined();
     await expect(hisobotEkrani.omborAbc(YOQ)).resolves.toBeDefined();

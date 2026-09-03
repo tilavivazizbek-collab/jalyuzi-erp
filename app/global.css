@@ -150,12 +150,12 @@ html {
 }
 
 @media print {
-  @page {
-    /* Lenta uzunligi mahsulot soniga qarab o'zgaradi — `auto` */
-    size: 80mm auto;
-    margin: 0;
-  }
-
+  /*
+   * ⚠️ `@page` BU YERDA EMAS — har hujjat o'z o'lchamini o'zi
+   *    beradi (chek 80 mm lenta, hisob-kitob varaqasi A4).
+   *    Global qoida qo'yilsa, A4 hujjat ham 80 mm ga siqilib
+   *    chiqardi va jadval kesilib ketardi.
+   */
   body * {
     visibility: hidden;
   }
@@ -179,5 +179,29 @@ html {
   /* Chekdagi rang printerda kulrangga aylanadi — matn qora qoladi */
   .chek .text-neutral-500 {
     color: #444;
+  }
+
+  /*
+   * A4 hujjatlar — hisob-kitob varaqasi va kunlik yopish (15.4).
+   * Chekdan farqi: oddiy qog'ozga chiqadi va jadvali bo'ladi.
+   */
+  .varaqa,
+  .varaqa * {
+    visibility: visible;
+  }
+
+  .varaqa {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    border: 0;
+    background: #fff;
+    color: #000;
+  }
+
+  /* Qator sahifa chegarasida ikkiga bo'linib qolmasin */
+  .varaqa tr {
+    break-inside: avoid;
   }
 }
