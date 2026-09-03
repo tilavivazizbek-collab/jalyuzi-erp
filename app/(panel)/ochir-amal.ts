@@ -28,6 +28,11 @@ export interface OchirishNatijasi {
   readonly holat: 'OCHIRILDI' | 'BAND' | 'XATO';
   /** `BAND` yoki `XATO` bo'lsa — tushuntirish */
   readonly sabab: string | null;
+  /**
+   * O'chirildi, lekin YON TA'SIRI bor: masalan material mahsulot
+   * turidan ham chiqarildi. Xato emas — eslatma.
+   */
+  readonly izoh: string | null;
 }
 
 /** Har turning o'z sahifasi — o'chirilgach ro'yxat yangilanadi. */
@@ -54,7 +59,13 @@ export async function ochirAmali(
   try {
     const n = await nofaolQil(ulanishOl(), tur, id, f.xodimId);
     revalidatePath(YOLLAR[tur]);
-    return { holat: n.holat, sabab: n.sabab };
+    /**
+     * ⚠️ Material mahsulot turidan chiqarilgan bo'lsa, mahsulot
+     *    ro'yxati ham yangilanishi kerak — aks holda o'chirilgan
+     *    aksessuar keshdan ko'rinib turadi.
+     */
+    if (n.izoh !== null && n.izoh !== undefined) revalidatePath('/mahsulot');
+    return { holat: n.holat, sabab: n.sabab, izoh: n.izoh ?? null };
   } catch (x) {
     /**
      * ⚠️ Biznes xatosi — odamga tushunarli sabab («qarzi bor»).
@@ -67,6 +78,7 @@ export async function ochirAmali(
     return {
       holat: 'XATO',
       sabab: await xatoXabari(x, 'ochir-amal', "O'chirib bo'lmadi — dasturchiga xabar berildi"),
+      izoh: null,
     };
   }
 }
@@ -87,11 +99,12 @@ export async function qaytarAmali(
   try {
     await qaytar(ulanishOl(), tur, id, f.xodimId);
     revalidatePath(YOLLAR[tur]);
-    return { holat: 'OCHIRILDI', sabab: null };
+    return { holat: 'OCHIRILDI', sabab: null, izoh: null };
   } catch (x) {
     return {
       holat: 'XATO',
       sabab: await xatoXabari(x, 'ochir-amal', "Qaytarib bo'lmadi"),
+      izoh: null,
     };
   }
 }

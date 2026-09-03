@@ -35,6 +35,8 @@ export function OchirTugma({
 }) {
   const [soralmoqda, soralmoqdaOzgartir] = useState(false);
   const [sabab, sababniOzgartir] = useState<string | null>(null);
+  /** O'chirildi, lekin aytiladigan yon ta'siri bor */
+  const [izoh, izohniOzgartir] = useState<string | null>(null);
   const [kutilmoqda, boshla] = useTransition();
 
   function ochir(): void {
@@ -43,12 +45,41 @@ export function OchirTugma({
         if (n.holat === 'OCHIRILDI') {
           soralmoqdaOzgartir(false);
           sababniOzgartir(null);
+          /*
+            ⚠️ Yon ta'sir bo'lsa ro'yxat DARHOL yangilanmaydi:
+               avval odam xabarni o'qishi kerak. «Tushunarli»
+               bosilgach yangilanadi.
+          */
+          if (n.izoh !== null) {
+            izohniOzgartir(n.izoh);
+            return;
+          }
           ochirildi?.();
           return;
         }
         sababniOzgartir(n.sabab);
       });
     });
+  }
+
+  if (izoh !== null) {
+    return (
+      <div className="flex flex-col gap-1.5 rounded-maydon bg-brend-fon px-3 py-2">
+        <p role="status" className="text-[12px] text-brend">
+          <b>{nom}</b> o&apos;chirildi — {izoh}
+        </p>
+        <button
+          type="button"
+          onClick={() => {
+            izohniOzgartir(null);
+            ochirildi?.();
+          }}
+          className="fokus self-start rounded-maydon px-1 text-[12px] text-matn-kuchsiz hover:text-matn"
+        >
+          Tushunarli
+        </button>
+      </div>
+    );
   }
 
   if (sabab !== null) {

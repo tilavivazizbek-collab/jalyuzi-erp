@@ -21,7 +21,7 @@ import {
   tolovKassalari,
 } from '../malumot';
 import { TasdiqlashTugmasi } from '../tasdiqla';
-import { BekorTugmasi, QaytaribOlishTugmasi } from '../amallar';
+import { BekorTugmasi, BuyurtmaniOchirishTugmasi, QaytaribOlishTugmasi } from '../amallar';
 import { QaytarishTugmasi, RadEtishTugmasi, TopshirishTugmasi, YetibKeldiTugmasi } from '../hayot';
 import { TolovFormasi } from '../tolov-forma';
 import { IshniBoshlashTugmasi, TugatdimTugmasi, type UstaTanlovi } from '../ish';
@@ -325,6 +325,19 @@ export default async function BuyurtmaKartochkasi({ params }: { params: Promise<
 
       {/* 13.11 · 6.7 — yetib bormagan xabarlar */}
       <Eslatmalar xabarlar={eslatmalar} />
+
+      {/*
+        TZ 8.8 · 8.15 — butun buyurtmani o'chirish.
+
+        ⚠️ Eng pastda va ajratilgan: bu buyurtmadagi eng qaytmas
+           amal. Yopilgan buyurtmada tugma umuman chiqmaydi —
+           topshirilgan mahsulotni «bekor qilib» bo'lmaydi.
+      */}
+      {bekorQilaOladi && b.yopildi === null && (
+        <div className="border-t border-chegara pt-5">
+          <BuyurtmaniOchirishTugmasi buyurtmaId={b.id} />
+        </div>
+      )}
     </div>
   );
 }

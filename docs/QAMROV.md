@@ -34,6 +34,27 @@ ko'rinib turadi. Qaytarish mumkin.
 ⚠️ Ishlatilayotgan yozuv o'chirilmaydi va SABAB aytiladi: «omborda
 4 ta bo'lak bor», «qarzi bor: 320 000 so'm». 10 test.
 
+⚠️ **2026-09-03 — ikkita to'siq OLIB TASHLANDI** (egasining
+talabi bo'yicha, va u haq edi):
+
+| Nima | Ilgari | Endi |
+|---|---|---|
+| Material mahsulot turida ishlatilsa | o'chirilmasdi | o'chiriladi, tur ham shu aksessuardan xalos bo'ladi |
+| Mahsulot turi ochiq buyurtmada bo'lsa | o'chirilmasdi | o'chiriladi, buyurtma ishlashda davom etadi |
+
+Sabab: pozitsiyada `formula_snapshot` turadi (4.10), ishlab
+chiqarish o'shandan o'qiydi — tur nofaol bo'lgani ish oqimini
+buzmaydi. O'chirilganda yon ta'sir EKRANDA aytiladi.
+
+⚠️ Omborda QOLDIQ bo'lsa material baribir o'chirilmaydi: bu pul,
+uni ko'rinmas qilib qo'yib bo'lmaydi. Avval hisobdan chiqariladi.
+
+**Buyurtmani o'chirish (8.8 · 8.15)** — kartochkaning pastida.
+Hamma pozitsiya `BEKOR` bo'ladi, band bo'shaydi, buyurtma
+ro'yxatdan yo'qolib «Bekor qilingan» filtriga o'tadi. Uchta
+to'siq: to'lov qilingan · topshirilgan · ishlab chiqarishga
+kirgan. 8 test (EC-BOCH-01..08).
+
 ⚠️ **Kassa tahrirlanmaydi — ATAYLAB.** Kassaning turi, valyutasi
 va egasi o'zgarsa, o'tgan yozuvlar boshqa kassaga tegishli bo'lib
 qolardi (2.3-invariant). Kerak bo'lsa: eskisini o'chirib yangisini

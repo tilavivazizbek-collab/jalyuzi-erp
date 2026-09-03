@@ -34,7 +34,8 @@ export type BuyurtmaFiltri =
   | 'ISHLAB_CHIQARILMOQDA'
   | 'TAYYOR'
   | 'MATERIALGA_KUTMOQDA'
-  | 'MUDDATI_OTGAN';
+  | 'MUDDATI_OTGAN'
+  | 'BEKOR';
 
 export const FILTR_NOMI: Record<BuyurtmaFiltri, string> = {
   HAMMASI: 'Hammasi',
@@ -44,6 +45,7 @@ export const FILTR_NOMI: Record<BuyurtmaFiltri, string> = {
   TAYYOR: 'Tayyor, topshirilmagan',
   MATERIALGA_KUTMOQDA: 'Materialga kutmoqda',
   MUDDATI_OTGAN: "Muddati o'tgan",
+  BEKOR: 'Bekor qilingan',
 };
 
 export async function buyurtmalar(
@@ -97,6 +99,29 @@ export async function buyurtmalar(
     LEFT JOIN mijoz m ON m.id = b.mijoz_id
     LEFT JOIN buyurtma_pozitsiya p ON p.buyurtma_id = b.id
     WHERE b.sotgan_filial_id = ${filialId}
+      /*
+       * TZ 8.8 · 8.15 — TO'LIQ BEKOR QILINGAN buyurtma odatdagi
+       * ro'yxatda KO'RINMAYDI.
+       *
+       * ⚠️ Yozuv o'chirilmaydi (§3), faqat yashiriladi: raqam
+       *    chekda va botda qolgan bo'lishi mumkin, keyin
+       *    «B-2026-000184 nima bo'ldi?» degan savolga javob
+       *    kerak bo'ladi. Shuning uchun «Bekor qilingan»
+       *    filtri bor va u ularni qaytarib ko'rsatadi.
+       *
+       * ⚠️ «Hamma pozitsiyasi bekor» deb tekshiriladi, «bittasi
+       *    bekor» deb emas: bir pozitsiyasi bekor qilingan
+       *    buyurtma hali ham tirik.
+       */
+      ${
+        filtr === 'BEKOR'
+          ? sql`AND NOT EXISTS (SELECT 1 FROM buyurtma_pozitsiya x
+                                WHERE x.buyurtma_id = b.id AND x.holat <> 'BEKOR')
+                AND EXISTS (SELECT 1 FROM buyurtma_pozitsiya x
+                            WHERE x.buyurtma_id = b.id)`
+          : sql`AND EXISTS (SELECT 1 FROM buyurtma_pozitsiya x
+                            WHERE x.buyurtma_id = b.id AND x.holat <> 'BEKOR')`
+      }
       ${filtr === 'BUGUNGI' ? sql`AND b.sana::date = current_date` : sql``}
       ${
         holatliFiltr

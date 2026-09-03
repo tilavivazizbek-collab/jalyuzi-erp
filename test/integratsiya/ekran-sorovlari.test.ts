@@ -232,6 +232,8 @@ describe('Buyurtma ekranlari', () => {
       'TAYYOR',
       'MATERIALGA_KUTMOQDA',
       'MUDDATI_OTGAN',
+      /** ⚠️ 8.8 · 8.15 — to'liq bekor qilingan buyurtmalar filtri */
+      'BEKOR',
     ] as const) {
       await expect(
         buyurtmaEkrani.buyurtmalar(filialId, filtr),

@@ -10,7 +10,7 @@
 
 import { useActionState, useState } from 'react';
 import { Maydon, kirishUslubi } from '../maydon';
-import { bekorAmali, qaytaribOlishAmali } from './amal';
+import { bekorAmali, buyurtmaniOchirishAmali, qaytaribOlishAmali } from './amal';
 import { BOSH_AMAL } from './holat';
 
 /** TZ 8.8 — bekor qilish faqat kesishdan oldin. */
@@ -152,6 +152,96 @@ export function QaytaribOlishTugmasi({
           className="text-xs text-matn-kuchsiz hover:text-matn"
         >
           Yopish
+        </button>
+      </div>
+    </form>
+  );
+}
+
+/**
+ * TZ 8.8 · 8.15 — BUTUN BUYURTMANI o'chirish.
+ *
+ * ⚠️ Pozitsiyani bekor qilishdan FARQI: bu bitta bosishda
+ *    buyurtmaning hamma pozitsiyasini bekor qiladi va band
+ *    qilingan materialni bo'shatadi. Shuning uchun tugma
+ *    kartochkaning pastida, alohida turadi — tasodifan
+ *    bosilmasin.
+ *
+ * ⚠️ Sabab MAJBURIY va audit jurnalida qoladi: keyin
+ *    «B-2026-000184 nega o'chirilgan?» degan savolga javob
+ *    bo'lishi kerak.
+ */
+export function BuyurtmaniOchirishTugmasi({ buyurtmaId }: { buyurtmaId: number }) {
+  const [ochiq, ochiqniOzgartir] = useState(false);
+  const [holat, yubor, kutilmoqda] = useActionState(buyurtmaniOchirishAmali, BOSH_AMAL);
+
+  if (!ochiq) {
+    return (
+      <button
+        type="button"
+        onClick={() => {
+          ochiqniOzgartir(true);
+        }}
+        className="fokus rounded-maydon border border-chegara px-3 py-1.5 text-[13px] text-matn-kuchsiz transition-colors hover:border-belgi-qizil hover:text-belgi-qizil"
+      >
+        Buyurtmani o&apos;chirish
+      </button>
+    );
+  }
+
+  return (
+    <form
+      action={yubor}
+      className="flex max-w-md flex-col gap-2 rounded-karta border border-belgi-qizil bg-belgi-qizil-fon px-4 py-3"
+    >
+      <input type="hidden" name="buyurtmaId" value={buyurtmaId} />
+
+      <p className="text-[13px] font-medium text-belgi-qizil">
+        Butun buyurtma o&apos;chirilsinmi?
+      </p>
+
+      {holat.xato !== null && (
+        <span role="alert" className="text-xs text-belgi-qizil">
+          {holat.xato}
+        </span>
+      )}
+
+      <Maydon nom={`buyurtma-ochir-${String(buyurtmaId)}`} yorliq="O'chirish sababi">
+        <input
+          id={`buyurtma-ochir-${String(buyurtmaId)}`}
+          name="sabab"
+          className={`${kirishUslubi(false)} w-full`}
+          placeholder="Masalan: xato kiritilgan"
+        />
+      </Maydon>
+
+      {/*
+        ⚠️ Nima bo'lishi OLDINDAN aytiladi. «O'chirish» so'zi
+           odamda «yo'q bo'ladi» degan tasavvur uyg'otadi —
+           aslida buyurtma tarixda qoladi.
+      */}
+      <ul className="flex list-disc flex-col gap-0.5 pl-4 text-xs text-matn-ikki">
+        <li>Hamma pozitsiya «Bekor» bo&apos;ladi</li>
+        <li>Band qilingan material omborga qaytadi</li>
+        <li>Buyurtma tarixda qoladi — «Bekor qilingan» filtrida ko&apos;rinadi</li>
+      </ul>
+
+      <div className="flex items-center gap-3">
+        <button
+          type="submit"
+          disabled={kutilmoqda}
+          className="rounded-maydon bg-belgi-qizil px-3 py-1.5 text-xs font-medium text-white transition-all hover:brightness-95 active:scale-[0.98] disabled:opacity-60"
+        >
+          {kutilmoqda ? "O'chirilmoqda…" : "Ha, o'chirilsin"}
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            ochiqniOzgartir(false);
+          }}
+          className="text-xs text-matn-kuchsiz transition-colors hover:text-matn"
+        >
+          Yo&apos;q
         </button>
       </div>
     </form>

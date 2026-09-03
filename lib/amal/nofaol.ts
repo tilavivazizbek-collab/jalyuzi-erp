@@ -66,6 +66,20 @@ interface TurTavsifi {
    *    emas, «omborda 4 ta bo'lak bor» kabi.
    */
   readonly bandmi: (tx: Tranzaksiya, id: number) => Promise<string | null>;
+  /**
+   * O'chirilgandan KEYIN bajariladigan ish va odamga aytiladigan
+   * xabar.
+   *
+   * ⚠️ NEGA KERAK: ba'zi bog'liqlik o'chirishni TO'SMAYDI, lekin
+   *    jimgina qolib ketsa ham bo'lmaydi. Masalan material
+   *    mahsulot turida aksessuar bo'lib tursa — material
+   *    o'chirilgach, u tur ham shu aksessuarsiz qolishi kerak,
+   *    va egasi buni BILISHI kerak.
+   *
+   *    Shuning uchun bu qadam ham TRANZAKSIYA ichida: yo ikkalasi
+   *    bo'ladi, yo hech biri (2.1-invariant).
+   */
+  readonly ochirilgandan?: (tx: Tranzaksiya, id: number) => Promise<string | null>;
 }
 
 /**
@@ -95,16 +109,44 @@ export const TUR_TAVSIFI: Record<OchiriladiganTur, TurTavsifi> = {
            WHERE material_id = ${id} AND faol = true
              AND holat IN ('BOSH','BAND','YOLDA')`);
       if (qoldiq > 0) {
-        return `omborda ${String(qoldiq)} ta bo'lak bor — avval ularni chiqarish kerak`;
+        return (
+          `omborda ${String(qoldiq)} ta bo'lak bor — avval ularni hisobdan ` +
+          `chiqaring yoki sarflang, aks holda qoldiq egasiz qolib ketadi`
+        );
       }
 
-      const aksessuar = await son(tx`SELECT COUNT(*)::int AS n FROM mahsulot_aksessuar
-           WHERE material_id = ${id} AND faol = true`);
-      if (aksessuar > 0) {
-        return `${String(aksessuar)} ta mahsulot turida ishlatilmoqda`;
-      }
-
+      /**
+       * ⚠️ 2026-09-03: ilgari bu yerda «N ta mahsulot turida
+       *    ishlatilmoqda» degan TO'SIQ ham bor edi. Egasi uni
+       *    olib tashlashni so'radi va u haq:
+       *
+       *    Mahsulot turida ishlatilishi materialning o'zini
+       *    qamab qo'yish uchun sabab emas. Eski buyurtmalar
+       *    `formula_snapshot` bilan ishlaydi (2.3-invariant),
+       *    ya'ni ular baribir buzilmaydi. Yagona haqiqiy ish —
+       *    turdan ham chiqarib qo'yish, va u endi
+       *    `ochirilgandan` da avtomatik bajariladi.
+       *
+       *    Omborda QOLDIQ borligi esa to'siq bo'lib qoladi: u
+       *    pul, uni ko'rinmas qilib qo'yib bo'lmaydi.
+       */
       return null;
+    },
+
+    ochirilgandan: async (tx, id) => {
+      const q = (await tx`
+        UPDATE mahsulot_aksessuar
+        SET faol = false, ozgartirildi = now()
+        WHERE material_id = ${id} AND faol = true
+        RETURNING mahsulot_tur_id`) as unknown as { mahsulot_tur_id: number }[];
+
+      if (q.length === 0) return null;
+
+      const turlar = new Set(q.map((x) => x.mahsulot_tur_id)).size;
+      return (
+        `${String(turlar)} ta mahsulot turidan ham chiqarildi — ` +
+        `o'sha turlarga endi bu aksessuar qo'shilmaydi`
+      );
     },
   },
 
@@ -256,18 +298,37 @@ export const TUR_TAVSIFI: Record<OchiriladiganTur, TurTavsifi> = {
     jadval: 'mahsulot_tur',
     nom: 'Mahsulot turi',
     ruxsat: 'mahsulot.ozgartir',
-    bandmi: async (tx, id) => {
-      /**
-       * ⚠️ Tugallanmagan buyurtma bo'lsa o'chirilmaydi: usta uni
-       *    yasayotgan bo'lishi mumkin va tur yo'qolsa formula ham
-       *    yo'qolardi.
-       */
+    /**
+     * ⚠️ 2026-09-03: bu yerda «N ta tugallanmagan buyurtmada
+     *    ishlatilmoqda» degan to'siq bor edi — OLIB TASHLANDI.
+     *
+     *    Eski izohda «tur yo'qolsa formula ham yo'qoladi»
+     *    deyilgan edi, lekin bu NOTO'G'RI: pozitsiyada
+     *    `formula_snapshot` turadi (4.10) va ishlab chiqarish
+     *    o'shandan o'qiydi. Tur nomi ham yo'qolmaydi — yozuv
+     *    bazada qoladi, faqat `faol = false` bo'ladi.
+     *
+     *    Ya'ni tur o'chirilgach:
+     *      · yangi buyurtmada uni TANLAB BO'LMAYDI
+     *      · eski buyurtma o'z holicha ishlaydi va TUGATILADI
+     *
+     *    Aynan egasi so'ragan xatti-harakat, va u xavfsiz.
+     */
+    /** ⚠️ Hech qanday to'siq yo'q — shuning uchun kutish ham yo'q */
+    bandmi: () => Promise.resolve(null),
+
+    ochirilgandan: async (tx, id) => {
       const ochiq = await son(tx`SELECT COUNT(*)::int AS n FROM buyurtma_pozitsiya
            WHERE mahsulot_tur_id = ${id}
              AND holat <> ALL (${YOPIQ_HOLATLAR})`);
-      if (ochiq > 0) return `${String(ochiq)} ta tugallanmagan buyurtmada ishlatilmoqda`;
 
-      return null;
+      if (ochiq === 0) return null;
+
+      return (
+        `${String(ochiq)} ta tugallanmagan buyurtmada ishlatilmoqda — ` +
+        `ular ishlashda davom etadi va tugatiladi, faqat yangi ` +
+        `buyurtmaga bu tur qo'shilmaydi`
+      );
     },
   },
 
@@ -348,6 +409,11 @@ export interface NofaolNatijasi {
   readonly holat: 'OCHIRILDI' | 'BAND';
   /** `BAND` bo'lsa — nega o'chirilmagani */
   readonly sabab: string | null;
+  /**
+   * O'chirildi, LEKIN yon ta'siri bor — odam bilishi kerak.
+   * Xato emas: ekranda oddiy eslatma bo'lib chiqadi.
+   */
+  readonly izoh?: string | null;
 }
 
 /**
@@ -386,7 +452,11 @@ export async function nofaolQil(
       SET faol = false, ochirildi = now(), ozgartirdi_id = ${xodimId}
       WHERE id = ${id}`;
 
-    return { holat: 'OCHIRILDI', sabab: null };
+    /** ⚠️ Yon ta'sir ham SHU tranzaksiyada (2.1-invariant) */
+    const izoh =
+      tavsif.ochirilgandan === undefined ? null : await tavsif.ochirilgandan(tx, id);
+
+    return { holat: 'OCHIRILDI', sabab: null, izoh };
   });
 }
 

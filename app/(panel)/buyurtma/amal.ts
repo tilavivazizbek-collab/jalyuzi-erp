@@ -17,6 +17,7 @@ import {
   pozitsiyaYetibKeldi,
 } from '@/lib/amal/ish';
 import { pozitsiyaniQaytar, type OrtiqchaYol } from '@/lib/amal/qaytarish';
+import { buyurtmaniOchir } from '@/lib/amal/buyurtma-ochir';
 import { ruxsatTalab } from '@/lib/kirish/joriy';
 import { matnMaydon } from '../forma-yordamchi';
 import type { AmalHolati, TasdiqHolati } from './holat';
@@ -349,5 +350,43 @@ export async function xabarniQaytaYuborAmali(
   }
 
   revalidatePath('/buyurtma');
+  return { xato: null, bajarildi: true };
+}
+
+/**
+ * TZ 8.8 · 8.15 — BUTUN BUYURTMANI O'CHIRISH.
+ *
+ * ⚠️ Ruxsat `buyurtma.bekor` — bitta pozitsiyani bekor qilish
+ *    bilan bir xil kod (§9.4). Alohida kod qo'shilmadi: amal
+ *    bitta, faqat ko'lami katta, va uni sotuvchidan yashirish
+ *    ma'nosiz — u baribir pozitsiyalarni birma-bir bekor qila
+ *    olardi.
+ */
+export async function buyurtmaniOchirishAmali(
+  _oldingi: AmalHolati,
+  forma: FormData,
+): Promise<AmalHolati> {
+  const f = await ruxsatTalab('buyurtma.bekor');
+
+  const buyurtmaId = Number(matnMaydon(forma, 'buyurtmaId'));
+  const sabab = matnMaydon(forma, 'sabab');
+
+  if (!Number.isSafeInteger(buyurtmaId) || buyurtmaId <= 0) {
+    return { xato: 'Buyurtma tanlanmagan', bajarildi: false };
+  }
+
+  try {
+    await buyurtmaniOchir(ulanishOl(), buyurtmaId, sabab, f.filialId, f.xodimId);
+  } catch (x) {
+    return {
+      xato: await xatoXabari(x, 'buyurtma/ochir', "Buyurtmani o'chirib bo'lmadi"),
+      bajarildi: false,
+    };
+  }
+
+  revalidatePath('/buyurtma');
+  revalidatePath(`/buyurtma/${String(buyurtmaId)}`);
+  /** Band bo'shagani uchun ombor qoldig'i ham o'zgardi */
+  revalidatePath('/ombor');
   return { xato: null, bajarildi: true };
 }
