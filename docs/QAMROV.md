@@ -143,8 +143,8 @@ ikki varaqli Excel.
 | Chiqindi va brak (11.7.4) | — | ✅ | ✅ | ❌ |
 | Rulon ochilgan holatlar (11.7.7) | ❌ | ❌ | ❌ | ❌ |
 | Moliya (11.4.1–11.4.7) | ❌ | ❌ | ❌ | ❌ |
-| Sotuv (11.5.1–11.5.6) | ❌ | ❌ | ❌ | ❌ |
-| Mijozlar bazasi (11.6.1) | ❌ | ❌ | ❌ | ❌ |
+| Sotuv (11.5.1–11.5.6) | — | ✅ | ✅ | ❌ |
+| Mijozlar bazasi (11.6.1) | — | ✅ | ✅ | ❌ |
 | Ishlab chiqarish (11.8.1–11.8.4) | ❌ | ❌ | ❌ | ❌ |
 | Narx dinamikasi (11.9.1) | ❌ | ❌ | ❌ | ❌ |
 | Dashboard (11.3) | ❌ | ❌ | ❌ | — |
@@ -156,6 +156,11 @@ tekshirilganini bildiradi.
 
 **K-08 (ustama eroziyasi, 37.4%) yopildi** — `test/domain/hisobot-ombor.test.ts`.
 Shu bilan CLAUDE.md §6 dagi 11 ta kanonik raqamning hammasi TAYYOR.
+
+⚠️ **11.5.2 (mahsulot turi bo'yicha foyda) `hisobot.moliya.kor` bilan
+yopilgan** — unda tannarx va rentabellik bor, sotuvchi ko'rmasligi kerak.
+Tannarxi hali yozilmagan pozitsiyalar «tannarxsiz» deb belgilanadi: aks
+holda rentabellik 100% bo'lib ko'rinardi.
 
 **Ruxsat (11.10):** `hisobot.ombor.kor` · `hisobot.sotuv.kor` ·
 `hisobot.mijoz.kor` · `hisobot.moliya.kor`. Ombor hisobotida TANNARX bor,

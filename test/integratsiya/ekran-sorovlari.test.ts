@@ -36,7 +36,7 @@ import * as mahsulotEkrani from '@/app/(panel)/mahsulot/malumot';
 import * as mijozGuruhEkrani from '@/app/(panel)/mijoz/guruh/malumot';
 import * as tarixEkrani from '@/app/(panel)/ombor/tarix/malumot';
 import * as hisobotEkrani from '@/app/(panel)/hisobot/malumot';
-import { davrYasa } from '@/lib/domain/hisobot/davr';
+import { davrYasa, oldingiDavr } from '@/lib/domain/hisobot/davr';
 
 let sql: Ulanish;
 let filialId = 1;
@@ -411,6 +411,76 @@ describe('Hisobot ekranlari — TZ 11.7', () => {
     // Har qatorga buyurtma soni topilishi kerak
     for (const q of a.natija.qatorlar) {
       expect(a.buyurtmaSoni.has(q.kalit)).toBe(true);
+    }
+  });
+
+
+  // ── TZ 11.5 · Sotuv hisobotlari ──
+
+  it('sotuv dinamikasi — oldingi davr bilan (11.5.1)', async () => {
+    const davr = davrYasa('OY', new Date());
+    const oldin = oldingiDavr(davr);
+    const d = await hisobotEkrani.sotuvDinamikasi(filialId, davr, oldin);
+
+    expect(d.joriy.buyurtmaSoni).toBeGreaterThanOrEqual(0);
+    expect(d.oldingi.buyurtmaSoni).toBeGreaterThanOrEqual(0);
+    /** Kun qatorlari o'sish tartibida bo'lishi shart */
+    const sanalar = d.kunlar.map((k) => k.sana);
+    expect([...sanalar].sort((a, b) => a.localeCompare(b))).toEqual(sanalar);
+  });
+
+  it('mahsulot turi bo‘yicha foyda (11.5.2)', async () => {
+    const davr = davrYasa('YIL', new Date());
+    const t = await hisobotEkrani.turBoyichaFoyda(filialId, davr);
+
+    for (const x of t) {
+      /** foyda = tushum − tannarx, tiyingacha aniq */
+      expect(Number(x.foyda)).toBeCloseTo(Number(x.tushum) - Number(x.tannarx), 2);
+      /**
+       * ⚠️ Tannarxsiz qator BELGILANISHI shart: aks holda
+       *    rentabellik 100% bo'lib ko'rinadi (TZ QISM 2 §7195).
+       */
+      if (Number(x.tannarx) === 0 && Number(x.tushum) > 0) {
+        expect(x.tannarxsizSoni).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  it('sotuvchi kesimi (11.5.3)', async () => {
+    const davr = davrYasa('YIL', new Date());
+    const s = await hisobotEkrani.sotuvchiKesimi(filialId, davr);
+    for (const x of s) {
+      /** ⚠️ Undirilgan MUSBAT chiqishi kerak — bazada manfiy yotadi */
+      expect(Number(x.undirilgan)).toBeGreaterThanOrEqual(0);
+      expect(x.buyurtmaSoni).toBeGreaterThanOrEqual(0);
+    }
+  });
+
+  it('chegirmalar (11.5.4)', async () => {
+    const davr = davrYasa('YIL', new Date());
+    const c = await hisobotEkrani.chegirmalar(filialId, davr);
+    for (const x of c) {
+      expect(Number(x.chegirma)).toBeGreaterThan(0);
+      expect(x.foiz).toBeGreaterThanOrEqual(0);
+    }
+  });
+
+  it('qaytarish va rad etish (11.5.5)', async () => {
+    const davr = davrYasa('YIL', new Date());
+    const q = await hisobotEkrani.qaytarishVaRad(filialId, davr);
+    for (const x of q) {
+      expect(['QAYTARISH', 'RAD_ETISH']).toContain(x.amal);
+      expect(Number(x.ushlabQolindi)).toBeGreaterThanOrEqual(0);
+    }
+  });
+
+  it('sotuvchi erkinliklari (11.5.6)', async () => {
+    const davr = davrYasa('YIL', new Date());
+    const e = await hisobotEkrani.sotuvchiErkinliklari(filialId, davr);
+    for (const x of e) {
+      expect(x.limitdanOshdi).toBeGreaterThanOrEqual(0);
+      expect(x.narxOzgartirdi).toBeGreaterThanOrEqual(0);
+      expect(Number(x.ushlabQoldi)).toBeGreaterThanOrEqual(0);
     }
   });
 

@@ -35,14 +35,14 @@ const BANDLAR: readonly Band[] = [
     nom: 'Sotuv',
     izoh: 'Sotuv dinamikasi · mahsulot turi bo\'yicha foyda · sotuvchi kesimida',
     kod: 'hisobot.sotuv.kor',
-    tayyor: false,
+    tayyor: true,
   },
   {
     yol: '/hisobot/mijoz',
     nom: 'Mijozlar',
     izoh: "Mijozlar bazasi · ABC tahlil · debitorlik yoshi bo'yicha",
     kod: 'hisobot.mijoz.kor',
-    tayyor: false,
+    tayyor: true,
   },
   {
     yol: '/hisobot/moliya',

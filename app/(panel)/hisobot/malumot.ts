@@ -15,6 +15,7 @@
  * bilan cheklanadi.
  */
 
+import Decimal from 'decimal.js';
 import { ulanishOl } from '@/lib/db';
 import { kamQoldiqmi } from '@/lib/domain/birlik-tanlovi';
 import { joriyKurs } from '@/lib/amal/kurs';
@@ -859,4 +860,565 @@ export async function mijozAbc(
     ),
     buyurtmaSoni: soni,
   };
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// TZ 11.5 · SOTUV HISOBOTLARI
+// ══════════════════════════════════════════════════════════════════════════
+
+/**
+ * ⚠️ POZITSIYA TUSHUMI — bitta ifoda, hamma joyda bir xil:
+ *
+ *      narx_snapshot − chegirma_summa + xizmat_haqi
+ *
+ *    Snapshot ATAYLAB: kechagi buyurtma bugungi narxda qayta
+ *    hisoblanmaydi (2.3-invariant).
+ *
+ * ⚠️ BEKOR va RAD_ETILGAN qatorlar HAMMA JOYDA chiqariladi — ular
+ *    tushum emas. QAYTARILGAN esa QOLADI: savdo bo'lgan, keyin
+ *    qaytarilgan. Uni tushumdan yashirsak 11.5.5 (qaytarishlar)
+ *    bilan 11.5.1 (dinamika) bir-biriga to'g'ri kelmasdi.
+ */
+
+// ─── 11.5.1 · Sotuv dinamikasi ────────────────────────────────────────────
+
+export interface SotuvJami {
+  readonly tushum: string;
+  readonly buyurtmaSoni: number;
+  readonly pozitsiyaSoni: number;
+  readonly ortachaChek: string;
+}
+
+export interface SotuvDinamikasi {
+  readonly joriy: SotuvJami;
+  readonly oldingi: SotuvJami;
+  /** Kun bo'yicha qatorlar — eng eskisi birinchi */
+  readonly kunlar: readonly { readonly sana: string; readonly tushum: string }[];
+}
+
+async function sotuvJami(filialId: number, davr: Davr): Promise<SotuvJami> {
+  const q = await ulanishOl()<
+    {
+      tushum: string | null;
+      buyurtma_soni: number;
+      pozitsiya_soni: number;
+      ortacha: string | null;
+    }[]
+  >`
+    WITH poz AS (
+      SELECT b.id AS buyurtma_id,
+             SUM(COALESCE(p.narx_snapshot, 0)
+                 - COALESCE(p.chegirma_summa, 0)
+                 + COALESCE(p.xizmat_haqi, 0)) AS summa,
+             COUNT(p.id) AS qatorlar
+      FROM buyurtma b
+      JOIN buyurtma_pozitsiya p ON p.buyurtma_id = b.id
+      WHERE b.sotgan_filial_id = ${filialId}
+        AND b.sana >= ${davr.boshi} AND b.sana < ${davr.oxiri}
+        AND p.holat NOT IN ('BEKOR','RAD_ETILGAN')
+      GROUP BY b.id
+    )
+    SELECT SUM(summa)::numeric(14,2)::text AS tushum,
+           COUNT(*)::int AS buyurtma_soni,
+           COALESCE(SUM(qatorlar), 0)::int AS pozitsiya_soni,
+           AVG(summa)::numeric(14,2)::text AS ortacha
+    FROM poz`;
+
+  const r = q[0];
+  return {
+    tushum: r?.tushum ?? '0',
+    buyurtmaSoni: r?.buyurtma_soni ?? 0,
+    pozitsiyaSoni: r?.pozitsiya_soni ?? 0,
+    ortachaChek: r?.ortacha ?? '0',
+  };
+}
+
+/**
+ * TZ 11.5.1 — sotuv dinamikasi, oldingi davr bilan taqqoslab.
+ *
+ * ⚠️ Oldingi davr `oldingiDavr()` dan olinadi — kun soni bo'yicha
+ *    orqaga surilmaydi: 31 kunlik iyulni 30 kunlik iyun bilan
+ *    solishtirish «3% pasayish» degan soxta natija berardi.
+ */
+export async function sotuvDinamikasi(
+  filialId: number,
+  davr: Davr,
+  oldingi: Davr,
+): Promise<SotuvDinamikasi> {
+  const [j, o, kunlar] = await Promise.all([
+    sotuvJami(filialId, davr),
+    sotuvJami(filialId, oldingi),
+    ulanishOl()<{ sana: string; tushum: string | null }[]>`
+      SELECT to_char(b.sana, 'YYYY-MM-DD') AS sana,
+             SUM(COALESCE(p.narx_snapshot, 0)
+                 - COALESCE(p.chegirma_summa, 0)
+                 + COALESCE(p.xizmat_haqi, 0))::numeric(14,2)::text AS tushum
+      FROM buyurtma b
+      JOIN buyurtma_pozitsiya p ON p.buyurtma_id = b.id
+      WHERE b.sotgan_filial_id = ${filialId}
+        AND b.sana >= ${davr.boshi} AND b.sana < ${davr.oxiri}
+        AND p.holat NOT IN ('BEKOR','RAD_ETILGAN')
+      GROUP BY 1
+      ORDER BY 1`,
+  ]);
+
+  return {
+    joriy: j,
+    oldingi: o,
+    kunlar: kunlar.map((k) => ({ sana: k.sana, tushum: k.tushum ?? '0' })),
+  };
+}
+
+// ─── 11.5.2 · Mahsulot turi bo'yicha foyda ────────────────────────────────
+
+export interface TurFoydasi {
+  readonly turId: number;
+  readonly nom: string;
+  readonly soni: number;
+  readonly tushum: string;
+  readonly tannarx: string;
+  readonly foyda: string;
+  readonly birlikFoyda: string;
+  /** Rentabellik: foyda / tushum × 100. Tushum nol bo'lsa `null` */
+  readonly rentabellik: number | null;
+  /**
+   * ⚠️ Tannarxi umuman yozilmagan pozitsiyalar soni.
+   *
+   *    Pozitsiya hali kesilmagan bo'lsa `ombor_harakat` da sarf
+   *    yo'q va tannarx 0 chiqadi — natijada rentabellik 100%
+   *    bo'lib ko'rinadi. TZ (QISM 2 §7195) aynan shundan
+   *    ogohlantiradi: «tannarx hisoblanmasa tushum 100% foyda
+   *    bo'lib chiqadi va 11.5.2 buziladi».
+   *
+   *    Shuning uchun raqam YASHIRILMAYDI, lekin qator BELGILANADI:
+   *    ekranda rentabellik o'rniga izoh chiqadi.
+   */
+  readonly tannarxsizSoni: number;
+}
+
+/**
+ * TZ 11.5.2 — mahsulot turi bo'yicha foyda va rentabellik.
+ *
+ * ⚠️ TANNARX IKKI QISMDAN: material (`ombor_harakat.tannarx_summa`)
+ *    va usta ish haqi (`xarajat` dagi `ISH_HAQI`). Faqat material
+ *    olinsa «Rollo eng foydali» degan xato xulosa chiqadi — aslida
+ *    unga usta ikki barobar ko'p vaqt sarflaydi (11.5.2 izohi).
+ *
+ * ⚠️ Ifoda `lib/amal/filial-harakat.ts` dagi bilan bir xil manbadan
+ *    o'qiydi: u yerda filiallararo hisob uchun, bu yerda hisobot
+ *    uchun. Shuning uchun raqamlar bir-biriga mos keladi.
+ *
+ * ⚠️ Ombor harakati sarfda MANFIY yotadi — `-SUM()` bilan musbatga
+ *    aylantiriladi.
+ *
+ * ⚠️ Qo'shimcha buyumlar (`mahsulot_tur_id IS NULL`) bu jadvalga
+ *    KIRMAYDI: ular tayyorlanmaydi, «mahsulot turi» ularga tegishli
+ *    emas. Shuning uchun bu yerdagi tushum 11.5.1 dagidan kichik
+ *    bo'lishi normal.
+ */
+export async function turBoyichaFoyda(
+  filialId: number,
+  davr: Davr,
+): Promise<readonly TurFoydasi[]> {
+  const q = await ulanishOl()<
+    {
+      tur_id: number;
+      nom: string;
+      soni: number;
+      tushum: string | null;
+      tannarx: string | null;
+      tannarxsiz: number;
+    }[]
+  >`
+    SELECT t.id AS tur_id, t.nom,
+           SUM(p.soni)::int AS soni,
+           SUM(COALESCE(p.narx_snapshot, 0)
+               - COALESCE(p.chegirma_summa, 0)
+               + COALESCE(p.xizmat_haqi, 0))::numeric(14,2)::text AS tushum,
+           SUM(
+             COALESCE((
+               SELECT -SUM(oh.tannarx_summa) FROM ombor_harakat oh
+               WHERE oh.manba_turi = 'buyurtma_pozitsiya' AND oh.manba_id = p.id
+             ), 0)
+             + COALESCE((
+               SELECT SUM(x.summa) FROM xarajat x
+               WHERE x.modda = 'ISH_HAQI'
+                 AND x.manba_turi = 'buyurtma_pozitsiya' AND x.manba_id = p.id
+             ), 0)
+           )::numeric(14,2)::text AS tannarx,
+           COUNT(*) FILTER (
+             WHERE COALESCE((
+                     SELECT -SUM(oh.tannarx_summa) FROM ombor_harakat oh
+                     WHERE oh.manba_turi = 'buyurtma_pozitsiya' AND oh.manba_id = p.id
+                   ), 0)
+                   + COALESCE((
+                     SELECT SUM(x.summa) FROM xarajat x
+                     WHERE x.modda = 'ISH_HAQI'
+                       AND x.manba_turi = 'buyurtma_pozitsiya' AND x.manba_id = p.id
+                   ), 0) = 0
+           )::int AS tannarxsiz
+    FROM buyurtma b
+    JOIN buyurtma_pozitsiya p ON p.buyurtma_id = b.id
+    JOIN mahsulot_tur t ON t.id = p.mahsulot_tur_id
+    WHERE b.sotgan_filial_id = ${filialId}
+      AND b.sana >= ${davr.boshi} AND b.sana < ${davr.oxiri}
+      AND p.holat NOT IN ('BEKOR','RAD_ETILGAN')
+    GROUP BY t.id, t.nom
+    ORDER BY 4 DESC NULLS LAST`;
+
+  return q.map((x) => {
+    const tushum = new Decimal(x.tushum ?? '0');
+    const tannarx = new Decimal(x.tannarx ?? '0');
+    const foyda = tushum.minus(tannarx);
+
+    return {
+      turId: x.tur_id,
+      nom: x.nom,
+      soni: x.soni,
+      tushum: tushum.toFixed(2),
+      tannarx: tannarx.toFixed(2),
+      foyda: foyda.toFixed(2),
+      birlikFoyda: x.soni > 0 ? foyda.dividedBy(x.soni).toFixed(2) : '0.00',
+      /** ⚠️ Nolga bo'lish: tushum 0 bo'lsa rentabellik YO'Q, 0 emas */
+      rentabellik: tushum.isZero() ? null : foyda.dividedBy(tushum).times(100).toNumber(),
+      tannarxsizSoni: x.tannarxsiz,
+    };
+  });
+}
+
+// ─── 11.5.3 · Sotuvchi bo'yicha ───────────────────────────────────────────
+
+export interface SotuvchiQatori {
+  readonly xodimId: number;
+  readonly ism: string;
+  readonly buyurtmaSoni: number;
+  readonly tushum: string;
+  readonly ortachaChek: string;
+  /** Davrda shu xodim kiritgan to'lovlar — «undirilgan qarz» */
+  readonly undirilgan: string;
+}
+
+/**
+ * TZ 11.5.3 — sotuvchi bo'yicha: soni, tushum, o'rtacha chek,
+ * undirilgan qarz.
+ *
+ * ⚠️ «Undirilgan» — shu xodim KIRITGAN to'lovlar, o'z buyurtmasi
+ *    bo'yicha emas. Sotuvchi boshqa sotuvchining mijozidan pul
+ *    olishi mumkin va bu ham uning ishi.
+ *
+ * ⚠️ To'lov `mijoz_harakat` da MANFIY yotadi (qarzni kamaytiradi) —
+ *    hisobotda musbat ko'rsatiladi.
+ */
+export async function sotuvchiKesimi(
+  filialId: number,
+  davr: Davr,
+): Promise<readonly SotuvchiQatori[]> {
+  const q = await ulanishOl()<
+    {
+      xodim_id: number;
+      ism: string;
+      buyurtma_soni: number;
+      tushum: string | null;
+      ortacha: string | null;
+      undirilgan: string | null;
+    }[]
+  >`
+    WITH poz AS (
+      SELECT b.id AS buyurtma_id, b.sotuvchi_id,
+             SUM(COALESCE(p.narx_snapshot, 0)
+                 - COALESCE(p.chegirma_summa, 0)
+                 + COALESCE(p.xizmat_haqi, 0)) AS summa
+      FROM buyurtma b
+      JOIN buyurtma_pozitsiya p ON p.buyurtma_id = b.id
+      WHERE b.sotgan_filial_id = ${filialId}
+        AND b.sana >= ${davr.boshi} AND b.sana < ${davr.oxiri}
+        AND p.holat NOT IN ('BEKOR','RAD_ETILGAN')
+      GROUP BY b.id, b.sotuvchi_id
+    ),
+    tolov AS (
+      SELECT mh.xodim_id, SUM(mh.summa) AS summa
+      FROM mijoz_harakat mh
+      WHERE mh.filial_id = ${filialId}
+        AND mh.turi = 'TOLOV'
+        AND mh.sana >= ${davr.boshi} AND mh.sana < ${davr.oxiri}
+      GROUP BY mh.xodim_id
+    )
+    SELECT x.id AS xodim_id, x.ism,
+           COUNT(poz.buyurtma_id)::int AS buyurtma_soni,
+           SUM(poz.summa)::numeric(14,2)::text AS tushum,
+           AVG(poz.summa)::numeric(14,2)::text AS ortacha,
+           (-COALESCE(MAX(tolov.summa), 0))::numeric(14,2)::text AS undirilgan
+    FROM xodim x
+    LEFT JOIN poz ON poz.sotuvchi_id = x.id
+    LEFT JOIN tolov ON tolov.xodim_id = x.id
+    WHERE x.filial_id = ${filialId}
+    GROUP BY x.id, x.ism
+    HAVING COUNT(poz.buyurtma_id) > 0 OR MAX(tolov.summa) IS NOT NULL
+    ORDER BY 4 DESC NULLS LAST`;
+
+  return q.map((x) => ({
+    xodimId: x.xodim_id,
+    ism: x.ism,
+    buyurtmaSoni: x.buyurtma_soni,
+    tushum: x.tushum ?? '0',
+    ortachaChek: x.ortacha ?? '0',
+    undirilgan: x.undirilgan ?? '0',
+  }));
+}
+
+// ─── 11.5.4 · Chegirmalar ─────────────────────────────────────────────────
+
+export interface ChegirmaQatori {
+  readonly pozitsiyaId: number;
+  readonly buyurtmaId: number;
+  readonly buyurtmaRaqam: string;
+  readonly sana: Date;
+  readonly sotuvchi: string;
+  readonly mijoz: string | null;
+  readonly narx: string;
+  readonly chegirma: string;
+  readonly foiz: number;
+  /** Audit jurnalida «limitdan oshdi» yozuvi bormi (3.11) */
+  readonly limitdanOshgan: boolean;
+}
+
+/**
+ * TZ 11.5.4 — chegirmalar: kim, qancha, qaysi buyurtmada.
+ * Limitdan oshganlar AJRATILGAN.
+ *
+ * ⚠️ «Limitdan oshgan» belgisi qayta HISOBLANMAYDI, audit
+ *    jurnalidan olinadi (`CHEGIRMA_LIMITIDAN_OSHDI`). Sabab: limit
+ *    sozlamada turadi va o'zgarishi mumkin. Bugungi limit bilan
+ *    kechagi chegirmani solishtirsak, o'tmish o'zgarib ketardi —
+ *    2.3-invariantga zid.
+ */
+export async function chegirmalar(
+  filialId: number,
+  davr: Davr,
+): Promise<readonly ChegirmaQatori[]> {
+  const q = await ulanishOl()<
+    {
+      pozitsiya_id: number;
+      buyurtma_id: number;
+      raqam: string;
+      sana: Date;
+      sotuvchi: string;
+      mijoz: string | null;
+      narx: string;
+      chegirma: string;
+      limitdan_oshgan: boolean;
+    }[]
+  >`
+    SELECT p.id AS pozitsiya_id, b.id AS buyurtma_id, b.raqam, b.sana,
+           x.ism AS sotuvchi, m.ism AS mijoz,
+           p.narx_snapshot::text AS narx,
+           p.chegirma_summa::text AS chegirma,
+           EXISTS (
+             SELECT 1 FROM audit_jurnal a
+             WHERE a.amal = 'CHEGIRMA_LIMITIDAN_OSHDI'
+               AND a.obyekt_turi = 'buyurtma_pozitsiya'
+               AND a.obyekt_id = p.id
+           ) AS limitdan_oshgan
+    FROM buyurtma b
+    JOIN buyurtma_pozitsiya p ON p.buyurtma_id = b.id
+    JOIN xodim x ON x.id = b.sotuvchi_id
+    LEFT JOIN mijoz m ON m.id = b.mijoz_id
+    WHERE b.sotgan_filial_id = ${filialId}
+      AND b.sana >= ${davr.boshi} AND b.sana < ${davr.oxiri}
+      AND p.holat NOT IN ('BEKOR','RAD_ETILGAN')
+      AND COALESCE(p.chegirma_summa, 0) > 0
+    ORDER BY p.chegirma_summa DESC`;
+
+  return q.map((x) => {
+    const narx = new Decimal(x.narx);
+    const chegirma = new Decimal(x.chegirma);
+    return {
+      pozitsiyaId: x.pozitsiya_id,
+      buyurtmaId: x.buyurtma_id,
+      buyurtmaRaqam: x.raqam,
+      sana: x.sana,
+      sotuvchi: x.sotuvchi,
+      mijoz: x.mijoz,
+      narx: narx.toFixed(2),
+      chegirma: chegirma.toFixed(2),
+      /** ⚠️ Narx 0 bo'lsa foiz hisoblanmaydi — nolga bo'lish */
+      foiz: narx.isZero() ? 0 : chegirma.dividedBy(narx).times(100).toNumber(),
+      limitdanOshgan: x.limitdan_oshgan,
+    };
+  });
+}
+
+// ─── 11.5.5 · Qaytarish va rad etish ──────────────────────────────────────
+
+export interface QaytarishQatori {
+  readonly pozitsiyaId: number;
+  readonly buyurtmaRaqam: string;
+  readonly sana: Date;
+  readonly amal: 'QAYTARISH' | 'RAD_ETISH';
+  readonly xodim: string;
+  readonly mahsulot: string;
+  readonly narx: string;
+  /** Faqat qaytarishda — rad etishda pul harakati yo'q */
+  readonly ushlabQolindi: string;
+  readonly sabab: string;
+}
+
+/**
+ * TZ 11.5.5 — qaytarish va rad etish, ushlab qolingan pul bilan.
+ *
+ * ⚠️ IKKALASI BITTA JADVALDA, lekin AMAL ustuni bilan ajratilgan:
+ *
+ *      QAYTARISH — mijoz olib ketgan, keyin qaytargan (8.10)
+ *      RAD_ETISH — mijoz umuman olmagan (8.8)
+ *
+ *    Ular pul jihatdan boshqacha: qaytarishda pul qaytariladi va
+ *    bir qismi ushlab qolinishi mumkin, rad etishda esa pul
+ *    harakati bo'lmaydi — mahsulot omborda «sotilmagan tayyor»
+ *    bo'lib qoladi (7.13).
+ *
+ * ⚠️ SABAB — ERKIN MATN. Bazada kodlangan sabablar ro'yxati yo'q
+ *    (faqat qayta kesishda bor). Shuning uchun «sabab kesimida»
+ *    guruhlash ekranda matnni aynan solishtirish bilan qilinadi:
+ *    xodim har safar boshqacha yozsa, guruh ham bo'linib ketadi.
+ *    Bu — hisobotning emas, ma'lumot modelining cheklovi.
+ */
+export async function qaytarishVaRad(
+  filialId: number,
+  davr: Davr,
+): Promise<readonly QaytarishQatori[]> {
+  const q = await ulanishOl()<
+    {
+      pozitsiya_id: number;
+      raqam: string;
+      sana: Date;
+      amal: string;
+      xodim: string;
+      mahsulot: string;
+      narx: string;
+      ushlab: string | null;
+      sabab: string | null;
+    }[]
+  >`
+    SELECT a.obyekt_id AS pozitsiya_id, b.raqam, a.sana, a.amal,
+           x.ism AS xodim,
+           COALESCE(t.nom, qm.nom) AS mahsulot,
+           p.narx_snapshot::text AS narx,
+           (a.yangi_qiymat ->> 'ushlab_qolindi') AS ushlab,
+           a.izoh AS sabab
+    FROM audit_jurnal a
+    JOIN buyurtma_pozitsiya p ON p.id = a.obyekt_id
+    JOIN buyurtma b ON b.id = p.buyurtma_id
+    JOIN xodim x ON x.id = a.xodim_id
+    LEFT JOIN mahsulot_tur t ON t.id = p.mahsulot_tur_id
+    LEFT JOIN material qm ON qm.id = p.qoshimcha_material_id
+    WHERE a.obyekt_turi = 'buyurtma_pozitsiya'
+      AND a.amal IN ('QAYTARISH','RAD_ETISH')
+      AND b.sotgan_filial_id = ${filialId}
+      AND a.sana >= ${davr.boshi} AND a.sana < ${davr.oxiri}
+    ORDER BY a.sana DESC`;
+
+  return q.map((x) => ({
+    pozitsiyaId: x.pozitsiya_id,
+    buyurtmaRaqam: x.raqam,
+    sana: x.sana,
+    amal: x.amal === 'RAD_ETISH' ? ('RAD_ETISH' as const) : ('QAYTARISH' as const),
+    xodim: x.xodim,
+    mahsulot: x.mahsulot,
+    narx: new Decimal(x.narx).toFixed(2),
+    ushlabQolindi: new Decimal(x.ushlab ?? '0').toFixed(2),
+    sabab: x.sabab ?? '',
+  }));
+}
+
+// ─── 11.5.6 · Sotuvchi erkinliklari ───────────────────────────────────────
+
+export interface ErkinlikQatori {
+  readonly xodimId: number;
+  readonly ism: string;
+  /** Bergan chegirmalari jami */
+  readonly chegirma: string;
+  /** Limitdan oshgan marta (3.11) */
+  readonly limitdanOshdi: number;
+  /** Narxni qo'lda o'zgartirgan pozitsiyalar soni (3.8) */
+  readonly narxOzgartirdi: number;
+  /** Qaytarishda ushlab qolgan summa (8.10) */
+  readonly ushlabQoldi: string;
+}
+
+/**
+ * TZ 11.5.6 — sotuvchi erkinliklari.
+ *
+ * Sotuvchida uchta chegarasiz erkinlik bor: narxni o'zgartirish
+ * (3.8), chegirma limitidan oshish (3.11), qaytarishda 0 gacha
+ * ushlab qolish (8.10). Hammasi audit jurnaliga tushadi, lekin
+ * jurnal — ming qatorli oqim, uni hech kim o'qimaydi.
+ *
+ * ⚠️ AYBLOV EMAS — farq ko'rinib tursin. Shuning uchun bu yerda
+ *    «norma», «chegara» yoki reyting ustuni YO'Q va jadval
+ *    ataylab chartga aylantirilmaydi (HISOBOTLAR-ISH §5.2).
+ *
+ * ⚠️ Chegirma `buyurtma_pozitsiya` dan (haqiqiy summa), qolgan
+ *    uchtasi audit jurnalidan (hodisa soni) olinadi. Ikkalasi
+ *    boshqa manba — chegirma bergan, lekin jurnalga tushmagan
+ *    (limitdan oshmagan) sotuvchi ham qatorda ko'rinadi.
+ */
+export async function sotuvchiErkinliklari(
+  filialId: number,
+  davr: Davr,
+): Promise<readonly ErkinlikQatori[]> {
+  const q = await ulanishOl()<
+    {
+      xodim_id: number;
+      ism: string;
+      chegirma: string | null;
+      limitdan: number;
+      narx: number;
+      ushlab: string | null;
+    }[]
+  >`
+    WITH chegirma AS (
+      SELECT b.sotuvchi_id AS xodim_id,
+             SUM(COALESCE(p.chegirma_summa, 0)) AS summa
+      FROM buyurtma b
+      JOIN buyurtma_pozitsiya p ON p.buyurtma_id = b.id
+      WHERE b.sotgan_filial_id = ${filialId}
+        AND b.sana >= ${davr.boshi} AND b.sana < ${davr.oxiri}
+        AND p.holat NOT IN ('BEKOR','RAD_ETILGAN')
+      GROUP BY b.sotuvchi_id
+    ),
+    jurnal AS (
+      SELECT a.xodim_id,
+             COUNT(*) FILTER (WHERE a.amal = 'CHEGIRMA_LIMITIDAN_OSHDI')::int AS limitdan,
+             COUNT(*) FILTER (WHERE a.amal = 'NARX_QOLDA')::int AS narx,
+             COALESCE(SUM(
+               CASE WHEN a.amal = 'QAYTARISH'
+                 THEN (a.yangi_qiymat ->> 'ushlab_qolindi')::numeric
+                 ELSE 0 END
+             ), 0) AS ushlab
+      FROM audit_jurnal a
+      WHERE a.filial_id = ${filialId}
+        AND a.sana >= ${davr.boshi} AND a.sana < ${davr.oxiri}
+        AND a.amal IN ('CHEGIRMA_LIMITIDAN_OSHDI','NARX_QOLDA','QAYTARISH')
+      GROUP BY a.xodim_id
+    )
+    SELECT x.id AS xodim_id, x.ism,
+           c.summa::numeric(14,2)::text AS chegirma,
+           COALESCE(j.limitdan, 0) AS limitdan,
+           COALESCE(j.narx, 0) AS narx,
+           COALESCE(j.ushlab, 0)::numeric(14,2)::text AS ushlab
+    FROM xodim x
+    LEFT JOIN chegirma c ON c.xodim_id = x.id
+    LEFT JOIN jurnal j ON j.xodim_id = x.id
+    WHERE x.filial_id = ${filialId}
+      AND (c.summa IS NOT NULL OR j.xodim_id IS NOT NULL)
+    ORDER BY 3 DESC NULLS LAST`;
+
+  return q.map((x) => ({
+    xodimId: x.xodim_id,
+    ism: x.ism,
+    chegirma: x.chegirma ?? '0',
+    limitdanOshdi: x.limitdan,
+    narxOzgartirdi: x.narx,
+    ushlabQoldi: x.ushlab ?? '0',
+  }));
 }
