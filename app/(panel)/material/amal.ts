@@ -29,6 +29,8 @@ import { rulonKvMTannarxi } from '@/lib/domain/boshlangich-narx';
 import { som } from '@/lib/domain/pul';
 import { kutilmaganXatoniYoz } from '@/lib/xato-jurnal';
 import { rasmniOqi } from '@/lib/domain/rasm';
+import { faolTurlar } from '@/lib/amal/mijoz-turi';
+import type { TurNarxKirimi } from '@/lib/amal/tur-narx';
 import { xatolarniYig, type FormaHolati } from './holat';
 import type { YaratilganYozuv } from '../modal-holat';
 import { MATERIAL_MAYDONLARI } from './maydonlar';
@@ -37,6 +39,29 @@ const MAYDONLAR = MATERIAL_MAYDONLARI;
 
 const formadanOqi = (forma: FormData): Record<string, string> =>
   maydonlarniOqi(forma, MAYDONLAR);
+
+/**
+ * TZ 5.4 · 6.2 — tur narxlarini formadan o'qiydi.
+ *
+ * ⚠️ Maydon nomlari DINAMIK (`turNarx_<id>`), shuning uchun
+ *    ro'yxat SPRAVOCHNIKDAN olinadi — formaga ishonilmaydi:
+ *    nofaol yoki begona tur id si yuborilsa e'tiborga olinmaydi
+ *    (§9.4 — tekshiruv serverda).
+ */
+async function turNarxlariniOqi(forma: FormData): Promise<TurNarxKirimi[]> {
+  const turlar = await faolTurlar(ulanishOl());
+
+  return turlar.map((t) => {
+    const narx = matnMaydon(forma, `turNarx_${String(t.id)}`).trim();
+    const valyuta = matnMaydon(forma, `turValyuta_${String(t.id)}`);
+
+    return {
+      mijozTuriId: t.id,
+      narx: narx === '' ? null : narx,
+      valyuta: valyuta === 'USD' ? 'USD' : 'SOM',
+    };
+  });
+}
 
 /**
  * «Omborda hozir bor» bo'limi — TZ 7.10.
@@ -130,6 +155,7 @@ async function yaratIchki(
       tekshiruv.data,
       f.xodimId,
       rasmniOqi(kirim['rasm'] ?? ''),
+      await turNarxlariniOqi(forma),
     );
   } catch (x) {
     return kirimniQaytar<FormaHolati>(
@@ -258,6 +284,7 @@ export async function materialTahrirlaAmali(
       f.xodimId,
       f.filialId,
       rasmniOqi(kirim['rasm'] ?? ''),
+      await turNarxlariniOqi(forma),
     );
   } catch (x) {
     return {

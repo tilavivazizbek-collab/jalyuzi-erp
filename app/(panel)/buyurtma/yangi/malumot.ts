@@ -49,6 +49,16 @@ export interface SotuvMijozi {
   readonly guruhNomi: string | null;
   readonly guruhOffsetTuri: string | null;
   readonly guruhOffsetQiymat: string | null;
+
+  /**
+   * TZ 6.2 — MIJOZ TURI (narx darajasi).
+   *
+   * ⚠️ Guruhdan boshqa narsa: guruh chegirma beradi, tur esa
+   *    materialning O'Z NARXINI belgilaydi. Ikkalasi ketma-ket
+   *    qo'llanadi: tur narxi → guruh/shaxsiy offset.
+   */
+  readonly mijozTuriId: number | null;
+  readonly turNomi: string | null;
 }
 
 export async function mijozQidir(matn: string, chegara = 10): Promise<SotuvMijozi[]> {
@@ -66,15 +76,19 @@ export async function mijozQidir(matn: string, chegara = 10): Promise<SotuvMijoz
       guruh_nomi: string | null;
       guruh_offset_turi: string | null;
       guruh_offset_qiymat: string | null;
+      mijoz_turi_id: number | null;
+      tur_nomi: string | null;
     }[]
   >`
     SELECT m.id, m.ism, m.telefon, m.qarz_limiti,
            m.offset_turi, m.offset_qiymat,
            g.nom AS guruh_nomi,
            g.offset_turi AS guruh_offset_turi,
-           g.offset_qiymat AS guruh_offset_qiymat
+           g.offset_qiymat AS guruh_offset_qiymat,
+           m.mijoz_turi_id, t.nom AS tur_nomi
     FROM mijoz m
     LEFT JOIN mijoz_guruh g ON g.id = m.mijoz_guruh_id AND g.faol = true
+    LEFT JOIN mijoz_turi t ON t.id = m.mijoz_turi_id AND t.faol = true
     WHERE m.faol = true AND (m.ism ILIKE ${`%${q}%`} OR m.telefon LIKE ${`%${q}%`})
     ORDER BY m.ism LIMIT ${chegara}`;
 
@@ -88,6 +102,8 @@ export async function mijozQidir(matn: string, chegara = 10): Promise<SotuvMijoz
     guruhNomi: r.guruh_nomi,
     guruhOffsetTuri: r.guruh_offset_turi,
     guruhOffsetQiymat: r.guruh_offset_qiymat,
+    mijozTuriId: r.mijoz_turi_id,
+    turNomi: r.tur_nomi,
   }));
 }
 

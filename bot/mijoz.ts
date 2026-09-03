@@ -233,11 +233,13 @@ export async function katalogMatolari(
       offset_qiymat: string | null;
       guruh_offset_turi: string | null;
       guruh_offset_qiymat: string | null;
+      mijoz_turi_id: number | null;
     }[]
   >`
     SELECT m.offset_turi, m.offset_qiymat,
            g.offset_turi AS guruh_offset_turi,
-           g.offset_qiymat AS guruh_offset_qiymat
+           g.offset_qiymat AS guruh_offset_qiymat,
+           m.mijoz_turi_id
     FROM mijoz m
     LEFT JOIN mijoz_guruh g ON g.id = m.mijoz_guruh_id AND g.faol = true
     WHERE m.id = ${mijozId}`;
@@ -256,18 +258,36 @@ export async function katalogMatolari(
    *    bo'ladi — offset barcha matoga bir xil qo'llanadi, shuning
    *    uchun tartib o'zgarmaydi (6.3).
    */
+  /**
+   * ⚠️ TZ 6.2 — MIJOZ TURI narxi ustun. Saytdagi bilan bir xil
+   *    tartib: tur narxi ?? standart. Bot boshqa narx
+   *    ko'rsatsa, mijoz do'konga kelib «saytda arzon edi-ku»
+   *    derdi.
+   */
+  const mijozTuriId = m[0]?.mijoz_turi_id ?? null;
+
   const matolar = await sql<
-    { nom: string; narx: string | null; jami: number }[]
+    { nom: string; narx: string | null; tartib_narx: string | null; jami: number }[]
   >`
-    SELECT DISTINCT mat.nom, mat.sotuv_narx::text AS narx,
+    SELECT DISTINCT mat.nom,
+           COALESCE(tn.sotuv_narx::text, mat.sotuv_narx::text) AS narx,
+           /*
+            * DISTINCT da ORDER BY faqat TANLANGAN ustunlar bo'yicha
+            * bo'ladi (Postgres 42P10). Matn bo'yicha saralash esa
+            * noto'g'ri: 90 000 raqami 120 000 dan keyin turardi.
+            * Shuning uchun SON alohida olinadi.
+            */
+           COALESCE(tn.sotuv_narx, mat.sotuv_narx) AS tartib_narx,
            COUNT(*) OVER ()::int AS jami
     FROM mahsulot_slot ms
     JOIN material mat
       ON (ms.almashtirish_guruh_id IS NULL
           OR mat.almashtirish_guruh_id = ms.almashtirish_guruh_id)
+    LEFT JOIN material_tur_narx tn
+      ON tn.material_id = mat.id AND tn.mijoz_turi_id = ${mijozTuriId}
     WHERE ms.mahsulot_tur_id = ${turId}
       AND ms.faol = true AND mat.faol = true
-    ORDER BY mat.sotuv_narx NULLS LAST, mat.nom
+    ORDER BY tartib_narx NULLS LAST, mat.nom
     LIMIT ${SAHIFA} OFFSET ${sahifa * SAHIFA}`;
 
   if (matolar.length === 0) {

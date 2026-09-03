@@ -4,7 +4,8 @@
  * Narx hisobining YAGONA joyi (QISM 1 §2.2). Sotuv ekrani, bot va hisobotlar
  * shu fayldan foydalanadi — nusxa ko'chirish taqiqlanadi.
  *
- * Tartib (20.9.3):  filial narxi → mijoz offseti → yaxlitlash
+ * Tartib (20.9.3 · 6.2):
+ *   tur narxi ?? filial narxi ?? standart  →  offset  →  yaxlitlash
  */
 
 import {
@@ -32,9 +33,21 @@ import { BiznesXato } from '@/lib/xato';
 /**
  * «Filial narxi bo'sh bo'lsa — standart ishlaydi. Bosh filialda standart
  * o'zgarsa, o'z narxini qo'ymagan filiallarga avtomatik tarqaladi.» (20.9.1)
+ *
+ * ⚠️ TZ 6.2 — MIJOZ TURI narxi eng ustun (egasi bilan kelishilgan,
+ *    2026-08-30): «optom mijoz qaysi filialdan olishidan qat'i
+ *    nazar optom narxda oladi».
+ *
+ *    Uch qatlam: tur narxi → filial narxi → standart. Har biri
+ *    bo'sh bo'lsa keyingisiga tushadi — hech qachon narxsiz
+ *    qolmaydi.
  */
-export function amaldagiNarx(standart: Som, filialNarxi: Som | null): Som {
-  return filialNarxi ?? standart;
+export function amaldagiNarx(
+  standart: Som,
+  filialNarxi: Som | null,
+  turNarxi: Som | null = null,
+): Som {
+  return turNarxi ?? filialNarxi ?? standart;
 }
 
 export const istisnomi = (filialNarxi: Som | null): boolean => filialNarxi !== null;
@@ -89,6 +102,8 @@ export function offsetQolla(baza: Som, offset: Offset | null, kurs: Kurs | null)
 export interface MatoNarxiKirishi {
   readonly standart: Som;
   readonly filialNarxi: Som | null;
+  /** TZ 6.2 — mijoz turi uchun qo'yilgan narx (eng ustun) */
+  readonly turNarxi?: Som | null;
   readonly offset: Offset | null;
   readonly kurs: Kurs | null;
 }
@@ -102,7 +117,7 @@ export interface MatoNarxiKirishi {
  *   Yaxlitlash        110 600
  */
 export function matoNarxi(k: MatoNarxiKirishi): Som {
-  const baza = amaldagiNarx(k.standart, k.filialNarxi);
+  const baza = amaldagiNarx(k.standart, k.filialNarxi, k.turNarxi ?? null);
   return yaxlitlaNarx(offsetQolla(baza, k.offset, k.kurs));
 }
 
@@ -110,8 +125,19 @@ export function matoNarxi(k: MatoNarxiKirishi): Som {
  * Aksessuar va karniz narxi — offset **qo'llanmaydi**.
  * «Offset faqat matoga qo'llanadi, aksessuarga tegmaydi.» (6.3)
  */
-export function aksessuarNarxi(standart: Som, filialNarxi: Som | null): Som {
-  return yaxlitlaNarx(amaldagiNarx(standart, filialNarxi));
+export function aksessuarNarxi(
+  standart: Som,
+  filialNarxi: Som | null,
+  /**
+   * ⚠️ TZ 6.2 — tur narxi AKSESSUARGA HAM qo'llanadi.
+   *
+   *    Offsetdan farqi shu: offset — chegirma (6.3, faqat mato),
+   *    tur narxi esa MAHSULOTNING NARXI. Optomchi mexanizmni ham
+   *    optom narxda oladi.
+   */
+  turNarxi: Som | null = null,
+): Som {
+  return yaxlitlaNarx(amaldagiNarx(standart, filialNarxi, turNarxi));
 }
 
 // ─── 3.8 · Pozitsiya narxi ────────────────────────────────────────────────

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { turNarxlari as turNarxlariniOl } from '@/lib/amal/tur-narx';
 import { notFound } from 'next/navigation';
 import { ulanishOl } from '@/lib/db';
 import { sahifaRuxsati } from '@/lib/kirish/joriy';
@@ -72,13 +73,15 @@ export default async function MaterialTahrirlash({ params }: { params: Promise<{
   const material = qatorlar[0];
   if (material === undefined) notFound();
 
-  const [guruhlar, kurs, oxirgiKelish] = await Promise.all([
+  const [guruhlar, kurs, oxirgiKelish, turNarxlari] = await Promise.all([
     ulanish<Guruh[]>`
       SELECT id, nom FROM almashtirish_guruh WHERE faol = true ORDER BY nom`,
     // $ ↔ so'm ko'rsatish uchun (bazaga yozilmaydi)
     joriyKurs(ulanish),
     // TZ 5.4 — haqiqiy tannarx kirimdan keladi, faqat ko'rsatiladi
     oxirgiKelishNarxi(materialId),
+    /** TZ 5.4 · 6.2 — mijoz turi bo'yicha narxlar */
+    turNarxlariniOl(ulanish, materialId),
   ]);
 
   // 20.9 — filial narx istisnolari (Q-28)
@@ -131,7 +134,8 @@ export default async function MaterialTahrirlash({ params }: { params: Promise<{
           guruhQoshaOladi={ruxsatBormi(f, 'material.ozgartir')}
           joriyKurs={kurs ?? ''}
           oxirgiKelish={oxirgiKelish}
-          tugmaMatni="O'zgarishlarni saqlash"
+          turNarxlari={turNarxlari}
+        tugmaMatni="O'zgarishlarni saqlash"
           /**
            * ⚠️ Manzilga o'zgarish vaqti qo'shiladi: rasm bir yilga
            *    keshlanadi, lekin yangisi yuklansa manzil ham

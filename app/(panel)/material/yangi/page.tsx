@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { turNarxlari as turNarxlariniOl } from '@/lib/amal/tur-narx';
 import { ulanishOl } from '@/lib/db';
 import { sahifaRuxsati } from '@/lib/kirish/joriy';
 import { ruxsatBormi } from '@/lib/ruxsat/tekshir';
@@ -17,11 +18,13 @@ export default async function YangiMaterial() {
 
   const ulanish = ulanishOl();
 
-  const [guruhlar, kurs] = await Promise.all([
+  const [guruhlar, kurs, turNarxlari] = await Promise.all([
     ulanish<Guruh[]>`
       SELECT id, nom FROM almashtirish_guruh WHERE faol = true ORDER BY nom`,
     // $ ↔ so'm ko'rsatish uchun. Kurs yo'q bo'lsa hamroh katak jim turadi
     joriyKurs(ulanish),
+    /** TZ 5.4 · 6.2 — yangi materialda narxlar bo'sh, turlar ro'yxati kerak */
+    turNarxlariniOl(ulanish, null),
   ]);
 
   return (
@@ -43,7 +46,8 @@ export default async function YangiMaterial() {
           guruhQoshaOladi={guruhQoshaOladi}
           joriyKurs={kurs ?? ''}
           oxirgiKelish={null}
-          tugmaMatni="Saqlash"
+          turNarxlari={turNarxlari}
+        tugmaMatni="Saqlash"
           zahiraSoraladi={boshlangichQilaOladi}
         />
       </div>

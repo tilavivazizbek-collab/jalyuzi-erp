@@ -1,5 +1,7 @@
 'use client';
 
+import { TurNarxlari } from './tur-narxlari';
+import type { TurNarxi } from '@/lib/amal/tur-narx';
 import { enterYuborilmasin } from '../forma-yordamchi';
 import { ZahiraBolimi } from './zahira';
 import { SARFLASH_BIRLIGI_NOMI } from '@/lib/sxema/material';
@@ -86,6 +88,7 @@ export function MaterialFormasi({
   bekor,
   rasmManzili,
   zahiraSoraladi = false,
+  turNarxlari = [],
 }: {
   amal: (holat: FormaHolati, forma: FormData) => Promise<FormaHolati>;
   qiymatlar: MaterialQiymatlari;
@@ -110,6 +113,13 @@ export function MaterialFormasi({
    *    qilib yuborardi.
    */
   zahiraSoraladi?: boolean;
+  /**
+   * TZ 5.4 · 6.2 — mijoz turlari bo'yicha narxlar.
+   *
+   * ⚠️ Serverdan keladi: yangi tur qo'shilsa forma KOD
+   *    O'ZGARISHISIZ yangi maydonni ko'rsatadi (egasi so'ragan).
+   */
+  turNarxlari?: readonly TurNarxi[];
 }) {
   const [holat, yubor, kutilmoqda] = useActionState(amal, BOSH_HOLAT);
 
@@ -569,6 +579,21 @@ export function MaterialFormasi({
               ({oxirgiKelish.sana})
             </span>
           )}
+        </div>
+
+        {/*
+          ⚠️ TZ 5.4 · 6.2 — tur narxlari. Dinamik: spravochnikdagi
+             har faol tur uchun bitta katak.
+        */}
+        <div className="mt-5 border-t border-chegara pt-5">
+          <h3 className="mb-1 text-sm font-medium text-matn-ikki">
+            Mijoz turi bo&apos;yicha narx
+          </h3>
+          <TurNarxlari
+            turlar={turNarxlari}
+            tannarx={oxirgiKelish?.narx ?? null}
+            standartNarx={sotuvNarx}
+          />
         </div>
 
         {tavsif?.sarflashBirligi === 'SM' && (

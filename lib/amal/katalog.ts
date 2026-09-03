@@ -19,11 +19,21 @@
 
 import { ulanishOl } from '@/lib/db';
 
+/**
+ * TZ 6.2 — mijoz turi bo'yicha narxlar.
+ *
+ * ⚠️ Kalit — tur `id` si, qiymat — narx va valyuta. Mijoz
+ *    tanlanganda ekran shu jadvaldan o'z narxini oladi:
+ *    serverga qayta murojaat qilmaydi, narx bir zumda o'zgaradi.
+ */
+export type TurNarxXaritasi = Record<number, { narx: string; valyuta: string }>;
+
 export interface SotuvMaterial {
   readonly id: number;
   readonly nom: string;
   readonly sarflashBirligi: string;
   readonly narx: string | null;
+  readonly turNarxlari: TurNarxXaritasi;
   /**
    * ⚠️ Narx dollarda ham bo'lishi mumkin. Uni so'mga o'girmasdan
    *    ishlatish — narxni ming barobar kamaytirish demak.
@@ -64,6 +74,7 @@ export interface SotuvAksessuar {
   readonly formula: string;
   readonly majburiy: boolean;
   readonly narx: string | null;
+  readonly turNarxlari: TurNarxXaritasi;
   /** Materialdagi kabi — dollarda bo'lishi mumkin */
   readonly narxValyuta: string;
 }
@@ -245,6 +256,28 @@ export async function sotuvTurlari(
            OR m.almashtirish_guruh_id IS NULL)
     ORDER BY m.nom`;
 
+  /**
+   * TZ 6.2 — mijoz turi narxlari.
+   *
+   * ⚠️ BITTA so'rov bilan olinadi va xaritaga yig'iladi. Mijoz
+   *    tanlanganda ekran serverga qayta bormaydi — narx bir
+   *    zumda o'zgaradi. Turlar soni kichik (2–5), shuning uchun
+   *    xarita ham kichik.
+   */
+  const turNarxQatorlari = await sql<
+    { material_id: number; mijoz_turi_id: number; narx: string; valyuta: string }[]
+  >`
+    SELECT n.material_id, n.mijoz_turi_id, n.sotuv_narx::text AS narx, n.valyuta
+    FROM material_tur_narx n
+    JOIN mijoz_turi t ON t.id = n.mijoz_turi_id AND t.faol = true`;
+
+  const turNarxBoyicha = new Map<number, TurNarxXaritasi>();
+  for (const q of turNarxQatorlari) {
+    const bor = turNarxBoyicha.get(q.material_id) ?? {};
+    bor[q.mijoz_turi_id] = { narx: q.narx, valyuta: q.valyuta };
+    turNarxBoyicha.set(q.material_id, bor);
+  }
+
   const material = (m: (typeof materiallar)[number]): SotuvMaterial => {
     const q = qoldiqBoyicha.get(m.id);
     return {
@@ -252,6 +285,7 @@ export async function sotuvTurlari(
       nom: m.nom,
       sarflashBirligi: m.sarflash_birligi,
       narx: m.narx,
+      turNarxlari: turNarxBoyicha.get(m.id) ?? {},
       narxValyuta: m.narx_valyuta,
       rasmBormi: m.rasm_bormi,
       boshKvM: q?.kvM ?? 0,
@@ -293,6 +327,7 @@ export async function sotuvTurlari(
         majburiy: a.majburiy,
         narx: a.narx,
         narxValyuta: a.narx_valyuta,
+        turNarxlari: turNarxBoyicha.get(a.material_id) ?? {},
       })),
   }));
 }

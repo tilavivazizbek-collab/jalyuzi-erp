@@ -34,6 +34,14 @@ export interface SlotKirishi {
   readonly narxValyuta?: string;
   /** TZ 3.6 — sotuvchi tuzatgan miqdor; narx SHUNGA tayanadi */
   readonly tuzatilganMiqdor?: number | null;
+  /**
+   * TZ 6.2 — mijoz turi uchun qo'yilgan narx.
+   *
+   * ⚠️ Chaqiruvchi TANLAB beradi: bu yerda tur haqida hech narsa
+   *    bilinmaydi (domain bazaga tegmaydi, §5.1).
+   */
+  readonly turNarxi?: string | null;
+  readonly turNarxValyuta?: string;
 }
 
 export interface AksessuarKirishi {
@@ -45,6 +53,9 @@ export interface AksessuarKirishi {
   readonly majburiy: boolean;
   /** TZ 3.7 — qo'lda kiritilgan son formulani USTIDAN YOZMAYDI */
   readonly qoldaSoni?: number | null;
+  /** TZ 6.2 — tur narxi aksessuarga HAM qo'llanadi */
+  readonly turNarxi?: string | null;
+  readonly turNarxValyuta?: string;
 }
 
 export interface NarxKirishi {
@@ -126,6 +137,12 @@ export function pozitsiyaNarxiniHisobla(k: NarxKirishi): NarxNatijasi {
 
     const birlikNarxi = matoNarxi({
       standart: katalogNarxi(s.narx, s.narxValyuta ?? 'SOM', k.kurs ?? null) ?? som(s.narx),
+      /** TZ 6.2 — tur narxi standartdan ham, filialdan ham ustun */
+      turNarxi:
+        s.turNarxi === null || s.turNarxi === undefined
+          ? null
+          : (katalogNarxi(s.turNarxi, s.turNarxValyuta ?? 'SOM', k.kurs ?? null) ??
+            som(s.turNarxi)),
       // Filial narxi SQL da hal qilingan (`COALESCE`) — 20.9
       filialNarxi: null,
       offset: k.offset,
@@ -165,10 +182,14 @@ export function pozitsiyaNarxiniHisobla(k: NarxKirishi): NarxNatijasi {
       };
     }
 
-    // ⚠️ 6.3 — offset BERILMAYDI
+    // ⚠️ 6.3 — offset BERILMAYDI, lekin TUR NARXI qo'llanadi (6.2)
     const birlikNarxi = aksessuarNarxi(
       katalogNarxi(a.narx, a.narxValyuta ?? 'SOM', k.kurs ?? null) ?? som(a.narx),
       null,
+      a.turNarxi === null || a.turNarxi === undefined
+        ? null
+        : (katalogNarxi(a.turNarxi, a.turNarxValyuta ?? 'SOM', k.kurs ?? null) ??
+          som(a.turNarxi)),
     );
 
     return {

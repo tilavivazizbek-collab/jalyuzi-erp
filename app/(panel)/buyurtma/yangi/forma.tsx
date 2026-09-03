@@ -173,6 +173,22 @@ export function SotuvFormasi({
       : { offsetTuri: mijoz.guruhOffsetTuri, offsetQiymat: mijoz.guruhOffsetQiymat },
   );
 
+  /**
+   * TZ 6.2 — tanlangan mijoz TURI uchun material narxi.
+   *
+   * ⚠️ Xarita katalog bilan birga kelgan — mijoz tanlanganda
+   *    serverga qayta murojaat qilinmaydi, narx bir zumda
+   *    o'zgaradi.
+   */
+  const turNarxi = (
+    turNarxlari: Record<number, { narx: string; valyuta: string }>,
+  ): Som | null => {
+    if (mijoz === null || mijoz.mijozTuriId === null) return null;
+    const n = turNarxlari[mijoz.mijozTuriId];
+    if (n === undefined) return null;
+    return katalogNarxi(n.narx, n.valyuta, kursObyekti) ?? som(n.narx);
+  };
+
   /** TZ 3.5 — har slot uchun formula bo'yicha miqdor. */
   const hisob = useMemo(() => {
     if (tur === null) return null;
@@ -222,6 +238,7 @@ export function SotuvFormasi({
                   katalogNarxi(material.narx, material.narxValyuta, kursObyekti) ??
                   som(material.narx),
                 filialNarxi: null,
+                turNarxi: turNarxi(material.turNarxlari),
                 offset,
                 kurs: kursObyekti,
               }),
@@ -310,13 +327,19 @@ export function SotuvFormasi({
         // TZ 3.7 — qo'lda kiritilgan sonni formula USTIDAN YOZMAYDI
         const soni = t?.qoldaKiritildi === true ? (son(t.soni) ?? 0) : hisoblangan;
 
-        // ⚠️ TZ 6.3 — «Offset FAQAT MATOGA qo'llanadi, AKSESSUARGA TEGMAYDI.»
+        /**
+         * ⚠️ TZ 6.3 — «Offset FAQAT MATOGA qo'llanadi, AKSESSUARGA
+         *    TEGMAYDI». Lekin TUR NARXI qo'llanadi (6.2): u
+         *    chegirma emas, mahsulotning o'z narxi — optomchi
+         *    mexanizmni ham optom narxda oladi.
+         */
         const narx =
           a.narx === null
             ? null
             : aksessuarNarxi(
                 katalogNarxi(a.narx, a.narxValyuta, kursObyekti) ?? som(a.narx),
                 null,
+                turNarxi(a.turNarxlari),
               );
 
         const summa =
@@ -1246,6 +1269,8 @@ function MijozTanlash({
       guruhNomi: null,
       guruhOffsetTuri: null,
       guruhOffsetQiymat: null,
+      mijozTuriId: null,
+      turNomi: null,
     });
     matnniOzgartir('');
     topilganniOzgartir([]);
