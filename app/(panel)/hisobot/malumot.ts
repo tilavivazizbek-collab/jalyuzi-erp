@@ -16,6 +16,7 @@
  */
 
 import { ulanishOl } from '@/lib/db';
+import { kamQoldiqmi } from '@/lib/domain/birlik-tanlovi';
 import { joriyKurs } from '@/lib/amal/kurs';
 import { type Davr, kunlarSoni } from '@/lib/domain/hisobot/davr';
 import {
@@ -439,4 +440,261 @@ export async function omborQiymati(filialId: number): Promise<string> {
       AND b.holat IN ('BOSH','BAND')
       AND b.tannarx_valyuta_snapshot = 'SOM'`;
   return q[0]?.jami ?? '0';
+}
+
+// ─── 11.7.1 · Qoldiq MATERIAL KESIMIDA ────────────────────────────────────
+
+export interface QoldiqQatori {
+  readonly materialId: number;
+  readonly nom: string;
+  readonly sarflashBirligi: string;
+  /** Sarflash birligidagi miqdor — kv.m, sm yoki dona */
+  readonly miqdor: number;
+  readonly bolakSoni: number;
+  /** Tannarx qiymati (so'm) */
+  readonly qiymat: string;
+}
+
+/**
+ * TZ 11.7.1 — «Qoldiq: material kesimida, miqdor va qiymat».
+ *
+ * ⚠️ Faqat `BOSH` va `BAND` sanaladi: `ISHLATILDI`, `BRAK` va
+ *    `CHIQINDI` omborda yo'q. `YOLDA` ham kirmaydi — u boshqa
+ *    filialga ketgan (20.7.4).
+ *
+ * ⚠️ Dollarli tannarx CHETLAB O'TILADI, so'mga jimgina qo'shilmaydi:
+ *    kurs parametr bo'lib kelishi shart (§3.2). Bunday bo'lak
+ *    bo'lsa ekran ogohlantiradi.
+ */
+export async function qoldiqMaterialKesimida(
+  filialId: number,
+): Promise<readonly QoldiqQatori[]> {
+  const q = await ulanishOl()<
+    {
+      material_id: number;
+      nom: string;
+      sarflash_birligi: string;
+      miqdor: string | null;
+      bolak_soni: number;
+      qiymat: string | null;
+    }[]
+  >`
+    SELECT m.id AS material_id, m.nom, m.sarflash_birligi,
+           SUM(CASE WHEN b.turi = 'DONA'
+                    THEN COALESCE(b.miqdor, 0)
+                    ELSE COALESCE(b.eni_m, 0) * COALESCE(b.boyi_m, 0) END)::text
+             AS miqdor,
+           COUNT(*)::int AS bolak_soni,
+           SUM(CASE WHEN b.turi = 'DONA'
+                    THEN COALESCE(b.miqdor, 0)
+                    ELSE COALESCE(b.eni_m, 0) * COALESCE(b.boyi_m, 0) END
+               * b.tannarx_birlik_snapshot)
+             FILTER (WHERE b.tannarx_valyuta_snapshot = 'SOM')
+             ::numeric(14,2)::text AS qiymat
+    FROM bolak b
+    JOIN material m ON m.id = b.material_id
+    WHERE b.filial_id = ${filialId} AND b.faol = true
+      AND b.holat IN ('BOSH','BAND')
+    GROUP BY m.id, m.nom, m.sarflash_birligi
+    ORDER BY 6 DESC NULLS LAST, m.nom`;
+
+  return q.map((x) => ({
+    materialId: x.material_id,
+    nom: x.nom,
+    sarflashBirligi: x.sarflash_birligi,
+    miqdor: Number(x.miqdor ?? 0),
+    bolakSoni: x.bolak_soni,
+    qiymat: x.qiymat ?? '0',
+  }));
+}
+
+// ─── 11.7.2 · Material harakati (davr bo'yicha) ───────────────────────────
+
+export interface HarakatQatori {
+  readonly materialId: number;
+  readonly nom: string;
+  readonly sarflashBirligi: string;
+  readonly kirim: number;
+  readonly sarf: number;
+  readonly chiqindi: number;
+  readonly brak: number;
+}
+
+/**
+ * TZ 11.7.2 — «Material harakati: kirim, sarf, chiqindi, brak».
+ *
+ * ⚠️ Miqdorlar bazada MANFIY yoziladi (chiqim), shu yerda esa
+ *    MUSBAT ko'rsatiladi: jadvalda «−3.60» emas, «3.60» turgani
+ *    o'qishga qulay va ustun sarlavhasi nima ekanini aytadi.
+ *
+ * ⚠️ `KOCHIRISH_*`, `INVENTARIZATSIYA` va `STORNO` bu jadvalda
+ *    YO'Q: ular sarf ham, kirim ham emas (20.7 · 15.1).
+ */
+export async function materialHarakati(
+  filialId: number,
+  davr: Davr,
+): Promise<readonly HarakatQatori[]> {
+  const q = await ulanishOl()<
+    {
+      material_id: number;
+      nom: string;
+      sarflash_birligi: string;
+      kirim: string | null;
+      sarf: string | null;
+      chiqindi: string | null;
+      brak: string | null;
+    }[]
+  >`
+    SELECT m.id AS material_id, m.nom, m.sarflash_birligi,
+           SUM((COALESCE(oh.miqdor_kv_m, 0)
+                + COALESCE(oh.miqdor_sm, 0)
+                + COALESCE(oh.miqdor_dona, 0))) FILTER (WHERE oh.turi IN ('KIRIM','BOSHLANGICH'))::text
+             AS kirim,
+           ABS(SUM((COALESCE(oh.miqdor_kv_m, 0)
+                + COALESCE(oh.miqdor_sm, 0)
+                + COALESCE(oh.miqdor_dona, 0))) FILTER (WHERE oh.turi = 'KESIM'))::text AS sarf,
+           ABS(SUM((COALESCE(oh.miqdor_kv_m, 0)
+                + COALESCE(oh.miqdor_sm, 0)
+                + COALESCE(oh.miqdor_dona, 0))) FILTER (WHERE oh.turi = 'CHIQINDI'))::text AS chiqindi,
+           ABS(SUM((COALESCE(oh.miqdor_kv_m, 0)
+                + COALESCE(oh.miqdor_sm, 0)
+                + COALESCE(oh.miqdor_dona, 0))) FILTER (WHERE oh.turi = 'BRAK'))::text AS brak
+    FROM ombor_harakat oh
+    JOIN bolak b ON b.id = oh.bolak_id
+    JOIN material m ON m.id = b.material_id
+    WHERE oh.filial_id = ${filialId}
+      AND oh.sana >= ${davr.boshi} AND oh.sana < ${davr.oxiri}
+      AND oh.turi IN ('KIRIM','BOSHLANGICH','KESIM','CHIQINDI','BRAK')
+    GROUP BY m.id, m.nom, m.sarflash_birligi
+    ORDER BY m.nom`;
+
+  return q.map((x) => ({
+    materialId: x.material_id,
+    nom: x.nom,
+    sarflashBirligi: x.sarflash_birligi,
+    kirim: Number(x.kirim ?? 0),
+    sarf: Number(x.sarf ?? 0),
+    chiqindi: Number(x.chiqindi ?? 0),
+    brak: Number(x.brak ?? 0),
+  }));
+}
+
+// ─── 11.7.4 · Chiqindi va brak — sabab kesimida ───────────────────────────
+
+export interface ChiqindiQatori {
+  readonly nom: string;
+  readonly turi: string;
+  readonly miqdor: number;
+  readonly qiymat: string;
+  readonly hodisaSoni: number;
+}
+
+/**
+ * TZ 11.7.4 — «Chiqindi va brak: material va sabab kesimida».
+ *
+ * ⚠️ Qiymat ham ko'rsatiladi: «12 kv.m chiqindi» degan raqam
+ *    egasiga hech narsa aytmaydi, «840 000 so'm» esa aytadi.
+ */
+export async function chiqindiVaBrak(
+  filialId: number,
+  davr: Davr,
+): Promise<readonly ChiqindiQatori[]> {
+  const q = await ulanishOl()<
+    {
+      nom: string;
+      turi: string;
+      miqdor: string | null;
+      qiymat: string | null;
+      hodisa_soni: number;
+    }[]
+  >`
+    SELECT m.nom, oh.turi,
+           ABS(SUM((COALESCE(oh.miqdor_kv_m, 0)
+                + COALESCE(oh.miqdor_sm, 0)
+                + COALESCE(oh.miqdor_dona, 0))))::text AS miqdor,
+           ABS(SUM(oh.tannarx_summa))::numeric(14,2)::text AS qiymat,
+           COUNT(*)::int AS hodisa_soni
+    FROM ombor_harakat oh
+    JOIN bolak b ON b.id = oh.bolak_id
+    JOIN material m ON m.id = b.material_id
+    WHERE oh.filial_id = ${filialId}
+      AND oh.sana >= ${davr.boshi} AND oh.sana < ${davr.oxiri}
+      AND oh.turi IN ('CHIQINDI','BRAK')
+    GROUP BY m.nom, oh.turi
+    ORDER BY 4 DESC NULLS LAST`;
+
+  return q.map((x) => ({
+    nom: x.nom,
+    turi: x.turi,
+    miqdor: Number(x.miqdor ?? 0),
+    qiymat: x.qiymat ?? '0',
+    hodisaSoni: x.hodisa_soni,
+  }));
+}
+
+// ─── 11.7.3 · Kam qolgan va tugagan ───────────────────────────────────────
+
+export interface KamQoldiqQatori {
+  readonly materialId: number;
+  readonly nom: string;
+  readonly sarflashBirligi: string;
+  readonly qoldiq: number;
+  /** Kartochkadagi chegara — `null` bo'lsa faqat nol qoldiq ko'rinadi */
+  readonly chegara: number | null;
+  readonly tugadimi: boolean;
+}
+
+/**
+ * TZ 11.7.3 — «Kam qolgan va tugagan materiallar».
+ *
+ * ⚠️ QAROR: chegara solishtiruvi SQL da EMAS, domainda
+ *    (`kamQoldiqmi`). Sabab — Q-01: chiziqli material bazada
+ *    SANTIMETRDA yotadi, chegara esa METRDA yozilgan. SQL da
+ *    `qoldiq < chegara` deb yozilsa, 350 sm 5 m dan katta bo'lib
+ *    chiqardi va ogohlantirish hech qachon ishlamasdi.
+ *
+ * ⚠️ Chegarasi yo'q material ham qaytadi: qoldiq nol bo'lsa u
+ *    baribir «tugagan» ro'yxatiga tushishi kerak.
+ */
+export async function kamQolganlar(
+  filialId: number,
+): Promise<readonly KamQoldiqQatori[]> {
+  const q = await ulanishOl()<
+    {
+      material_id: number;
+      nom: string;
+      sarflash_birligi: string;
+      qoldiq: string | null;
+      chegara: string | null;
+    }[]
+  >`
+    SELECT m.id AS material_id, m.nom, m.sarflash_birligi,
+           (SELECT SUM(CASE WHEN b.turi = 'DONA'
+                            THEN COALESCE(b.miqdor, 0)
+                            ELSE COALESCE(b.eni_m, 0) * COALESCE(b.boyi_m, 0) END)
+              FROM bolak b
+             WHERE b.material_id = m.id AND b.filial_id = ${filialId}
+               AND b.faol = true AND b.holat = 'BOSH')::text AS qoldiq,
+           m.kam_qoldiq_chegara_m::text AS chegara
+    FROM material m
+    WHERE m.faol = true
+    ORDER BY m.nom`;
+
+  return q
+    .map((x) => {
+      const qoldiq = Number(x.qoldiq ?? 0);
+      const chegara = x.chegara === null ? null : Number(x.chegara);
+
+      return {
+        materialId: x.material_id,
+        nom: x.nom,
+        sarflashBirligi: x.sarflash_birligi,
+        qoldiq,
+        chegara,
+        tugadimi: qoldiq <= 0,
+      };
+    })
+    .filter((x) => x.tugadimi || kamQoldiqmi(x.sarflashBirligi, x.qoldiq, x.chegara))
+    /** Tugaganlar tepada — ular shoshilinch */
+    .sort((a, b) => Number(b.tugadimi) - Number(a.tugadimi) || a.nom.localeCompare(b.nom));
 }

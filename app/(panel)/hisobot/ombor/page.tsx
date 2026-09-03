@@ -3,9 +3,13 @@ import { sahifaRuxsati } from '@/lib/kirish/joriy';
 import { davrMatn, davrTurimi, davrYasa, type DavrTuri } from '@/lib/domain/hisobot/davr';
 import { pulKorsat, som } from '@/lib/domain/pul';
 import {
+  chiqindiVaBrak,
+  kamQolganlar,
+  materialHarakati,
   muzlaganPulHisoboti,
   omborAbc,
   omborQiymati,
+  qoldiqMaterialKesimida,
   sarflanishTezligi,
   ustamaHisoboti,
 } from '../malumot';
@@ -15,9 +19,10 @@ export const dynamic = 'force-dynamic';
 /**
  * TZ 11.7 — ombor hisobotlari.
  *
- * Bitta sahifada to'rt hisobot: qoldiq qiymati (11.7.1), ustama eroziyasi
- * (11.7.5), muzlab qolgan pul (11.7.6) va sarflanish tezligi
- * (HISOBOTLAR-ISH §3.1 №13–14).
+ * Bitta sahifada: qoldiq material kesimida (11.7.1), material harakati
+ * (11.7.2), kam qolgan va tugagan (11.7.3), chiqindi va brak (11.7.4),
+ * ustama eroziyasi (11.7.5), muzlab qolgan pul (11.7.6) va sarflanish
+ * tezligi (HISOBOTLAR-ISH §3.1 №13–14).
  *
  * ⚠️ Ruxsat 11.10 bo'yicha: bu sahifada TANNARX bor, shuning uchun
  *    `hisobot.ombor.kor` kerak — sotuvchida u yo'q.
@@ -45,13 +50,18 @@ export default async function OmborHisoboti({
     davrXom !== undefined && davrTurimi(davrXom) ? davrXom : 'OY';
   const davr = davrYasa(davrTuri, new Date());
 
-  const [qiymat, ustama, muzlagan, tezlik, abc] = await Promise.all([
-    omborQiymati(f.filialId),
-    ustamaHisoboti(f.filialId),
-    muzlaganPulHisoboti(f.filialId),
-    sarflanishTezligi(f.filialId, davr),
-    omborAbc(f.filialId),
-  ]);
+  const [qiymat, ustama, muzlagan, tezlik, abc, qoldiqlar, harakat, kamlar, chiqindi] =
+    await Promise.all([
+      omborQiymati(f.filialId),
+      ustamaHisoboti(f.filialId),
+      muzlaganPulHisoboti(f.filialId),
+      sarflanishTezligi(f.filialId, davr),
+      omborAbc(f.filialId),
+      qoldiqMaterialKesimida(f.filialId),
+      materialHarakati(f.filialId, davr),
+      kamQolganlar(f.filialId),
+      chiqindiVaBrak(f.filialId, davr),
+    ]);
 
   const xavfli = tezlik
     .filter((t) => t.bashorat.holati === 'XAVF' || t.bashorat.holati === 'TUGAGAN')
@@ -337,8 +347,221 @@ export default async function OmborHisoboti({
           </div>
         )}
       </section>
+
+      {/* 11.7.3 - Kam qolgan va tugagan */}
+      <section>
+        <h2 className="mb-1 text-sm font-medium text-matn-ikki">Kam qolgan va tugagan</h2>
+        <p className="mb-3 text-xs text-matn-kuchsiz">
+          Chegara mahsulot kartochkasida qo&apos;yiladi. Tugaganlar tepada.
+        </p>
+
+        {kamlar.length === 0 ? (
+          <Bosh matn="Hammasi yetarli - chegaradan pastga tushgan mahsulot yo'q." />
+        ) : (
+          <div className="overflow-x-auto rounded-karta border border-chegara bg-sirt">
+            <table className="w-full text-sm">
+              <thead className="border-b border-chegara bg-fon text-left text-xs uppercase tracking-wide text-matn-kuchsiz">
+                <tr>
+                  <th className="px-4 py-2.5 font-medium">Mahsulot</th>
+                  <th className="px-4 py-2.5 text-right font-medium">Qoldiq</th>
+                  <th className="px-4 py-2.5 text-right font-medium">Chegara</th>
+                  <th className="px-4 py-2.5 font-medium">Holat</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-chegara [&>tr:nth-child(even)]:bg-fon/50">
+                {kamlar.map((k) => (
+                  <tr key={k.materialId}>
+                    <td className="px-4 py-2.5 font-medium">{k.nom}</td>
+                    <td className="raqam px-4 py-2.5 text-right">
+                      {son(birlikda(k.qoldiq, k.sarflashBirligi))}{' '}
+                      <span className="text-xs text-matn-kuchsiz">
+                        {birlikNomi(k.sarflashBirligi)}
+                      </span>
+                    </td>
+                    <td className="raqam px-4 py-2.5 text-right text-matn-kuchsiz">
+                      {k.chegara === null ? '-' : son(k.chegara)}
+                    </td>
+                    <td className="px-4 py-2.5">
+                      {k.tugadimi ? (
+                        <span className="text-belgi-qizil">tugagan</span>
+                      ) : (
+                        <span className="text-belgi-sariq">kam qoldi</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      {/* 11.7.1 - Qoldiq material kesimida */}
+      <section>
+        <h2 className="mb-1 text-sm font-medium text-matn-ikki">
+          Qoldiq - mahsulot kesimida
+        </h2>
+        <p className="mb-3 text-xs text-matn-kuchsiz">
+          Qiymat - omborda turgan bo&apos;laklarning tannarxi. Eng qimmati tepada.
+        </p>
+
+        {qoldiqlar.length === 0 ? (
+          <Bosh matn="Ombor bo'sh." />
+        ) : (
+          <div className="overflow-x-auto rounded-karta border border-chegara bg-sirt">
+            <table className="w-full text-sm">
+              <thead className="border-b border-chegara bg-fon text-left text-xs uppercase tracking-wide text-matn-kuchsiz">
+                <tr>
+                  <th className="px-4 py-2.5 font-medium">Mahsulot</th>
+                  <th className="px-4 py-2.5 text-right font-medium">Miqdor</th>
+                  <th className="px-4 py-2.5 text-right font-medium">Bo&apos;lak</th>
+                  <th className="px-4 py-2.5 text-right font-medium">Qiymat</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-chegara [&>tr:nth-child(even)]:bg-fon/50">
+                {qoldiqlar.map((q) => (
+                  <tr key={q.materialId}>
+                    <td className="px-4 py-2.5 font-medium">{q.nom}</td>
+                    <td className="raqam px-4 py-2.5 text-right">
+                      {son(birlikda(q.miqdor, q.sarflashBirligi))}{' '}
+                      <span className="text-xs text-matn-kuchsiz">
+                        {birlikNomi(q.sarflashBirligi)}
+                      </span>
+                    </td>
+                    <td className="raqam px-4 py-2.5 text-right text-matn-kuchsiz">
+                      {q.bolakSoni}
+                    </td>
+                    <td className="raqam px-4 py-2.5 text-right font-medium">
+                      {pulKorsat(som(q.qiymat))}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      {/* 11.7.2 - Material harakati */}
+      <section>
+        <h2 className="mb-1 text-sm font-medium text-matn-ikki">
+          Mahsulot harakati - {davrMatn(davr)}
+        </h2>
+        <p className="mb-3 text-xs text-matn-kuchsiz">
+          Ko&apos;chirish va inventarizatsiya bu yerda YO&apos;Q: ular sarf ham, kirim
+          ham emas.
+        </p>
+
+        {harakat.length === 0 ? (
+          <Bosh matn="Bu davrda harakat bo'lmagan." />
+        ) : (
+          <div className="overflow-x-auto rounded-karta border border-chegara bg-sirt">
+            <table className="w-full text-sm">
+              <thead className="border-b border-chegara bg-fon text-left text-xs uppercase tracking-wide text-matn-kuchsiz">
+                <tr>
+                  <th className="px-4 py-2.5 font-medium">Mahsulot</th>
+                  <th className="px-4 py-2.5 text-right font-medium">Kirim</th>
+                  <th className="px-4 py-2.5 text-right font-medium">Sarf</th>
+                  <th className="px-4 py-2.5 text-right font-medium">Chiqindi</th>
+                  <th className="px-4 py-2.5 text-right font-medium">Brak</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-chegara [&>tr:nth-child(even)]:bg-fon/50">
+                {harakat.map((h) => (
+                  <tr key={h.materialId}>
+                    <td className="px-4 py-2.5 font-medium">
+                      {h.nom}{' '}
+                      <span className="text-xs text-matn-kuchsiz">
+                        {birlikNomi(h.sarflashBirligi)}
+                      </span>
+                    </td>
+                    <td className="raqam px-4 py-2.5 text-right text-belgi-yashil">
+                      {h.kirim === 0 ? '-' : son(birlikda(h.kirim, h.sarflashBirligi))}
+                    </td>
+                    <td className="raqam px-4 py-2.5 text-right">
+                      {h.sarf === 0 ? '-' : son(birlikda(h.sarf, h.sarflashBirligi))}
+                    </td>
+                    <td className="raqam px-4 py-2.5 text-right text-belgi-sariq">
+                      {h.chiqindi === 0
+                        ? '-'
+                        : son(birlikda(h.chiqindi, h.sarflashBirligi))}
+                    </td>
+                    <td className="raqam px-4 py-2.5 text-right text-belgi-qizil">
+                      {h.brak === 0 ? '-' : son(birlikda(h.brak, h.sarflashBirligi))}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      {/* 11.7.4 - Chiqindi va brak */}
+      <section>
+        <h2 className="mb-1 text-sm font-medium text-matn-ikki">
+          Chiqindi va brak - {davrMatn(davr)}
+        </h2>
+        <p className="mb-3 text-xs text-matn-kuchsiz">
+          Pul qiymati bilan: 12 kv.m degan raqam hech narsa aytmaydi, 840 000
+          so&apos;m aytadi.
+        </p>
+
+        {chiqindi.length === 0 ? (
+          <Bosh matn="Bu davrda chiqindi va brak bo'lmagan." />
+        ) : (
+          <div className="overflow-x-auto rounded-karta border border-chegara bg-sirt">
+            <table className="w-full text-sm">
+              <thead className="border-b border-chegara bg-fon text-left text-xs uppercase tracking-wide text-matn-kuchsiz">
+                <tr>
+                  <th className="px-4 py-2.5 font-medium">Mahsulot</th>
+                  <th className="px-4 py-2.5 font-medium">Turi</th>
+                  <th className="px-4 py-2.5 text-right font-medium">Miqdor</th>
+                  <th className="px-4 py-2.5 text-right font-medium">Hodisa</th>
+                  <th className="px-4 py-2.5 text-right font-medium">Qiymat</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-chegara [&>tr:nth-child(even)]:bg-fon/50">
+                {chiqindi.map((c) => (
+                  <tr key={`${c.nom}-${c.turi}`}>
+                    <td className="px-4 py-2.5 font-medium">{c.nom}</td>
+                    <td className="px-4 py-2.5">
+                      {c.turi === 'BRAK' ? (
+                        <span className="text-belgi-qizil">Hisobdan chiqarildi</span>
+                      ) : (
+                        <span className="text-belgi-sariq">Chiqindi</span>
+                      )}
+                    </td>
+                    <td className="raqam px-4 py-2.5 text-right">{son(c.miqdor)}</td>
+                    <td className="raqam px-4 py-2.5 text-right text-matn-kuchsiz">
+                      {c.hodisaSoni}
+                    </td>
+                    <td className="raqam px-4 py-2.5 text-right font-medium">
+                      {pulKorsat(som(c.qiymat))}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
     </div>
   );
+}
+
+/**
+ * Q-01 - chiziqli mahsulot bazada SANTIMETRDA yotadi, ekranda METRDA
+ * ko'rsatiladi. Omborchi metr bilan ishlaydi.
+ */
+function birlikda(miqdor: number, sarflashBirligi: string): number {
+  return sarflashBirligi === 'SM' ? miqdor / 100 : miqdor;
+}
+
+function birlikNomi(sarflashBirligi: string): string {
+  if (sarflashBirligi === 'SM') return 'm';
+  if (sarflashBirligi === 'DONA') return 'dona';
+  return 'kv.m';
 }
 
 function Karta({

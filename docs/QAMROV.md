@@ -135,11 +135,11 @@ ikki varaqli Excel.
 | Ustama eroziyasi (11.7.5) | ✅ | ✅ | ✅ | ❌ |
 | Muzlab qolgan pul (11.7.6) | ✅ | ✅ | ✅ | ❌ |
 | Qoldiq qiymati — jami (11.7.1) | ✅ | ✅ | ✅ | ❌ |
-| Qoldiq — material kesimida (11.7.1) | ❌ | ❌ | ❌ | ❌ |
+| Qoldiq — material kesimida (11.7.1) | — | ✅ | ✅ | ❌ |
 | ABC tahlil — mijoz (11.6.2) | ✅ | ❌ | ❌ | ❌ |
-| Material harakati (11.7.2) | ❌ | ❌ | ❌ | ❌ |
-| Kam qolgan va tugagan (11.7.3) | ❌ | ❌ | ❌ | ❌ |
-| Chiqindi va brak (11.7.4) | ❌ | ❌ | ❌ | ❌ |
+| Material harakati (11.7.2) | — | ✅ | ✅ | ❌ |
+| Kam qolgan va tugagan (11.7.3) | ✅ | ✅ | ✅ | ❌ |
+| Chiqindi va brak (11.7.4) | — | ✅ | ✅ | ❌ |
 | Rulon ochilgan holatlar (11.7.7) | ❌ | ❌ | ❌ | ❌ |
 | Moliya (11.4.1–11.4.7) | ❌ | ❌ | ❌ | ❌ |
 | Sotuv (11.5.1–11.5.6) | ❌ | ❌ | ❌ | ❌ |

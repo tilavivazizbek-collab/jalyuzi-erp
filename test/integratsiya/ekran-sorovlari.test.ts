@@ -344,9 +344,57 @@ describe('Hisobot ekranlari — TZ 11.7', () => {
     expect(abc.soni.A + abc.soni.B + abc.soni.C).toBe(abc.qatorlar.length);
   });
 
+  it('qoldiq mahsulot kesimida (11.7.1)', async () => {
+    const q = await hisobotEkrani.qoldiqMaterialKesimida(filialId);
+    for (const x of q) {
+      expect(x.bolakSoni).toBeGreaterThan(0);
+      // Qiymat har doim matn: `NULL` bo'lsa ham '0' bo'lib keladi
+      expect(x.qiymat).toBeTypeOf('string');
+    }
+  });
+
+  it('mahsulot harakati — davr bo‘yicha (11.7.2)', async () => {
+    const davr = davrYasa('OY', new Date());
+    const h = await hisobotEkrani.materialHarakati(filialId, davr);
+
+    /**
+     * ⚠️ Bazada chiqim MANFIY yotadi, hisobotda esa MUSBAT
+     *    ko'rsatiladi. Manfiy raqam chiqsa — `ABS()` tushib
+     *    qolgan degani.
+     */
+    for (const x of h) {
+      expect(x.sarf).toBeGreaterThanOrEqual(0);
+      expect(x.chiqindi).toBeGreaterThanOrEqual(0);
+      expect(x.brak).toBeGreaterThanOrEqual(0);
+    }
+  });
+
+  it('kam qolgan va tugagan (11.7.3)', async () => {
+    const k = await hisobotEkrani.kamQolganlar(filialId);
+    // Tugaganlar tepada turishi shart — ular shoshilinch
+    const birinchiKam = k.findIndex((x) => !x.tugadimi);
+    const oxirgiTugagan = k.map((x) => x.tugadimi).lastIndexOf(true);
+    if (birinchiKam !== -1 && oxirgiTugagan !== -1) {
+      expect(oxirgiTugagan).toBeLessThan(birinchiKam);
+    }
+  });
+
+  it('chiqindi va brak — sabab kesimida (11.7.4)', async () => {
+    const davr = davrYasa('OY', new Date());
+    const c = await hisobotEkrani.chiqindiVaBrak(filialId, davr);
+    for (const x of c) {
+      expect(['CHIQINDI', 'BRAK']).toContain(x.turi);
+      expect(x.miqdor).toBeGreaterThanOrEqual(0);
+    }
+  });
+
   it('mavjud bo‘lmagan filialda ham yiqilmaydi', async () => {
+    const davr = davrYasa('OY', new Date());
     await expect(hisobotEkrani.ustamaHisoboti(YOQ)).resolves.toBeDefined();
     await expect(hisobotEkrani.muzlaganPulHisoboti(YOQ)).resolves.toBeDefined();
     await expect(hisobotEkrani.omborAbc(YOQ)).resolves.toBeDefined();
+    await expect(hisobotEkrani.qoldiqMaterialKesimida(YOQ)).resolves.toEqual([]);
+    await expect(hisobotEkrani.materialHarakati(YOQ, davr)).resolves.toEqual([]);
+    await expect(hisobotEkrani.chiqindiVaBrak(YOQ, davr)).resolves.toEqual([]);
   });
 });
