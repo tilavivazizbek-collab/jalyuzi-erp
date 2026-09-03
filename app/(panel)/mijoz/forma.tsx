@@ -5,14 +5,9 @@ import Link from 'next/link';
 import { Maydon, kirishUslubi } from '../maydon';
 import { TanlovModal, type TanlovBandi } from '../tanlov-modal';
 import { MijozGuruhFormasi } from './guruh/forma';
+import { TurFormasi } from './turi/forma';
 import { BOSH_HOLAT, type MijozHolati } from './holat';
-import {
-  OFFSET_TURI_NOMI,
-  OFFSET_TURLARI,
-  SHAXS_TURI_NOMI,
-  SHAXS_TURLARI,
-  type ShaxsTuri,
-} from '@/lib/sxema/mijoz';
+import { OFFSET_TURI_NOMI, OFFSET_TURLARI } from '@/lib/sxema/mijoz';
 
 export interface MijozQiymatlari {
   readonly ism: string;
@@ -24,6 +19,8 @@ export interface MijozQiymatlari {
   readonly offsetQiymat: string;
   readonly qarzLimiti: string;
   readonly shaxsTuri: string;
+  /** TZ 6.2 — narx darajasi */
+  readonly mijozTuriId: string;
   readonly tashkilotNomi: string;
   readonly inn: string;
   readonly yuridikManzil: string;
@@ -44,6 +41,7 @@ export const BOSH_QIYMATLAR: MijozQiymatlari = {
   offsetQiymat: '',
   qarzLimiti: '',
   shaxsTuri: 'JISMONIY',
+  mijozTuriId: '',
   tashkilotNomi: '',
   inn: '',
   yuridikManzil: '',
@@ -60,6 +58,8 @@ export function MijozFormasi({
   tugmaMatni,
   guruhlar = [],
   guruhQoshaOladi = false,
+  turlar = [],
+  turQoshaOladi = false,
   saqlandi,
   bekor,
 }: {
@@ -69,6 +69,9 @@ export function MijozFormasi({
   /** TZ 6.3 — chegirma guruhlari */
   guruhlar?: readonly TanlovBandi[];
   guruhQoshaOladi?: boolean;
+  /** TZ 6.2 — mijoz turlari (narx darajasi) */
+  turlar?: readonly { id: number; nom: string; soliqKerak: boolean }[];
+  turQoshaOladi?: boolean;
   /**
    * ⚠️ Modal oynada beriladi. O'z sahifasida saqlangach ro'yxatga
    *    yo'naltiriladi, shuning uchun u yerda bu chaqirilmaydi.
@@ -103,7 +106,12 @@ export function MijozFormasi({
     xabarBerildi.current = true;
     saqlandi?.(holat.yaratildi);
   }, [holat.yaratildi, saqlandi]);
-  const [shaxsTuri, setShaxsTuri] = useState<ShaxsTuri>(q('shaxsTuri') as ShaxsTuri);
+  /**
+   * ⚠️ Soliq maydonlari TANLANGAN TURGA qarab ochiladi. Tur
+   *    o'zgarsa bo'lim darhol paydo bo'ladi yoki yo'qoladi.
+   */
+  const [turId, setTurId] = useState(q('mijozTuriId'));
+  const soliqKerak = turlar.find((t) => String(t.id) === turId)?.soliqKerak === true;
   const [offsetTuri, setOffsetTuri] = useState(q('offsetTuri'));
 
   const x = (nom: string): string | undefined => holat.maydonXatolari[nom];
@@ -198,23 +206,30 @@ export function MijozFormasi({
           </Maydon>
         </div>
 
-        <Maydon nom="shaxsTuri" yorliq="Turi">
-          <select
-            id="shaxsTuri"
-            name="shaxsTuri"
-            defaultValue={q('shaxsTuri')}
-            onChange={(e) => {
-              setShaxsTuri(e.target.value as ShaxsTuri);
-            }}
-            className={ch('shaxsTuri')}
-          >
-            {SHAXS_TURLARI.map((t) => (
-              <option key={t} value={t}>
-                {SHAXS_TURI_NOMI[t]}
-              </option>
-            ))}
-          </select>
-        </Maydon>
+        {/*
+          ⚠️ 2026-08-30 — tur endi SPRAVOCHNIKDAN (6.2). Ilgari
+             ikkita qat'iy qiymat edi: jismoniy / yuridik.
+
+             Soliq maydonlari TURNING XUSUSIYATIGA bog'liq
+             («soliq kerak»), nomiga emas — «Optom (yuridik)»
+             turi ham bo'lishi mumkin.
+        */}
+        <TanlovModal
+          nom="mijozTuriId"
+          yorliq="Mijoz turi"
+          izoh="narx darajasi — mahsulot kartochkasida har turga alohida narx"
+          bandlar={turlar.map((t) => ({ id: t.id, nom: t.nom }))}
+          boshlangich={q('mijozTuriId')}
+          boshMatn="— tanlanmagan —"
+          yangiYorliq="Yangi tur"
+          boshqaruvYoli="/mijoz/turi"
+          modalSarlavha="Yangi mijoz turi"
+          qoshaOladi={turQoshaOladi}
+          tanlandi={(id) => {
+            setTurId(id === null ? '' : String(id));
+          }}
+          forma={(saqla, yop) => <TurFormasi saqlandi={saqla} bekor={yop} />}
+        />
 
         <Maydon
           nom="qarzLimiti"
@@ -305,7 +320,7 @@ export function MijozFormasi({
         )}
       </section>
 
-      {shaxsTuri === 'YURIDIK' && (
+      {soliqKerak && (
         <section>
           <h2 className="mb-1 text-sm font-semibold text-matn">Soliq ma&apos;lumotlari</h2>
           <p className="mb-3 text-xs text-matn-kuchsiz">

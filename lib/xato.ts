@@ -158,6 +158,16 @@ export const XATO_BAND = {
   BOT_OQIM_BUZUQ: 'TZ 13.4',
   BOT_OQIM_TOLIQ_EMAS: 'TZ 13.4',
 
+  // 8-bosqich — hisobotlar (TZ 11, 21)
+  DAVR_NOTOGRI: 'TZ 11.1',
+  BASHORAT_NOTOGRI: 'TZ 21.1',
+  ABC_CHEGARA_NOTOGRI: 'TZ 11.7',
+  ABC_VALYUTA_ARALASH: 'QISM 1 §1.3',
+
+  // 9-bosqich — chek va sozlamalar (TZ 8.9, 14.3)
+  SOZLAMA_NOTOGRI: 'TZ 14.3',
+  CHEK_BUYURTMA_OCHIQ: 'TZ 8.9',
+
   // ─── Ro'yxat ichidan tez qo'shish ───────────────────────────────
   NOM_NOTOGRI: "QISM 1 §5.1 — bo'sh yoki haddan uzun nom",
   SAQLANMADI: 'QISM 1 §5.1 — yozuv qaytmadi',

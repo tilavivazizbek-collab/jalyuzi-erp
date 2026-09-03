@@ -84,6 +84,22 @@ export const mijozSxema = z
 
     // ── Q-23 soliq maydonlari ──
     shaxsTuri: z.enum(SHAXS_TURLARI).default('JISMONIY'),
+
+    /**
+     * TZ 6.2 — mijoz turi (narx darajasi).
+     *
+     * ⚠️ `shaxsTuri` bu yerda QOLDIRILDI: u turdan hisoblanadi
+     *    (`soliq_kerak` bo'lsa YURIDIK) va bazadagi
+     *    `mijoz_yuridik_toliq` cheklovi unga tayanadi.
+     */
+    mijozTuriId: z
+      .string()
+      .trim()
+      .transform((x) => (x === '' ? undefined : Number(x)))
+      .optional()
+      .refine((x) => x === undefined || (Number.isSafeInteger(x) && x > 0), {
+        message: 'Mijoz turini tanlang',
+      }),
     tashkilotNomi: bosMatn,
     inn: bosMatn,
     yuridikManzil: bosMatn,

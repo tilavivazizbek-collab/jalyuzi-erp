@@ -151,6 +151,14 @@ export const XATO_MATNI: Record<XatoKod, string> = {
   BOT_OQIM_BUZUQ: 'Buyurtma boshidan boshlansin — /start bosing',
   BOT_OQIM_TOLIQ_EMAS: "Pozitsiya to'liq emas: mato va o'lcham kerak",
 
+  DAVR_NOTOGRI: "Hisobot davri noto'g'ri",
+  BASHORAT_NOTOGRI: "Bashorat ma'lumoti noto'g'ri",
+  ABC_CHEGARA_NOTOGRI: "ABC tahlil chegarasi noto'g'ri",
+  ABC_VALYUTA_ARALASH: "Bitta hisobotda so'm va dollar aralashtirilmaydi",
+  SOZLAMA_NOTOGRI: "Sozlama qiymati noto'g'ri",
+  CHEK_BUYURTMA_OCHIQ:
+    "Chek faqat buyurtma to'liq topshirilganda chiqadi — hali yopilmagan pozitsiya bor (8.9)",
+
   NOM_NOTOGRI: "Nom bo'sh yoki juda uzun",
   SAQLANMADI: 'Saqlanmadi — qaytadan urinib ko‘ring',
 };

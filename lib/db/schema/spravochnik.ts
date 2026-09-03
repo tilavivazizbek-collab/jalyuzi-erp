@@ -396,6 +396,91 @@ export const mahsulotAksessuar = pgTable(
  *    `amaldagiOffset()`. Bu yerda emas, chunki uni sotuv ekrani
  *    ham, bot ham bir xil qo'llashi shart (§2.2).
  */
+
+// ─── 6.2 · mijoz_turi — narx darajasi ────────────────────────────────────
+
+/**
+ * TZ 6.2 · 14.9 — mijoz turlari SPRAVOCHNIGI.
+ *
+ * ⚠️ NEGA JADVAL, ENUM EMAS
+ *
+ *    Ilgari tur `mijoz.shaxs_turi` da qat'iy ikkita qiymat edi:
+ *    JISMONIY / YURIDIK. Egasi (2026-08-30) xohlagancha tur
+ *    qo'sha olishini so'radi: «Optom», «Metrajka», «Oddiy».
+ *    Har turga MATERIAL DARAJASIDA alohida narx qo'yiladi
+ *    (`material_tur_narx`).
+ *
+ * ⚠️ `soliqKerak` — TURNING XUSUSIYATI, nomi emas.
+ *
+ *    Egasi «Yuridik» ni ham shu ro'yxatga qo'shishni so'radi.
+ *    Lekin yuridik shaxs — narx darajasi emas, HUQUQIY holat:
+ *    undan INN, tashkilot nomi va yuridik manzil so'raladi.
+ *
+ *    Agar kod `nom = 'Yuridik'` deb tekshirsa, «Optom» turidagi
+ *    yuridik mijozdan INN so'ralmay qolardi va unga faktura
+ *    yozib bo'lmasdi. Shuning uchun belgi ALOHIDA: admin
+ *    «Optom (yuridik)» turini ham yarata oladi.
+ *
+ * ⚠️ Guruh (`mijoz_guruh`) — BOSHQA narsa: u chegirma beradi,
+ *    bu esa narx darajasini. Egasi ikkalasi alohida qolishini
+ *    so'radi.
+ */
+export const mijozTuri = pgTable(
+  'mijoz_turi',
+  {
+    id: id(),
+    nom: text('nom').notNull(),
+
+    /** Soliq maydonlari (tashkilot nomi, INN, yuridik manzil) so'ralsinmi */
+    soliqKerak: boolean('soliq_kerak').notNull().default(false),
+
+    /** Ro'yxatdagi tartib — eng ko'p ishlatiladigani tepada */
+    tartib: integer('tartib').notNull().default(0),
+
+    ...ochirilmaydi,
+    ...izlar,
+  },
+  (t) => [uniqueIndex('mijoz_turi_nom').on(t.nom)],
+);
+
+// ─── 5.4 · material_tur_narx — mijoz turi bo'yicha narx ──────────────────
+
+/**
+ * TZ 5.4 — material narxi MIJOZ TURIGA qarab.
+ *
+ * ⚠️ `material_filial_narx` bilan BIR XIL NAQSH: yozuv bo'lsa —
+ *    shu narx, bo'lmasa standart ishlaydi. Ikkalasi ham
+ *    ixtiyoriy, faqat standart narx majburiy.
+ *
+ * ⚠️ USTUNLIK (egasi bilan kelishilgan): tur narxi filial
+ *    narxidan ustun. Sabab — qarshingizdagi mijoz aniqroq belgi:
+ *    optom mijoz qaysi filialdan olishidan qat'i nazar optom
+ *    narxda oladi.
+ */
+export const materialTurNarx = pgTable(
+  'material_tur_narx',
+  {
+    id: id(),
+    materialId: bigint('material_id', { mode: 'number' })
+      .notNull()
+      .references(() => material.id),
+    mijozTuriId: bigint('mijoz_turi_id', { mode: 'number' })
+      .notNull()
+      .references(() => mijozTuri.id),
+    sotuvNarx: numeric('sotuv_narx', { precision: 14, scale: 2 }).notNull(),
+
+    /** Q-28 — tur narxi ham dollarda bo'lishi mumkin */
+    valyuta: text('valyuta').notNull().default('SOM'),
+
+    ...izlar,
+  },
+  (t) => [
+    uniqueIndex('material_tur_narx_bitta').on(t.materialId, t.mijozTuriId),
+    check('material_tur_narx_manfiy_emas', sql`${t.sotuvNarx} >= 0`),
+    check('material_tur_narx_valyuta', sql`${t.valyuta} IN ('SOM','USD')`),
+  ],
+);
+
 export const mijozGuruh = pgTable(
   'mijoz_guruh',
   {
@@ -460,7 +545,21 @@ export const mijoz = pgTable(
     eslatma: text('eslatma'),
 
     // ── Soliq maydonlari — Q-23 («hozirdan yig'iladi») ──
+    /**
+     * ⚠️ 2026-08-30 — endi ASOSIY belgi `mijoz_turi_id`.
+     *
+     *    Bu ustun QOLDIRILDI va turdan avtomatik to'ldiriladi:
+     *    tur `soliq_kerak` bo'lsa 'YURIDIK', aks holda 'JISMONIY'.
+     *
+     *    Sabab: bazadagi `mijoz_yuridik_toliq` cheklovi shu
+     *    ustunga tayanadi va u INN siz yuridik mijoz yozilishini
+     *    TO'SADI. Cheklovni olib tashlash — soliq ma'lumotining
+     *    yagona kafolatidan voz kechish demak.
+     */
     shaxsTuri: text('shaxs_turi').notNull().default('JISMONIY'),
+
+    /** TZ 6.2 — narx darajasi (`mijoz_turi`) */
+    mijozTuriId: bigint('mijoz_turi_id', { mode: 'number' }).references(() => mijozTuri.id),
     tashkilotNomi: text('tashkilot_nomi'),
     inn: text('inn'),
     yuridikManzil: text('yuridik_manzil'),

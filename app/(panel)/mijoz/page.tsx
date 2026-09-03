@@ -16,6 +16,7 @@ interface Qator {
   readonly telefon: string | null;
   readonly telegram_id: number | null;
   readonly shaxs_turi: string;
+  readonly turi_nomi: string | null;
   readonly guruh_nomi: string | null;
   readonly offset_turi: string | null;
   readonly offset_qiymat: string | null;
@@ -43,10 +44,11 @@ export default async function MijozRoyxati({
 
   const qatorlar = await sql<Qator[]>`
     SELECT m.id, m.ism, m.telefon, m.telegram_id, m.shaxs_turi,
-           g.nom AS guruh_nomi,
+           g.nom AS guruh_nomi, t.nom AS turi_nomi,
            m.offset_turi, m.offset_qiymat, m.qarz_limiti, m.faol
     FROM mijoz m
     LEFT JOIN mijoz_guruh g ON g.id = m.mijoz_guruh_id AND g.faol = true
+    LEFT JOIN mijoz_turi t ON t.id = m.mijoz_turi_id
     WHERE m.faol = ${!ochirilganlar} ORDER BY m.ism`;
 
   return (
@@ -114,7 +116,8 @@ export default async function MijozRoyxati({
                     )}
                   </td>
                   <td className="px-4 py-2.5">
-                    {m.shaxs_turi === 'YURIDIK' ? 'Yuridik' : 'Jismoniy'}
+                    {/* TZ 6.2 — tur endi spravochnikdan */}
+                    {m.turi_nomi ?? (m.shaxs_turi === 'YURIDIK' ? 'Yuridik' : 'Jismoniy')}
                   </td>
                   <td className="px-4 py-2.5">
                     {m.guruh_nomi ?? <span className="text-matn-kuchsiz">—</span>}

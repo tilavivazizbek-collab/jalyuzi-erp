@@ -134,10 +134,11 @@ describe('kanonik ro\'yxat butunligi', () => {
     expect(qurilgan.every((k) => k.holat === 'TAYYOR')).toBe(true);
   });
 
-  it("hali qurilmagan bosqichlar KUTILMOQDA bo'lib qoladi", () => {
-    // K-08 — 11.7.5 ustama eroziyasi, 8-bosqichda (hisobotlar)
+  it("barcha kanonik raqam TAYYOR — oxirgisi K-08 yopildi", () => {
+    // K-08 (11.7.5 ustama eroziyasi) 8-bosqichda yopildi:
+    // test/domain/hisobot-ombor.test.ts
     const kutayotgan = KANONIK.filter((k) => k.holat === 'KUTILMOQDA');
-    expect(kutayotgan.map((k) => k.kod)).toEqual(['K-08']);
+    expect(kutayotgan.map((k) => k.kod)).toEqual([]);
   });
 
   it('kodlar takrorlanmaydi', () => {

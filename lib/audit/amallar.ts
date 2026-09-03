@@ -48,6 +48,7 @@ export const AUDIT_AMALLARI = {
   // §10 U-08 — turkum sifatida qo'shilganlar
   CHEGARADAN_OSHDI: { nom: 'Chegaradan oshish', band: 'QISM 1 §10', sababMajburiy: false },
   SOZLAMA_OZGARDI: { nom: "Sozlama o'zgardi", band: 'QISM 1 §10, TZ 14', sababMajburiy: false },
+  CHEK_CHOP: { nom: 'Chek chop etildi', band: 'TZ 8.9', sababMajburiy: false },
   KIRISH_BLOKLANDI: { nom: 'Hisob bloklandi', band: 'QISM 1 §8', sababMajburiy: false },
   PAROL_OZGARTIRILDI: { nom: "Parol o'zgartirildi", band: 'QISM 1 §8', sababMajburiy: false },
 } as const satisfies Record<string, { nom: string; band: string; sababMajburiy: boolean }>;

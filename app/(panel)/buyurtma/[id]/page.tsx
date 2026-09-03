@@ -56,12 +56,8 @@ export default async function BuyurtmaKartochkasi({ params }: { params: Promise<
   const [tolov, kassalar, ustalar, bandlar] = await Promise.all([
     tolovHolati(buyurtmaId, f.filialId),
     tolovQilaOladi ? tolovKassalari(f.filialId, f.xodimId) : Promise.resolve([]),
-    ishniOlaOladi
-      ? ishOlaOladiganlar(f.filialId)
-      : Promise.resolve([] as readonly UstaTanlovi[]),
-    ishniTugataOladi
-      ? bandBolaklar(b.pozitsiyalar.map((p) => p.id))
-      : Promise.resolve([]),
+    ishniOlaOladi ? ishOlaOladiganlar(f.filialId) : Promise.resolve([] as readonly UstaTanlovi[]),
+    ishniTugataOladi ? bandBolaklar(b.pozitsiyalar.map((p) => p.id)) : Promise.resolve([]),
   ]);
 
   /**
@@ -102,6 +98,20 @@ export default async function BuyurtmaKartochkasi({ params }: { params: Promise<
           {b.mijozIsmi !== null && ` · ${b.mijozIsmi}`}
           {b.mijozTelefon !== null && ` (${b.mijozTelefon})`}
         </p>
+
+        {/*
+          TZ 8.9 · 8.14 — «Chek» tugmasi FAQAT buyurtma to'liq
+          yopilganda chiqadi. Qisman topshirishda kvitansiya
+          beriladi, u boshqa hujjat.
+        */}
+        {b.yopildi !== null && (
+          <Link
+            href={`/buyurtma/${String(b.id)}/chek`}
+            className="fokus mt-3 inline-block rounded-maydon border border-chegara-quyuq px-3 py-1.5 text-sm font-medium text-matn transition-all hover:bg-fon active:scale-[0.98]"
+          >
+            Chek
+          </Link>
+        )}
       </div>
 
       {/* ── 8.14 · Pul bloki ── */}
@@ -357,20 +367,10 @@ function PozitsiyaAmallari({
    * 8.5 — ish TASDIQLANGAN yoki materialga kutayotgan pozitsiyadan
    * olinadi. 7.6 — «Tugatdim» faqat ish ketayotganda.
    */
-  const boshla =
-    ishniOlaOladi && (holat === 'TASDIQLANGAN' || holat === 'MATERIALGA_KUTMOQDA');
+  const boshla = ishniOlaOladi && (holat === 'TASDIQLANGAN' || holat === 'MATERIALGA_KUTMOQDA');
   const tugat = ishniTugataOladi && holat === 'ISHLAB_CHIQARILMOQDA';
 
-  if (
-    !bekor &&
-    !qaytaribOl &&
-    !topshir &&
-    !radEt &&
-    !qaytar &&
-    !yetibKeldi &&
-    !boshla &&
-    !tugat
-  ) {
+  if (!bekor && !qaytaribOl && !topshir && !radEt && !qaytar && !yetibKeldi && !boshla && !tugat) {
     return null;
   }
 

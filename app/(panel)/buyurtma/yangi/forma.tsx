@@ -100,6 +100,7 @@ export function SotuvFormasi({
   ozFilialId,
   mijozQoshaOladi,
   mijozGuruhlari,
+  mijozTurlari,
   joriyKurs,
   qoshimchalar,
   kassalar,
@@ -113,6 +114,8 @@ export function SotuvFormasi({
   mijozQoshaOladi: boolean;
   /** TZ 6.3 — modalda yangi mijozga darhol guruh tanlash uchun */
   mijozGuruhlari: readonly { id: number; nom: string }[];
+  /** TZ 6.2 — mijoz turlari (narx darajasi) */
+  mijozTurlari: readonly { id: number; nom: string; soliqKerak: boolean }[];
   /**
    * ⚠️ Dollardagi material narxini so'mga o'girish uchun (5.4).
    *    Kurs kiritilmagan bo'lsa `null` — u holda dollardagi mato
@@ -1036,6 +1039,7 @@ export function SotuvFormasi({
             ozgartir={mijozniOzgartir}
             qoshaOladi={mijozQoshaOladi}
             guruhlar={mijozGuruhlari}
+            turlar={mijozTurlari}
           />
 
           <Maydon
@@ -1203,12 +1207,14 @@ function MijozTanlash({
   ozgartir,
   qoshaOladi,
   guruhlar,
+  turlar,
 }: {
   tanlangan: SotuvMijozi | null;
   ozgartir: (m: SotuvMijozi | null) => void;
   qoshaOladi: boolean;
   /** TZ 6.3 — modaldagi yangi mijozga guruh tanlash uchun */
   guruhlar: readonly { id: number; nom: string }[];
+  turlar: readonly { id: number; nom: string; soliqKerak: boolean }[];
 }) {
   const [matn, matnniOzgartir] = useState('');
   const [topilgan, topilganniOzgartir] = useState<readonly SotuvMijozi[]>([]);
@@ -1405,6 +1411,7 @@ function MijozTanlash({
             qiymatlar={{ ...MIJOZ_BOSH_QIYMATLAR, ism: izlanayotgan }}
             tugmaMatni="Saqlash"
             guruhlar={guruhlar}
+            turlar={turlar}
             saqlandi={modaldaYaratildi}
             bekor={() => {
               modalniOzgartir(false);

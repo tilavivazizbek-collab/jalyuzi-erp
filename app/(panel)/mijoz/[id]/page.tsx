@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { faolTurlar } from '@/lib/amal/mijoz-turi';
 import { notFound } from 'next/navigation';
 import { ulanishOl } from '@/lib/db';
 import { sahifaRuxsati } from '@/lib/kirish/joriy';
@@ -22,6 +23,7 @@ interface Qator {
   readonly manzil: string | null;
   readonly eslatma: string | null;
   readonly mijoz_guruh_id: number | null;
+  readonly mijoz_turi_id: number | null;
   readonly offset_turi: string | null;
   readonly offset_qiymat: string | null;
   readonly qarz_limiti: string | null;
@@ -55,6 +57,7 @@ export default async function MijozTahrirlash({ params }: { params: Promise<{ id
     manzil: m(mijoz.manzil),
     eslatma: m(mijoz.eslatma),
     mijozGuruhId: mijoz.mijoz_guruh_id === null ? '' : String(mijoz.mijoz_guruh_id),
+    mijozTuriId: mijoz.mijoz_turi_id === null ? '' : String(mijoz.mijoz_turi_id),
     offsetTuri: m(mijoz.offset_turi),
     offsetQiymat: m(mijoz.offset_qiymat),
     qarzLimiti: m(mijoz.qarz_limiti),
@@ -73,10 +76,11 @@ export default async function MijozTahrirlash({ params }: { params: Promise<{ id
   const tolovQilaOladi = ruxsatBormi(f, 'kassa.tolov');
   // TZ 6.10 — «ADMIN qarzni hisobdan chiqara oladi»
   const hisobdanChiqaraOladi = ruxsatBormi(f, 'kassa.storno');
-  const [qarz, kassalar, guruhlar] = await Promise.all([
+  const [qarz, kassalar, guruhlar, turlar] = await Promise.all([
     mijozQarzi(mijozId),
     tolovQilaOladi ? tolovKassalari(f.filialId, f.xodimId) : Promise.resolve([]),
     guruhTanlovlari(),
+    faolTurlar(ulanishOl()),
   ]);
 
   const amal = async (holat: MijozHolati, forma: FormData): Promise<MijozHolati> => {
@@ -176,6 +180,7 @@ export default async function MijozTahrirlash({ params }: { params: Promise<{ id
           qiymatlar={qiymatlar}
           tugmaMatni="O'zgarishlarni saqlash"
           guruhlar={guruhlar}
+          turlar={turlar}
           guruhQoshaOladi={ruxsatBormi(f, 'mijoz.ozgartir')}
         />
       </div>

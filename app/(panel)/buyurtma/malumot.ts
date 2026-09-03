@@ -117,9 +117,7 @@ export async function buyurtmalar(
 
   if (qatorlar.length === 0) return [];
 
-  const holatlar = await sql<
-    { buyurtma_id: number; holat: string; n: number }[]
-  >`
+  const holatlar = await sql<{ buyurtma_id: number; holat: string; n: number }[]>`
     SELECT buyurtma_id, holat, COUNT(*)::int AS n
     FROM buyurtma_pozitsiya
     WHERE buyurtma_id = ANY(${qatorlar.map((q) => q.id)})
@@ -190,6 +188,8 @@ export interface BuyurtmaTafsili {
   readonly tayyorlikSana: string | null;
   readonly sotganFilialId: number;
   readonly tikuvchiFilialId: number;
+  /** TZ 8.9 — to'lgan bo'lsa buyurtma yopilgan, chek chiqarish mumkin */
+  readonly yopildi: Date | null;
   readonly pozitsiyalar: readonly PozitsiyaTafsili[];
 }
 
@@ -213,12 +213,13 @@ export async function buyurtmaTafsili(
       tayyorlik_sana: string | null;
       sotgan_filial_id: number;
       ishlab_chiqaruvchi_filial_id: number;
+      yopildi: Date | null;
     }[]
   >`
     SELECT b.id, b.raqam, b.sana, m.ism AS mijoz_ismi, m.telefon AS mijoz_telefon,
            x.ism AS sotuvchi_ismi, b.manba, b.valyuta, b.kurs_snapshot,
            b.tayyorlik_sana::text AS tayyorlik_sana,
-           b.sotgan_filial_id, b.ishlab_chiqaruvchi_filial_id
+           b.sotgan_filial_id, b.ishlab_chiqaruvchi_filial_id, b.yopildi
     FROM buyurtma b
     JOIN xodim x ON x.id = b.sotuvchi_id
     LEFT JOIN mijoz m ON m.id = b.mijoz_id
@@ -264,6 +265,7 @@ export async function buyurtmaTafsili(
       tayyorlikSana: h.tayyorlik_sana,
       sotganFilialId: h.sotgan_filial_id,
       tikuvchiFilialId: h.ishlab_chiqaruvchi_filial_id,
+      yopildi: h.yopildi,
       pozitsiyalar: [],
     };
   }
@@ -322,6 +324,7 @@ export async function buyurtmaTafsili(
     tayyorlikSana: h.tayyorlik_sana,
     sotganFilialId: h.sotgan_filial_id,
     tikuvchiFilialId: h.ishlab_chiqaruvchi_filial_id,
+    yopildi: h.yopildi,
     pozitsiyalar: pozitsiyalar.map((p) => ({
       id: p.id,
       tartib: p.tartib,
@@ -339,8 +342,7 @@ export async function buyurtmaTafsili(
           slotNomi: m.slot_nomi,
           materialNomi: m.material_nomi,
           hisoblangan: Number(m.hisoblangan_miqdor),
-          tuzatilgan:
-            m.tuzatilgan_miqdor === null ? null : Number(m.tuzatilgan_miqdor),
+          tuzatilgan: m.tuzatilgan_miqdor === null ? null : Number(m.tuzatilgan_miqdor),
           birlik: m.birlik,
           bandKodlari: m.band_kodlari ?? [],
         })),
@@ -385,9 +387,7 @@ export interface QaytaKesishQatori {
  *    2 marta qayta kesilgan, material yo'qotishi 7.20 kv.m · 631 000
  *    so'm.» Shuning uchun ro'yxat oldingi yo'qotishni ham olib keladi.
  */
-export async function ochiqQaytaKesishlar(
-  filialId: number,
-): Promise<QaytaKesishQatori[]> {
+export async function ochiqQaytaKesishlar(filialId: number): Promise<QaytaKesishQatori[]> {
   const q = await ulanishOl()<
     {
       id: number;
@@ -481,9 +481,7 @@ export async function tolovHolati(
 ): Promise<TolovHolati | null> {
   const sql = ulanishOl();
 
-  const b = await sql<
-    { valyuta: string; mijoz_id: number | null; jami: string | null }[]
-  >`
+  const b = await sql<{ valyuta: string; mijoz_id: number | null; jami: string | null }[]>`
     SELECT b.valyuta, b.mijoz_id,
            (SELECT SUM(p.narx_snapshot - COALESCE(p.chegirma_summa, 0))::text
               FROM buyurtma_pozitsiya p
@@ -516,9 +514,7 @@ export async function tolovHolati(
     WHERE y.manba_turi = 'buyurtma' AND y.manba_id = ${buyurtmaId}
     ORDER BY y.qator`;
 
-  const tolangan = q
-    .filter((r) => !r.storno_qilinganmi)
-    .reduce((y, r) => y + Number(r.summa), 0);
+  const tolangan = q.filter((r) => !r.storno_qilinganmi).reduce((y, r) => y + Number(r.summa), 0);
 
   const jami = Number(buyurtma.jami ?? 0);
 
@@ -546,9 +542,7 @@ export async function tolovKassalari(
   filialId: number,
   xodimId: number,
 ): Promise<{ id: number; nom: string; turi: string; valyuta: string }[]> {
-  const q = await ulanishOl()<
-    { id: number; nom: string; turi: string; valyuta: string }[]
-  >`
+  const q = await ulanishOl()<{ id: number; nom: string; turi: string; valyuta: string }[]>`
     SELECT id, nom, turi, valyuta FROM kassa
     WHERE filial_id = ${filialId} AND faol = true
       -- TZ 12.2 — sotuvchi faqat O'Z naqd kassasiga oladi,

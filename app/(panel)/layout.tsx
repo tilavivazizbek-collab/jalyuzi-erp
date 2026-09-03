@@ -101,6 +101,7 @@ const MENYU: readonly Guruh[] = [
     nom: 'Sozlash',
     bandlar: [
       { yol: '/kurs', nom: 'Dollar kursi', kod: 'sozlama.kor' },
+      { yol: '/sozlama', nom: "Korxona ma'lumotlari", kod: 'sozlama.kor' },
       { yol: '/xodim', nom: 'Xodimlar', kod: 'xodim.kor' },
       { yol: '/filial', nom: 'Filiallar', kod: 'filial.kor' },
       { yol: '/filial/hisob', nom: 'Filiallararo hisob', kod: 'filial.hisob' },

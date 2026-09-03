@@ -13,6 +13,7 @@ import { farqniAjrat, ozgarishBormi, type Qiymatlar } from '@/lib/audit/amallar'
 import type { MaterialKirimi } from '@/lib/sxema/material';
 import type { RasmNatijasi } from '@/lib/domain/rasm';
 import { BiznesXato } from '@/lib/xato';
+import { turNarxlariniYozTx, type TurNarxKirimi } from './tur-narx';
 
 export interface MaterialQatori {
   readonly id: number;
@@ -73,6 +74,14 @@ export async function materialYarat(
   kirim: MaterialKirimi,
   xodimId: number,
   rasm: RasmNatijasi | 'OCHIR' | null = null,
+  /**
+   * TZ 5.4 · 6.2 — mijoz turi bo'yicha narxlar.
+   *
+   * ⚠️ MATERIAL BILAN BITTA TRANZAKSIYADA: material saqlanib
+   *    narxlari yozilmay qolsa, optom mijoz jimgina standart
+   *    narxda sotib olardi va buni hech kim sezmasdi.
+   */
+  turNarxlari: readonly TurNarxKirimi[] = [],
 ): Promise<number> {
   return ulanish.begin(async (tx) => {
     const qator = await tx<{ id: number }[]>`
@@ -115,6 +124,10 @@ export async function materialYarat(
     if (id === undefined) {
       throw new BiznesXato('MATERIAL_SAQLANMADI');
     }
+
+    /** TZ 5.4 · 6.2 — tur narxlari SHU TRANZAKSIYADA */
+    await turNarxlariniYozTx(tx, id, turNarxlari, xodimId);
+
     return id;
   });
 }
@@ -163,6 +176,8 @@ export async function materialTahrirla(
    *    o'tkazishning ma'nosi yo'q.
    */
   rasm: RasmNatijasi | 'OCHIR' | null = null,
+  /** TZ 5.4 · 6.2 — tur narxlari, material bilan BITTA tranzaksiyada */
+  turNarxlari: readonly TurNarxKirimi[] = [],
 ): Promise<TahrirNatijasi> {
   return ulanish.begin(async (tx) => {
     const oldingi = await tx<MaterialQatori[]>`
@@ -245,6 +260,9 @@ export async function materialTahrirla(
               ${birlikOzgardi ? 'MATERIAL_BIRLIGI_OZGARDI' : 'QOLDA_TUZATISH'},
               'material', ${materialId},
               ${tx.json(farq.eski as never)}, ${tx.json(farq.yangi as never)})`;
+
+    /** TZ 5.4 · 6.2 — tur narxlari SHU TRANZAKSIYADA */
+    await turNarxlariniYozTx(tx, materialId, turNarxlari, xodimId);
 
     return { holat: 'SAQLANDI' } as const;
   });

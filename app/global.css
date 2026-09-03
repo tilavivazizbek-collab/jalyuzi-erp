@@ -133,3 +133,51 @@ html {
     transform: scaleX(0.9);
   }
 }
+
+/**
+ * 80 mm termoprinter cheki — TZ 8.9.
+ *
+ * ⚠️ Chop etilganda QOG'OZGA FAQAT `.chek` tushadi. Menyu, tugmalar
+ *    va sarlavha ko'rinmaydi: 80 mm lentaga ular sig'maydi va
+ *    sotuvchi har chekda ularni qo'lda kesib tashlashi kerak bo'lardi.
+ *
+ * ⚠️ `visibility` ishlatiladi, `display: none` emas: ota elementlar
+ *    yashirilganda ichidagi chek ham yo'qolib ketardi.
+ */
+.chek {
+  width: 80mm;
+  font-family: ui-monospace, 'Cascadia Mono', 'Segoe UI Mono', Consolas, monospace;
+}
+
+@media print {
+  @page {
+    /* Lenta uzunligi mahsulot soniga qarab o'zgaradi — `auto` */
+    size: 80mm auto;
+    margin: 0;
+  }
+
+  body * {
+    visibility: hidden;
+  }
+
+  .chek,
+  .chek * {
+    visibility: visible;
+  }
+
+  .chek {
+    position: absolute;
+    top: 0;
+    left: 0;
+    /* Ekrandagi ramka va soya qog'ozda keraksiz */
+    border: 0;
+    padding: 2mm;
+    background: #fff;
+    color: #000;
+  }
+
+  /* Chekdagi rang printerda kulrangga aylanadi — matn qora qoladi */
+  .chek .text-neutral-500 {
+    color: #444;
+  }
+}

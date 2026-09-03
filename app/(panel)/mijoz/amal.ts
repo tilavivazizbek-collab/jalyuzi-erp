@@ -21,6 +21,7 @@ const MAYDONLAR = [
   'manzil',
   'eslatma',
   'mijozGuruhId',
+  'mijozTuriId',
   'offsetTuri',
   'offsetQiymat',
   'qarzLimiti',

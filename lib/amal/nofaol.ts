@@ -31,6 +31,7 @@ export const OCHIRILADIGAN_TURLAR = [
   'material',
   'guruh',
   'mijoz',
+  'mijozTuri',
   'mijozGuruh',
   'yetkazib',
   'mahsulot',
@@ -170,6 +171,35 @@ export const TUR_TAVSIFI: Record<OchiriladiganTur, TurTavsifi> = {
           AND p.holat <> ALL (${YOPIQ_HOLATLAR})`);
       if (ochiq > 0) return `${String(ochiq)} ta tugallanmagan buyurtmasi bor`;
 
+      return null;
+    },
+  },
+
+  mijozTuri: {
+    jadval: 'mijoz_turi',
+    nom: 'Mijoz turi',
+    ruxsat: 'mijoz.ozgartir',
+    bandmi: async (tx, id) => {
+      /**
+       * TZ 14.9 — «ishlatilayotgan YAGONA turni nofaol qilish
+       * bloklanadi» («Naqd» to'lov usuli misoli kabi).
+       *
+       * ⚠️ Turda mijoz turgani O'ZI to'siq emas: tur tarixda
+       *    qoladi va eski buyurtmalar narxi o'zgarmaydi
+       *    (2.3-invariant). To'siq faqat BOSHQA FAOL TUR
+       *    qolmaganda — aks holda yangi mijozni umuman
+       *    ro'yxatga olib bo'lmasdi.
+       */
+      const mijozlar = await son(tx`SELECT COUNT(*)::int AS n FROM mijoz
+           WHERE mijoz_turi_id = ${id} AND faol = true`);
+
+      const boshqa = await son(tx`SELECT COUNT(*)::int AS n FROM mijoz_turi
+           WHERE id <> ${id} AND faol = true`);
+
+      if (mijozlar > 0 && boshqa === 0) {
+        return `${String(mijozlar)} ta mijoz shu turda va boshqa faol tur yo'q — ` +
+          `avval yangi tur qo'shing`;
+      }
       return null;
     },
   },

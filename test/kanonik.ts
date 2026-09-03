@@ -86,7 +86,7 @@ export const KANONIK: readonly Kanonik[] = [
     band: 'TZ 11.7.5',
     kutilgan: '(120 000 − 87 333) / 87 333 = 37.4%',
     bosqich: 8,
-    holat: 'KUTILMOQDA',
+    holat: 'TAYYOR',
   },
   {
     kod: 'K-09',
@@ -162,6 +162,16 @@ export const K07 = {
   qotganTannarx: '37950000.00',
   tolovSummasi: '39600000.00',
   farq: '1650000.00',
+} as const;
+
+/** K-08 · TZ 11.7.5 — ustama eroziyasi. TZ jadvalidagi «Ko'k mato» qatori. */
+export const K08 = {
+  nom: "Ko'k mato",
+  tannarx: '87333',
+  sotuvNarx: '120000',
+  /** Bir kasr xonasigacha — hisobot jadvalidagi ko'rinish */
+  ustamaFoiz: 37.4,
+  chegara: 30,
 } as const;
 
 /** K-04 · TZ 7.9 — transport taqsimoti. Qatorlar summa ulushiga proporsional. */

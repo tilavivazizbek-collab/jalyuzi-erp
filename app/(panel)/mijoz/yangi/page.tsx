@@ -1,4 +1,6 @@
 import Link from 'next/link';
+import { faolTurlar } from '@/lib/amal/mijoz-turi';
+import { ulanishOl } from '@/lib/db';
 import { sahifaRuxsati } from '@/lib/kirish/joriy';
 import { mijozYaratAmali } from '../amal';
 import { BOSH_QIYMATLAR, MijozFormasi } from '../forma';
@@ -9,7 +11,10 @@ export const dynamic = 'force-dynamic';
 
 export default async function YangiMijoz() {
   const f = await sahifaRuxsati('mijoz.yarat');
-  const guruhlar = await guruhTanlovlari();
+  const [guruhlar, turlar] = await Promise.all([
+    guruhTanlovlari(),
+    faolTurlar(ulanishOl()),
+  ]);
 
   return (
     <div className="flex max-w-3xl flex-col gap-6">
@@ -26,6 +31,8 @@ export default async function YangiMijoz() {
           qiymatlar={BOSH_QIYMATLAR}
           tugmaMatni="Saqlash"
           guruhlar={guruhlar}
+          turlar={turlar}
+          turQoshaOladi={ruxsatBormi(f, 'mijoz.ozgartir')}
           guruhQoshaOladi={ruxsatBormi(f, 'mijoz.ozgartir')}
         />
       </div>

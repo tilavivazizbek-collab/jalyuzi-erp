@@ -23,6 +23,29 @@ export type MijozNatijasi =
 const yoNull = (x: string | undefined): string | null => x ?? null;
 
 /**
+ * Mijoz turidan `shaxs_turi` ni aniqlaydi.
+ *
+ * ⚠️ Tur tanlanmagan bo'lsa formadagi qiymat qoladi — eski
+ *    mijozlarni tahrirlashda tur bo'sh bo'lishi mumkin.
+ */
+async function shaxsTuriniAniqla(
+  tx: postgres.TransactionSql,
+  mijozTuriId: number | undefined,
+  zaxira: string,
+): Promise<string> {
+  if (mijozTuriId === undefined) return zaxira;
+
+  const q = await tx<{ soliq_kerak: boolean }[]>`
+    SELECT soliq_kerak FROM mijoz_turi WHERE id = ${mijozTuriId} AND faol = true`;
+
+  const t = q[0];
+  if (t === undefined) {
+    throw new BiznesXato('MIJOZ_GURUH_TOPILMADI', `mijoz turi: ${String(mijozTuriId)}`);
+  }
+  return t.soliq_kerak ? 'YURIDIK' : 'JISMONIY';
+}
+
+/**
  * Dublikat qidirish uchun nomzodlar.
  *
  * Butun jadvalni o'qimaydi: telefon raqamining oxirgi 7 raqami yoki ismning
@@ -75,17 +98,28 @@ export async function mijozYarat(
       );
     }
 
+    /**
+     * ⚠️ `shaxs_turi` TURDAN hisoblanadi (6.2).
+     *
+     *    Ilgari u formadan kelardi. Endi asosiy belgi — mijoz
+     *    turi, `shaxs_turi` esa bazadagi `mijoz_yuridik_toliq`
+     *    cheklovini ushlab turish uchun undan to'ldiriladi.
+     *    Ikkalasi ikki xil bo'lib qolsa, INN siz yuridik mijoz
+     *    yozilib ketishi mumkin edi.
+     */
+    const shaxsTuri = await shaxsTuriniAniqla(tx, kirim.mijozTuriId, kirim.shaxsTuri);
+
     const qator = await tx<{ id: number }[]>`
       INSERT INTO mijoz (
         ism, telefon, manzil, eslatma,
-        mijoz_guruh_id, offset_turi, offset_qiymat, qarz_limiti,
+        mijoz_guruh_id, mijoz_turi_id, offset_turi, offset_qiymat, qarz_limiti,
         shaxs_turi, tashkilot_nomi, inn, yuridik_manzil,
         bank_nomi, hisob_raqam, mfo, shartnoma_raqam,
         nds_tolovchi, nds_stavka, yaratdi_id
       ) VALUES (
         ${kirim.ism}, ${telefon}, ${yoNull(kirim.manzil)}, ${yoNull(kirim.eslatma)},
-        ${kirim.mijozGuruhId ?? null}, ${yoNull(kirim.offsetTuri)}, ${yoNull(kirim.offsetQiymat)}, ${yoNull(kirim.qarzLimiti)},
-        ${kirim.shaxsTuri}, ${yoNull(kirim.tashkilotNomi)}, ${yoNull(kirim.inn)},
+        ${kirim.mijozGuruhId ?? null}, ${kirim.mijozTuriId ?? null}, ${yoNull(kirim.offsetTuri)}, ${yoNull(kirim.offsetQiymat)}, ${yoNull(kirim.qarzLimiti)},
+        ${shaxsTuri}, ${yoNull(kirim.tashkilotNomi)}, ${yoNull(kirim.inn)},
         ${yoNull(kirim.yuridikManzil)}, ${yoNull(kirim.bankNomi)}, ${yoNull(kirim.hisobRaqam)},
         ${yoNull(kirim.mfo)}, ${yoNull(kirim.shartnomaRaqam)},
         ${kirim.ndsStavka !== undefined}, ${yoNull(kirim.ndsStavka)}, ${xodimId}
@@ -120,6 +154,9 @@ export async function mijozTahrirla(
       return { holat: 'DUBLIKAT', dublikat } as const;
     }
 
+    /** ⚠️ `shaxs_turi` turdan hisoblanadi — yaratishdagi kabi */
+    const shaxsTuri = await shaxsTuriniAniqla(tx, kirim.mijozTuriId, kirim.shaxsTuri);
+
     await tx`
       UPDATE mijoz SET
         ism = ${kirim.ism},
@@ -127,10 +164,11 @@ export async function mijozTahrirla(
         manzil = ${yoNull(kirim.manzil)},
         eslatma = ${yoNull(kirim.eslatma)},
         mijoz_guruh_id = ${kirim.mijozGuruhId ?? null},
+        mijoz_turi_id = ${kirim.mijozTuriId ?? null},
         offset_turi = ${yoNull(kirim.offsetTuri)},
         offset_qiymat = ${yoNull(kirim.offsetQiymat)},
         qarz_limiti = ${yoNull(kirim.qarzLimiti)},
-        shaxs_turi = ${kirim.shaxsTuri},
+        shaxs_turi = ${shaxsTuri},
         tashkilot_nomi = ${yoNull(kirim.tashkilotNomi)},
         inn = ${yoNull(kirim.inn)},
         yuridik_manzil = ${yoNull(kirim.yuridikManzil)},
