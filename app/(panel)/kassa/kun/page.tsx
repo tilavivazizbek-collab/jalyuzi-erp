@@ -36,7 +36,18 @@ export default async function KunYopishSahifasi({
         <Link href="/kassa" className="text-sm text-matn-kuchsiz hover:text-matn">
           ← Kassa
         </Link>
-        <h1 className="mt-2 text-[22px] font-semibold tracking-[-0.02em] text-matn">Kun yopish</h1>
+        <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
+          <h1 className="text-[22px] font-semibold tracking-[-0.02em] text-matn">
+            Kun yopish
+          </h1>
+          {/* TZ 15.4 — kassir qog'ozda imzo qo'yadi */}
+          <Link
+            href="/kassa/kun/varaqa"
+            className="fokus rounded-maydon border border-chegara-quyuq px-3 py-1.5 text-sm text-matn-ikki transition-all hover:bg-fon active:scale-[0.98]"
+          >
+            Kunlik varaqa
+          </Link>
+        </div>
         <p className="mt-1 text-sm text-matn-kuchsiz">
           {tanlangan} · faqat naqd kassa yopiladi — kartadagi pul bank hisobidan tekshiriladi
           (12.17)

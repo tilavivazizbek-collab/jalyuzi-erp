@@ -204,4 +204,9 @@ html {
   .varaqa tr {
     break-inside: avoid;
   }
+
+  /* Xira kulrang printerda deyarli ko'rinmaydi — quyuqlashtiriladi */
+  .varaqa .text-neutral-500 {
+    color: #444;
+  }
 }

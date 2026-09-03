@@ -38,7 +38,7 @@ import {
  * puli ham olinmaydi — kartochkadagi «jami» ham ularni tashlab
  * ketadi (8.14). Chek o'sha hisob bilan bitta bo'lishi shart.
  */
-const CHEKKA_TUSHMAYDI: readonly string[] = ['BEKOR', 'RAD_ETILGAN'];
+export const CHEKKA_TUSHMAYDI: readonly string[] = ['BEKOR', 'RAD_ETILGAN'];
 
 export interface ChekPozitsiyasi {
   readonly tartib: number;

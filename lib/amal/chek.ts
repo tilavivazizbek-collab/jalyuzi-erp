@@ -17,6 +17,7 @@ import type postgres from 'postgres';
 import { BiznesXato } from '@/lib/xato';
 import { korxonaMalumotlari } from './sozlama';
 import { chekYasa, type Chek, type ChekPozitsiyasi, type IkkiValyutaQarz } from '@/lib/domain/chek';
+import { kvitansiyaYasa, type Kvitansiya } from '@/lib/domain/kvitansiya';
 
 interface BoshQator {
   readonly id: number;
@@ -231,4 +232,53 @@ export async function chekChopEtilganmi(
     ) AS bor`;
 
   return q[0]?.bor ?? false;
+}
+
+/**
+ * QISMAN TOPSHIRISH KVITANSIYASI — TZ 8.9.
+ *
+ * ⚠️ Chekdan farqli o'laroq buyurtma YOPILMAGAN bo'lsa ham
+ *    beriladi: kvitansiya aynan shuning uchun bor.
+ *
+ * ⚠️ Mijoz qarzi SO'ROVSIZ — kvitansiyada faqat SHU buyurtma
+ *    hisobi turadi. Umumiy qarz hisob-kitob varaqasida (8.9),
+ *    ikkalasini bitta qog'ozga qo'shsak mijoz «qaysi raqam
+ *    meniki?» deb chalkashardi.
+ */
+export async function buyurtmaKvitansiyasi(
+  ulanish: postgres.Sql,
+  buyurtmaId: number,
+  filialId: number,
+): Promise<Kvitansiya | null> {
+  const bosh = await ulanish<BoshQator[]>`
+    SELECT b.id, b.raqam, b.sana, b.yopildi, b.valyuta,
+           x.ism AS sotuvchi_ismi, b.mijoz_id, m.ism AS mijoz_ismi
+    FROM buyurtma b
+    JOIN xodim x ON x.id = b.sotuvchi_id
+    LEFT JOIN mijoz m ON m.id = b.mijoz_id
+    WHERE b.id = ${buyurtmaId} AND b.sotgan_filial_id = ${filialId}`;
+
+  const h = bosh[0];
+  if (h === undefined) return null;
+
+  const [pozitsiyalar, tolangan, korxona] = await Promise.all([
+    chekPozitsiyalari(ulanish, buyurtmaId),
+    tolanganSumma(ulanish, buyurtmaId),
+    korxonaMalumotlari(ulanish),
+  ]);
+
+  return kvitansiyaYasa({
+    buyurtmaRaqam: h.raqam,
+    /** ⚠️ 2.3 — sotuv sanasi, chop etish sanasi alohida maydonda */
+    sana: h.sana,
+    chiqarilgan: new Date(),
+    sotuvchi: h.sotuvchi_ismi,
+    mijoz: h.mijoz_ismi,
+    valyuta: h.valyuta === 'USD' ? 'USD' : 'SOM',
+    pozitsiyalar,
+    tolangan,
+    korxonaNom: korxona.korxona_nom,
+    korxonaManzil: korxona.korxona_manzil,
+    korxonaTelefon: korxona.korxona_telefon,
+  });
 }

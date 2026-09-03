@@ -94,7 +94,18 @@ export default async function MijozTahrirlash({ params }: { params: Promise<{ id
         <Link href="/mijoz" className="text-sm text-matn-kuchsiz hover:text-matn">
           ← Mijozlar
         </Link>
-        <h1 className="mt-2 text-[22px] font-semibold tracking-[-0.02em] text-matn">{mijoz.ism}</h1>
+        <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
+          <h1 className="text-[22px] font-semibold tracking-[-0.02em] text-matn">
+            {mijoz.ism}
+          </h1>
+          {/* TZ 8.9 — mijozning butun tarixi va balansi, chek bilan birga beriladi */}
+          <Link
+            href={`/mijoz/${String(mijozId)}/hisob-kitob`}
+            className="fokus rounded-maydon border border-chegara-quyuq px-3 py-1.5 text-sm text-matn-ikki transition-all hover:bg-fon active:scale-[0.98]"
+          >
+            Hisob-kitob varaqasi
+          </Link>
+        </div>
       </div>
 
       {/* ── 6.7 · Qarz bloki ── */}

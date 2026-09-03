@@ -8,7 +8,8 @@ majbur bo'ldi («dropdownlarda qo'shish bo'lsin»). Har safar bitta
 joy tuzatilib «bo'ldi» deyilardi. Teshik ko'rinmagani uchun shunday
 bo'ldi. Endi ko'rinadi.
 
-Oxirgi yangilanish: **2026-09-03** — sotuv cheki (TZ 8.9) va korxona
+Oxirgi yangilanish: **2026-09-03** — kvitansiya, hisob-kitob va kunlik
+yopish varaqalari (TZ 8.9 · 15.4); sotuv cheki (TZ 8.9) va korxona
 sozlamalari (TZ 14.3)
 
 ---
@@ -89,9 +90,9 @@ havolasi esa bor.
 | Boshqaruv | ✅ | |
 | Korxona ma'lumotlari | ✅ | `/sozlama` — chekdagi rekvizit, filial kodi, bot nomi |
 | Sotuv cheki (80 mm) | ⚠️ | Buyurtma yopilganda `/buyurtma/[id]/chek`. Brauzer chop etish oynasi orqali ishlaydi; **USB termoprinterga to'g'ridan-to'g'ri chiqarish yo'q** |
-| Kvitansiya (qisman topshirish) | ❌ | 8.9 — alohida hujjat, yozilmagan |
-| Hisob-kitob varaqasi | ❌ | 8.9 — mijoz tarixi va balansi, alohida hujjat |
-| Kunlik yopish varaqasi | ❌ | 15.4 — chop etish naqshi endi bor, varaqning o'zi yo'q |
+| Kvitansiya (qisman topshirish) | ✅ | `/buyurtma/[id]/kvitansiya` — 80 mm, QRsiz. Topshirilgan va kutilayotgan pozitsiyalar alohida, pul hisobi butun buyurtma bo'yicha |
+| Hisob-kitob varaqasi | ✅ | `/mijoz/[id]/hisob-kitob` — A4, butun tarix va o'suvchi qoldiq (valyuta bo'yicha alohida) |
+| Kunlik yopish varaqasi | ✅ | `/kassa/kun/varaqa` — A4. «Haqiqiy summa» va «Farq» qo'lda to'ldiriladi (12.17) |
 
 ---
 

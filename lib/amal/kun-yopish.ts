@@ -229,3 +229,62 @@ export async function kunniQaytaOch(
               ${sabab.trim()})`;
   });
 }
+
+export interface KunHarakati {
+  readonly id: number;
+  readonly sana: Date;
+  readonly kod: string;
+  readonly summa: string;
+  readonly izoh: string | null;
+  readonly xodimIsmi: string;
+  readonly stornoQilinganmi: boolean;
+}
+
+/**
+ * TZ 15.4 — kunlik yopish varaqasidagi harakatlar ro'yxati.
+ *
+ * ⚠️ `kassaKitobi` dan FARQI: u butun filialning oxirgi 200
+ *    yozuvini beradi, bu esa BITTA KASSANING BITTA KUNI. Varaqa
+ *    aynan shu kunni tasdiqlaydi, shuning uchun boshqa kun
+ *    yozuvi unga tushmasligi kerak.
+ *
+ * ⚠️ Storno qilingan yozuv RO'YXATDA QOLADI (§6.5) — belgi bilan.
+ *    Uni yashirish qog'ozdagi summani hisobdan ajratib yuborardi.
+ */
+export async function kunHarakatlari(
+  ulanish: Soruvchi,
+  kassaId: number,
+  sana: string,
+): Promise<readonly KunHarakati[]> {
+  const q = await ulanish<
+    {
+      id: number;
+      sana: Date;
+      kod: string;
+      summa: string;
+      izoh: string | null;
+      xodim_ismi: string;
+      storno_qilinganmi: boolean;
+    }[]
+  >`
+    SELECT k.id, k.sana, k.kod, k.summa::text, k.izoh,
+           COALESCE(x.ism, '—') AS xodim_ismi,
+           EXISTS (
+             SELECT 1 FROM kassa_yozuv s
+             WHERE s.manba_turi = 'kassa_storno' AND s.manba_id = k.id
+           ) AS storno_qilinganmi
+    FROM kassa_yozuv k
+    LEFT JOIN xodim x ON x.id = k.xodim_id
+    WHERE k.kassa_id = ${kassaId} AND k.sana::date = ${sana}::date
+    ORDER BY k.sana, k.id`;
+
+  return q.map((x) => ({
+    id: x.id,
+    sana: x.sana,
+    kod: x.kod,
+    summa: x.summa,
+    izoh: x.izoh,
+    xodimIsmi: x.xodim_ismi,
+    stornoQilinganmi: x.storno_qilinganmi,
+  }));
+}

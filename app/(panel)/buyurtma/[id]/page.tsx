@@ -104,14 +104,30 @@ export default async function BuyurtmaKartochkasi({ params }: { params: Promise<
           yopilganda chiqadi. Qisman topshirishda kvitansiya
           beriladi, u boshqa hujjat.
         */}
-        {b.yopildi !== null && (
-          <Link
-            href={`/buyurtma/${String(b.id)}/chek`}
-            className="fokus mt-3 inline-block rounded-maydon border border-chegara-quyuq px-3 py-1.5 text-sm font-medium text-matn transition-all hover:bg-fon active:scale-[0.98]"
-          >
-            Chek
-          </Link>
-        )}
+        <div className="mt-3 flex flex-wrap gap-2">
+          {b.yopildi !== null && (
+            <Link
+              href={`/buyurtma/${String(b.id)}/chek`}
+              className="fokus inline-block rounded-maydon border border-chegara-quyuq px-3 py-1.5 text-sm font-medium text-matn transition-all hover:bg-fon active:scale-[0.98]"
+            >
+              Chek
+            </Link>
+          )}
+
+          {/*
+            ⚠️ Kvitansiya YOPILMAGAN buyurtmada chiqadi — aynan
+               qisman topshirish uchun. Yopilgach chek beriladi va
+               bu tugma yo'qoladi: sotuvchi ikkilanib qolmaydi.
+          */}
+          {b.yopildi === null && (
+            <Link
+              href={`/buyurtma/${String(b.id)}/kvitansiya`}
+              className="fokus inline-block rounded-maydon border border-chegara-quyuq px-3 py-1.5 text-sm font-medium text-matn transition-all hover:bg-fon active:scale-[0.98]"
+            >
+              Kvitansiya
+            </Link>
+          )}
+        </div>
       </div>
 
       {/* ── 8.14 · Pul bloki ── */}
