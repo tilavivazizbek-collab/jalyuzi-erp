@@ -103,6 +103,7 @@ export async function kirimYaratAmali(
       ogohlantirishlar: natija.ogohlantirishlar.map((o) => ({
         materialNomi: o.materialNomi,
         ustamaFoiz: o.ustamaFoiz,
+        turNomi: o.turNomi,
         chegara: o.chegara,
       })),
     };

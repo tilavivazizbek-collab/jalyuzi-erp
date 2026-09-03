@@ -83,6 +83,15 @@ export interface UstamaOgohlantirishi {
   readonly materialNomi: string;
   readonly ustamaFoiz: number;
   readonly chegara: number;
+  /**
+   * TZ 6.2 — qaysi MIJOZ TURI narxi tekshirildi.
+   *
+   * ⚠️ `null` — standart narx. Har tur ALOHIDA tekshiriladi:
+   *    standart narx chegaradan yuqori bo'lib, «Optom» narxi
+   *    past bo'lib qolishi mumkin. Bitta umumiy ogohlantirish
+   *    buni YASHIRARDI (egasi, 2026-08-30).
+   */
+  readonly turNomi: string | null;
 }
 
 export interface KirimNatijasi {
@@ -138,6 +147,27 @@ export async function kirimYarat(
       FROM material WHERE id = ANY(${materialIdlar}) AND faol = true`;
 
     const xarita = new Map(materiallar.map((m) => [m.id, m]));
+
+    /**
+     * TZ 6.2 · 7.9 — mijoz turi narxlari, ustama nazorati uchun.
+     *
+     * ⚠️ Nofaol tur narxi ham TEKSHIRILMAYDI: u sotuvda
+     *    ishlatilmaydi, ogohlantirish esa bekorga chalg'itardi.
+     */
+    const turNarxQatorlari = await tx<
+      { material_id: number; tur_nomi: string; narx: string }[]
+    >`
+      SELECT n.material_id, t.nom AS tur_nomi, n.sotuv_narx::text AS narx
+      FROM material_tur_narx n
+      JOIN mijoz_turi t ON t.id = n.mijoz_turi_id AND t.faol = true
+      WHERE n.material_id = ANY(${materialIdlar})`;
+
+    const turNarxlariBoyicha = new Map<number, { turNomi: string; narx: string }[]>();
+    for (const q of turNarxQatorlari) {
+      const bor = turNarxlariBoyicha.get(q.material_id) ?? [];
+      bor.push({ turNomi: q.tur_nomi, narx: q.narx });
+      turNarxlariBoyicha.set(q.material_id, bor);
+    }
     for (const q of kirim.qatorlar) {
       if (!xarita.has(q.materialId)) {
         throw new BiznesXato('MATERIAL_TOPILMADI', String(q.materialId));
@@ -332,19 +362,36 @@ export async function kirimYarat(
           ? STANDART_USTAMA_CHEGARASI
           : Number(material.min_ustama_foiz);
 
-      const tekshiruv = ustamaniTekshir(
-        material.sotuv_narx === null ? null : som(material.sotuv_narx),
-        tannarx.birlikTannarx,
-        chegara,
-      );
+      /**
+       * ⚠️ TZ 6.2 — HAR TUR ALOHIDA. Standart narx ustamasi
+       *    yaxshi bo'lsa-yu «Optom» narxi tannarxdan past
+       *    bo'lsa, bitta umumiy tekshiruv buni ko'rsatmasdi va
+       *    optomga zararga sotilaverardi.
+       */
+      const tekshiriladigan: { nom: string | null; narx: string | null }[] = [
+        { nom: null, narx: material.sotuv_narx },
+        ...(turNarxlariBoyicha.get(material.id) ?? []).map((t) => ({
+          nom: t.turNomi,
+          narx: t.narx,
+        })),
+      ];
 
-      if (tekshiruv?.pastmi === true) {
-        ogohlantirishlar.push({
-          materialId: material.id,
-          materialNomi: material.nom,
-          ustamaFoiz: tekshiruv.ustamaFoiz,
+      for (const n of tekshiriladigan) {
+        const tekshiruv = ustamaniTekshir(
+          n.narx === null ? null : som(n.narx),
+          tannarx.birlikTannarx,
           chegara,
-        });
+        );
+
+        if (tekshiruv?.pastmi === true) {
+          ogohlantirishlar.push({
+            materialId: material.id,
+            materialNomi: material.nom,
+            ustamaFoiz: tekshiruv.ustamaFoiz,
+            chegara,
+            turNomi: n.nom,
+          });
+        }
       }
     }
 

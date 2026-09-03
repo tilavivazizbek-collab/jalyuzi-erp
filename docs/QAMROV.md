@@ -174,3 +174,5 @@ Yangi statistikalar ro'yxati va chart mosligi: `docs/HISOBOTLAR-ISH.md`.
 - Yangi imkoniyat qo'shilsa, u **ustun** bo'lib qo'shiladi va hamma
   qatorda holati belgilanadi. Bitta qatorni to'ldirib qolganini
   bo'sh qoldirish — aynan shu hujjat oldini olmoqchi bo'lgan xato
+
+| Mijoz turlari | ✅ | Spravochnik · soliq belgisi |

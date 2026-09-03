@@ -4,6 +4,8 @@ export interface UstamaOgohi {
   readonly materialNomi: string;
   readonly ustamaFoiz: number;
   readonly chegara: number;
+  /** TZ 6.2 — qaysi mijoz turi narxi; `null` — standart narx */
+  readonly turNomi: string | null;
 }
 
 export interface KirimHolati {

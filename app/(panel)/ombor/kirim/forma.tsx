@@ -322,9 +322,16 @@ export function KirimFormasi({
             Hujjat saqlandi, lekin ustama chegaradan past
           </p>
           <ul className="mt-2 flex list-disc flex-col gap-1 pl-5 text-belgi-sariq">
+            {/*
+              ⚠️ TZ 6.2 — HAR TUR alohida qator. Standart narx
+                 yaxshi bo'lib «Optom» narxi past bo'lishi mumkin;
+                 bitta umumiy qator buni yashirardi.
+            */}
             {holat.ogohlantirishlar.map((o) => (
-              <li key={o.materialNomi}>
-                <b>{o.materialNomi}</b> — ustama {o.ustamaFoiz.toFixed(1)}%, chegara {o.chegara}%
+              <li key={`${o.materialNomi}-${o.turNomi ?? 'standart'}`}>
+                <b>{o.materialNomi}</b>
+                {o.turNomi !== null && <> · {o.turNomi} narxi</>} — ustama{' '}
+                {o.ustamaFoiz.toFixed(1)}%, chegara {o.chegara}%
               </li>
             ))}
           </ul>
