@@ -20,7 +20,13 @@
  */
 
 import type postgres from 'postgres';
-import { kassaYozuviQoshTx } from './kassa';
+import { kassaYozuviQoshTx, xarajatYozTx } from './kassa';
+import {
+  ochiqXaridlar,
+  somToloviniTaqsimla,
+  type OchiqXarid,
+} from '@/lib/domain/kurs-farqi';
+import { dollar, kurs, pulMatn, som } from '@/lib/domain/pul';
 import { BiznesXato } from '@/lib/xato';
 
 export interface YetkazibTolovKirimi {
@@ -35,6 +41,16 @@ export interface YetkazibTolovKirimi {
   readonly izoh: string | null;
   /** Qaysi kirim uchun to'lanmoqda — bo'lsa manba shu bo'ladi */
   readonly kirimId: number | null;
+  /**
+   * TZ 9.5 — QAYSI VALYUTADAGI QARZ yopilmoqda.
+   *
+   * ⚠️ «Dollar qarzini so'mda to'lash mumkin. To'lov oynasida valyuta
+   *    "so'm" tanlanadi, kurs kiritiladi. Qarz `so'm ÷ kurs` bo'yicha
+   *    kamayadi.»
+   *
+   * ⚠️ Berilmasa — to'lov valyutasi (eski xatti-harakat).
+   */
+  readonly qarzValyutasi?: 'SOM' | 'USD';
 }
 
 /**
@@ -43,11 +59,19 @@ export interface YetkazibTolovKirimi {
  * Kirim hujjati bilan birga to'lansa — bitta tranzaksiya: mol
  * kirdi va pul chiqdi, yarmi qolib ketmaydi (2.1-invariant).
  */
+export interface YetkazibTolovNatijasi {
+  readonly kassaYozuvId: number;
+  /** 9.5 — qarz qancha kamaydi (qarz valyutasida) */
+  readonly qarzKamaydi: string;
+  /** 9.6 — kurs farqi; musbat: xarajat, manfiy: daromad */
+  readonly kursFarqi: string;
+}
+
 export async function yetkazibToloviTx(
   tx: postgres.TransactionSql,
   kirim: YetkazibTolovKirimi,
   xodimId: number,
-): Promise<{ kassaYozuvId: number }> {
+): Promise<YetkazibTolovNatijasi> {
   const summa = Number(kirim.summa);
   if (!Number.isFinite(summa) || summa <= 0) {
     throw new BiznesXato('KASSA_SUMMA_NOL', `summa: ${kirim.summa}`);
@@ -99,15 +123,137 @@ export async function yetkazibToloviTx(
     xodimId,
   );
 
+  const qarzValyutasi = kirim.qarzValyutasi ?? kirim.valyuta;
+
+  /**
+   * ── ODATIY YO'L: to'lov va qarz BIR XIL valyutada ──
+   */
+  if (qarzValyutasi === kirim.valyuta) {
+    await tx`
+      INSERT INTO yetkazib_beruvchi_harakat
+        (yetkazib_beruvchi_id, filial_id, turi, summa, valyuta, kurs_snapshot,
+         manba_turi, manba_id, izoh, xodim_id)
+      VALUES (${kirim.yetkazibBeruvchiId}, ${kirim.filialId}, 'TOLOV',
+              ${(-summa).toFixed(2)}, ${kirim.valyuta}, ${kirim.kursSnapshot},
+              ${manbaTuri}, ${manbaId}, ${kirim.izoh}, ${xodimId})`;
+
+    return { kassaYozuvId, qarzKamaydi: summa.toFixed(2), kursFarqi: '0.00' };
+  }
+
+  /**
+   * ── TZ 9.5 · 9.6 — DOLLAR QARZINI SO'MDA TO'LASH ──
+   *
+   * ⚠️ Faqat shu yo'nalish: so'm kassasidan dollarli qarz yopiladi.
+   *    Teskarisi (dollar bilan so'm qarzini yopish) TZ da yo'q va
+   *    o'ylab topilmaydi — rad etiladi.
+   */
+  if (!(kirim.valyuta === 'SOM' && qarzValyutasi === 'USD')) {
+    throw new BiznesXato(
+      'KASSA_VALYUTA_MOS_EMAS',
+      `${kirim.valyuta} to'lov bilan ${qarzValyutasi} qarzini yopib bo'lmaydi`,
+    );
+  }
+
+  if (kirim.kursSnapshot === null) {
+    throw new BiznesXato('KURS_KERAK', "dollar qarzini so'mda to'lashda kurs kerak (9.5)");
+  }
+
+  /**
+   * ⚠️ Xaridlar ENG ESKISIDAN boshlab olinadi (9.5) va har birining
+   *    O'Z qotgan kursi bilan (2.3 · 9.6).
+   */
+  const xaridlar = await tx<{ summa: string; kurs: string | null }[]>`
+    SELECT summa::text, kurs_snapshot::text AS kurs
+    FROM yetkazib_beruvchi_harakat
+    WHERE yetkazib_beruvchi_id = ${kirim.yetkazibBeruvchiId}
+      AND valyuta = 'USD' AND turi IN ('XARID', 'BOSHLANGICH')
+      AND summa > 0
+    ORDER BY sana, id`;
+
+  const tolanganQatori = await tx<{ jami: string }[]>`
+    SELECT COALESCE(-SUM(summa), 0)::text AS jami
+    FROM yetkazib_beruvchi_harakat
+    WHERE yetkazib_beruvchi_id = ${kirim.yetkazibBeruvchiId}
+      AND valyuta = 'USD' AND summa < 0`;
+
+  const tolovKursi = kurs(kirim.kursSnapshot, new Date(), 'SNAPSHOT');
+
+  /**
+   * ⚠️ Kursi yozilmagan eski xarid bo'lsa — to'lov kursi olinadi:
+   *    farq nol chiqadi. Taxminiy kurs qo'yish yolg'on farq yasardi.
+   */
+  const hammasi: OchiqXarid[] = xaridlar.map((x) => ({
+    qoldiq: dollar(x.summa),
+    kirimKursi: x.kurs === null ? tolovKursi : kurs(x.kurs, new Date(), 'SNAPSHOT'),
+  }));
+
+  // §2.2 — FIFO va farq qoidasi DOMAINDA
+  const ochiq = ochiqXaridlar(hammasi, dollar(tolanganQatori[0]?.jami ?? '0'));
+  const n = somToloviniTaqsimla(ochiq, som(kirim.summa), tolovKursi);
+
+  const qarzKamaydi = pulMatn(n.yopilgan);
+  const avans = pulMatn(n.avans);
+
+  // Qarz DOLLARDA kamayadi — aks holda balans yopilmasdi (9.5)
   await tx`
     INSERT INTO yetkazib_beruvchi_harakat
       (yetkazib_beruvchi_id, filial_id, turi, summa, valyuta, kurs_snapshot,
        manba_turi, manba_id, izoh, xodim_id)
     VALUES (${kirim.yetkazibBeruvchiId}, ${kirim.filialId}, 'TOLOV',
-            ${(-summa).toFixed(2)}, ${kirim.valyuta}, ${kirim.kursSnapshot},
-            ${manbaTuri}, ${manbaId}, ${kirim.izoh}, ${xodimId})`;
+            ${`-${qarzKamaydi}`}, 'USD', ${kirim.kursSnapshot},
+            ${manbaTuri}, ${manbaId},
+            ${`${kirim.izoh ?? "So'mda to'landi"} — ${summa.toFixed(2)} so'm, kurs ${kirim.kursSnapshot}`},
+            ${xodimId})`;
 
-  return { kassaYozuvId };
+  /** 9.5 — qarzdan ortig'i AVANS bo'lib qoladi */
+  if (Number(avans) > 0) {
+    await tx`
+      INSERT INTO yetkazib_beruvchi_harakat
+        (yetkazib_beruvchi_id, filial_id, turi, summa, valyuta, kurs_snapshot,
+         manba_turi, manba_id, izoh, xodim_id)
+      VALUES (${kirim.yetkazibBeruvchiId}, ${kirim.filialId}, 'AVANS',
+              ${`-${avans}`}, 'USD', ${kirim.kursSnapshot},
+              ${manbaTuri}, ${manbaId}, ${'Qarzdan ortiq to\'landi (9.5)'},
+              ${xodimId})`;
+  }
+
+  /**
+   * TZ 9.6 — KURS FARQI ALOHIDA XARAJAT MODDASI.
+   *
+   * ⚠️ Tannarxga TEGMAYDI: mahsulot allaqachon o'sha narxda sotilgan
+   *    bo'lishi mumkin, o'tgan oyning foydasi o'zgarmaydi (2.3).
+   *
+   * ⚠️ Kassaga ham BOG'LANMAYDI: pul allaqachon C1 yozuvi bilan
+   *    chiqdi. Bog'lansa bir xil pul ikki marta sanalardi (12.1).
+   *
+   * ⚠️ Kurs TUSHSA — daromad. Uni musbat xarajat qilib yozib
+   *    bo'lmaydi, shuning uchun MANFIY yoziladi: xarajatni
+   *    kamaytiradi (qaytarish ushlanmasi bilan bir xil naqsh, 8.10).
+   */
+  const farq = pulMatn(n.farq);
+  if (n.turi !== 'YOQ') {
+    await xarajatYozTx(
+      tx,
+      {
+        sana: new Date().toISOString().slice(0, 10),
+        filialId: kirim.filialId,
+        modda: 'KURS_FARQI',
+        summa: n.turi === 'DAROMAD' ? `-${farq}` : farq,
+        valyuta: 'SOM',
+        kassaYozuvId: null,
+        manbaTuri,
+        manbaId,
+        izoh: `Kurs farqi (9.6) — ${qarzKamaydi} $, to'lov kursi ${kirim.kursSnapshot}`,
+      },
+      xodimId,
+    );
+  }
+
+  return {
+    kassaYozuvId,
+    qarzKamaydi,
+    kursFarqi: n.turi === 'DAROMAD' ? `-${farq}` : farq,
+  };
 }
 
 /** Alohida to'lov — o'z tranzaksiyasini ochadi */
@@ -115,7 +261,7 @@ export async function yetkazibTolovi(
   ulanish: postgres.Sql,
   kirim: YetkazibTolovKirimi,
   xodimId: number,
-): Promise<{ kassaYozuvId: number }> {
+): Promise<YetkazibTolovNatijasi> {
   return ulanish.begin(async (tx) => yetkazibToloviTx(tx, kirim, xodimId));
 }
 

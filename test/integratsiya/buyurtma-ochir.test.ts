@@ -43,7 +43,7 @@ beforeAll(async () => {
 }, 120_000);
 
 afterAll(async () => {
-  await sql.end();
+  await sql.end({ timeout: 5 });
 });
 
 let hisoblagich = 0;

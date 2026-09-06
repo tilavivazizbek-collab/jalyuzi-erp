@@ -37,7 +37,7 @@ beforeAll(() => {
 }, 120_000);
 
 afterAll(async () => {
-  await sql.end();
+  await sql.end({ timeout: 5 });
 });
 
 // ─── 13.1 · Kim bu ────────────────────────────────────────────────────────

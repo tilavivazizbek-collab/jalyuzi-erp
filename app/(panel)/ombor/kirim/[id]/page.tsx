@@ -5,6 +5,7 @@ import { ruxsatBormi } from '@/lib/ruxsat/tekshir';
 import { pulKorsat, som } from '@/lib/domain/pul';
 import { kirimTafsiloti } from '../../malumot';
 import { StornoFormasi } from '../storno-forma';
+import { KirimTahrirFormasi } from '../tahrir-forma';
 
 export const dynamic = 'force-dynamic';
 
@@ -86,6 +87,23 @@ export default async function KirimTafsili({ params }: { params: Promise<{ id: s
         <dt className="text-matn-kuchsiz">Ishlatilgan bo&apos;lak</dt>
         <dd className="raqam">{h.ishlatilgan}</dd>
       </dl>
+
+      {/*
+        TZ 9.11 — «Qo'shimcha xarajat ko'pincha MOLDAN KEYIN keladi.»
+        Storno qilingan hujjat tahrirlanmaydi.
+      */}
+      {!storno && (
+        <section>
+          <h2 className="mb-2 text-sm font-medium text-matn-ikki">
+            Qo&apos;shimcha xarajat (9.11)
+          </h2>
+          <KirimTahrirFormasi
+            kirimId={h.id}
+            transport={h.transportSumma}
+            bojxona={h.bojxonaSumma}
+          />
+        </section>
+      )}
 
       {stornoQilaOladi && !storno && (
         <section>

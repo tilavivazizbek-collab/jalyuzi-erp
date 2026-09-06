@@ -50,8 +50,32 @@ export default async function XodimKartochkasiSahifasi({
         >
           {pulKorsat(som(k.somBalans))}
         </dd>
-        {Number(k.dollarBalans) !== 0 && (
+        {/*
+          ⚠️ Dollar tomoni TO'LIQ ko'rsatiladi: balans yetarli emas.
+             «Jami olgan» faqat so'mni sanaganda, dollarda berilgan
+             avans hech qayerda ko'rinmasdi va usta «men olganman»
+             desa, ekranda dalil yo'q edi (1.3 — qo'shilmaydi).
+        */}
+        {(Number(k.dollarBalans) !== 0 ||
+          Number(k.jamiIshlaganUsd) !== 0 ||
+          Number(k.jamiOlganUsd) !== 0) && (
           <>
+            {Number(k.jamiIshlaganUsd) !== 0 && (
+              <>
+                <dt className="border-t border-chegara pt-1.5 text-matn-kuchsiz">
+                  Jami ishlagan ($)
+                </dt>
+                <dd className="raqam border-t border-chegara pt-1.5">
+                  {pulKorsat(dollar(k.jamiIshlaganUsd))}
+                </dd>
+              </>
+            )}
+            {Number(k.jamiOlganUsd) !== 0 && (
+              <>
+                <dt className="text-matn-kuchsiz">Jami olgan ($)</dt>
+                <dd className="raqam">{pulKorsat(dollar(k.jamiOlganUsd))}</dd>
+              </>
+            )}
             <dt className="text-matn-kuchsiz">Dollar balansi</dt>
             <dd className={`raqam ${Number(k.dollarBalans) < 0 ? 'text-belgi-qizil' : ''}`}>
               {pulKorsat(dollar(k.dollarBalans))}

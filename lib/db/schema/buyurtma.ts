@@ -80,10 +80,35 @@ export const buyurtma = pgTable(
     ndsSumma: numeric('nds_summa', { precision: 14, scale: 2 }).default('0'),
     summaNdssiz: numeric('summa_ndssiz', { precision: 14, scale: 2 }),
 
+    /**
+     * TZ 8.8 — STORNO belgisi (0034).
+     *
+     * ⚠️ Bu STATUS EMAS. TZ 8.2: «Buyurtmaning umumiy statusi yo'q» —
+     *    status har pozitsiyada. Storno qilinganda pozitsiyalar
+     *    avvalgidek `BEKOR` bo'ladi, shuning uchun ularni chiqarib
+     *    tashlaydigan barcha hisobot o'z-o'zidan to'g'ri ishlaydi.
+     *
+     *    Bu ustunlar esa «mijoz voz kechdi» (bekor) bilan «sotuvchi
+     *    xato kiritdi» (storno) ni ajratadi — 8.8 shuni talab qiladi.
+     */
+    stornoSabab: text('storno_sabab'),
+    stornoSana: timestamp('storno_sana', { withTimezone: true }),
+    stornoXodimId: bigint('storno_xodim_id', { mode: 'number' }),
+
     ...izlar,
   },
   (t) => [
     check('buyurtma_manba', sql`${t.manba} IN ('SAYT','BOT')`),
+    // Uchalasi BIRGA to'ladi: sababsiz storno «nega yo'q?» degan
+    // savolni olti oydan keyin javobsiz qoldiradi (2.4)
+    check(
+      'buyurtma_storno_toliq',
+      sql`(${t.stornoSabab} IS NULL AND ${t.stornoSana} IS NULL
+           AND ${t.stornoXodimId} IS NULL)
+          OR (${t.stornoSabab} IS NOT NULL AND ${t.stornoSana} IS NOT NULL
+              AND ${t.stornoXodimId} IS NOT NULL)`,
+    ),
+    index('buyurtma_storno').on(t.stornoSana).where(sql`${t.stornoSana} IS NOT NULL`),
     check('buyurtma_valyuta', sql`${t.valyuta} IN ('SOM','USD')`),
     // AUDIT B-04 · TZ 9.6 — dollarli buyurtmada kurs MAJBURIY,
     // aks holda summa qaysi kursda qotgani noma'lum bo'lib qoladi
@@ -221,8 +246,19 @@ export const buyurtmaPozitsiya = pgTable(
                          'TAYYOR','TAYYOR_YOLDA','YETIB_KELDI',
                          'TOPSHIRILDI','QAYTARILGAN','RAD_ETILGAN','BEKOR')`,
     ),
-    // TZ 3.4 — o'lcham musbat bo'lishi shart, aks holda formula ma'nosiz
-    check('buyurtma_pozitsiya_olcham', sql`${t.eniSm} > 0 AND ${t.boyiSm} > 0`),
+    /**
+     * TZ 3.4 — o'lcham musbat bo'lishi shart, aks holda formula ma'nosiz.
+     *
+     * ⚠️ Faqat TAYYOR MAHSULOTGA. Qo'shimcha buyum tayyorlanmaydi va
+     *    kesilmaydi — unda o'lcham ma'nosiz va nol bo'ladi (3.10).
+     *    Ilgari bu shart hammaga tegar va yuqoridagi
+     *    `pozitsiya_qoshimcha_olchamsiz` bilan TO'QNASHARDI: qo'shimcha
+     *    buyum qatori bazaga umuman tusha olmasdi.
+     */
+    check(
+      'buyurtma_pozitsiya_olcham',
+      sql`${t.qoshimchaMaterialId} IS NOT NULL OR (${t.eniSm} > 0 AND ${t.boyiSm} > 0)`,
+    ),
     check('buyurtma_pozitsiya_soni', sql`${t.soni} > 0`),
     uniqueIndex('buyurtma_pozitsiya_tartib').on(t.buyurtmaId, t.tartib),
     index('buyurtma_pozitsiya_holat_idx').on(t.holat),
@@ -304,7 +340,20 @@ export const pozitsiyaAksessuar = pgTable(
 
     soni: numeric('soni', { precision: 10, scale: 2 }).notNull(),
     birlik: text('birlik').notNull(),
+    /** Mijoz TO'LAGAN narx — snapshot (2.3) */
     narxSnapshot: numeric('narx_snapshot', { precision: 14, scale: 2 }).notNull(),
+    /**
+     * Buyum BIZGA qanchaga tushgan — snapshot (0037).
+     *
+     * ⚠️ Ilgari qo'shimcha buyum sotilganda tannarx `narx_snapshot`
+     *    ga yozilardi. Ustun esa butun tizimda SOTUV narxini
+     *    saqlaydi — aksessuar kesimidagi foyda hisoboti tannarxni
+     *    daromad deb o'qirdi.
+     *
+     * ⚠️ Oddiy aksessuarda BO'SH: uning tannarxi sotuv paytida
+     *    ma'lum emas, u materialning umumiy qoldig'idan ketadi.
+     */
+    tannarxSnapshot: numeric('tannarx_snapshot', { precision: 14, scale: 2 }),
     qoldaKiritildi: boolean('qolda_kiritildi').notNull().default(false),
   },
   (t) => [

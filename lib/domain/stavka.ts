@@ -114,14 +114,29 @@ export function bosqichniTop(bosqichlar: readonly Bosqich[], maydonKvM: number):
  * | Bosqichli | Dikke — jadval bo'yicha |
  *
  * Qat'iy va bosqichli — `DONA` birligi; kv.metrga — `KV_M`.
+ *
+ * ⚠️ SONI HISOBGA OLINADI.
+ *
+ *    Bitta pozitsiyada bir nechta BIR XIL parda bo'lishi mumkin
+ *    (3.4). Usta ularning hammasini tikadi.
+ *
+ *    2026-09-05 gacha `soni` umuman ishlatilmasdi: uchta parda
+ *    sotilsa mijozdan uchtasining puli olinar, ustaga esa
+ *    bittasining haqi to'lanardi. `maydonKvM` ham BITTA
+ *    buyumniki — shuning uchun ko'paytirish ikkala usulda ham
+ *    kerak.
  */
 export function haqHisobla(
   qiymat: string,
   birlik: StavkaBirligi,
   maydonKvM: number,
+  soni = 1,
 ): Som {
-  if (birlik === 'DONA') return som(qiymat);
-  return kopaytir(som(qiymat), new Decimal(maydonKvM).toString());
+  const n = new Decimal(soni);
+  if (n.lessThan(1)) throw new BiznesXato('OLCHOV_NOTOGRI', `soni ${String(soni)}`);
+
+  if (birlik === 'DONA') return kopaytir(som(qiymat), n.toString());
+  return kopaytir(som(qiymat), n.times(maydonKvM).toString());
 }
 
 /**
@@ -142,9 +157,13 @@ export interface HaqNatijasi {
 export function pozitsiyaHaqi(
   stavka: StavkaQatori | null,
   maydonKvM: number,
+  soni = 1,
 ): HaqNatijasi {
   if (stavka === null) {
     return { haq: nolSom(), stavkaYoq: true };
   }
-  return { haq: haqHisobla(stavka.qiymat, stavka.birlik, maydonKvM), stavkaYoq: false };
+  return {
+    haq: haqHisobla(stavka.qiymat, stavka.birlik, maydonKvM, soni),
+    stavkaYoq: false,
+  };
 }

@@ -12,6 +12,8 @@ import {
   olchamYaroqlimi,
   panelTanla,
   pozitsiyaXulosasi,
+  qoldiqOqi,
+  qoldiqYaroqlimi,
 } from '@/lib/domain/bot';
 import { POZITSIYA_HOLATLARI, type PozitsiyaHolati } from '@/lib/domain/buyurtma';
 import { BiznesXato } from '@/lib/xato';
@@ -192,5 +194,41 @@ describe('TZ 13.10 — amal kaliti', () => {
     expect(amalKaliti('tugatdim', 555, 1247)).not.toBe(asos);
     expect(amalKaliti('ishni_ol', 666, 1247)).not.toBe(asos);
     expect(amalKaliti('ishni_ol', 555, 1248)).not.toBe(asos);
+  });
+});
+
+// ─── 13.8 · Qolgan bo'lak o'lchami ────────────────────────────────────────
+
+describe("13.8 — qoldiq o'lchamini o'qish", () => {
+  it('oddiy shakl: 0.6x2.0', () => {
+    expect(qoldiqOqi('0.6x2.0')).toEqual({ eniM: 0.6, boyiM: 2, saqlansinmi: true });
+  });
+
+  it('vergul ham qabul qilinadi — telefonda ko\'pchilik shunday yozadi', () => {
+    expect(qoldiqOqi('0,6 x 2,0')).toEqual({ eniM: 0.6, boyiM: 2, saqlansinmi: true });
+  });
+
+  it('kirill «х», yulduzcha va bo\'sh joy ajratgich bo\'la oladi', () => {
+    expect(qoldiqOqi('0.6х2').eniM).toBe(0.6);
+    expect(qoldiqOqi('0.6*2').boyiM).toBe(2);
+    expect(qoldiqOqi('0.6 2').boyiM).toBe(2);
+  });
+
+  it("«0» va «yo'q» — qoldiq umuman yo'q", () => {
+    for (const m of ['0', 'yoq', "yo'q", '-', 'qolmadi', ' 0 ']) {
+      expect(qoldiqOqi(m)).toEqual({ eniM: 0, boyiM: 0, saqlansinmi: false });
+    }
+  });
+
+  it('buzuq matn rad etiladi', () => {
+    for (const m of ['', 'abc', '0.6', '0.6x', 'x2', '0.6x2x3', '-1x2', '0x2']) {
+      expect(() => qoldiqOqi(m)).toThrow(BiznesXato);
+      expect(qoldiqYaroqlimi(m)).toBe(false);
+    }
+  });
+
+  it("chegara qarori USTADA emas — saqlansinmi doim true", () => {
+    // 7.5 — yaroqsizmi yoki yo'q, buni MATERIAL chegarasi hal qiladi
+    expect(qoldiqOqi('0.05x2').saqlansinmi).toBe(true);
   });
 });

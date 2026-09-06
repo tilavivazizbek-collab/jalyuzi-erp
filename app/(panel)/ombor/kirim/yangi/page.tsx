@@ -7,7 +7,19 @@ import { KirimFormasi } from '../forma';
 
 export const dynamic = 'force-dynamic';
 
-export default async function YangiKirim() {
+/**
+ * ⚠️ `?material=` — material kartochkasidagi «Kirim qilish»
+ *    tugmasi shu bilan keladi. Omborchi qaysi mato kamayganini
+ *    ko'rib turib bosadi; ro'yxatdan qayta izlash ortiqcha qadam.
+ *
+ *    Noto'g'ri yoki begona raqam kelsa — jimgina e'tiborsiz
+ *    qoldiriladi va forma odatdagidek bo'sh ochiladi.
+ */
+export default async function YangiKirim({
+  searchParams,
+}: {
+  searchParams: Promise<{ material?: string }>;
+}) {
   const f = await sahifaRuxsati('ombor.kirim.yarat');
   // §9.4 — tugmani yashirish himoya emas, server amali ham tekshiradi
   const yetkazibQoshaOladi = ruxsatBormi(f, 'yetkazib.yarat');
@@ -26,6 +38,13 @@ export default async function YangiKirim() {
     kirimMateriallari(),
     kirimYetkazuvchilari(),
   ]);
+
+  const { material: xomMaterial } = await searchParams;
+  const soralgan = Number(xomMaterial);
+  const boshMaterialId =
+    Number.isSafeInteger(soralgan) && materiallar.some((m) => m.id === soralgan)
+      ? soralgan
+      : null;
 
   return (
     <div className="flex flex-col gap-6">
@@ -48,6 +67,7 @@ export default async function YangiKirim() {
         yetkazuvchilar={yetkazuvchilar}
         yetkazibQoshaOladi={yetkazibQoshaOladi}
         materialQoshaOladi={materialQoshaOladi}
+        boshMaterialId={boshMaterialId}
       />
     </div>
   );

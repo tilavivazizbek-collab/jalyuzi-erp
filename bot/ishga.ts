@@ -23,7 +23,12 @@ import { muhitOqi } from '@/lib/muhit';
 import { MATN } from './matn';
 import { xavfsiz } from './yordamchi';
 import { mijozMenyusi, mijozPaneliniUla, royxatBoshla } from './mijoz';
-import { brakSababiQabul, ustaMenyusi, ustaPaneliniUla } from './usta';
+import {
+  brakSababiQabul,
+  tugatdimMatniniQabulQil,
+  ustaMenyusi,
+  ustaPaneliniUla,
+} from './usta';
 import { adminMenyusi, adminPaneliniUla } from './admin';
 import { yuboruvchiniBoshla } from './yuboruvchi';
 import { oqimMatniniQabulQil, oqimniUla } from './buyurtma-oqimi';
@@ -119,6 +124,23 @@ export function botYarat(): Telegraf {
       const sessiya = await sessiyaOl(ulanishOl(), tg);
 
       const kim = await botKimligi(ulanishOl(), tg);
+
+      /**
+       * 13.8 — «Tugatdim» suhbati: har mato uchun qolgan bo'lak
+       * o'lchami kutilmoqda.
+       *
+       * ⚠️ Qayta kesish sababidan OLDIN turadi: ikkalasi ham erkin
+       *    matn, lekin qadam nomi har xil va chalkashmaydi.
+       */
+      if (sessiya.qadam === 'TUGATDIM' && kim.xodimId !== null) {
+        const bajarildi = await tugatdimMatniniQabulQil(
+          ctx,
+          kim.xodimId,
+          tg,
+          ctx.message.text,
+        );
+        if (bajarildi) return;
+      }
 
       // 13.8 — qayta kesish sababi kutilmoqda
       if (sessiya.qadam === 'IZOH' && 'brakPozitsiyaId' in sessiya.holat) {

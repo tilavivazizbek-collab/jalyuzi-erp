@@ -11,7 +11,8 @@
  * Qoida: shaxsiy chegirma ustun, ikkalasi QO'SHILMAYDI.
  */
 import { describe, expect, it } from 'vitest';
-import { amaldagiOffset } from '@/lib/domain/mijoz';
+import { amaldagiOffset, offsetQollanmadimi } from '@/lib/domain/mijoz';
+import { kurs, pulMatn, type Som } from '@/lib/domain/pul';
 
 const FOIZ = (q: string) => ({ offsetTuri: 'FOIZ', offsetQiymat: q });
 const SOM = (q: string) => ({ offsetTuri: 'SOM', offsetQiymat: q });
@@ -59,5 +60,73 @@ describe('Amaldagi chegirma', () => {
      *    xavfli — narx bir necha ming barobar xato bo'lardi.
      */
     expect(amaldagiOffset(YOQ, { offsetTuri: 'USD', offsetQiymat: '-5' })).toBeNull();
+  });
+});
+
+// ─── 6.3 · USD offseti kurs bilan ─────────────────────────────────────────
+
+/**
+ * ⚠️ NEGA BU TESTLAR BOR
+ *
+ * 2026-09-05 gacha USD offseti kurs berilgan-berilmaganidan qat'i
+ * nazar TASHLAB YUBORILARDI. Mijoz kartochkasida «−10 $» turar,
+ * sotuv formasi «joriy kurs ishlatiladi» deb va'da qilar, mijoz
+ * esa standart narxda olardi — hech qanday ogohlantirishsiz.
+ */
+describe('6.3 — USD chegirmasi joriy kursda so‘mga o‘giriladi', () => {
+  const USD = (q: string) => ({ offsetTuri: 'USD', offsetQiymat: q });
+  const KURS = kurs('12500', new Date(), 'JORIY');
+
+  it('−10 $ · kurs 12 500 → −125 000 so‘m', () => {
+    const o = amaldagiOffset(USD('-10'), null, KURS);
+    expect(o?.turi).toBe('SOM');
+    expect(pulMatn((o as { turi: 'SOM'; summa: Som }).summa)).toBe('-125000.00');
+  });
+
+  it('kurs BERILMASA qo‘llanmaydi — jimgina noto‘g‘ri narx chiqmaydi', () => {
+    expect(amaldagiOffset(USD('-10'), null)).toBeNull();
+  });
+
+  it('shaxsiy USD chegirmasi guruhnikidan ustun', () => {
+    const o = amaldagiOffset(USD('-10'), SOM('-5000'), KURS);
+    expect(pulMatn((o as { turi: 'SOM'; summa: Som }).summa)).toBe('-125000.00');
+  });
+
+  /**
+   * ⚠️ Kurs yo'q bo'lsa shaxsiy USD chegirmasi qo'llanmaydi, LEKIN
+   *    guruhnikiga ham o'tilmaydi: shaxsiysi baribir ustun (6.3).
+   *    Aks holda mijoz kutganidan boshqa chegirma olardi.
+   */
+  it('kurssiz shaxsiy USD — guruh so‘m chegirmasiga O‘TILMAYDI', () => {
+    expect(amaldagiOffset(USD('-10'), SOM('-5000'))).toBeNull();
+  });
+});
+
+describe('6.3 — sotuvchi ogohlantiriladi', () => {
+  const USD = (q: string) => ({ offsetTuri: 'USD', offsetQiymat: q });
+  const KURS = kurs('12500', new Date(), 'JORIY');
+
+  it('kurssiz USD chegirmasi bo‘lsa — ogohlantirish', () => {
+    expect(offsetQollanmadimi(USD('-10'), null, null)).toBe(true);
+  });
+
+  it('kurs bo‘lsa ogohlantirish YO‘Q', () => {
+    expect(offsetQollanmadimi(USD('-10'), null, KURS)).toBe(false);
+  });
+
+  it('so‘m chegirmasida ogohlantirish YO‘Q', () => {
+    expect(offsetQollanmadimi(SOM('-5000'), null, null)).toBe(false);
+  });
+
+  it('guruhning USD chegirmasi ham ogohlantiradi', () => {
+    expect(offsetQollanmadimi(YOQ, USD('-10'), null)).toBe(true);
+  });
+
+  /**
+   * ⚠️ Shaxsiy so'm chegirmasi bor bo'lsa guruhning USD i baribir
+   *    qo'llanmaydi (shaxsiysi ustun) — bu ogohlantirish emas.
+   */
+  it('shaxsiy so‘m bor bo‘lsa guruh USD i ogohlantirmaydi', () => {
+    expect(offsetQollanmadimi(SOM('-5000'), USD('-10'), null)).toBe(false);
   });
 });

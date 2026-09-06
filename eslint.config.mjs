@@ -12,7 +12,14 @@ import tseslint from 'typescript-eslint';
  *   CLAUDE.md §5       any · @ts-ignore · keraksiz eslint-disable taqiq
  */
 export default defineConfig([
-  globalIgnores(['node_modules/**', '.next/**', 'coverage/**', 'next-env.d.ts']),
+  globalIgnores([
+    'node_modules/**',
+    '.next/**',
+    'coverage/**',
+    'next-env.d.ts',
+    // Bir martalik tekshiruv skriptlari — loyihaning bir qismi emas
+    '.audit-tmp/**',
+  ]),
 
   tseslint.configs.strictTypeChecked,
 

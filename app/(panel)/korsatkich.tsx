@@ -25,12 +25,24 @@ export function KorsatkichKartasi({
   izoh,
   rang,
   belgi,
+  ikkinchiQiymat,
 }: {
   sarlavha: string;
   qiymat: string;
   izoh?: string;
   rang: BelgiRangi;
   belgi: React.ReactNode;
+  /**
+   * ⚠️ IKKINCHI VALYUTA — asosiy raqam ostida, maydaroq.
+   *
+   *    Valyutalar QO'SHILMAYDI (1.3-invariant): 4 dollar va
+   *    50 000 so'm bitta raqamga aylanmasligi kerak. Lekin
+   *    dollar tushum va dollar qarzi butunlay YASHIRINSA, egasi
+   *    o'z pulini ko'rmaydi — shuning uchun alohida qator.
+   *
+   *    Nol bo'lsa ko'rsatilmaydi: bo'sh qator diqqatni oladi.
+   */
+  ikkinchiQiymat?: string | null;
 }) {
   return (
     <div className="flex flex-col gap-4 rounded-karta border border-chegara bg-sirt p-5">
@@ -50,6 +62,11 @@ export function KorsatkichKartasi({
         <p className="raqam text-left text-[22px] leading-none font-semibold tracking-[-0.02em] text-matn">
           {qiymat}
         </p>
+        {ikkinchiQiymat !== undefined && ikkinchiQiymat !== null && (
+          <p className="raqam mt-1 text-left text-[14px] font-medium text-matn-ikki">
+            {ikkinchiQiymat}
+          </p>
+        )}
         {izoh !== undefined && <p className="mt-1.5 text-[12px] text-matn-kuchsiz">{izoh}</p>}
       </div>
     </div>

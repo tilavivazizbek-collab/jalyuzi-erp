@@ -11,6 +11,7 @@
 import {
   ayir,
   dollar,
+  kattami,
   kopaytir,
   manfiy,
   musbatmi,
@@ -18,6 +19,7 @@ import {
   nolSom,
   nolmi,
   ogir,
+  pulMatn,
   qosh,
   som,
   yaxlitlaNarx,
@@ -283,4 +285,68 @@ export function katalogNarxi(
     throw new BiznesXato('KURS_KERAK', 'dollardagi material narxi uchun kurs kerak');
   }
   return ogir(dollar(narx), k);
+}
+
+// ─── 3.11 · Chegirmani pozitsiyalarga taqsimlash ──────────────────────────
+
+/**
+ * TZ 3.11 — kelishilgan summa BUTUN SAVATGA aytiladi («600 mingga
+ * kelishdik»), baza esa chegirmani HAR POZITSIYADA saqlaydi
+ * (`buyurtma_pozitsiya.chegirma_summa`). Bu funksiya o'sha ikkisining
+ * orasidagi ko'prik.
+ *
+ * ⚠️ NEGA KERAK
+ *
+ *    Ilgari sotuv ekranidagi «Kelishilgan summa» maydoni faqat
+ *    ekranda «chegirma 78 400» deb ko'rsatardi, bazaga esa HECH
+ *    NARSA yozmasdi: har pozitsiya `chegirma_summa = 0` bilan
+ *    saqlanardi. Mijozga to'liq narx qarz bo'lib yozilar, chek va
+ *    hisobot ham chegirmani ko'rmasdi.
+ *
+ * ⚠️ Taqsimot NARX ULUSHI bo'yicha: qimmat pozitsiya ko'proq
+ *    chegirma oladi. Teng bo'lish noto'g'ri bo'lardi — 50 000 lik
+ *    qatorga 78 400 chegirma tushib, narx manfiyga ketishi mumkin.
+ *
+ * ⚠️ Yaxlitlash qoldig'i ENG QIMMAT pozitsiyaga qo'shiladi, shuning
+ *    uchun ulushlar yig'indisi kelishilgan chegirmaga TIYINIGACHA
+ *    teng bo'ladi (2.2-invariant: ikkinchi manba paydo bo'lmaydi).
+ *
+ * @param narxlar  har pozitsiyaning `narx_snapshot` i
+ * @param chegirma musbat — chegirma, manfiy — qo'shimcha haq (3.11)
+ */
+export function chegirmaniTaqsimla(
+  narxlar: readonly Som[],
+  chegirma: Som,
+): readonly Som[] {
+  if (narxlar.length === 0) return [];
+  if (nolmi(chegirma)) return narxlar.map(() => nolSom());
+
+  const jami = narxlar.reduce<Som>((y, n) => qosh(y, n), nolSom());
+
+  /**
+   * Savat summasi nol bo'lsa taqsimlaydigan asos yo'q — chegirma
+   * ham nol bo'ladi. Xato otilmaydi: bu sotuvchining xatosi emas,
+   * shunchaki taqsimlanadigan narsa yo'q.
+   */
+  if (nolmi(jami)) return narxlar.map(() => nolSom());
+
+  // Ulushlar 2 xonaga yaxlitlanadi — bazadagi NUMERIC(14,2) bilan bir xil
+  const ulushlar = narxlar.map((n) =>
+    som(pulMatn(kopaytir(chegirma, nisbat(n, jami).toString()))),
+  );
+
+  // Yaxlitlash qoldig'i — eng qimmat pozitsiyaga
+  let eng = 0;
+  for (let i = 1; i < narxlar.length; i += 1) {
+    if (kattami(narxlar[i] as Som, narxlar[eng] as Som)) eng = i;
+  }
+
+  const tarqalgan = ulushlar.reduce<Som>((y, u) => qosh(y, u), nolSom());
+  const qoldiq = ayir(chegirma, tarqalgan);
+
+  if (!nolmi(qoldiq)) {
+    ulushlar[eng] = qosh(ulushlar[eng] as Som, qoldiq);
+  }
+
+  return ulushlar;
 }

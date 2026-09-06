@@ -22,7 +22,7 @@ beforeAll(() => {
 });
 
 afterAll(async () => {
-  await sql.end();
+  await sql.end({ timeout: 5 });
 });
 
 // ─── lib/amal/material.ts ─────────────────────────────────────────────────

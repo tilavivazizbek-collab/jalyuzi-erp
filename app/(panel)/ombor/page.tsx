@@ -1,14 +1,62 @@
+import { Fragment } from 'react';
 import Link from 'next/link';
 import { kamQoldiqmi } from '@/lib/domain/birlik-tanlovi';
 import { sahifaRuxsati } from '@/lib/kirish/joriy';
 import { ruxsatBormi, yigindiQamrov } from '@/lib/ruxsat/tekshir';
 import { SARFLASH_BIRLIGI_NOMI, type SarflashBirligi } from '@/lib/sxema/material';
-import { barchaFilialQoldigi, filialNomi, filialQoldigi, type FilialQoldigi } from './malumot';
+import {
+  barchaFilialQoldigi,
+  filialNomi,
+  filialQoldigi,
+  qoldiqTarkibi,
+  type FilialQoldigi,
+  type QoldiqTarkibi,
+} from './malumot';
 
 export const dynamic = 'force-dynamic';
 
 /** Q-05 — kv.m faqat KO'RSATISH uchun, sanashda ishlatilmaydi. */
 const kvM = (n: number): string => n.toFixed(2);
+
+const GURUH_NOMI: Record<QoldiqTarkibi['guruh'], string> = {
+  RULON: 'Butun rulon',
+  OCHILGAN: 'Ochilgan rulon',
+  KESMA: 'Qoldiq kesma',
+};
+
+/**
+ * TZ 7.4 — material qatori ostidagi TARKIB.
+ *
+ * ⚠️ «60 kv.m» degan raqam yetarli emas: u bitta 3 × 20 rulon ham,
+ *    oltita 1 × 10 parcha ham bo'lishi mumkin. Ikkinchisi bilan
+ *    3 metrlik parda tikib bo'lmaydi. Shuning uchun har o'lcham
+ *    soni bilan ko'rsatiladi.
+ */
+function TarkibQatori({ tarkib }: { tarkib: readonly QoldiqTarkibi[] }) {
+  if (tarkib.length === 0) return null;
+
+  return (
+    <tr className="bg-fon/70">
+      <td colSpan={7} className="px-4 pb-3 pt-1">
+        <div className="flex flex-col gap-1">
+          {tarkib.map((t) => (
+            <div
+              key={`${t.guruh}-${String(t.eniM)}-${String(t.boyiM)}`}
+              className="flex items-center gap-2 text-xs text-matn-ikki"
+            >
+              <span className="w-32 shrink-0 text-matn-kuchsiz">{GURUH_NOMI[t.guruh]}</span>
+              <span className="raqam w-12 shrink-0">{t.soni} ta</span>
+              <span className="raqam">
+                {t.eniM.toFixed(2)} × {t.boyiM.toFixed(2)} m
+              </span>
+              <span className="raqam ml-auto text-matn-kuchsiz">{kvM(t.kvM)}</span>
+            </div>
+          ))}
+        </div>
+      </td>
+    </tr>
+  );
+}
 
 export default async function OmborQoldigi({
   searchParams,
@@ -31,6 +79,8 @@ export default async function OmborQoldigi({
   const filiallar = barchasimi ? await barchaFilialQoldigi() : [];
 
   const qoldiq = barchasimi ? [] : await filialQoldigi(f.filialId);
+  // TZ 7.4 — «qancha» yetarli emas, «nimadan iborat» ham kerak
+  const tarkib = barchasimi ? [] : await qoldiqTarkibi(f.filialId);
   const olchamli = qoldiq.filter((q) => q.hisobTuri === 'RULON');
   const donali = qoldiq.filter((q) => q.hisobTuri !== 'RULON');
 
@@ -84,7 +134,8 @@ export default async function OmborQoldigi({
               <h2 className="mb-2 text-sm font-medium text-matn-ikki">Rulon va qoldiq kesma</h2>
               <p className="mb-3 text-xs text-matn-kuchsiz">
                 Qoldiq <b>eni × bo&apos;yi</b> bilan saqlanadi, kv.m hisoblanadi (Q-05). Band —
-                pozitsiyaga biriktirilgan, hali kesilmagan (7.3).
+                pozitsiyaga biriktirilgan, hali kesilmagan (7.3). <b>Ochilgan rulon</b> — enisi
+                o&apos;sha, bo&apos;yi kamaygan; buyurtma tushganda tizim avval shuni tugatadi (7.6).
               </p>
 
               <div className="overflow-x-auto rounded-karta border border-chegara bg-sirt">
@@ -102,7 +153,8 @@ export default async function OmborQoldigi({
                   </thead>
                   <tbody className="divide-y divide-chegara [&>tr:nth-child(even)]:bg-fon/50">
                     {olchamli.map((q) => (
-                      <tr key={q.materialId}>
+                      <Fragment key={q.materialId}>
+                      <tr>
                         <td className="px-4 py-2.5 font-medium">{q.nom}</td>
                         <td className="raqam px-4 py-2.5">{kvM(q.jamiKvM)}</td>
                         <td className="raqam px-4 py-2.5 text-belgi-yashil">{kvM(q.boshKvM)}</td>
@@ -131,6 +183,8 @@ export default async function OmborQoldigi({
                           </Link>
                         </td>
                       </tr>
+                      <TarkibQatori tarkib={tarkib.filter((t) => t.materialId === q.materialId)} />
+                      </Fragment>
                     ))}
                   </tbody>
                 </table>

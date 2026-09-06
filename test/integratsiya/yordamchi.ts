@@ -40,6 +40,16 @@ export const SINOV_TELEFON = '998900009001';
 export const SINOV_USTA_TELEFON = '998900009002';
 export const SINOV_PAROL = 'integratsiya-sinov-paroli';
 
+/**
+ * ⚠️ ULANISHNI YOPISH CHEGARALANADI — `sql.end({ timeout: 5 })`.
+ *
+ *    2026-09-03: hamma 533 test o'tdi, lekin bitta faylda `sql.end()`
+ *    120 soniyada ulgurmadi va to'plam QIZIL bo'ldi. Tarmoq uzilishi
+ *    emas edi (`CONNECT_TIMEOUT` belgilari nol) — masofadagi baza
+ *    bilan xushmuomala yopilish shunchaki sekin.
+ *
+ *    Kod xatosi bo'lmagan narsa testni qizil qilmasligi kerak.
+ */
 export function sinovUlanishi(): Ulanish {
   const url = SINOV_BAZA_URL;
 
@@ -59,7 +69,12 @@ export function sinovUlanishi(): Ulanish {
    *    qo'yardi va hammasi qaytadan boshlanardi: egasining
    *    bazasiga yana sinov axlati to'planardi.
    */
-  const ish = process.env['DATABASE_URL'] ?? '';
+  /**
+   * ⚠️ `muhit-yukla.ts` `DATABASE_URL` ni sinov bazasiga qaratadi va
+   *    aslini `ISH_DATABASE_URL` ga ko'chiradi. Himoya ASLINI
+   *    tekshiradi — aks holda u o'zini o'zi bilan solishtirardi.
+   */
+  const ish = process.env['ISH_DATABASE_URL'] ?? process.env['DATABASE_URL'] ?? '';
   if (ish !== '' && ish === url) {
     throw new Error(
       'TEST_DATABASE_URL va DATABASE_URL BIR XIL. Testlar ishlaydigan ' +
@@ -67,7 +82,21 @@ export function sinovUlanishi(): Ulanish {
     );
   }
 
-  return ulanishYarat(url, { max: 3 });
+  /**
+   * ⚠️ ULANISH BO'SH TURSA HAM YOPILMAYDI (`idleTimeout: 0`).
+   *
+   *    Standart 20 soniyalik chegara bilan ulanish tez-tez qayta
+   *    ochilar va HAR SAFAR DNS so'rovi ketardi. Masofadagi baza
+   *    (Render, Frankfurt) bilan 25 daqiqalik yurishda bu yuzlab
+   *    marta takrorlanadi.
+   *
+   *    2026-09-05: uchta yurish shu sababdan qizil bo'ldi — bir
+   *    yurishda 41 ta `ENOTFOUND`. Kodda birorta xato yo'q edi,
+   *    shunchaki DNS bir necha soniya javob bermadi.
+   *
+   *    Loqal Docker bazasida bu muammo umuman yo'q.
+   */
+  return ulanishYarat(url, { max: 3, idleTimeout: 0, connectTimeout: 60 });
 }
 
 /** Sinov xodimlari bazada borligiga ishonch hosil qiladi. */

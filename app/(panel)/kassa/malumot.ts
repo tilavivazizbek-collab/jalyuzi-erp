@@ -262,9 +262,18 @@ export interface XodimKartochkasi {
   readonly ism: string;
   readonly somBalans: string;
   readonly dollarBalans: string;
-  /** TZ 10.16 — «jami ishlagan» va «jami olgan» alohida ko'rsatiladi */
+  /**
+   * TZ 10.16 — «jami ishlagan» va «jami olgan» alohida ko'rsatiladi.
+   *
+   * ⚠️ Har valyuta ALOHIDA (1.3-invariant). Ilgari bu ikki raqam
+   *    faqat so'mni sanardi va dollarda to'langan avans hech
+   *    qayerda ko'rinmasdi: balans to'g'ri, «jami olgan» esa
+   *    kam chiqardi.
+   */
   readonly jamiIshlagan: string;
   readonly jamiOlgan: string;
+  readonly jamiIshlaganUsd: string;
+  readonly jamiOlganUsd: string;
   readonly harakatlar: readonly {
     readonly id: number;
     readonly sana: Date;
@@ -304,12 +313,19 @@ export async function xodimKartochkasi(
       dollar: string | null;
       ishlagan: string | null;
       olgan: string | null;
+      ishlagan_usd: string | null;
+      olgan_usd: string | null;
     }[]
   >`
     SELECT SUM(summa) FILTER (WHERE valyuta = 'SOM')::text AS som,
            SUM(summa) FILTER (WHERE valyuta = 'USD')::text AS dollar,
            SUM(summa) FILTER (WHERE summa > 0 AND valyuta = 'SOM')::text AS ishlagan,
-           ABS(SUM(summa) FILTER (WHERE summa < 0 AND valyuta = 'SOM'))::text AS olgan
+           ABS(SUM(summa) FILTER (WHERE summa < 0 AND valyuta = 'SOM'))::text AS olgan,
+           -- 1.3 — dollar ALOHIDA sanaladi, so'mga qo'shilmaydi
+           SUM(summa) FILTER (WHERE summa > 0 AND valyuta = 'USD')::text
+             AS ishlagan_usd,
+           ABS(SUM(summa) FILTER (WHERE summa < 0 AND valyuta = 'USD'))::text
+             AS olgan_usd
     FROM xodim_harakat WHERE xodim_id = ${xodimId}`;
 
   const h = await sql<
@@ -333,6 +349,8 @@ export async function xodimKartochkasi(
     dollarBalans: b[0]?.dollar ?? '0',
     jamiIshlagan: b[0]?.ishlagan ?? '0',
     jamiOlgan: b[0]?.olgan ?? '0',
+    jamiIshlaganUsd: b[0]?.ishlagan_usd ?? '0',
+    jamiOlganUsd: b[0]?.olgan_usd ?? '0',
     harakatlar: h,
   };
 }

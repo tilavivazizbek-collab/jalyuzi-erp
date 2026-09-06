@@ -181,6 +181,9 @@ export interface PozitsiyaTafsili {
   readonly id: number;
   readonly tartib: number;
   readonly turNomi: string;
+  /** Qo'shimcha buyumda `null` — u tayyorlanmaydi (3.10) */
+  readonly mahsulotTurId: number | null;
+  readonly qoshimchaMaterialId: number | null;
   readonly eniSm: number;
   readonly boyiSm: number;
   readonly soni: number;
@@ -220,6 +223,15 @@ export interface BuyurtmaTafsili {
   readonly tikuvchiFilialId: number;
   /** TZ 8.9 — to'lgan bo'lsa buyurtma yopilgan, chek chiqarish mumkin */
   readonly yopildi: Date | null;
+  /**
+   * TZ 8.8 — STORNO qilingan buyurtma.
+   *
+   * Bekor qilingandan farqi shu yerda ko'rinadi: pozitsiyalar
+   * ikkalasida ham `BEKOR`, lekin storno «bunday buyurtma
+   * bo'lmagan» degani va hisobotda alohida sanaladi.
+   */
+  readonly stornoSabab: string | null;
+  readonly stornoSana: Date | null;
   readonly pozitsiyalar: readonly PozitsiyaTafsili[];
 }
 
@@ -244,12 +256,15 @@ export async function buyurtmaTafsili(
       sotgan_filial_id: number;
       ishlab_chiqaruvchi_filial_id: number;
       yopildi: Date | null;
+      storno_sabab: string | null;
+      storno_sana: Date | null;
     }[]
   >`
     SELECT b.id, b.raqam, b.sana, m.ism AS mijoz_ismi, m.telefon AS mijoz_telefon,
            x.ism AS sotuvchi_ismi, b.manba, b.valyuta, b.kurs_snapshot,
            b.tayyorlik_sana::text AS tayyorlik_sana,
-           b.sotgan_filial_id, b.ishlab_chiqaruvchi_filial_id, b.yopildi
+           b.sotgan_filial_id, b.ishlab_chiqaruvchi_filial_id, b.yopildi,
+           b.storno_sabab, b.storno_sana
     FROM buyurtma b
     JOIN xodim x ON x.id = b.sotuvchi_id
     LEFT JOIN mijoz m ON m.id = b.mijoz_id
@@ -263,7 +278,9 @@ export async function buyurtmaTafsili(
     {
       id: number;
       tartib: number;
-      tur_nomi: string;
+      tur_nomi: string | null;
+      mahsulot_tur_id: number | null;
+      qoshimcha_material_id: number | null;
       eni_sm: number;
       boyi_sm: number;
       soni: number;
@@ -273,11 +290,22 @@ export async function buyurtmaTafsili(
       usta_ismi: string | null;
     }[]
   >`
-    SELECT p.id, p.tartib, t.nom AS tur_nomi, p.eni_sm, p.boyi_sm, p.soni,
+    /*
+     * 2026-09-03 — bu yerda INNER JOIN mahsulot_tur turardi va QO'SHIMCHA
+     * BUYUM qatori kartochkada UMUMAN ko'rinmasdi: uning turi yo'q
+     * (3.10). Mijozdan puli olinar, buyurtmada esa ko'rinmasdi.
+     *
+     * Endi LEFT JOIN va nom materialdan olinadi.
+     */
+    SELECT p.id, p.tartib,
+           COALESCE(t.nom, qm.nom) AS tur_nomi,
+           p.mahsulot_tur_id, p.qoshimcha_material_id,
+           p.eni_sm, p.boyi_sm, p.soni,
            p.narx_snapshot, p.chegirma_summa, p.holat, u.ism AS usta_ismi
     FROM buyurtma_pozitsiya p
-    JOIN mahsulot_tur t ON t.id = p.mahsulot_tur_id
-    LEFT JOIN xodim u ON u.id = p.usta_id
+    LEFT JOIN mahsulot_tur t ON t.id = p.mahsulot_tur_id
+    LEFT JOIN material qm     ON qm.id = p.qoshimcha_material_id
+    LEFT JOIN xodim u         ON u.id = p.usta_id
     WHERE p.buyurtma_id = ${buyurtmaId}
     ORDER BY p.tartib`;
 
@@ -296,6 +324,8 @@ export async function buyurtmaTafsili(
       sotganFilialId: h.sotgan_filial_id,
       tikuvchiFilialId: h.ishlab_chiqaruvchi_filial_id,
       yopildi: h.yopildi,
+      stornoSabab: h.storno_sabab,
+      stornoSana: h.storno_sana,
       pozitsiyalar: [],
     };
   }
@@ -355,10 +385,14 @@ export async function buyurtmaTafsili(
     sotganFilialId: h.sotgan_filial_id,
     tikuvchiFilialId: h.ishlab_chiqaruvchi_filial_id,
     yopildi: h.yopildi,
+    stornoSabab: h.storno_sabab,
+    stornoSana: h.storno_sana,
     pozitsiyalar: pozitsiyalar.map((p) => ({
       id: p.id,
       tartib: p.tartib,
-      turNomi: p.tur_nomi,
+      turNomi: p.tur_nomi ?? '',
+      mahsulotTurId: p.mahsulot_tur_id,
+      qoshimchaMaterialId: p.qoshimcha_material_id,
       eniSm: p.eni_sm,
       boyiSm: p.boyi_sm,
       soni: p.soni,
@@ -608,8 +642,13 @@ export async function ishOlaOladiganlar(filialId: number): Promise<readonly Usta
 }
 
 export interface BandBolak {
+  /** ⚠️ «Tugatdim» har BAND uchun alohida qoldiq so'raydi (7.6) */
+  readonly bandId: number;
   readonly pozitsiyaId: number;
   readonly kod: string;
+  readonly materialNom: string;
+  /** TZ 7.4 — rulonmi yoki kesma: qoldiq shunga qarab hisoblanadi */
+  readonly turi: string;
   readonly eniM: number | null;
   readonly boyiM: number | null;
 }
@@ -626,20 +665,179 @@ export async function bandBolaklar(
   if (pozitsiyaIdlar.length === 0) return [];
 
   const q = await ulanishOl()<
-    { pozitsiya_id: number; kod: string; eni_m: string | null; boyi_m: string | null }[]
+    {
+      band_id: number;
+      pozitsiya_id: number;
+      kod: string;
+      material_nom: string;
+      turi: string;
+      eni_m: string | null;
+      boyi_m: string | null;
+    }[]
   >`
-    SELECT bd.buyurtma_pozitsiya_id AS pozitsiya_id, bo.kod,
-           bo.eni_m::text, bo.boyi_m::text
+    SELECT bd.id AS band_id, bd.buyurtma_pozitsiya_id AS pozitsiya_id, bo.kod,
+           m.nom AS material_nom, bo.turi, bo.eni_m::text, bo.boyi_m::text
     FROM band bd
-    JOIN bolak bo ON bo.id = bd.bolak_id
+    JOIN bolak bo   ON bo.id = bd.bolak_id
+    JOIN material m ON m.id = bo.material_id
     WHERE bd.buyurtma_pozitsiya_id = ANY(${pozitsiyaIdlar as number[]})
       AND bd.holat = 'FAOL'
     ORDER BY bd.id`;
 
   return q.map((x) => ({
+    bandId: x.band_id,
     pozitsiyaId: x.pozitsiya_id,
     kod: x.kod,
+    materialNom: x.material_nom,
+    turi: x.turi,
     eniM: x.eni_m === null ? null : Number(x.eni_m),
     boyiM: x.boyi_m === null ? null : Number(x.boyi_m),
   }));
+}
+
+// ─── 8.7 · Tahrirlash uchun pozitsiya tarkibi ─────────────────────────────
+
+export interface TahrirSlot {
+  readonly slotId: number;
+  readonly materialId: number;
+  readonly hisoblanganMiqdor: string;
+  readonly tuzatilganMiqdor: string | null;
+  readonly birlik: string;
+  readonly narxSnapshot: string;
+}
+
+export interface TahrirAksessuar {
+  readonly materialId: number;
+  readonly nom: string;
+  readonly soni: string;
+  readonly birlik: string;
+  readonly narxSnapshot: string;
+  readonly qoldaKiritildi: boolean;
+}
+
+export interface PozitsiyaTahriri {
+  readonly pozitsiyaId: number;
+  readonly mahsulotTurId: number;
+  readonly turNomi: string;
+  readonly holat: string;
+  readonly eniSm: number;
+  readonly boyiSm: number;
+  readonly soni: number;
+  readonly narxSnapshot: string;
+  readonly chegirmaSumma: string;
+  readonly xizmatHaqi: string;
+  readonly formulaSnapshot: unknown;
+  readonly slotlar: readonly TahrirSlot[];
+  readonly aksessuarlar: readonly TahrirAksessuar[];
+}
+
+/**
+ * TZ 8.7 — tahrirlash oynasi uchun pozitsiyaning JORIY tarkibi.
+ *
+ * ⚠️ Aksessuarlar ham qaytariladi: tahrir ularni ustidan yozadi,
+ *    shuning uchun forma ularni QAYTA yuborishi kerak — aks holda
+ *    tahrirdan keyin komplekt yo'qolardi.
+ *
+ * ⚠️ Qo'shimcha buyum qaytarilmaydi (`null`): uning materiali
+ *    ombordan allaqachon yechilgan va tahrir boshqa amal (3.10).
+ */
+export async function pozitsiyaTahriri(
+  pozitsiyaId: number,
+  filialId: number,
+): Promise<PozitsiyaTahriri | null> {
+  const sql = ulanishOl();
+
+  const q = await sql<
+    {
+      id: number;
+      mahsulot_tur_id: number | null;
+      tur_nomi: string | null;
+      holat: string;
+      eni_sm: number;
+      boyi_sm: number;
+      soni: number;
+      narx_snapshot: string;
+      chegirma_summa: string | null;
+      xizmat_haqi: string | null;
+      formula_snapshot: unknown;
+    }[]
+  >`
+    SELECT p.id, p.mahsulot_tur_id, t.nom AS tur_nomi, p.holat,
+           p.eni_sm, p.boyi_sm, p.soni,
+           p.narx_snapshot::text, p.chegirma_summa::text, p.xizmat_haqi::text,
+           p.formula_snapshot
+    FROM buyurtma_pozitsiya p
+    JOIN buyurtma b       ON b.id = p.buyurtma_id
+    LEFT JOIN mahsulot_tur t ON t.id = p.mahsulot_tur_id
+    WHERE p.id = ${pozitsiyaId}
+      AND (b.sotgan_filial_id = ${filialId}
+           OR b.ishlab_chiqaruvchi_filial_id = ${filialId})`;
+
+  const p = q[0];
+  if (p === undefined || p.mahsulot_tur_id === null) return null;
+
+  const [slotlar, aksessuarlar] = await Promise.all([
+    sql<
+      {
+        slot_id: number;
+        material_id: number;
+        hisoblangan_miqdor: string;
+        tuzatilgan_miqdor: string | null;
+        birlik: string;
+        narx_snapshot: string;
+      }[]
+    >`
+      SELECT slot_id, material_id, hisoblangan_miqdor::text,
+             tuzatilgan_miqdor::text, birlik, narx_snapshot::text
+      FROM pozitsiya_material
+      WHERE buyurtma_pozitsiya_id = ${pozitsiyaId}
+      ORDER BY slot_id`,
+
+    sql<
+      {
+        material_id: number;
+        nom: string;
+        soni: string;
+        birlik: string;
+        narx_snapshot: string;
+        qolda_kiritildi: boolean;
+      }[]
+    >`
+      SELECT pa.material_id, m.nom, pa.soni::text, pa.birlik,
+             pa.narx_snapshot::text, pa.qolda_kiritildi
+      FROM pozitsiya_aksessuar pa
+      JOIN material m ON m.id = pa.material_id
+      WHERE pa.buyurtma_pozitsiya_id = ${pozitsiyaId}
+      ORDER BY m.nom`,
+  ]);
+
+  return {
+    pozitsiyaId: p.id,
+    mahsulotTurId: p.mahsulot_tur_id,
+    turNomi: p.tur_nomi ?? '',
+    holat: p.holat,
+    eniSm: p.eni_sm,
+    boyiSm: p.boyi_sm,
+    soni: p.soni,
+    narxSnapshot: p.narx_snapshot,
+    chegirmaSumma: p.chegirma_summa ?? '0',
+    xizmatHaqi: p.xizmat_haqi ?? '0',
+    formulaSnapshot: p.formula_snapshot,
+    slotlar: slotlar.map((x) => ({
+      slotId: x.slot_id,
+      materialId: x.material_id,
+      hisoblanganMiqdor: x.hisoblangan_miqdor,
+      tuzatilganMiqdor: x.tuzatilgan_miqdor,
+      birlik: x.birlik,
+      narxSnapshot: x.narx_snapshot,
+    })),
+    aksessuarlar: aksessuarlar.map((x) => ({
+      materialId: x.material_id,
+      nom: x.nom,
+      soni: x.soni,
+      birlik: x.birlik,
+      narxSnapshot: x.narx_snapshot,
+      qoldaKiritildi: x.qolda_kiritildi,
+    })),
+  };
 }

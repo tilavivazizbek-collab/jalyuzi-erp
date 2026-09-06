@@ -37,7 +37,7 @@ beforeAll(() => {
 }, 120_000);
 
 afterAll(async () => {
-  await sql.end();
+  await sql.end({ timeout: 5 });
 });
 
 async function materialYarat(nomi: string): Promise<number> {

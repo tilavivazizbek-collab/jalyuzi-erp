@@ -92,6 +92,77 @@ export async function filialQoldigi(filialId: number): Promise<MaterialQoldigi[]
   }));
 }
 
+/**
+ * TZ 7.4 · 7.11 — QOLDIQ TARKIBI: nimadan iborat.
+ *
+ * ⚠️ Egasi (2026-09-05): «omborda 5 rulon: 4 tasi butun 5 × 50, bittasi
+ *    ochilgan 3 × 32, va oldingi buyurtmadan qolgan 1.5 × 2 kesma —
+ *    shunday turishi kerak.»
+ *
+ *    Faqat kv.m ko'rsatish yetarli emas: 60 kv.m bitta 3 × 20 rulon
+ *    ham, oltita 1 × 10 parcha ham bo'lishi mumkin. Ikkinchisi bilan
+ *    3 metrlik parda tikib bo'lmaydi.
+ *
+ * ⚠️ `YOLDA` KIRMAYDI — u hali qabul qilinmagan (20.7.4) va jadvalda
+ *    o'z ustuni bor.
+ */
+export interface QoldiqTarkibi {
+  readonly materialId: number;
+  readonly guruh: 'RULON' | 'OCHILGAN' | 'KESMA';
+  readonly eniM: number;
+  readonly boyiM: number;
+  readonly soni: number;
+  readonly kvM: number;
+}
+
+export async function qoldiqTarkibi(filialId: number): Promise<QoldiqTarkibi[]> {
+  const qatorlar = await ulanishOl()<
+    {
+      material_id: number;
+      guruh: string;
+      tartib: number;
+      eni_m: string;
+      boyi_m: string;
+      soni: number;
+      kv_m: string;
+    }[]
+  >`
+    SELECT b.material_id,
+           CASE WHEN b.turi = 'OSTATKA' THEN 'KESMA'
+                WHEN b.ochilgan THEN 'OCHILGAN'
+                ELSE 'RULON' END AS guruh,
+           /*
+            * ⚠️ Saralash ALIFBO bo'yicha emas. Egasi ro'yxatni shu
+            *    tartibda o'qiydi: avval butun rulonlar (asosiy zaxira),
+            *    keyin ochilgani, oxirida mayda kesmalar. Alifbo esa
+            *    KESMA → OCHILGAN → RULON berardi, ya'ni teskarisi.
+            */
+           CASE WHEN b.turi = 'OSTATKA' THEN 3
+                WHEN b.ochilgan THEN 2
+                ELSE 1 END AS tartib,
+           b.eni_m::text, b.boyi_m::text,
+           COUNT(*)::int AS soni,
+           SUM(b.eni_m * b.boyi_m)::text AS kv_m
+    FROM bolak b
+    JOIN material m ON m.id = b.material_id
+    WHERE b.filial_id = ${filialId}
+      AND b.faol = true
+      AND b.holat IN ('BOSH', 'BAND')
+      AND m.hisob_turi = 'RULON'
+      AND b.eni_m IS NOT NULL AND b.boyi_m IS NOT NULL
+    GROUP BY b.material_id, 2, 3, b.eni_m, b.boyi_m
+    ORDER BY b.material_id, 3, b.eni_m DESC, b.boyi_m DESC`;
+
+  return qatorlar.map((q) => ({
+    materialId: q.material_id,
+    guruh: q.guruh as QoldiqTarkibi['guruh'],
+    eniM: Number(q.eni_m),
+    boyiM: Number(q.boyi_m),
+    soni: q.soni,
+    kvM: Number(q.kv_m),
+  }));
+}
+
 // ─── 7.11 · Material kartochkasi ──────────────────────────────────────────
 
 export interface BolakQatori {
@@ -161,6 +232,154 @@ export interface HarakatQatori {
   readonly bekorQilingan: boolean;
 }
 
+// ─── 7.11 · Material kartochkasining QISQA XULOSASI ──────────────────────
+
+export interface SarfUlushi {
+  readonly turNomi: string;
+  /** Shu turga ketgan ulush — foizda, butun songa yaxlitlangan */
+  readonly foiz: number;
+}
+
+export interface MaterialXulosasi {
+  /** Jami kirim — miqdor sarflash birligida, summa so'mda */
+  readonly kirimMiqdor: number;
+  readonly kirimSumma: string;
+  /** Jami sarflangan (kesim) */
+  readonly sarfMiqdor: number;
+  readonly sarfSumma: string;
+  /** Qayerga ketgani — eng ko'p olgan mahsulot turlari */
+  readonly sarfUlushlari: readonly SarfUlushi[];
+  /** Chiqindi + brak — haqiqiy yo'qotish */
+  readonly yoqotishMiqdor: number;
+  readonly yoqotishSumma: string;
+  /** Omborda turgan qoldiqning qiymati */
+  readonly qoldiqQiymati: string;
+}
+
+/**
+ * TZ 7.11 — material kartochkasining tepasidagi to'rt raqam.
+ *
+ * ⚠️ 2.2-invariant — bu raqamlar HECH QAYERDA SAQLANMAYDI: xuddi
+ *    qoldiqning o'zi kabi, ular `ombor_harakat` jadvalining
+ *    yig'indisidan chiqadi. Saqlansa bir marta xato bo'lib abadiy
+ *    qolardi.
+ *
+ * ⚠️ Miqdor uch ustunda yotadi (kv.m · sm · dona) — materialning
+ *    turiga qarab biri to'ladi. Shuning uchun uchalasi qo'shiladi:
+ *    bitta material faqat bitta birlikda yuritiladi.
+ *
+ * ⚠️ Summa MODULDA olinadi: chiqim jurnalda manfiy yotadi (2.2),
+ *    ekranda esa «qancha pulga» degan savolga javob kerak.
+ */
+export async function materialXulosasi(
+  materialId: number,
+  filialId: number,
+): Promise<MaterialXulosasi> {
+  const sql = ulanishOl();
+
+  const [jamilar, ulushlar, qoldiq] = await Promise.all([
+    sql<
+      {
+        kirim_miqdor: string | null;
+        kirim_summa: string | null;
+        sarf_miqdor: string | null;
+        sarf_summa: string | null;
+        yoqotish_miqdor: string | null;
+        yoqotish_summa: string | null;
+      }[]
+    >`
+      WITH h AS (
+        SELECT oh.turi,
+               ABS(COALESCE(oh.miqdor_kv_m, 0)
+                   + COALESCE(oh.miqdor_sm, 0)
+                   + COALESCE(oh.miqdor_dona, 0)) AS miqdor,
+               ABS(oh.tannarx_summa) AS summa
+        FROM ombor_harakat oh
+        JOIN bolak b ON b.id = oh.bolak_id
+        WHERE b.material_id = ${materialId} AND oh.filial_id = ${filialId}
+      )
+      SELECT
+        /* Kirim — xarid va boshlang'ich qoldiq */
+        SUM(miqdor) FILTER (WHERE turi IN ('KIRIM','BOSHLANGICH'))::text
+          AS kirim_miqdor,
+        SUM(summa)  FILTER (WHERE turi IN ('KIRIM','BOSHLANGICH'))::text
+          AS kirim_summa,
+        /* Sarflangan — kesim */
+        SUM(miqdor) FILTER (WHERE turi = 'KESIM')::text AS sarf_miqdor,
+        SUM(summa)  FILTER (WHERE turi = 'KESIM')::text AS sarf_summa,
+        /* Yo'qotish — chiqindi va brak */
+        SUM(miqdor) FILTER (WHERE turi IN ('CHIQINDI','BRAK'))::text
+          AS yoqotish_miqdor,
+        SUM(summa)  FILTER (WHERE turi IN ('CHIQINDI','BRAK'))::text
+          AS yoqotish_summa
+      FROM h`,
+
+    /*
+     * «Qayerga ketdi» — kesim yozuvlari buyurtma pozitsiyasiga
+     * bog'langan, u esa mahsulot turiga. Qo'shimcha buyumda tur
+     * yo'q (3.10), shuning uchun JOIN ichki emas.
+     */
+    sql<{ nom: string; miqdor: string }[]>`
+      SELECT COALESCE(mt.nom, 'Boshqa') AS nom,
+             SUM(ABS(COALESCE(oh.miqdor_kv_m, 0)
+                     + COALESCE(oh.miqdor_sm, 0)
+                     + COALESCE(oh.miqdor_dona, 0)))::text AS miqdor
+      FROM ombor_harakat oh
+      JOIN bolak b ON b.id = oh.bolak_id
+      LEFT JOIN buyurtma_pozitsiya p
+             ON p.id = oh.manba_id AND oh.manba_turi = 'buyurtma_pozitsiya'
+      LEFT JOIN mahsulot_tur mt ON mt.id = p.mahsulot_tur_id
+      WHERE b.material_id = ${materialId} AND oh.filial_id = ${filialId}
+        AND oh.turi = 'KESIM'
+      GROUP BY 1
+      ORDER BY 2 DESC
+      LIMIT 4`,
+
+    /*
+     * Qoldiq qiymati — har bo'lak O'Z tannarxi bilan (2.3-invariant).
+     * «Oxirgi tannarx» ga ko'paytirish turli narxda kelgan
+     * bo'laklarni noto'g'ri baholardi.
+     *
+     * ⚠️ Dollarli tannarx qo'shilmaydi (1.3-invariant) — 0031
+     *    migratsiyasidan keyin bunday bo'lak qolmasligi kerak,
+     *    lekin filtr himoya bo'lib turadi.
+     */
+    sql<{ qiymat: string | null }[]>`
+      SELECT SUM(
+               CASE WHEN b.turi = 'DONA'
+                    THEN COALESCE(b.miqdor, 0)
+                    ELSE COALESCE(b.eni_m, 0) * COALESCE(b.boyi_m, 0) END
+               * b.tannarx_birlik_snapshot
+             )::numeric(14,2)::text AS qiymat
+      FROM bolak b
+      WHERE b.material_id = ${materialId} AND b.filial_id = ${filialId}
+        AND b.faol = true AND b.holat IN ('BOSH','BAND')
+        AND b.tannarx_valyuta_snapshot = 'SOM'`,
+  ]);
+
+  const j = jamilar[0];
+  const son = (x: string | null | undefined): number => Number(x ?? 0);
+
+  const sarfJami = ulushlar.reduce((y, u) => y + Number(u.miqdor), 0);
+
+  return {
+    kirimMiqdor: son(j?.kirim_miqdor),
+    kirimSumma: j?.kirim_summa ?? '0',
+    sarfMiqdor: son(j?.sarf_miqdor),
+    sarfSumma: j?.sarf_summa ?? '0',
+    sarfUlushlari:
+      sarfJami === 0
+        ? []
+        : ulushlar.map((u) => ({
+            turNomi: u.nom,
+            foiz: Math.round((Number(u.miqdor) / sarfJami) * 100),
+          })),
+    yoqotishMiqdor: son(j?.yoqotish_miqdor),
+    yoqotishSumma: j?.yoqotish_summa ?? '0',
+    qoldiqQiymati: qoldiq[0]?.qiymat ?? '0',
+  };
+}
+
 /**
  * TZ 7.11 — harakatlar tarixi.
  *
@@ -223,6 +442,16 @@ export async function materialSarlavhasi(materialId: number): Promise<{
   /** Q-14 — boshlang'ich qoldiq shu o'lchamlar bilan ochiladi */
   odatdagiEniM: string | null;
   odatdagiBoyiM: string | null;
+  /**
+   * TZ 7.5 — MATERIALNING O'Z chegaralari.
+   *
+   * ⚠️ Ilgari ekran ularni umuman o'qimasdi va `null` (standart 0.5 / 1.0)
+   *    ishlatardi. Materialga «yaroqsiz chegarasi 1.00» yozilsa, KESISH
+   *    unga bo'ysunardi, lekin ekran eskicha yorliq ko'rsatib turardi —
+   *    bir raqam ikki joyda ikki xil edi.
+   */
+  yaroqsizM: number | null;
+  kamIshlatiladiganM: number | null;
 } | null> {
   const q = await ulanishOl()<
     {
@@ -231,9 +460,13 @@ export async function materialSarlavhasi(materialId: number): Promise<{
       sarflash_birligi: string;
       eni: string | null;
       boyi: string | null;
+      yaroqsiz: string | null;
+      kam: string | null;
     }[]
   >`SELECT nom, hisob_turi, sarflash_birligi,
-           standart_rulon_eni_m::text AS eni, odatdagi_rulon_boyi_m::text AS boyi
+           standart_rulon_eni_m::text AS eni, odatdagi_rulon_boyi_m::text AS boyi,
+           yaroqsiz_chegara_m::text AS yaroqsiz,
+           kam_ishlatiladigan_m::text AS kam
     FROM material WHERE id = ${materialId}`;
 
   const m = q[0];
@@ -245,6 +478,8 @@ export async function materialSarlavhasi(materialId: number): Promise<{
         sarflashBirligi: m.sarflash_birligi,
         odatdagiEniM: m.eni,
         odatdagiBoyiM: m.boyi,
+        yaroqsizM: m.yaroqsiz === null ? null : Number(m.yaroqsiz),
+        kamIshlatiladiganM: m.kam === null ? null : Number(m.kam),
       };
 }
 

@@ -256,6 +256,22 @@ export interface KursFarqi {
 }
 
 /**
+ * So'mni dollarga o'giradi — `ogir` ning TESKARISI.
+ *
+ * ⚠️ TZ 9.5 — «Dollar qarzini so'mda to'lash mumkin... Qarz
+ *    `so'm ÷ kurs` bo'yicha kamayadi.» Shu o'girishning YAGONA joyi.
+ *
+ * ⚠️ Kurs bu yerda ham PARAMETR: sozlamadan o'qilsa, eski to'lov
+ *    bugungi kursda qayta hisoblanib 2.3-invariant buzilardi.
+ */
+export function yengil(summa: Som, k: Kurs): Dollar {
+  const natija = ichki(summa)
+    .div(k.qiymat)
+    .toDecimalPlaces(PUL_KASR_XONASI, Decimal.ROUND_HALF_UP);
+  return dollar(natija.toFixed(PUL_KASR_XONASI));
+}
+
+/**
  * Dollardagi qarz to'langanda kurs farqini hisoblaydi.
  *
  * Tannarxga TEGMAYDI: mahsulot allaqachon o'sha narxda sotilgan, o'tgan

@@ -132,6 +132,11 @@ export const boshlangichSxema = z
         z.object({
           eniM: z.number().positive("Eni noldan katta bo'lsin"),
           boyiM: z.number().positive("Bo'yi noldan katta bo'lsin"),
+          /**
+           * TZ 7.4 — bo'lak turi. Berilmasa butun rulon deb olinadi,
+           * ya'ni eski shakldagi ma'lumot ham buzilmaydi.
+           */
+          turi: z.enum(['RULON', 'OCHILGAN', 'KESMA']).default('RULON'),
         }),
       )
       .default([]),

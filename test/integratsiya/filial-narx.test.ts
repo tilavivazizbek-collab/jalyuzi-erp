@@ -45,7 +45,7 @@ beforeAll(async () => {
 }, 120_000);
 
 afterAll(async () => {
-  await sql.end();
+  await sql.end({ timeout: 5 });
 });
 
 describe('TZ 20.9 — filial narx istisnosi', () => {

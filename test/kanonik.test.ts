@@ -196,7 +196,12 @@ describe('K-06: kesim uch qatori — TZ 7.6', () => {
     boyiM: K06.manba.boyiM,
     qismanOchilgan: false,
   };
-  const qoldiq = { ...K06.qoldiq, saqlansinmi: true };
+  /**
+   * ⚠️ Endi bu raqamlarni TIZIM hisoblaydi: 1.80 × 2.00 dan
+   *    1.20 × 2.00 kesilsa yon kesma aynan 0.60 × 2.00 bo'ladi.
+   *    Quyida `kesimRejasi` shuni chiqarishi ham tekshiriladi.
+   */
+  const qoldiq = { manbaQoldiq: null, kesma: K06.qoldiq, kesmaSaqlansinmi: true };
   const chegaralar = { yaroqsizM: null, kamIshlatiladiganM: null };
 
   it('3.60 = 1.20 + 2.40 + 0', () => {

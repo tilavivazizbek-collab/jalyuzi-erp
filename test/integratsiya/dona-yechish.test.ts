@@ -34,7 +34,7 @@ beforeAll(() => {
 afterAll(async () => {
   await sql`UPDATE bolak SET faol = false WHERE kod LIKE ${`${belgi}%`}`;
   await sql`UPDATE material SET faol = false WHERE nom LIKE ${`${belgi}%`}`;
-  await sql.end();
+  await sql.end({ timeout: 5 });
 });
 
 async function materialYarat(): Promise<number> {

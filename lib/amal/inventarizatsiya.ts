@@ -14,7 +14,9 @@
 
 import type postgres from 'postgres';
 import Decimal from 'decimal.js';
-import { som, pulMatn, type Som } from '@/lib/domain/pul';
+// ⚠️ `manfiy` nomi quyida manfiy qoldiqli bo'laklar ro'yxati uchun band
+import { manfiy as manfiyPul, nolmi, som, pulMatn, type Som } from '@/lib/domain/pul';
+import { xarajatYozTx } from './kassa';
 import {
   varaqaYakuni,
   type InventarizatsiyaSababi,
@@ -299,6 +301,45 @@ export async function varaqaYakunla(
       SET holat = 'YAKUNLANDI', farq_summa = ${pulMatn(yakun.jamiFarq)},
           ozgartirildi = now(), ozgartirdi_id = ${xodimId}
       WHERE id = ${varaqaId}`;
+
+    /**
+     * TZ 15.1 · 12.1 — FARQ FOYDA-ZARARGA TUSHADI.
+     *
+     * ⚠️ Kassaga tegilmaydi: pul hech qayerga bormadi. Lekin kamomad
+     *    haqiqiy yo'qotish va u foyda-zararda ko'rinishi shart.
+     *
+     * ⚠️ ISHORA: `farq_summa` MANFIY bo'lsa kamomad (`haqiqatda` <
+     *    `tizimda`) — xarajat MUSBAT bo'lib yoziladi. Ortiqcha
+     *    chiqsa xarajat MANFIY bo'ladi: u xarajatni kamaytiradi,
+     *    alohida daromad emas (qaytarish ushlanmasi bilan bir xil
+     *    naqsh, 8.10).
+     *
+     * ⚠️ 2026-09-03 auditigacha bu yozuv YO'Q edi. Sxemadagi izoh
+     *    «foyda-zararga XARAJAT bo'lib tushadi» deb turardi, lekin
+     *    kodda hech qayerda `INVENTARIZATSIYA_FARQI` yozilmasdi:
+     *    inventarizatsiya qoldiqni tuzatar, yo'qotish esa
+     *    ko'rinmasdi.
+     *
+     * ⚠️ Farq nol bo'lsa yozuv qo'shilmaydi — bo'sh qator jurnalni
+     *    ifloslantiradi.
+     */
+    if (!nolmi(yakun.jamiFarq)) {
+      await xarajatYozTx(
+        tx,
+        {
+          sana: new Date().toISOString().slice(0, 10),
+          filialId: hujjat.filial_id,
+          modda: 'INVENTARIZATSIYA_FARQI',
+          summa: pulMatn(manfiyPul(yakun.jamiFarq)),
+          valyuta: 'SOM',
+          kassaYozuvId: null,
+          manbaTuri: 'inventarizatsiya',
+          manbaId: varaqaId,
+          izoh: `Inventarizatsiya farqi — ${String(yakun.farqli)} qatorda`,
+          },
+        xodimId,
+      );
+    }
 
     await tx`
       INSERT INTO audit_jurnal (xodim_id, filial_id, amal, obyekt_turi, obyekt_id,

@@ -18,9 +18,11 @@ import type postgres from 'postgres';
 import Decimal from 'decimal.js';
 import {
   kesimBalansi,
+  kesimOlchami,
   kesimQatorlari,
+  kesimRejasi,
   type Chegaralar,
-  type Qoldiq,
+  type Qoldiqlar,
 } from '@/lib/domain/kesish';
 import { haqHisobla, type StavkaBirligi } from '@/lib/domain/stavka';
 import { adminlarniOgohlantir, mijozniOgohlantir } from './bildirishnoma';
@@ -39,6 +41,7 @@ import {
   type PozitsiyaHolati,
 } from '@/lib/domain/buyurtma';
 import { bandniBoshatTx } from './band';
+import { xarajatYozTx } from './kassa';
 import { tayyorMahsulotQarziYozTx } from './filial-harakat';
 import { BiznesXato } from '@/lib/xato';
 import { donaYech } from './dona-yechish';
@@ -50,6 +53,8 @@ interface PozitsiyaQatori {
   readonly buyurtma_id: number;
   readonly eni_sm: number;
   readonly boyi_sm: number;
+  /** 3.4 — bir pozitsiyada bir nechta bir xil buyum bo'lishi mumkin */
+  readonly soni: number;
   readonly stavka_snapshot: string | null;
   readonly stavka_birlik_snapshot: string | null;
   readonly sotgan_filial_id: number;
@@ -62,7 +67,7 @@ async function pozitsiyaniQulfla(
 ): Promise<PozitsiyaQatori> {
   const q = await tx<PozitsiyaQatori[]>`
     SELECT p.id, p.holat, p.usta_id, p.buyurtma_id, p.eni_sm, p.boyi_sm,
-           p.stavka_snapshot, p.stavka_birlik_snapshot,
+           p.soni, p.stavka_snapshot, p.stavka_birlik_snapshot,
            b.sotgan_filial_id, b.ishlab_chiqaruvchi_filial_id
     FROM buyurtma_pozitsiya p
     JOIN buyurtma b ON b.id = p.buyurtma_id
@@ -155,10 +160,60 @@ export async function ishniQaytaribOl(
         ? 'TASDIQLANGAN'
         : 'FILIALGA_YUBORILDI';
 
+    /**
+     * ⚠️ ESKI USTAGA HAQ DARHOL YOZILADI.
+     *
+     *    TZ 8.6: «usta ishning bir qismini bajargan bo'lishi mumkin» —
+     *    admin shuning uchun summani QO'LDA kiritadi.
+     *
+     *    Ilgari bu summa faqat `stavka_snapshot` ga yozilardi va
+     *    keyingi usta `ishniOl` bilan uni USTIDAN YOZARDI. Natijada
+     *    eski usta HECH NARSA olmasdi va admin kiritgan raqam
+     *    butunlay yo'qolardi.
+     *
+     * ⚠️ Summa QAT'IY: admin uni ko'rib turib kiritgan, maydonga
+     *    ko'paytirilmaydi. Ilgari `stavka_birlik_snapshot` KV_M
+     *    bo'lib qolar va keyingi «Tugatdim» da bu raqam yana
+     *    maydonga ko'paytirilardi.
+     *
+     * ⚠️ §2.2 — yozuv shakli «Tugatdim» dagi bilan bir xil:
+     *    `xodim_harakat` (balans) + `xarajat` (12.1 — pul chiqmagan
+     *    xarajat, kassa yozuvi YO'Q).
+     */
+    const haq = new Decimal(tolanadiganStavka);
+    if (haq.isNegative()) {
+      throw new BiznesXato('ISH_STAVKA_NOTOGRI', tolanadiganStavka);
+    }
+
+    if (p.usta_id !== null && haq.greaterThan(0)) {
+      await tx`
+        INSERT INTO xodim_harakat (xodim_id, filial_id, turi, summa, valyuta,
+                                   manba_turi, manba_id, izoh, xodim_yozdi_id)
+        VALUES (${p.usta_id}, ${p.ishlab_chiqaruvchi_filial_id}, 'HAQ',
+                ${haq.toFixed(2)}, 'SOM',
+                'buyurtma_pozitsiya', ${pozitsiyaId},
+                ${`Ish qaytarib olindi (8.6) — ${sabab.trim()}`}, ${adminId})`;
+
+      await tx`
+        INSERT INTO xarajat (sana, filial_id, modda, summa, valyuta,
+                             kassa_yozuv_id, manba_turi, manba_id, izoh, xodim_id)
+        VALUES (current_date, ${p.ishlab_chiqaruvchi_filial_id}, 'ISH_HAQI',
+                ${haq.toFixed(2)}, 'SOM', NULL,
+                'buyurtma_pozitsiya', ${pozitsiyaId},
+                ${'Qaytarib olingan ish uchun haq (8.6)'}, ${adminId})`;
+    }
+
+    /**
+     * ⚠️ Stavka TOZALANADI, admin summasi bilan to'ldirilmaydi.
+     *
+     *    U eski ustaga allaqachon to'landi. Keyingi usta `ishniOl`
+     *    bilan O'Z snapshotini oladi (10.10 · 2.3) — aks holda u
+     *    boshqa odam uchun kiritilgan raqamni meros olardi.
+     */
     await tx`
       UPDATE buyurtma_pozitsiya
       SET holat = ${qaytish}, usta_id = NULL,
-          stavka_snapshot = ${tolanadiganStavka},
+          stavka_snapshot = NULL, stavka_birlik_snapshot = NULL,
           ozgartirildi = now(), ozgartirdi_id = ${adminId}
       WHERE id = ${pozitsiyaId}`;
 
@@ -168,7 +223,11 @@ export async function ishniQaytaribOl(
       VALUES (${adminId}, ${p.ishlab_chiqaruvchi_filial_id}, 'ISH_QAYTARIB_OLINDI',
               'buyurtma_pozitsiya', ${pozitsiyaId},
               ${tx.json({ holat: p.holat, usta_id: p.usta_id })},
-              ${tx.json({ holat: qaytish, tolanadigan_stavka: tolanadiganStavka })},
+              ${tx.json({
+                holat: qaytish,
+                eski_ustaga_tolandi: haq.toFixed(2),
+                stavka_tozalandi: true,
+              })},
               ${sabab.trim()})`;
 
     return { eskiUstaId: p.usta_id };
@@ -179,12 +238,44 @@ export async function ishniQaytaribOl(
 
 export type KesimManbasi = 'OSTATKA' | 'RULON';
 
-export interface TugatdimKirimi {
-  readonly pozitsiyaId: number;
+/**
+ * Bitta BAND (bitta mato) bo'yicha usta bergan ma'lumot.
+ *
+ * ⚠️ 2026-09-03 auditida topilgan xato: pozitsiyada har KV_M slot
+ *    uchun ALOHIDA band qo'yiladi (Rollo — old va orqa mato,
+ *    Dikke — uchta), «Tugatdim» esa faqat BIRINCHISINI kesardi.
+ *    Qolgan matolar ombordan chiqmasdi, 30 kundan keyin band
+ *    muddati o'tib «bo'sh»ga qaytardi va jismonan kesilgan mato
+ *    boshqa buyurtmaga taklif qilinardi.
+ *
+ *    Endi usta HAR MATO uchun qolgan bo'lak o'lchamini beradi va
+ *    hammasi bitta tranzaksiyada yechiladi.
+ */
+export interface KesimKirimi {
+  readonly bandId: number;
   /** TZ 7.6 — usta manbani tasdiqlaydi yoki o'zgartiradi */
   readonly manba: KesimManbasi;
-  /** Usta tuzatgan qolgan bo'lak o'lchami (egrilik uchun 5–10 sm oddiy) */
-  readonly qoldiq: Qoldiq;
+  /**
+   * Kesimdan keyin qoladigan IKKI bo'lak (7.4).
+   *
+   * ⚠️ IXTIYORIY. Berilmasa TIZIM O'ZI hisoblaydi — buyurtma
+   *    o'lchami va manba bo'lakdan (`kesimRejasi`). Usta odatda
+   *    shuni tasdiqlaydi; mato qiyshiq kesilsa esa o'z raqamini
+   *    yuboradi va u ustun turadi. Egasining qarori, 2026-09-05.
+   *
+   * ⚠️ Hisob BIR JOYDA — `lib/domain/kesish.ts` da (§2.2). Ekran
+   *    ham, bot ham o'zicha hisoblamaydi.
+   */
+  readonly qoldiqlar?: Qoldiqlar;
+}
+
+export interface TugatdimKirimi {
+  readonly pozitsiyaId: number;
+  /**
+   * Har FAOL band uchun bittadan qator. Bittasi tushib qolsa amal
+   * RAD ETILADI — yarim yechilgan pozitsiya bo'lmaydi (2.1-invariant).
+   */
+  readonly kesimlar: readonly KesimKirimi[];
   /**
    * TZ 7.6 — «Ostatka bor turib rulon tanlansa OGOHLANTIRISH.»
    * Usta ogohlantirishni ko'rib davom etganini bildiradi.
@@ -193,15 +284,38 @@ export interface TugatdimKirimi {
   readonly izoh: string | null;
 }
 
-export interface TugatdimNatijasi {
-  readonly holat: PozitsiyaHolati;
+/** Bitta kesimning natijasi. */
+export interface KesimQatoriNatijasi {
+  readonly bandId: number;
+  readonly materialId: number;
+  /**
+   * TZ 7.6 · 11.7.7 — usta nimadan kesganini TASDIQLAGANI.
+   *
+   * ⚠️ Audit jurnaliga tushadi: «ostatka turgan holda rulon ochildi»
+   *    hisoboti aynan shundan quriladi.
+   */
+  readonly manba: KesimManbasi;
   /** Kesilgan bo'lak kodi */
   readonly manbaBolakKod: string;
   readonly mahsulotgaKvM: number;
   readonly ostatkaKvM: number;
   readonly chiqindiKvM: number;
-  /** Yangi qoldiq kesma kodi — chiqindi bo'lsa null */
-  readonly yangiOstatkaKod: string | null;
+  /**
+   * Kesimdan tug'ilgan bo'lak kodlari — 0, 1 yoki 2 ta.
+   *
+   * ⚠️ IKKITA bo'lishi mumkin (7.4): rulondan kesilganda rulonning
+   *    davomi ham, yon kesma ham yangi kod oladi.
+   */
+  readonly yangiKodlar: readonly string[];
+}
+
+export interface TugatdimNatijasi {
+  readonly holat: PozitsiyaHolati;
+  /** Har mato bo'yicha alohida */
+  readonly kesimlar: readonly KesimQatoriNatijasi[];
+  /** Barcha matolar bo'yicha jami — ish haqi va tannarx shundan */
+  readonly mahsulotgaKvM: number;
+  readonly yangiOstatkaKodlari: readonly string[];
 }
 
 /**
@@ -221,7 +335,6 @@ export interface TugatdimNatijasi {
 export async function tugatdim(
   ulanish: postgres.Sql,
   kirim: TugatdimKirimi,
-  chegaralar: Chegaralar,
   xodimId: number,
 ): Promise<TugatdimNatijasi> {
   return ulanish.begin(async (tx) => {
@@ -231,7 +344,18 @@ export async function tugatdim(
       throw new BiznesXato('POZITSIYA_OTISH_MUMKIN_EMAS', p.holat);
     }
 
-    // Band qilingan bo'lak — 7.6: tizim o'zi topadi
+    /**
+     * Band qilingan bo'laklar — 7.6: tizim o'zi topadi.
+     *
+     * ⚠️ HAMMASI olinadi, birinchisi emas. Ko'p slotli mahsulotda
+     *    (Rollo — old va orqa mato, Dikke — uchta) har mato o'z
+     *    bandiga ega.
+     *
+     * ⚠️ Chegaralar HAR MATERIALDAN alohida keladi (5.5): qoldiq
+     *    yaroqsizmi yoki ostatka bo'lib qoladimi — buni materialning
+     *    o'z chegarasi hal qiladi. Ilgari bitta material chegarasi
+     *    hammasiga qo'llanardi.
+     */
     const bandlar = await tx<
       {
         band_id: number;
@@ -241,108 +365,269 @@ export async function tugatdim(
         eni_m: string;
         boyi_m: string;
         material_id: number;
+        material_nom: string;
         tannarx_birlik_snapshot: string;
         tannarx_valyuta_snapshot: string;
+        ochilgan: boolean;
+        hisoblangan_miqdor: string;
+        yaroqsiz_chegara_m: string | null;
+        kam_ishlatiladigan_m: string | null;
       }[]
     >`
-      SELECT bd.id AS band_id, bo.id AS bolak_id, bo.kod, bo.turi,
-             bo.eni_m, bo.boyi_m, bo.material_id,
-             bo.tannarx_birlik_snapshot, bo.tannarx_valyuta_snapshot
+      SELECT bd.id AS band_id, bo.id AS bolak_id, bo.kod, bo.turi, bo.ochilgan,
+             bo.eni_m, bo.boyi_m, bo.material_id, m.nom AS material_nom,
+             bo.tannarx_birlik_snapshot, bo.tannarx_valyuta_snapshot,
+             -- P-24 — kesim SLOT sarflashidan chiqadi, mahsulot enidan emas
+             pm.hisoblangan_miqdor::text,
+             m.yaroqsiz_chegara_m::text, m.kam_ishlatiladigan_m::text
       FROM band bd
-      JOIN bolak bo ON bo.id = bd.bolak_id
+      JOIN bolak bo    ON bo.id = bd.bolak_id
+      JOIN material m  ON m.id = bo.material_id
+      JOIN pozitsiya_material pm ON pm.id = bd.pozitsiya_material_id
       WHERE bd.buyurtma_pozitsiya_id = ${kirim.pozitsiyaId} AND bd.holat = 'FAOL'
       ORDER BY bd.id
       FOR UPDATE OF bo`;
 
-    const band = bandlar[0];
-    if (band === undefined) {
+    if (bandlar.length === 0) {
       throw new BiznesXato('BAND_TOPILMADI', String(kirim.pozitsiyaId));
     }
 
-    const manbaBolak = {
-      id: band.bolak_id,
-      kod: band.kod,
-      turi: band.turi as 'RULON' | 'OSTATKA',
-      eniM: Number(band.eni_m),
-      boyiM: Number(band.boyi_m),
-      qismanOchilgan: false,
-    };
+    /**
+     * ⚠️ HAR BAND uchun ma'lumot bo'lishi SHART.
+     *
+     *    Bittasi tushib qolsa amal RAD ETILADI — «yarim yechilgan»
+     *    pozitsiya bo'lmaydi (2.1-invariant). Aynan shu tekshiruv
+     *    eski xatoning qaytishiga yo'l qo'ymaydi: ilgari qolgan
+     *    matolar jimgina band bo'lib qolaverardi va 30 kundan
+     *    keyin «bo'sh»ga qaytardi.
+     */
+    const kesimBoyicha = new Map(kirim.kesimlar.map((k) => [k.bandId, k]));
 
-    // §2.2 — uch qator qoidasi DOMAINDA, bu yerda takrorlanmaydi
-    const kesim = kesimQatorlari(manbaBolak, kirim.qoldiq, chegaralar);
-    if (!kesimBalansi(kesim)) {
-      throw new BiznesXato('KESIM_NOTOGRI', 'kesim balansi to\'g\'ri kelmadi');
+    for (const b of bandlar) {
+      if (!kesimBoyicha.has(b.band_id)) {
+        throw new BiznesXato('KESIM_NOTOGRI', `${b.material_nom} uchun qoldiq kiritilmagan`);
+      }
     }
 
-    const tannarx = new Decimal(band.tannarx_birlik_snapshot);
     const filialId = p.ishlab_chiqaruvchi_filial_id;
+    const natijalar: KesimQatoriNatijasi[] = [];
+    let jamiMahsulotgaKvM = 0;
+    let jamiTannarx = new Decimal(0);
 
-    /** P-20 — tannarx SARFLASH birligida, summa maydonga ko'paytiriladi. */
-    const summa = (kvM: number): string => tannarx.times(kvM).toFixed(2);
+    for (const band of bandlar) {
+      const k = kesimBoyicha.get(band.band_id);
+      if (k === undefined) continue;
 
-    // ── 1-qator: manbadan chiqdi (7.6) ──
-    // Jurnalga MANFIY tushadi — bo'lak ombordan chiqmoqda (2.2-invariant)
-    const chiqdiKvM = Number(kesim.qatorlar.find((q) => q.turi === 'KESIM')?.kvM ?? 0);
-    await tx`
-      INSERT INTO ombor_harakat (filial_id, bolak_id, turi, miqdor_kv_m,
-                                 tannarx_summa, manba_turi, manba_id, izoh, xodim_id)
-      VALUES (${filialId}, ${band.bolak_id}, 'KESIM',
-              ${(-chiqdiKvM).toFixed(4)}, ${summa(-chiqdiKvM)},
-              'buyurtma_pozitsiya', ${kirim.pozitsiyaId},
-              ${`${kirim.manba} dan kesildi${kirim.izoh === null ? '' : ` — ${kirim.izoh}`}`},
-              ${xodimId})`;
+      const manbaBolak = {
+        id: band.bolak_id,
+        kod: band.kod,
+        turi: band.turi as 'RULON' | 'OSTATKA',
+        eniM: Number(band.eni_m),
+        boyiM: Number(band.boyi_m),
+        // 0035 — ochilgan rulon endi haqiqiy belgi (7.6, 5-qadam)
+        qismanOchilgan: band.ochilgan,
+      };
 
-    // Manba bo'lak ombordan chiqadi
-    await tx`
-      UPDATE bolak SET holat = 'ISHLATILDI', buyurtma_pozitsiya_id = ${kirim.pozitsiyaId},
-                       ozgartirildi = now(), ozgartirdi_id = ${xodimId}
-      WHERE id = ${band.bolak_id}`;
+      const chegaralar: Chegaralar = {
+        yaroqsizM:
+          band.yaroqsiz_chegara_m === null ? null : Number(band.yaroqsiz_chegara_m),
+        kamIshlatiladiganM:
+          band.kam_ishlatiladigan_m === null ? null : Number(band.kam_ishlatiladigan_m),
+      };
 
-    await tx`
-      UPDATE band SET holat = 'ISHLATILDI', ozgartirildi = now(),
-                      ozgartirdi_id = ${xodimId}
-      WHERE id = ${band.band_id}`;
+      // §2.2 — uch qator qoidasi DOMAINDA, bu yerda takrorlanmaydi
+      /**
+        * TZ 7.4 · P-24 — qoldiqlar tizim tomonidan hisoblanadi.
+        *
+        * ⚠️ `kerak` SLOT kesimi, butun mahsulot o'lchami EMAS.
+        *
+        *    Dikke 180 × 220 da CHET sloti 0.30 × 2.20 = 0.66 kv.m.
+        *    Butun eni ishlatilsa mahsulotga 3.96 kv.m yozilar va
+        *    ~3.3 kv.m mato hujjatda jimgina yo'qolardi. Uch qator
+        *    invarianti baribir nolga teng chiqqani uchun tekshiruv
+        *    buni USHLAMAYDI — shuning uchun qoida shu yerda.
+        *
+        *    §2.2 — hisob `kesimOlchami` da, bir joyda: veb sotuv
+        *    yo'li ham, bot yo'li ham aynan shuni chaqiradi.
+        */
+       const kerak = kesimOlchami(band.hisoblangan_miqdor, p.boyi_sm);
+       const reja = kesimRejasi(manbaBolak, kerak);
+       const qoldiqlar: Qoldiqlar = k.qoldiqlar ?? {
+         manbaQoldiq: reja.manbaQoldiq,
+         kesma: reja.kesma,
+         kesmaSaqlansinmi: true,
+       };
 
-    // ── 2-qator: qoldiq kesma ──
-    const ostatka = kesim.qatorlar.find((q) => q.turi === 'OSTATKA');
-    let yangiKod: string | null = null;
+       const kesim = kesimQatorlari(manbaBolak, qoldiqlar, chegaralar);
+      if (!kesimBalansi(kesim)) {
+        throw new BiznesXato('KESIM_NOTOGRI', `${band.kod} — kesim balansi to'g'ri kelmadi`);
+      }
 
-    if ((ostatka?.kvM ?? 0) > 0 && ostatka?.eniM !== null && ostatka?.boyiM !== null) {
-      const yangi = await tx<{ id: number; kod: string }[]>`
-        INSERT INTO bolak (material_id, filial_id, kod, turi, eni_m, boyi_m,
-                           ota_bolak_id, tannarx_birlik_snapshot,
-                           tannarx_valyuta_snapshot, holat, yaratdi_id)
-        VALUES (${band.material_id}, ${filialId},
-                'O-' || nextval('bolak_kod_seq'), 'OSTATKA',
-                ${ostatka?.eniM ?? 0}, ${ostatka?.boyiM ?? 0},
-                ${band.bolak_id},
-                -- EC-OMB-06 — tannarx OTASIDAN meros oladi, qayta hisoblanmaydi
-                ${band.tannarx_birlik_snapshot}, ${band.tannarx_valyuta_snapshot},
-                'BOSH', ${xodimId})
-        RETURNING id, kod`;
+      const tannarx = new Decimal(band.tannarx_birlik_snapshot);
+      /** P-20 — tannarx SARFLASH birligida, summa maydonga ko'paytiriladi. */
+      const summa = (kvM: number): string => tannarx.times(kvM).toFixed(2);
 
-      yangiKod = yangi[0]?.kod ?? null;
+      /**
+       * TZ 7.6 · 11.7.7 — «Ostatka bor turib rulon tanlansa
+       * OGOHLANTIRISH.»
+       *
+       * ⚠️ AYNAN SHU YERDA, band qilishda emas.
+       *
+       *    Band qilishda tizim qoidaga qat'iy amal qiladi: sig'adigan
+       *    kesma har doim rulondan ustun turadi (7.6, 5-qadam). Ya'ni
+       *    u yerda bunday holat tug'ilmaydi.
+       *
+       *    Holat USTADAN keladi: tizim kesmani band qilgan, usta esa
+       *    «men rulondan kesdim» deydi — kesma iflos, yirtiq yoki
+       *    joyida topilmagan bo'lishi mumkin. TZ 7.6 buni
+       *    BLOKLAMAYDI, lekin yozib boradi.
+       *
+       * ⚠️ Yangi jadval YO'Q: audit jurnali aynan «kim, qachon,
+       *    nega» uchun (2.4) va 11.7.7 hisoboti shundan quriladi.
+       */
+      if (k.manba === 'RULON' && band.turi === 'OSTATKA') {
+        await tx`
+          INSERT INTO audit_jurnal (xodim_id, filial_id, amal, obyekt_turi,
+                                    obyekt_id, yangi_qiymat, izoh)
+          VALUES (${xodimId}, ${filialId}, 'RULON_OCHILDI', 'bolak',
+                  ${band.bolak_id},
+                  ${tx.json({
+                    kesma_kod: band.kod,
+                    kesma_eni_m: band.eni_m,
+                    kesma_boyi_m: band.boyi_m,
+                    material_nom: band.material_nom,
+                    pozitsiya_id: kirim.pozitsiyaId,
+                  })},
+                  ${`${band.kod} kesmasi band edi, usta rulondan kesdi`})`;
+      }
 
+      // ── 1-qator: manbadan chiqdi (7.6) ──
+      // Jurnalga MANFIY tushadi — bo'lak ombordan chiqmoqda (2.2-invariant)
+      const chiqdiKvM = Number(kesim.qatorlar.find((q) => q.turi === 'KESIM')?.kvM ?? 0);
       await tx`
         INSERT INTO ombor_harakat (filial_id, bolak_id, turi, miqdor_kv_m,
-                                   tannarx_summa, manba_turi, manba_id, xodim_id)
-        VALUES (${filialId}, ${yangi[0]?.id ?? 0}, 'OSTATKA',
-                ${(ostatka?.kvM ?? 0).toFixed(4)}, ${summa(ostatka?.kvM ?? 0)},
-                'buyurtma_pozitsiya', ${kirim.pozitsiyaId}, ${xodimId})`;
-    }
-
-    // ── 3-qator: chiqindi — HAQIQIY YO'QOTISH (7.6) ──
-    const chiqindi = kesim.qatorlar.find((q) => q.turi === 'CHIQINDI');
-    if ((chiqindi?.kvM ?? 0) > 0) {
-      await tx`
-        INSERT INTO ombor_harakat (filial_id, bolak_id, turi, miqdor_kv_m,
-                                   tannarx_summa, manba_turi, manba_id, izoh,
-                                   xodim_id)
-        VALUES (${filialId}, ${band.bolak_id}, 'CHIQINDI',
-                ${(chiqindi?.kvM ?? 0).toFixed(4)}, ${summa(chiqindi?.kvM ?? 0)},
+                                   tannarx_summa, manba_turi, manba_id, izoh, xodim_id)
+        VALUES (${filialId}, ${band.bolak_id}, 'KESIM',
+                ${(-chiqdiKvM).toFixed(4)}, ${summa(-chiqdiKvM)},
                 'buyurtma_pozitsiya', ${kirim.pozitsiyaId},
-                ${kesim.qoldiqDarajasi === 'YAROQSIZ' ? 'Yaroqsiz qoldiq (7.5)' : null},
+                ${`${band.material_nom}: ${k.manba} dan kesildi${kirim.izoh === null ? '' : ` — ${kirim.izoh}`}`},
                 ${xodimId})`;
+
+      // Manba bo'lak ombordan chiqadi
+      await tx`
+        UPDATE bolak SET holat = 'ISHLATILDI', buyurtma_pozitsiya_id = ${kirim.pozitsiyaId},
+                         ozgartirildi = now(), ozgartirdi_id = ${xodimId}
+        WHERE id = ${band.bolak_id}`;
+
+      await tx`
+        UPDATE band SET holat = 'ISHLATILDI', ozgartirildi = now(),
+                        ozgartirdi_id = ${xodimId}
+        WHERE id = ${band.band_id}`;
+
+      /**
+       * ── 2-qator: kesimdan tug'ilgan bo'laklar ──
+       *
+       * ⚠️ IKKITAGACHA. TZ 7.4: «Rulonning ENI hech qachon
+       *    o'zgarmaydi, kesilganda faqat BO'YI kamayadi.»
+       *
+       *    3 × 35 rulondan 1.5 × 5 parda kesilsa:
+       *      · rulon    3.00 × 30.00  → RULON, `ochilgan = true`
+       *      · kesma    1.50 ×  5.00  → OSTATKA
+       *
+       *    Ilgari BITTASI yaratilardi va u har doim OSTATKA edi.
+       *    Shu sababli ochilgan rulon degan tushuncha yo'qolib,
+       *    omborda nechta BUTUN rulon borligi ko'rinmasdi.
+       */
+      const yangiKodlar: string[] = [];
+
+      for (const yb of kesim.yangiBolaklar) {
+        const yangi = await tx<{ id: number; kod: string }[]>`
+          INSERT INTO bolak (material_id, filial_id, kod, turi, ochilgan,
+                             eni_m, boyi_m, ota_bolak_id,
+                             tannarx_birlik_snapshot, tannarx_valyuta_snapshot,
+                             holat, yaratdi_id)
+          VALUES (${band.material_id}, ${filialId},
+                  ${yb.rulonmi ? 'R-' : 'O-'} || nextval('bolak_kod_seq'),
+                  ${yb.rulonmi ? 'RULON' : 'OSTATKA'}, ${yb.rulonmi},
+                  ${yb.eniM}, ${yb.boyiM}, ${band.bolak_id},
+                  -- EC-OMB-06 — tannarx OTASIDAN meros oladi, qayta hisoblanmaydi
+                  ${band.tannarx_birlik_snapshot}, ${band.tannarx_valyuta_snapshot},
+                  'BOSH', ${xodimId})
+          RETURNING id, kod`;
+
+        const yangiId = yangi[0]?.id;
+        const yangiKod = yangi[0]?.kod;
+        if (yangiId === undefined || yangiKod === undefined) {
+          throw new BiznesXato('KESIM_NOTOGRI', `${band.kod} — yangi bo'lak yozilmadi`);
+        }
+        yangiKodlar.push(yangiKod);
+
+        await tx`
+          INSERT INTO ombor_harakat (filial_id, bolak_id, turi, miqdor_kv_m,
+                                     tannarx_summa, manba_turi, manba_id, xodim_id)
+          VALUES (${filialId}, ${yangiId}, 'OSTATKA',
+                  ${yb.kvM.toFixed(4)}, ${summa(yb.kvM)},
+                  'buyurtma_pozitsiya', ${kirim.pozitsiyaId}, ${xodimId})`;
+      }
+
+      // ── 3-qator: chiqindi — HAQIQIY YO'QOTISH (7.6) ──
+      const chiqindi = kesim.qatorlar.find((q) => q.turi === 'CHIQINDI');
+      if ((chiqindi?.kvM ?? 0) > 0) {
+        await tx`
+          INSERT INTO ombor_harakat (filial_id, bolak_id, turi, miqdor_kv_m,
+                                     tannarx_summa, manba_turi, manba_id, izoh,
+                                     xodim_id)
+          VALUES (${filialId}, ${band.bolak_id}, 'CHIQINDI',
+                  ${(chiqindi?.kvM ?? 0).toFixed(4)}, ${summa(chiqindi?.kvM ?? 0)},
+                  'buyurtma_pozitsiya', ${kirim.pozitsiyaId},
+                  ${kesim.qoldiqDarajasi === 'YAROQSIZ' ? 'Yaroqsiz qoldiq (7.5)' : null},
+                  ${xodimId})`;
+      }
+
+      /**
+       * TZ 12.1 — CHIQINDI FOYDA-ZARARGA TUSHADI.
+       *
+       * ⚠️ Chiqindi mahsulot tannarxiga KIRMAYDI: `-SUM(tannarx_summa)`
+       *    ifodasida u ayiriladi (11.5.2). Demak u hech qayerda
+       *    hisobga olinmasdi — na mahsulot narxida, na xarajatda.
+       *    Foyda aynan shu summaga oshib ko'rinardi (2026-09-03).
+       *
+       * ⚠️ Kassaga tegilmaydi: pul mato sotib olinganda chiqqan.
+       *    Bu — HAQIQIY YO'QOTISH (7.6).
+       */
+      const chiqindiKvM = chiqindi?.kvM ?? 0;
+      if (chiqindiKvM > 0) {
+        await xarajatYozTx(
+          tx,
+          {
+            sana: new Date().toISOString().slice(0, 10),
+            filialId,
+            modda: 'CHIQINDI',
+            // Xarajat MUSBAT son bo'lib yoziladi
+            summa: summa(chiqindiKvM),
+            valyuta: 'SOM',
+            kassaYozuvId: null,
+            manbaTuri: 'buyurtma_pozitsiya',
+            manbaId: kirim.pozitsiyaId,
+            izoh: `${band.material_nom} — kesim chiqindisi (7.6)`,
+          },
+          xodimId,
+        );
+      }
+
+      jamiMahsulotgaKvM += kesim.mahsulotgaKvM;
+      jamiTannarx = jamiTannarx.plus(new Decimal(summa(kesim.mahsulotgaKvM)));
+
+      natijalar.push({
+        bandId: band.band_id,
+        materialId: band.material_id,
+        manba: k.manba,
+        manbaBolakKod: band.kod,
+        mahsulotgaKvM: kesim.mahsulotgaKvM,
+        ostatkaKvM: kesim.qatorlar.find((q) => q.turi === 'OSTATKA')?.kvM ?? 0,
+        chiqindiKvM: chiqindi?.kvM ?? 0,
+        yangiKodlar,
+      });
     }
 
     /**
@@ -424,7 +709,9 @@ export async function tugatdim(
       UPDATE buyurtma_pozitsiya
       SET holat = ${yangiHolat}, tugatildi = now(),
           -- 3.15.4 — tayyor mahsulot sotilsa tannarx kerak bo'ladi
-          tannarx_snapshot = ${summa(kesim.mahsulotgaKvM)},
+          -- ⚠️ HAMMA mato bo'yicha jami: ilgari faqat birinchisi
+          --    hisoblanar va tannarx kam chiqardi (11.5.2 buzilardi)
+          tannarx_snapshot = ${jamiTannarx.toFixed(2)},
           ozgartirildi = now(), ozgartirdi_id = ${xodimId}
       WHERE id = ${kirim.pozitsiyaId}`;
 
@@ -477,6 +764,8 @@ export async function tugatdim(
             p.stavka_snapshot,
             (p.stavka_birlik_snapshot ?? 'DONA') as StavkaBirligi,
             maydonKvM,
+            // 10.8 — usta pozitsiyadagi HAMMA buyumni tikadi
+            p.soni,
           );
 
     if (haq !== null && p.usta_id !== null && Number(pulMatn(haq)) > 0) {
@@ -540,11 +829,19 @@ export async function tugatdim(
               ${tx.json({ holat: p.holat })},
               ${tx.json({
                 holat: yangiHolat,
-                manba: kirim.manba,
-                manba_bolak: band.kod,
-                mahsulotga_kv_m: kesim.mahsulotgaKvM,
-                ostatka_kv_m: ostatka?.kvM ?? 0,
-                chiqindi_kv_m: chiqindi?.kvM ?? 0,
+                // Har mato alohida — qaysi bo'lak, qancha ketgani
+                kesimlar: natijalar.map((n) => ({
+                  material_id: n.materialId,
+                  // 11.7.7 — «ostatka turgan holda rulon ochildi»
+                  manba: n.manba,
+                  manba_bolak: n.manbaBolakKod,
+                  mahsulotga_kv_m: n.mahsulotgaKvM,
+                  ostatka_kv_m: n.ostatkaKvM,
+                  chiqindi_kv_m: n.chiqindiKvM,
+                  yangi_bolaklar: n.yangiKodlar,
+                })),
+                mahsulotga_kv_m: jamiMahsulotgaKvM,
+                tannarx: jamiTannarx.toFixed(2),
                 // 7.6 · 11.7.7 — «ostatka turgan holda rulon ochildi»
                 ogoh_tasdiqlandi: kirim.ogohTasdiqlandi,
                 // 10.12 — stavkasi yo'q bo'lsa adminga bildirishnoma
@@ -555,11 +852,9 @@ export async function tugatdim(
 
     return {
       holat: yangiHolat,
-      manbaBolakKod: band.kod,
-      mahsulotgaKvM: kesim.mahsulotgaKvM,
-      ostatkaKvM: ostatka?.kvM ?? 0,
-      chiqindiKvM: chiqindi?.kvM ?? 0,
-      yangiOstatkaKod: yangiKod,
+      kesimlar: natijalar,
+      mahsulotgaKvM: jamiMahsulotgaKvM,
+      yangiOstatkaKodlari: natijalar.flatMap((n) => n.yangiKodlar),
     };
   });
 }

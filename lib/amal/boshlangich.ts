@@ -20,8 +20,23 @@ import { BiznesXato } from '@/lib/xato';
 export interface BoshlangichKirimi {
   readonly materialId: number;
   readonly filialId: number;
-  /** RULON — har bo'lak alohida */
-  readonly bolaklar: readonly { readonly eniM: number; readonly boyiM: number }[];
+  /**
+   * RULON — har bo'lak alohida.
+   *
+   * ⚠️ TURI HAM SO'RALADI (7.4). Ilgari har bo'lak «butun rulon»
+   *    bo'lib yozilardi va egasi omboridagi OCHILGAN rulonni ham,
+   *    oldingi buyurtmadan qolgan KESMANI ham kirita olmasdi —
+   *    hammasi butun rulon bo'lib ko'rinardi.
+   *
+   *    · `RULON`   — butun, ochilmagan rulon
+   *    · `OCHILGAN`— ochilgan rulon: enisi o'sha, bo'yi kamaygan
+   *    · `KESMA`   — oldingi ishdan qolgan parcha
+   */
+  readonly bolaklar: readonly {
+    readonly eniM: number;
+    readonly boyiM: number;
+    readonly turi?: 'RULON' | 'OCHILGAN' | 'KESMA';
+  }[];
   /** DONA va CHIZIQLI */
   readonly miqdor: number | null;
   /** P-20 — SARFLASH birligi uchun tannarx (so'm/kv.m, so'm/sm, so'm/dona) */
@@ -82,13 +97,26 @@ export async function boshlangichQoldiq(
 
     // Bo'lak turi — RULON bo'lsa har o'lcham alohida, aks holda bitta dona
     const yozilajak = rulon
-      ? kirim.bolaklar.map((b) => ({
-          turi: 'RULON',
-          eniM: b.eniM,
-          boyiM: b.boyiM,
-          miqdor: null as number | null,
-        }))
-      : [{ turi: 'DONA', eniM: null, boyiM: null, miqdor: kirim.miqdor }];
+      ? kirim.bolaklar.map((b) => {
+          const t = b.turi ?? 'RULON';
+          return {
+            // Kesma bazada OSTATKA — tanlov algoritmi shu nom bilan ishlaydi (7.6)
+            turi: t === 'KESMA' ? 'OSTATKA' : 'RULON',
+            ochilgan: t === 'OCHILGAN',
+            eniM: b.eniM,
+            boyiM: b.boyiM,
+            miqdor: null as number | null,
+          };
+        })
+      : [
+          {
+            turi: 'DONA',
+            ochilgan: false,
+            eniM: null,
+            boyiM: null,
+            miqdor: kirim.miqdor,
+          },
+        ];
 
     if (yozilajak.length === 0) {
       throw new BiznesXato('KIRIM_BOLAK_YETISHMAYDI', material.nom);
@@ -98,14 +126,17 @@ export async function boshlangichQoldiq(
     const belgi = `B-${String(Date.now())}`;
 
     for (const [i, b] of yozilajak.entries()) {
-      const kod = `${rulon ? 'R' : 'D'}-${belgi}-${String(i + 1)}`;
+      // Kod bo'lakning turini ko'rsatadi: R- rulon · O- kesma · D- dona
+      const prefiks = b.turi === 'DONA' ? 'D' : b.turi === 'OSTATKA' ? 'O' : 'R';
+      const kod = `${prefiks}-${belgi}-${String(i + 1)}`;
 
       const yangi = await tx<{ id: number }[]>`
-        INSERT INTO bolak (material_id, filial_id, kod, turi, eni_m, boyi_m,
-                           miqdor, tannarx_birlik_snapshot, holat, yaratdi_id)
+        INSERT INTO bolak (material_id, filial_id, kod, turi, ochilgan,
+                           eni_m, boyi_m, miqdor, tannarx_birlik_snapshot,
+                           holat, yaratdi_id)
         VALUES (${kirim.materialId}, ${kirim.filialId}, ${kod}, ${b.turi},
-                ${b.eniM}, ${b.boyiM}, ${b.miqdor}, ${kirim.tannarxBirlik},
-                'BOSH', ${xodimId})
+                ${b.ochilgan}, ${b.eniM}, ${b.boyiM}, ${b.miqdor},
+                ${kirim.tannarxBirlik}, 'BOSH', ${xodimId})
         RETURNING id`;
 
       const bolakId = yangi[0]?.id;

@@ -130,8 +130,10 @@ export async function turRoyxati(): Promise<readonly TurQatori[]> {
 export async function sotuvTurlari(
   filialId: number,
   turIdlari?: readonly number[],
+  /** ⚠️ Baza testi O'Z ulanishini beradi (§15) */
+  soruvchi?: ReturnType<typeof ulanishOl>,
 ): Promise<SotuvTuri[]> {
-  const sql = ulanishOl();
+  const sql = soruvchi ?? ulanishOl();
 
   const turlar =
     turIdlari === undefined
@@ -344,7 +346,9 @@ export async function sotuvTurlari(
 export async function turTafsili(
   turId: number,
   filialId: number,
+  /** Baza testi O'Z ulanishini beradi (§15) */
+  soruvchi?: ReturnType<typeof ulanishOl>,
 ): Promise<SotuvTuri | null> {
-  const turlar = await sotuvTurlari(filialId, [turId]);
+  const turlar = await sotuvTurlari(filialId, [turId], soruvchi);
   return turlar[0] ?? null;
 }

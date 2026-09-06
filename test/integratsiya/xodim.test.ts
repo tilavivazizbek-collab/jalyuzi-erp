@@ -58,7 +58,7 @@ beforeAll(async () => {
 afterAll(async () => {
   /** ⚠️ O'chirilmaydi — nofaol qilinadi (§3) */
   await sql`UPDATE xodim SET faol = false WHERE ism LIKE ${`XOD-${belgi}%`}`;
-  await sql.end();
+  await sql.end({ timeout: 5 });
 });
 
 const asos = (o: Partial<Parameters<typeof xodimYarat>[1]> = {}) => ({

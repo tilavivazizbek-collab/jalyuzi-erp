@@ -154,6 +154,23 @@ export function pulChiqmaydimi(modda: XarajatModdasi): boolean {
 }
 
 /**
+ * TZ 7.10 · 12.1 — hisobdan chiqarish sababi qaysi xarajat moddasiga
+ * tushadi.
+ *
+ * ⚠️ Yetkazib beruvchi defekti ALOHIDA moddada: u bizning
+ *    yo'qotishimiz emas, sotuvchining aybi. Yil oxirida «qaysi
+ *    yetkazib beruvchi qancha zarar keltirdi» degan savolga javob
+ *    shu ajratishdan chiqadi (9.5).
+ *
+ * ⚠️ Bazaga TEGMAYDI (§5.1) — sabab parametr bo'lib keladi.
+ */
+export function chiqarishModdasi(sabab: string): XarajatModdasi {
+  return sabab === 'YETKAZIB_BERUVCHI_DEFEKTI'
+    ? 'YETKAZIB_BERUVCHI_DEFEKTI'
+    : 'OMBOR_BRAKI';
+}
+
+/**
  * TZ 12.1 — «Pul CHIQADI, lekin XARAJAT EMAS.»
  *
  * Bu kodlar `xarajat` jadvaliga UMUMAN tushmaydi:

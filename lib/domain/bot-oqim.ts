@@ -52,9 +52,34 @@ export interface Qoralama {
   /** Yig'ilayotgan pozitsiya — savatga qo'shilgach `null` bo'ladi */
   readonly joriy: PozitsiyaQoralama | null;
   readonly savat: readonly PozitsiyaQoralama[];
+  /**
+   * TZ 13.10 — SHU QORALAMANING noyob kaliti.
+   *
+   * ⚠️ NEGA KERAK
+   *
+   *    «Yuborish» ikki marta bosilsa ikkinchi buyurtma yaratilmasligi
+   *    kerak. Ilgari himoya kaliti savat JSON ining UZUNLIGIDAN
+   *    qurilardi:
+   *
+   *      bot:buyurtma:<belgilar soni>:<telegram id>:<pozitsiya soni>
+   *
+   *    120×150 va 130×160 bir xil uzunlik beradi — natijada mijozning
+   *    KEYINGI, butunlay boshqa buyurtmasi «allaqachon yuborilgan»
+   *    deb rad etilardi va jimgina yo'qolardi. `amal_kaliti` da
+   *    muddat yo'q, shuning uchun bu abadiy edi.
+   *
+   *    Kalit endi MAZMUNGA emas, QORALAMAGA bog'langan: bir savat
+   *    ikki marta yuborilsa kalit bir xil, yangi savat esa yangi
+   *    kalit oladi.
+   *
+   * ⚠️ Bo'sh qoralamada `null` — kalit birinchi qadamdayoq beriladi
+   *    (`bot/buyurtma-oqimi.ts`), chunki domen tasodifiy son
+   *    yasamaydi (§5.1 — sof funksiyalar).
+   */
+  readonly kalit: string | null;
 }
 
-export const BOSH_QORALAMA: Qoralama = { joriy: null, savat: [] };
+export const BOSH_QORALAMA: Qoralama = { joriy: null, savat: [], kalit: null };
 
 // ─── Qadam aniqlash ───────────────────────────────────────────────────────
 
@@ -195,7 +220,8 @@ export function savatgaQosh(q: Qoralama): Qoralama {
     throw new BiznesXato('BOT_OQIM_TOLIQ_EMAS');
   }
 
-  return { joriy: null, savat: [...q.savat, p] };
+  // ⚠️ Kalit SAQLANADI — u butun qoralama uchun bitta (13.10)
+  return { ...q, joriy: null, savat: [...q.savat, p] };
 }
 
 /**
@@ -256,6 +282,8 @@ export function qoralamaOqi(xom: unknown): Qoralama {
     savat: savat
       .map((p) => pozitsiyaOqi(p))
       .filter((p): p is PozitsiyaQoralama => p !== null),
+    // Eski sessiyada kalit bo'lmasligi mumkin — yozishda beriladi
+    kalit: typeof x.kalit === 'string' && x.kalit !== '' ? x.kalit : null,
   };
 }
 

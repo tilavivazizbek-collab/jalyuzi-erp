@@ -15,6 +15,23 @@ import { ulanishOl } from '@/lib/db';
 import { BiznesXato } from '@/lib/xato';
 import { birlikTavsifi } from '@/lib/domain/birlik-tanlovi';
 
+/**
+ * ⚠️ ULANISH PARAMETR BO'LIB KELADI — 2026-09-03 da qo'shildi.
+ *
+ *    Bu funksiyalar ichida `ulanishOl()` chaqirilardi, ya'ni ular
+ *    DOIM `DATABASE_URL` ga — egasining ISHLAYDIGAN bazasiga —
+ *    yozardi. Baza testi `TEST_DATABASE_URL` ni bersa ham foydasi
+ *    yo'q edi: funksiya uni ko'rmasdi.
+ *
+ *    Natijada baza testi ishlaydigan bazaga sinov mijozi, materiali
+ *    va guruhini yozib qo'ydi — CLAUDE.md §15 aynan shundan
+ *    ogohlantiradi, lekin himoya bu teshikni yopmasdi.
+ *
+ *    Endi ulanish tashqaridan beriladi; berilmasa avvalgidek
+ *    ishlaydi, shuning uchun ekranlardagi chaqiruvlar o'zgarmaydi.
+ */
+type Soruvchi = ReturnType<typeof ulanishOl>;
+
 export interface TezBand {
   readonly id: number;
   readonly nom: string;
@@ -35,11 +52,15 @@ export function tezNomTozala(xom: string): string | null {
  *    «To'r matolar» chiqsa sotuvchi qaysi birini tanlashni bilmaydi.
  *    Shuning uchun mavjudi QAYTARILADI, dublikat yaratilmaydi.
  */
-export async function guruhTezYarat(nom: string, xodimId: number): Promise<TezBand> {
+export async function guruhTezYarat(
+  nom: string,
+  xodimId: number,
+  soruvchi?: Soruvchi,
+): Promise<TezBand> {
   const t = tezNomTozala(nom);
   if (t === null) throw new BiznesXato('NOM_NOTOGRI', "Nom noto'g'ri");
 
-  const sql = ulanishOl();
+  const sql = soruvchi ?? ulanishOl();
 
   const bor = await sql<TezBand[]>`
     SELECT id, nom FROM almashtirish_guruh
@@ -58,11 +79,15 @@ export async function guruhTezYarat(nom: string, xodimId: number): Promise<TezBa
 
 // ─── TZ 9.1 · Yetkazib beruvchi ───────────────────────────────────────────
 
-export async function yetkazibTezYarat(nom: string, xodimId: number): Promise<TezBand> {
+export async function yetkazibTezYarat(
+  nom: string,
+  xodimId: number,
+  soruvchi?: Soruvchi,
+): Promise<TezBand> {
   const t = tezNomTozala(nom);
   if (t === null) throw new BiznesXato('NOM_NOTOGRI', "Nom noto'g'ri");
 
-  const sql = ulanishOl();
+  const sql = soruvchi ?? ulanishOl();
 
   const bor = await sql<TezBand[]>`
     SELECT id, nom FROM yetkazib_beruvchi
@@ -95,6 +120,7 @@ export async function materialTezYarat(
   nom: string,
   olchovBirligi: string,
   xodimId: number,
+  soruvchi?: Soruvchi,
 ): Promise<TezBand> {
   const t = tezNomTozala(nom);
   if (t === null) throw new BiznesXato('NOM_NOTOGRI', "Nom noto'g'ri");
@@ -118,7 +144,7 @@ export async function materialTezYarat(
     );
   }
 
-  const sql = ulanishOl();
+  const sql = soruvchi ?? ulanishOl();
 
   const bor = await sql<TezBand[]>`
     SELECT id, nom FROM material
@@ -145,11 +171,15 @@ export async function materialTezYarat(
  *    yozib yangi mijoz yaratsa, qarz kimga yozilgani chalkashib
  *    ketardi. Shuning uchun mavjudi qaytariladi.
  */
-export async function mijozTezYarat(nom: string, xodimId: number): Promise<TezBand> {
+export async function mijozTezYarat(
+  nom: string,
+  xodimId: number,
+  soruvchi?: Soruvchi,
+): Promise<TezBand> {
   const t = tezNomTozala(nom);
   if (t === null) throw new BiznesXato('NOM_NOTOGRI', "Ism noto'g'ri");
 
-  const sql = ulanishOl();
+  const sql = soruvchi ?? ulanishOl();
 
   const bor = await sql<TezBand[]>`
     SELECT id, ism AS nom FROM mijoz

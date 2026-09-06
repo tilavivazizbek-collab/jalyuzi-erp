@@ -19,10 +19,10 @@ import { enterYuborilmasin } from '../../forma-yordamchi';
 import { useActionState, useMemo, useState } from 'react';
 import { sarflashHisobla, standartQiymatlar } from '@/lib/domain/formula';
 import { sm, type SarflashBirligi } from '@/lib/domain/birlik';
-import { kurs, nolSom, pulKorsat, pulMatn, qosh, som, type Som } from '@/lib/domain/pul';
+import { dollar, kurs, nolSom, pulKorsat, pulMatn, qosh, som, type Som } from '@/lib/domain/pul';
 import { aksessuarNarxi, katalogNarxi, matoNarxi, qatorSummasi } from '@/lib/domain/narx';
 import { pozitsiyaNarxiniHisobla } from '@/lib/domain/pozitsiya-narxi';
-import { amaldagiOffset } from '@/lib/domain/mijoz';
+import { amaldagiOffset, limitHolati, offsetQollanmadimi } from '@/lib/domain/mijoz';
 import { chegirmaMatni } from '../../mijoz/guruh/royxat';
 import { biznesXatosimi } from '@/lib/xato';
 import { Maydon, kirishUslubi } from '../../maydon';
@@ -33,7 +33,7 @@ import {
   BOSH_QIYMATLAR as MIJOZ_BOSH_QIYMATLAR,
 } from '../../mijoz/forma';
 import { mijozModalYaratAmali } from '../../mijoz/amal';
-import { buyurtmaYaratAmali, turTafsiliAmali } from './amal';
+import { pozitsiyalarQoshAmali, buyurtmaYaratAmali, turTafsiliAmali } from './amal';
 import { BOSH_HOLAT } from './holat';
 import type { SotuvMijozi, SotuvTuri } from './malumot';
 import { QoshimchaQoshish, type QoshimchaMaterial } from './qoshimcha';
@@ -80,10 +80,10 @@ let keyingiKalit = 0;
  *    zanjirning oxirida bir marta bajariladi (20.9.3) — shuning uchun
  *    bu yerda yaxlitlanmaydi.
  *
- * ⚠️ `USD` offseti JORIY kursni talab qiladi (6.3). Kurs sotuv ekraniga
- *    hali ulanmagan, shuning uchun dollarli offset qo'llanmaydi va
- *    sotuvchiga ochiq aytiladi — jimgina noto'g'ri narx chiqarishdan
- *    ko'ra ko'rinadigan cheklov yaxshi.
+ * ⚠️ `USD` offseti JORIY kursda so'mga o'giriladi (6.3). Kurs
+ *    kiritilmagan bo'lsa offset QO'LLANMAYDI va sotuvchiga ochiq
+ *    aytiladi — jimgina noto'g'ri narx chiqarishdan ko'ra
+ *    ko'rinadigan cheklov yaxshi.
  */
 
 const son = (x: string): number | null => {
@@ -104,6 +104,7 @@ export function SotuvFormasi({
   joriyKurs,
   qoshimchalar,
   kassalar,
+  qoshish = null,
 }: {
   /** Faqat nom va raqam — yengil ro'yxat (3.2) */
   turlar: readonly { id: number; nom: string; rasmBormi: boolean }[];
@@ -112,6 +113,14 @@ export function SotuvFormasi({
   filiallar: readonly { id: number; nom: string; bosh: boolean }[];
   ozFilialId: number;
   mijozQoshaOladi: boolean;
+  /**
+   * TZ 8.7 — MAVJUD buyurtmaga pozitsiya qo'shish rejimi.
+   *
+   * ⚠️ `null` — odatiy sotuv. Aks holda mijoz, filial va to'lov
+   *    QAYTA SO'RALMAYDI: ular buyurtmada allaqachon bor va
+   *    o'zgartirilmaydi.
+   */
+  qoshish?: { readonly buyurtmaId: number; readonly raqam: string } | null;
   /** TZ 6.3 — modalda yangi mijozga darhol guruh tanlash uchun */
   mijozGuruhlari: readonly { id: number; nom: string }[];
   /** TZ 6.2 — mijoz turlari (narx darajasi) */
@@ -130,7 +139,16 @@ export function SotuvFormasi({
    */
   kassalar: readonly { id: number; nom: string; turi: string; valyuta: string }[];
 }) {
-  const [holat, yubor, kutilmoqda] = useActionState(buyurtmaYaratAmali, BOSH_HOLAT);
+  /**
+   * ⚠️ Ikkala rejim BIR XIL formani ishlatadi (§2.2): pozitsiya
+   *    yig'ish mantig'i — tur, slot, mato, narx — bir joyda turadi.
+   */
+  const [holat, yubor, kutilmoqda] = useActionState(
+    qoshish === null
+      ? buyurtmaYaratAmali
+      : pozitsiyalarQoshAmali.bind(null, qoshish.buyurtmaId),
+    BOSH_HOLAT,
+  );
 
   /**
    * ⚠️ Kurs `Kurs` turiga o'raladi — `ogir()` faqat shuni qabul
@@ -166,12 +184,41 @@ export function SotuvFormasi({
    * TZ 6.3 — mijozning SHAXSIY chegirmasi guruhnikidan ustun.
    *    Qoida `lib/domain/mijoz.ts` da — bot ham shuni ishlatadi.
    */
-  const offset = amaldagiOffset(
-    mijoz,
+  const guruhOffseti =
     mijoz === null
       ? null
-      : { offsetTuri: mijoz.guruhOffsetTuri, offsetQiymat: mijoz.guruhOffsetQiymat },
-  );
+      : { offsetTuri: mijoz.guruhOffsetTuri, offsetQiymat: mijoz.guruhOffsetQiymat };
+
+  /** TZ 6.3 — USD offseti JORIY kursda so'mga o'giriladi */
+  const offset = amaldagiOffset(mijoz, guruhOffseti, kursObyekti);
+
+  /**
+   * ⚠️ Kurs kiritilmagan bo'lsa USD offseti QO'LLANMAYDI va buni
+   *    sotuvchi BILISHI kerak. Ilgari u jimgina tashlab yuborilardi:
+   *    kartochkada «−10 $» turar, mijoz esa standart narxda olardi.
+   */
+  const offsetOgohi = offsetQollanmadimi(mijoz, guruhOffseti, kursObyekti);
+
+  /**
+   * TZ 6.4 — «Limitdan oshsa sotuvchi mustaqil qaror qabul qiladi,
+   * tizim BLOKLAMAYDI.» Faqat ogohlantirish chiqadi.
+   *
+   * ⚠️ Bu qoida yozilgan-u, HECH QAYERDAN chaqirilmagan edi: mijozning
+   *    joriy qarzi umuman so'ralmasdi. Ya'ni ogohlantirish hech qachon
+   *    chiqmagan.
+   *
+   * ⚠️ Dollar qarzi JORIY kursda qo'shiladi (6.4). Kurs yo'q bo'lsa
+   *    tekshiruv o'tkazib yuboriladi — noto'g'ri ogohlantirishdan
+   *    ko'ra ogohlantirmaslik yaxshi.
+   */
+  const limit = useMemo(() => {
+    if (mijoz === null || mijoz.qarzLimiti === null || kursObyekti === null) return null;
+    return limitHolati(
+      { som: som(mijoz.qarzSom), dollar: dollar(mijoz.qarzDollar) },
+      som(mijoz.qarzLimiti),
+      kursObyekti,
+    );
+  }, [mijoz, kursObyekti]);
 
   /**
    * TZ 6.2 — tanlangan mijoz TURI uchun material narxi.
@@ -475,6 +522,24 @@ export function SotuvFormasi({
     return Number((jami - t).toFixed(2));
   })();
 
+  /**
+   * TZ 3.10 — QARZGA SOTISHDA MIJOZ MAJBURIY.
+   *
+   * ⚠️ Egasi (2026-09-03): «mijoz kiritilmasa qarz saqlanmaydi» —
+   *    shuning uchun qarz qoladigan buyurtma mijozsiz UMUMAN
+   *    saqlanmaydi. Ilgari buyurtma saqlanar, to'lov esa rad
+   *    etilardi: pul kassada qolib, tizimga tushmasdi va kun
+   *    yopilganda ortiqcha bo'lib chiqardi.
+   *
+   * ⚠️ To'lov kiritilmagan bo'lsa ham qarz qoladi — bepul berilmaydi.
+   */
+  const qarzQoladi = tolovQoldiq === null ? savat.length > 0 : tolovQoldiq > 0.009;
+  /**
+   * ⚠️ Qo'shish rejimida mijoz SO'RALMAYDI: u buyurtmada bor.
+   *    Qarz ham o'sha buyurtmaga yoziladi (8.7 · 6.8).
+   */
+  const mijozKerak = qoshish === null && qarzQoladi && mijoz === null;
+
   const yuborilajak = {
     mijozId: mijoz?.id ?? null,
     ishlabChiqaruvchiFilialId: tikuvchi,
@@ -487,7 +552,15 @@ export function SotuvFormasi({
      */
     kursSnapshot: joriyKurs,
     tayyorlikSana: tayyorlik === '' ? null : tayyorlik,
-    qarzgaKetadimi: false,
+    qarzgaKetadimi: qarzQoladi,
+    /**
+     * TZ 3.11 — kelishilgan summa SERVERGA ketadi va u yerda
+     * chegirma bo'lib pozitsiyalarga taqsimlanadi.
+     *
+     * ⚠️ Ilgari bu maydon shu ro'yxatga QO'SHILMAGAN edi: ekranda
+     *    «chegirma 78 400» ko'rinar, bazaga esa 0 yozilardi.
+     */
+    kelishilganSumma: kelishilgan.trim() === '' ? null : kelishilgan.trim(),
     pozitsiyalar: savat.map((q) => q.yuk),
   };
 
@@ -1055,14 +1128,34 @@ export function SotuvFormasi({
           )}
         </section>
 
+        {/*
+          ⚠️ QO'SHISH REJIMIDA bu blok YASHIRINADI: mijoz, filial va
+             tayyorlik sanasi buyurtmada allaqachon bor va o'zgarmaydi
+             (8.7). Ularni qayta so'rash sotuvchini adashtirardi.
+        */}
+        {qoshish !== null && (
+          <p className="rounded-maydon bg-fon px-4 py-3 text-[13px] text-matn-ikki">
+            <b className="raqam">{qoshish.raqam}</b> buyurtmasiga pozitsiya
+            qo&apos;shilmoqda. Mijoz, filial va to&apos;lov o&apos;zgarmaydi (8.7).
+          </p>
+        )}
+
         {/* ── 3.10 · 3.11 · 3.13 · 20.4 ── */}
-        <section className="grid gap-4 sm:grid-cols-2">
+        <section
+          className={`grid gap-4 sm:grid-cols-2 ${qoshish === null ? '' : 'hidden'}`}
+        >
           <MijozTanlash
             tanlangan={mijoz}
             ozgartir={mijozniOzgartir}
             qoshaOladi={mijozQoshaOladi}
             guruhlar={mijozGuruhlari}
             turlar={mijozTurlari}
+            ogohlantir={offsetOgohi}
+            limitOshdi={
+              limit !== null && limit.oshganmi && limit.limit !== null
+                ? `${pulKorsat(limit.jamiSomda)} / ${pulKorsat(limit.limit)} so'm`
+                : null
+            }
           />
 
           <Maydon
@@ -1152,7 +1245,7 @@ export function SotuvFormasi({
             ⚠️ Kassasi yo'q sotuvchida bu qism KO'RINMAYDI — u pul
                qabul qila olmaydi (12.2).
           */}
-          {kassalar.length > 0 && (
+          {kassalar.length > 0 && qoshish === null && (
             <div className="border-t border-chegara pt-3">
               <label
                 htmlFor="oldindanTolov"
@@ -1211,12 +1304,28 @@ export function SotuvFormasi({
             </div>
           )}
 
+          {/*
+            TZ 3.10 — sotuvchi xato bosishdan OLDIN ko'radi. Xato
+            xabari yetarli emas: buyurtma saqlanmay qaytsa sotuvchi
+            nima bo'lganini tushunmaydi.
+          */}
+          {mijozKerak && (
+            <p className="rounded-maydon border border-belgi-sariq/40 bg-belgi-sariq-fon px-3 py-2 text-[12px] text-belgi-sariq">
+              Qarz qoladi — mijozni tanlang. Tizim qarzni kimdan
+              undirishni bilishi kerak (3.10).
+            </p>
+          )}
+
           <button
             type="submit"
-            disabled={kutilmoqda || savat.length === 0}
+            disabled={kutilmoqda || savat.length === 0 || mijozKerak}
             className="fokus w-full rounded-maydon bg-brend px-5 py-3 text-[14px] font-medium text-white transition-all active:scale-[0.98] hover:bg-brend-quyuq disabled:opacity-50"
           >
-            {kutilmoqda ? 'Saqlanmoqda…' : 'Buyurtmani saqlash'}
+            {kutilmoqda
+              ? 'Saqlanmoqda…'
+              : qoshish === null
+                ? 'Buyurtmani saqlash'
+                : "Buyurtmaga qo'shish"}
           </button>
         </div>
       </aside>
@@ -1231,6 +1340,8 @@ function MijozTanlash({
   qoshaOladi,
   guruhlar,
   turlar,
+  ogohlantir = false,
+  limitOshdi = null,
 }: {
   tanlangan: SotuvMijozi | null;
   ozgartir: (m: SotuvMijozi | null) => void;
@@ -1238,6 +1349,10 @@ function MijozTanlash({
   /** TZ 6.3 — modaldagi yangi mijozga guruh tanlash uchun */
   guruhlar: readonly { id: number; nom: string }[];
   turlar: readonly { id: number; nom: string; soliqKerak: boolean }[];
+  /** TZ 6.3 — dollardagi chegirma kurssiz qo'llanmadi */
+  ogohlantir?: boolean;
+  /** TZ 6.4 — limitdan oshgan bo'lsa: «6 897 500 / 6 500 000» */
+  limitOshdi?: string | null;
 }) {
   const [matn, matnniOzgartir] = useState('');
   const [topilgan, topilganniOzgartir] = useState<readonly SotuvMijozi[]>([]);
@@ -1271,6 +1386,9 @@ function MijozTanlash({
       guruhOffsetQiymat: null,
       mijozTuriId: null,
       turNomi: null,
+      // Yangi mijozning qarzi hali yo'q (6.4)
+      qarzSom: '0',
+      qarzDollar: '0',
     });
     matnniOzgartir('');
     topilganniOzgartir([]);
@@ -1316,6 +1434,28 @@ function MijozTanlash({
             {chegirmaMatni(tanlangan.guruhOffsetTuri, tanlangan.guruhOffsetQiymat)}
           </div>
         ) : null}
+
+        {/*
+          ⚠️ Dollardagi chegirma kurssiz QO'LLANMAYDI. Ilgari u
+             jimgina tashlab yuborilardi: kartochkada «−10 $» turar,
+             mijoz esa standart narxda olardi (6.3).
+        */}
+        {ogohlantir && (
+          <div className="mt-1 text-xs text-belgi-sariq">
+            Dollardagi chegirma qo&apos;llanmadi — kurs kiritilmagan.
+          </div>
+        )}
+
+        {/*
+          ⚠️ TZ 6.4 — BLOKLAMAYDI. «Sotuvchi mustaqil qaror qabul
+             qiladi»: mijoz ishonchli bo'lishi, pul yo'lda bo'lishi
+             mumkin. Tizim faqat raqamni ko'rsatadi.
+        */}
+        {limitOshdi !== null && (
+          <div className="mt-1 text-xs text-belgi-qizil">
+            Qarz limitidan oshgan: {limitOshdi}
+          </div>
+        )}
         <button
           type="button"
           onClick={() => {

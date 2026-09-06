@@ -96,10 +96,45 @@ export function chiqindiMaydoni(bolak: Bolak, kerak: Olcham): number {
 
 // ─── 7.6 · Algoritm: bo'lakni topish ──────────────────────────────────────
 
-/** TZ 7.6, 5-qadam — tartib: avval qoldiq kesma, keyin qisman ochilgan rulon, keyin yangi. */
-function tartibVazni(b: Bolak): number {
-  if (b.turi === 'OSTATKA') return 0;
-  return b.qismanOchilgan ? 1 : 2;
+/**
+ * Kesma buyurtmaga AYNAN mos tushdimi.
+ *
+ * Bunday kesma butunlay ishlatiladi: yon parcha ham, chiqindi ham
+ * qolmaydi. Shuning uchun u eng birinchi navbatda turadi.
+ */
+export function aniqMosmi(b: Bolak, kerak: Olcham): boolean {
+  /**
+   * ⚠️ `1e-9` — o'nlik kasrning ikkilik xatosi uchun.
+   *    `1.51 - 1.50` JavaScriptda 0.010000000000000009 chiqadi va
+   *    toza `<=` taqqoslash 1 sm bag'rikenglikni RAD ETARDI.
+   */
+  const teng = (a: number, b2: number): boolean =>
+    Math.abs(a - b2) <= BAGRIKENGLIK_M + 1e-9;
+
+  return b.turi === 'OSTATKA' && teng(b.eniM, kerak.eniM) && teng(b.boyiM, kerak.boyiM);
+}
+
+/**
+ * TZ 7.6, 5-qadam — tanlov navbati.
+ *
+ * ⚠️ EGASINING QARORI (2026-09-05) — TZ dan bir qadam farq qiladi.
+ *
+ *    TZ: «qoldiq kesma → qisman ochilgan rulon → yangi rulon».
+ *    Egasi: «avval ochiq rulon tugatilsin».
+ *
+ *    Birlashtirildi: AYNAN mos kesma baribir birinchi bo'ladi —
+ *    u butunlay ishlatiladi va ortidan hech narsa qolmaydi. Aynan
+ *    mos kesma bo'lmasa, ochilgan rulon tugatiladi; shundan keyin
+ *    boshqa kesmalar; eng oxirida yangi rulon ochiladi.
+ *
+ *    Sabab: ochilgan rulon omborda «yarim» turgan mol — u qancha
+ *    uzoq tursa, shuncha ko'p ishlatilmay qoladi.
+ */
+function tartibVazni(b: Bolak, kerak: Olcham): number {
+  if (aniqMosmi(b, kerak)) return 0;
+  if (b.turi === 'RULON' && b.qismanOchilgan) return 1;
+  if (b.turi === 'OSTATKA') return 2;
+  return 3;
 }
 
 export interface TanlovNatijasi {
@@ -127,8 +162,8 @@ export function bolakTanla(
   if (mos.length === 0) return null;
 
   const eng = mos.reduce((a, b) => {
-    const at = tartibVazni(a);
-    const bt = tartibVazni(b);
+    const at = tartibVazni(a, kerak);
+    const bt = tartibVazni(b, kerak);
     if (at !== bt) return at < bt ? a : b;
 
     const ac = chiqindiMaydoni(a, kerak);
@@ -151,13 +186,20 @@ export function bolakTanla(
  *
  * Bloklamaydi: bo'lak iflos yoki yirtiq bo'lishi mumkin. Lekin qaror
  * ongli bo'ladi va 11.7.7 hisobotiga tushadi.
+ *
+ * ⚠️ Ogohlantirish faqat YANGI rulon ochilganda beriladi.
+ *
+ *    OCHILGAN rulon tanlangani — bu endi xato emas, balki qoidaning
+ *    o'zi (yuqoridagi `tartibVazni` ga qara). Ilgari ogohlantirish
+ *    manba turiga qarardi va ochilgan rulon tanlangan har safar
+ *    behuda chiqib turardi.
  */
 export function ostatkaBorRulonTanlandi(
   bolaklar: readonly Bolak[],
   kerak: Olcham,
-  tanlanganManba: Manba,
+  tanlangan: Bolak,
 ): Bolak | null {
-  if (tanlanganManba !== 'RULON') return null;
+  if (tanlangan.turi !== 'RULON' || tanlangan.qismanOchilgan) return null;
   return bolaklar.find((b) => b.turi === 'OSTATKA' && sigadimi(b, kerak)) ?? null;
 }
 
@@ -170,19 +212,81 @@ export interface KesimQatori {
   readonly boyiM: Metr | null;
 }
 
+/**
+ * Kesimdan keyin tug'iladigan bo'lak.
+ *
+ * ⚠️ IKKITA bo'ladi, bitta emas. TZ 7.4 misoli: 3 × 35 rulondan
+ *    1.5 × 5 parda kesilsa — rulon 3 × 30 bo'lib QOLADI va yonidan
+ *    1.5 × 5 kesma ortadi.
+ */
+export interface YangiBolak {
+  readonly rol: 'MANBA_QOLDIQ' | 'KESMA';
+  readonly eniM: Metr;
+  readonly boyiM: Metr;
+  readonly kvM: KvadratMetr;
+  /** TZ 7.4 — rulondan qolgan qism RULON bo'lib qoladi, kesma esa OSTATKA */
+  readonly rulonmi: boolean;
+}
+
 export interface KesimNatijasi {
   readonly qatorlar: readonly KesimQatori[];
   /** Mahsulotga ketgan qism */
   readonly mahsulotgaKvM: KvadratMetr;
   /** Qolgan bo'lak saqlanadimi yoki chiqindiga ketadimi */
   readonly qoldiqDarajasi: Daraja;
+  /** Omborda yaratilishi kerak bo'lgan bo'laklar — 0, 1 yoki 2 ta */
+  readonly yangiBolaklar: readonly YangiBolak[];
 }
 
-export interface Qoldiq {
-  readonly eniM: number;
-  readonly boyiM: number;
+/**
+ * TZ 7.4 — kesim geometriyasi.
+ *
+ * «Rulonning ENI hech qachon o'zgarmaydi. Kesilganda faqat BO'YI
+ *  kamayadi.»
+ *
+ * Usta rulondan buyurtma BO'YICHA tasma ochadi, so'ng tasmadan
+ * kerakli ENI ni kesadi:
+ *
+ * ```
+ * 3.00 × 35.00 rulon, buyurtma 1.50 × 5.00
+ *   ├─ rulon qoladi   3.00 × 30.00   (eni o'sha, bo'yi 35 − 5)
+ *   ├─ kesma ortadi   1.50 ×  5.00   (eni 3 − 1.5, bo'yi buyurtmaniki)
+ *   └─ mahsulotga     1.50 ×  5.00 = 7.50 kv.m
+ * ```
+ *
+ * Yig'indi manbaning maydoniga TENG:
+ * `eni×(boyi−t) + (eni−kEni)×t + kEni×t = eni×boyi`.
+ *
+ * ⚠️ Bu funksiya ustaga TAKLIF beradi. Mato qiyshiq kesilsa usta
+ *    raqamni o'zgartiradi (7.6 — «egrilik uchun 5–10 sm oddiy»).
+ */
+export function kesimRejasi(
+  manba: Bolak,
+  kerak: Olcham,
+): {
+  readonly manbaQoldiq: Olcham | null;
+  readonly kesma: Olcham | null;
+  readonly mahsulotKvM: number;
+} {
+  // Rulonda yetarli bo'yi bo'lmasa butunlay ochiladi (bag'rikenglik 1 sm)
+  const tasmaBoyi = Math.min(kerak.boyiM, manba.boyiM);
+  const qolganBoyi = Number((manba.boyiM - tasmaBoyi).toFixed(2));
+  const kesmaEni = Number((manba.eniM - kerak.eniM).toFixed(2));
+
+  return {
+    manbaQoldiq: qolganBoyi > 0 ? { eniM: manba.eniM, boyiM: qolganBoyi } : null,
+    kesma: kesmaEni > 0 ? { eniM: kesmaEni, boyiM: tasmaBoyi } : null,
+    mahsulotKvM: Number((Math.min(kerak.eniM, manba.eniM) * tasmaBoyi).toFixed(4)),
+  };
+}
+
+export interface Qoldiqlar {
+  /** Manbadan qolgan asosiy qism — rulon bo'lsa rulonning o'zi (7.4) */
+  readonly manbaQoldiq: Olcham | null;
+  /** Tasmadan ortgan yon parcha */
+  readonly kesma: Olcham | null;
   /** Usta tuzatishi mumkin (7.6) — chiqindiga chiqarsa `false` */
-  readonly saqlansinmi: boolean;
+  readonly kesmaSaqlansinmi: boolean;
 }
 
 /**
@@ -200,26 +304,73 @@ export interface Qoldiq {
  */
 export function kesimQatorlari(
   manbaBolak: Bolak,
-  qoldiq: Qoldiq,
+  qoldiqlar: Qoldiqlar,
   chegaralar: Chegaralar,
 ): KesimNatijasi {
   const chiqdi = manbaBolak.eniM * manbaBolak.boyiM;
-  const qoldiqKvM = qoldiq.eniM * qoldiq.boyiM;
+  const maydon = (o: Olcham | null): number => (o === null ? 0 : o.eniM * o.boyiM);
 
-  if (qoldiqKvM > chiqdi + 1e-9) {
+  const manbaKvM = maydon(qoldiqlar.manbaQoldiq);
+  const kesmaKvM = maydon(qoldiqlar.kesma);
+
+  if (manbaKvM + kesmaKvM > chiqdi + 1e-9) {
     throw new BiznesXato(
       'KESIM_NOTOGRI',
       "qolgan bo'lak manbadan katta bo'lishi mumkin emas",
     );
   }
 
-  const qoldiqDarajasi = daraja(qoldiq.eniM, chegaralar);
-  // Yaroqsiz qoldiq chiqindiga ketadi (7.5), lekin usta buni o'zgartira oladi
-  const ostatkaBoladi = qoldiq.saqlansinmi && qoldiqDarajasi !== 'YAROQSIZ';
+  /**
+   * ⚠️ Daraja FAQAT KESMAGA qo'llanadi.
+   *
+   *    TZ 7.4 bo'yicha manbadan qolgan qismning ENISI o'zgarmaydi,
+   *    daraja esa (7.5) aynan eni bo'yicha aniqlanadi. Demak omborda
+   *    turgan bo'lak kesimdan keyin ham o'sha darajada qoladi —
+   *    uni qayta tekshirish ma'nosiz.
+   *
+   *    Yon parcha esa yangi, tor eni bilan tug'iladi: mana u
+   *    yaroqsiz bo'lib chiqishi mumkin.
+   */
+  const qoldiqDarajasi: Daraja =
+    qoldiqlar.kesma === null ? 'YAROQLI' : daraja(qoldiqlar.kesma.eniM, chegaralar);
 
-  const ostatkaKvM = ostatkaBoladi ? qoldiqKvM : 0;
-  const chiqindiKvM = ostatkaBoladi ? 0 : qoldiqKvM;
-  const mahsulotga = chiqdi - qoldiqKvM;
+  // Yaroqsiz kesma chiqindiga ketadi (7.5) — usta buni bekor qila olmaydi
+  const kesmaSaqlanadi =
+    qoldiqlar.kesma !== null && qoldiqlar.kesmaSaqlansinmi && qoldiqDarajasi !== 'YAROQSIZ';
+
+  const yangiBolaklar: YangiBolak[] = [];
+  const q = qoldiqlar.manbaQoldiq;
+  if (q !== null) {
+    yangiBolaklar.push({
+      rol: 'MANBA_QOLDIQ',
+      eniM: m(q.eniM),
+      boyiM: m(q.boyiM),
+      kvM: kvM(manbaKvM),
+      // TZ 7.4 — rulonning davomi RULON bo'lib qoladi
+      rulonmi: manbaBolak.turi === 'RULON',
+    });
+  }
+  const k = qoldiqlar.kesma;
+  if (kesmaSaqlanadi && k !== null) {
+    yangiBolaklar.push({
+      rol: 'KESMA',
+      eniM: m(k.eniM),
+      boyiM: m(k.boyiM),
+      kvM: kvM(kesmaKvM),
+      rulonmi: false,
+    });
+  }
+
+  const ostatkaKvM = manbaKvM + (kesmaSaqlanadi ? kesmaKvM : 0);
+  const chiqindiKvM = kesmaSaqlanadi ? 0 : kesmaKvM;
+  const mahsulotga = chiqdi - manbaKvM - kesmaKvM;
+
+  /**
+   * Jurnal qatori bitta o'lchamni ko'rsatadi. Ikkita bo'lak tug'ilsa
+   * o'lcham `null` — aniq o'lchamlar `yangiBolaklar` da, har biri
+   * o'z kodi bilan ombor tarixiga alohida tushadi.
+   */
+  const yagona = yangiBolaklar.length === 1 ? yangiBolaklar[0] : undefined;
 
   return {
     qatorlar: [
@@ -227,13 +378,14 @@ export function kesimQatorlari(
       {
         turi: 'OSTATKA',
         kvM: kvM(ostatkaKvM),
-        eniM: ostatkaBoladi ? m(qoldiq.eniM) : null,
-        boyiM: ostatkaBoladi ? m(qoldiq.boyiM) : null,
+        eniM: yagona?.eniM ?? null,
+        boyiM: yagona?.boyiM ?? null,
       },
       { turi: 'CHIQINDI', kvM: kvM(chiqindiKvM), eniM: null, boyiM: null },
     ],
     mahsulotgaKvM: kvM(mahsulotga),
     qoldiqDarajasi,
+    yangiBolaklar,
   };
 }
 

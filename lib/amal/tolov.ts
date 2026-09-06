@@ -17,6 +17,7 @@
  */
 
 import type postgres from 'postgres';
+import Decimal from 'decimal.js';
 import { kassaYozuviQoshTx } from './kassa';
 import { kunYopiqmi } from './kun-yopish';
 import { tolovniBalansValyutasiga } from '@/lib/domain/balans';
@@ -56,6 +57,19 @@ export interface BuyurtmaTolovi {
   /** TZ 3.12 — «Bir nechta usul birga: naqd + karta» */
   readonly qatorlar: readonly TolovQatori[];
   readonly izoh: string | null;
+  /**
+   * TZ 12.3 · 13.10 — TAKRORLANISHDAN HIMOYA KALITI.
+   *
+   * ⚠️ Har YUBORISH uchun bitta noyob qiymat. Tugma ikki marta
+   *    bosilsa yoki sahifa yangilanib qayta yuborilsa — kalit bir
+   *    xil bo'ladi va ikkinchi yozuv o'tmaydi.
+   *
+   * ⚠️ Ilgari bu himoya `qator = 1` orqali ishlar edi: buyurtmaga
+   *    BIRINCHI to'lovdan keyin ikkinchisini umuman yozib
+   *    bo'lmasdi. Oldindan to'lov olingan har buyurtmada
+   *    topshirishdagi to'lov rad etilardi (TZ 3.12 ga zid).
+   */
+  readonly kalit: string;
 }
 
 export interface TolovNatijasi {
@@ -83,11 +97,38 @@ export async function buyurtmaTolovi(
   if (kirim.qatorlar.length === 0) {
     throw new BiznesXato('TOLOV_BOSH', String(kirim.buyurtmaId));
   }
-  if (kirim.qatorlar.some((q) => Number(q.summa) <= 0)) {
+  if (kirim.qatorlar.some((q) => new Decimal(q.summa).lessThanOrEqualTo(0))) {
     throw new BiznesXato('TOLOV_MANFIY', String(kirim.buyurtmaId));
+  }
+  // Kalitsiz to'lov qabul qilinmaydi — aks holda himoya jimgina o'chib qolardi
+  if (kirim.kalit.trim() === '') {
+    throw new BiznesXato('TOLOV_KALIT_KERAK', String(kirim.buyurtmaId));
   }
 
   return ulanish.begin(async (tx) => {
+    /**
+     * TZ 12.3 — «tugmani qayta bosish yoki sahifani yangilash
+     * ikkinchi yozuv yarata olmaydi».
+     *
+     * ⚠️ Kalit SHU TRANZAKSIYADA yoziladi. Ikki bosish bir vaqtda
+     *    kelsa ikkinchisi birinchisining tugashini kutadi va
+     *    to'qnashuvga uchraydi — himoya kodda emas, BAZADA
+     *    (`amal_kaliti.kalit` birlamchi kalit).
+     *
+     * ⚠️ To'lov biror sababga ko'ra yiqilsa (kassa yopiq, kun
+     *    yopilgan) kalit ham orqaga qaytadi — sotuvchi tuzatib
+     *    qayta yubora oladi.
+     */
+    const kalitYozildi = await tx<{ kalit: string }[]>`
+      INSERT INTO amal_kaliti (kalit, natija)
+      VALUES (${kirim.kalit}, ${tx.json({ buyurtma_id: kirim.buyurtmaId })})
+      ON CONFLICT (kalit) DO NOTHING
+      RETURNING kalit`;
+
+    if (kalitYozildi.length === 0) {
+      throw new BiznesXato('TOLOV_TAKROR', kirim.kalit);
+    }
+
     const b = await tx<
       {
         id: number;
@@ -110,8 +151,59 @@ export async function buyurtmaTolovi(
       throw new BiznesXato('BUYURTMA_TOPILMADI', String(kirim.buyurtmaId));
     }
 
+    /**
+     * ⚠️ OLDINGI TO'LOVLAR HAM HISOBGA OLINADI.
+     *
+     *    Ilgari buyurtmaga faqat BITTA to'lov yozilardi, shuning uchun
+     *    qarz `jami − shu to'lov` deb hisoblanardi. Endi avansdan keyin
+     *    ikkinchi to'lov mumkin va o'sha eski hisob NOTO'G'RI javob
+     *    berardi: 400 000 lik buyurtmaga 150 000 avans, keyin 250 000
+     *    to'langanda «qarz 150 000» deb ko'rsatardi. Baza testi topdi
+     *    (2026-09-03).
+     *
+     *    Manba — kassa yozuvlari: mijozsiz buyurtmada ham ishlaydi.
+     *    Storno qilingan yozuv o'zining teskarisi bilan birga kiradi
+     *    va yig'indida o'zini yo'q qiladi (2.2-invariant).
+     */
+    const oldingilar = await tx<{ summa: string; valyuta: string }[]>`
+      SELECT summa::text, valyuta FROM kassa_yozuv
+      WHERE manba_turi = 'buyurtma' AND manba_id = ${kirim.buyurtmaId}`;
+
+    let oldinTolangan = new Decimal(0);
+    for (const o of oldingilar) {
+      oldinTolangan = oldinTolangan.plus(
+        new Decimal(
+          tolovniBalansValyutasiga(
+            o.summa,
+            o.valyuta as Valyuta,
+            buyurtma.valyuta as Valyuta,
+            buyurtma.kurs_snapshot,
+          ),
+        ),
+      );
+    }
+
     const kassaYozuvlari: number[] = [];
-    let tolangan = 0;
+    /**
+     * ⚠️ PUL `Decimal` BILAN HISOBLANADI (CLAUDE.md §3).
+     *
+     *    Ilgari bu yerda JS `number` ishlatilardi va shu sabab
+     *    quyida `qarz > 0.009` degan qo'lda qo'yilgan chegara bor
+     *    edi: suzuvchi nuqta 678 400.00 − 678 400.00 ni aniq nol
+     *    qilib bermasdi. Endi ayirish aniq va chegara kerak emas.
+     */
+    let tolangan = new Decimal(0);
+
+    /**
+     * TZ 12.3 — qator raqami MAVJUDLARIDAN KEYIN boshlanadi.
+     *
+     * ⚠️ Buyurtmaga bir necha to'lov bo'lishi TZ 3.12 da ochiq
+     *    yozilgan: «To'lov to'liq bo'lmasa, qolgan summa qarzga
+     *    yoziladi» — demak keyin yana to'lanadi. Qator har safar
+     *    1 dan boshlansa `kassa_yozuv_manba` indeksi ikkinchi
+     *    to'lovni bloklardi.
+     */
+    const boshlanish = await keyingiQator(tx, 'buyurtma', kirim.buyurtmaId);
 
     for (const [i, q] of kirim.qatorlar.entries()) {
       await kunOchiqmi(tx, q.kassaId);
@@ -121,12 +213,12 @@ export async function buyurtmaTolovi(
         {
           kassaId: q.kassaId,
           kod,
-          summa: Number(q.summa).toFixed(2),
+          summa: new Decimal(q.summa).toFixed(2),
           valyuta: q.valyuta,
           manbaTuri: 'buyurtma',
           manbaId: kirim.buyurtmaId,
           // TZ 12.3 — bir buyurtmada bir nechta to'lov qatori bo'ladi
-          qator: i + 1,
+          qator: boshlanish + i,
           izoh: kirim.izoh,
         },
         xodimId,
@@ -135,18 +227,20 @@ export async function buyurtmaTolovi(
 
       // AUDIT B-04 — buyurtma valyutasi BITTA, boshqa valyutadagi
       // to'lov buyurtmaning kursi bilan o'giriladi
-      tolangan += Number(
-        tolovniBalansValyutasiga(
-          q.summa,
-          q.valyuta,
-          buyurtma.valyuta as Valyuta,
-          buyurtma.kurs_snapshot,
+      tolangan = tolangan.plus(
+        new Decimal(
+          tolovniBalansValyutasiga(
+            q.summa,
+            q.valyuta,
+            buyurtma.valyuta as Valyuta,
+            buyurtma.kurs_snapshot,
+          ),
         ),
       );
     }
 
-    const jami = Number(buyurtma.jami ?? 0);
-    const qarz = jami - tolangan;
+    const jami = new Decimal(buyurtma.jami ?? 0);
+    const qarz = jami.minus(oldinTolangan).minus(tolangan);
 
     /**
      * TZ 3.12 — «To'lov to'liq bo'lmasa, qolgan summa QARZGA yoziladi.»
@@ -154,7 +248,7 @@ export async function buyurtmaTolovi(
      * ⚠️ TZ 3.10 — mijozsiz buyurtmada qarz yozib bo'lmaydi: tizim
      *    qarzni kimdan undirishni bilmaydi.
      */
-    if (qarz > 0.009 && buyurtma.mijoz_id === null) {
+    if (qarz.greaterThan(0) && buyurtma.mijoz_id === null) {
       throw new BiznesXato('BUYURTMA_MIJOZ_KERAK', qarz.toFixed(2));
     }
 
@@ -172,14 +266,14 @@ export async function buyurtmaTolovi(
                                    kurs_snapshot, manba_turi, manba_id, izoh,
                                    xodim_id)
         VALUES (${buyurtma.mijoz_id}, ${buyurtma.sotgan_filial_id}, 'TOLOV',
-                ${(-tolangan).toFixed(2)}, ${buyurtma.valyuta},
+                ${tolangan.negated().toFixed(2)}, ${buyurtma.valyuta},
                 ${buyurtma.kurs_snapshot}, 'buyurtma_tolov', ${kirim.buyurtmaId},
                 ${kirim.izoh}, ${xodimId})`;
     }
 
     return {
       kassaYozuvlari,
-      qarzgaYozildi: qarz > 0 ? qarz.toFixed(2) : '0.00',
+      qarzgaYozildi: qarz.greaterThan(0) ? qarz.toFixed(2) : '0.00',
       yangiQarz: qarz.toFixed(2),
     };
   });
@@ -205,7 +299,7 @@ export async function qarzniTola(
   filialId: number,
   xodimId: number,
 ): Promise<{ kassaYozuvId: number; qolganQarz: string }> {
-  if (Number(kirim.summa) <= 0) {
+  if (new Decimal(kirim.summa).lessThanOrEqualTo(0)) {
     throw new BiznesXato('TOLOV_MANFIY', String(kirim.mijozId));
   }
 
@@ -217,7 +311,7 @@ export async function qarzniTola(
       {
         kassaId: kirim.kassaId,
         kod: 'K3',
-        summa: Number(kirim.summa).toFixed(2),
+        summa: new Decimal(kirim.summa).toFixed(2),
         valyuta: kirim.valyuta,
         manbaTuri: 'mijoz',
         manbaId: kirim.mijozId,
@@ -232,7 +326,7 @@ export async function qarzniTola(
       INSERT INTO mijoz_harakat (mijoz_id, filial_id, turi, summa, valyuta,
                                  manba_turi, manba_id, izoh, xodim_id)
       VALUES (${kirim.mijozId}, ${filialId}, 'TOLOV',
-              ${(-Number(kirim.summa)).toFixed(2)}, ${kirim.valyuta},
+              ${new Decimal(kirim.summa).negated().toFixed(2)}, ${kirim.valyuta},
               'kassa_yozuv', ${kassaYozuvId}, ${kirim.izoh}, ${xodimId})`;
 
     // 2.2-invariant — qarz SAQLANMAYDI, jurnaldan chiqadi
@@ -286,7 +380,7 @@ export async function ishHaqiTola(
   filialId: number,
   yozgan: number,
 ): Promise<{ kassaYozuvId: number; balansdanYechildi: string }> {
-  if (Number(kirim.summa) <= 0) {
+  if (new Decimal(kirim.summa).lessThanOrEqualTo(0)) {
     throw new BiznesXato('TOLOV_MANFIY', String(kirim.xodimId));
   }
 
@@ -298,7 +392,7 @@ export async function ishHaqiTola(
       {
         kassaId: kirim.kassaId,
         kod: kirim.avansmi ? 'C5' : 'C4',
-        summa: (-Number(kirim.summa)).toFixed(2),
+        summa: new Decimal(kirim.summa).negated().toFixed(2),
         valyuta: kirim.valyuta,
         manbaTuri: 'xodim',
         manbaId: kirim.xodimId,
@@ -322,7 +416,7 @@ export async function ishHaqiTola(
                                  xodim_yozdi_id)
       VALUES (${kirim.xodimId}, ${filialId},
               ${kirim.avansmi ? 'AVANS' : 'TOLOV'},
-              ${(-Number(balansdan)).toFixed(2)}, ${kirim.balansValyutasi},
+              ${new Decimal(balansdan).negated().toFixed(2)}, ${kirim.balansValyutasi},
               ${kirim.kurs}, 'kassa_yozuv', ${kassaYozuvId}, ${kirim.izoh},
               ${yozgan})`;
 

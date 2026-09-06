@@ -79,6 +79,15 @@ export const MATN = {
     navbatBosh: 'Navbatda ish yo‘q.',
     ishlarimBosh: 'Sizda olingan ish yo‘q.',
     sababSora: 'Sababni yozing (majburiy):',
+
+    // ── 13.8 · «Tugatdim» suhbati ────────────────────────────────────
+    tugatdimBoshlandi:
+      'Ishni yakunlaymiz. Har mato uchun qolgan bo‘lak o‘lchamini yozing.',
+    qoldiqNamuna: 'Masalan: 0.6x2.0 — qoldiq qolmasa: 0',
+    qoldiqNotogri:
+      'O‘lchamni tushunmadim. Metrda yozing: 0.6x2.0 — qoldiq qolmasa: 0',
+    ishSizdaEmas: 'Bu ish sizda emas yoki allaqachon tugatilgan.',
+    bandYoq: 'Bu ishga material band qilinmagan — adminga murojaat qiling.',
     soruvKetdi: 'So‘rov adminga yuborildi.',
     avvalOl: 'Avval ishni olishingiz kerak',
   },

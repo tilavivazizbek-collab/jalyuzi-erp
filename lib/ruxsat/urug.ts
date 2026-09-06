@@ -75,6 +75,11 @@ export const ROL_URUGI: readonly RolUrugi[] = [
       // BERILMAYDI: buyurtma.qayta_kesish — 8.17.2 «ADMIN ko'radi va
       //             qaror qiladi». Sotuvchi ishlab chiqarish brakini
       //             tasdiqlamaydi.
+      // BERILMAYDI: buyurtma.holat.tuzat — 8.3. Holatni erkin qo'yish
+      //             ombor va ish haqi hisobini buzishi mumkin.
+      // BERILMAYDI: buyurtma.storno — 8.8 «faqat admin». Sotuvchi o'z
+      //             xato yozuvini o'zi o'chira olmaydi; u faqat BEKOR
+      //             qila oladi va bekor qilish izini qoldiradi.
     ],
     // BERILMAYDI: hisobot.ombor.kor va hisobot.moliya.kor — 11.10
     //             «tannarx, foyda va ish haqi yo'q»

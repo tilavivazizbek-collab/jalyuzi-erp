@@ -97,6 +97,19 @@ export const kirimQator = pgTable(
     miqdorKirim: numeric('miqdor_kirim', { precision: 12, scale: 2 }).notNull(),
     narxBirlik: numeric('narx_birlik', { precision: 14, scale: 2 }).notNull(),
 
+    /**
+     * Narx QAYSI ASOSDA kiritilgan — SNAPSHOT (2.3-invariant, 0036).
+     *
+     * ⚠️ Sotuvchi buni har qatorda alohida tanlaydi va u
+     *    materialning sozlamasidan FARQ QILISHI mumkin. Shu paytgacha
+     *    saqlanmasdi: `kirimYarat` hisoblab, keyin unutardi.
+     *
+     *    Natijada tannarxni qayta hisoblab bo'lmasdi — TZ 9.11
+     *    yozilganda ma'lum bo'ldi va sinov 120 000 o'rniga
+     *    1 020 000 chiqardi.
+     */
+    narxAsosi: text('narx_asosi').notNull().default('BIRLIK'),
+
     // TZ 7.9 — yetkazib beruvchi defekti
     defektMiqdor: numeric('defekt_miqdor', { precision: 12, scale: 2 }).notNull().default('0'),
     defektTuri: text('defekt_turi'),
@@ -118,6 +131,10 @@ export const kirimQator = pgTable(
   (t) => [
     check('kirim_qator_miqdor', sql`${t.miqdorKirim} > 0`),
     check('kirim_qator_narx', sql`${t.narxBirlik} >= 0`),
+    check(
+      'kirim_qator_narx_asosi',
+      sql`${t.narxAsosi} IN ('BIRLIK','METR','KV_M')`,
+    ),
     check(
       'kirim_qator_defekt',
       sql`${t.defektMiqdor} >= 0 AND ${t.defektMiqdor} <= ${t.miqdorKirim}`,
@@ -195,11 +212,28 @@ export const bolak = pgTable(
     tannarxValyutaSnapshot: text('tannarx_valyuta_snapshot').notNull().default('SOM'),
 
     holat: text('holat').notNull().default('BOSH'),
+
+    /**
+     * TZ 7.4 · 7.6 — RULON ochilgan: enisi o'sha, bo'yi kamaygan.
+     *
+     * ⚠️ `ota_bolak_id` dan HISOBLAB BO'LMAYDI: boshlang'ich zahirada
+     *    kiritilgan ochiq rulonning otasi yo'q — u tizimdan oldin
+     *    ochilgan. Shuning uchun alohida belgi (0035).
+     *
+     * TZ 7.6 tanlovi shunga qaraydi: ochilganini tugatmasdan yangi
+     * rulon ochilmaydi.
+     */
+    ochilgan: boolean('ochilgan').notNull().default(false),
     ...ochirilmaydi,
     ...izlar,
   },
   (t) => [
     check('bolak_turi', sql`${t.turi} IN ('RULON','OSTATKA','DONA')`),
+    // Kesma allaqachon rulon emas — u «ochilgan» bo'la olmaydi
+    check(
+      'bolak_ochilgan_faqat_rulon',
+      sql`${t.ochilgan} = false OR ${t.turi} = 'RULON'`,
+    ),
     check(
       'bolak_holat',
       sql`${t.holat} IN ('BOSH','BAND','YOLDA','ISHLATILDI','BRAK','CHIQINDI')`,
@@ -228,6 +262,10 @@ export const bolak = pgTable(
       .where(sql`${t.faol} = true AND ${t.holat} = 'BOSH'`),
     index('bolak_kirim').on(t.kirimQatorId),
     index('bolak_ota').on(t.otaBolakId),
+    // TZ 7.6 — «ochilganini avval tugat» saralashi (0035)
+    index('bolak_ochilgan')
+      .on(t.materialId, t.filialId, t.ochilgan)
+      .where(sql`${t.faol} = true AND ${t.holat} = 'BOSH'`),
   ],
 );
 

@@ -25,7 +25,19 @@ import {
   type DefektTuri,
   type KirimQatori,
 } from '@/lib/domain/tannarx';
-import { kopaytir, nolSom, pulMatn, qosh, som, type Som } from '@/lib/domain/pul';
+import {
+  dollar,
+  kopaytir,
+  kurs,
+  musbatmi,
+  nolSom,
+  ogir,
+  pulMatn,
+  qosh,
+  som,
+  type Som,
+} from '@/lib/domain/pul';
+import { xarajatYozTx } from './kassa';
 import { BiznesXato } from '@/lib/xato';
 import { yetkazibToloviTx } from './yetkazib-tolov';
 
@@ -174,8 +186,40 @@ export async function kirimYarat(
       }
     }
 
+    /**
+     * ── OMBOR TANNARXI DOIM SO'MDA ── TZ 9.6 · 1.3-invariant
+     *
+     * ⚠️ «Tannarx kirim kunidagi kursda QOTADI» — demak u kirim
+     *    kuniyoq SO'MGA o'giriladi va bo'lakka shunday yoziladi.
+     *
+     * ⚠️ 2026-09-03 gacha dollarli kirimda tannarx DOLLARDA
+     *    saqlanardi (`tannarx_valyuta_snapshot = 'USD'`). Oqibati:
+     *
+     *      · ombor qiymati hisobotida bunday bo'laklar UMUMAN
+     *        ko'rinmasdi (`WHERE tannarx_valyuta_snapshot = 'SOM'`)
+     *      · turlar bo'yicha foydada esa 4 (dollar) va 50 000
+     *        (so'm) bitta ustunda qo'shilardi — foyda haqiqatdan
+     *        ancha yuqori ko'rinardi
+     *
+     * ⚠️ HUJJATNING O'ZI tegilmaydi: `kirim.valyuta`, `narx_birlik`,
+     *    `transport_summa` va yetkazib beruvchiga qarz hujjat
+     *    valyutasida qoladi — sotuvchi 4 $/m deb kelishgan va qarz
+     *    ham dollarda (9.2). So'mga faqat OMBOR tomoni o'giriladi.
+     */
+    const kirimKursi =
+      kirim.valyuta === 'USD' && kirim.kursSnapshot !== null
+        ? kurs(kirim.kursSnapshot, new Date(kirim.sana), 'SNAPSHOT')
+        : null;
+
+    /** §2.2 — o'girish faqat `ogir` orqali, kurs parametr sifatida. */
+    const somga = (qiymat: string): string =>
+      kirimKursi === null ? qiymat : pulMatn(ogir(dollar(qiymat), kirimKursi));
+
     // ── 2. Qo'shimcha xarajat taqsimoti (7.9) ──
-    const xarajat = qosh(som(kirim.transportSumma), som(kirim.bojxonaSumma));
+    const xarajat = qosh(
+      som(somga(kirim.transportSumma)),
+      som(somga(kirim.bojxonaSumma)),
+    );
     /**
      * ⚠️ `METR` narxida qator qiymati rulon BO'YLARI yig'indisiga
      *    ko'paytiriladi, rulonlar soniga emas.
@@ -193,7 +237,8 @@ export async function kirimYarat(
     const domenQatorlar: KirimQatori[] = kirim.qatorlar.map((q, i) => ({
       id: i,
       miqdor: q.miqdorKirim,
-      narxBirlik: som(q.narxBirlik),
+      // Ombor tomoni — so'mda (9.6)
+      narxBirlik: som(somga(q.narxBirlik)),
       defektMiqdor: q.defektMiqdor,
       narxAsosi: q.narxAsosi,
       jamiBoyiM: jamiBoyi(q),
@@ -231,7 +276,8 @@ export async function kirimYarat(
         {
           id: i,
           miqdor: q.miqdorKirim,
-          narxBirlik: som(q.narxBirlik),
+          // Ombor tomoni — so'mda (9.6)
+          narxBirlik: som(somga(q.narxBirlik)),
           defektMiqdor: q.defektMiqdor,
           narxAsosi: q.narxAsosi,
           jamiBoyiM: jamiBoyi(q),
@@ -248,14 +294,52 @@ export async function kirimYarat(
 
       const qator = await tx<{ id: number }[]>`
         INSERT INTO kirim_qator (kirim_id, material_id, miqdor_kirim, narx_birlik,
-                                 defekt_miqdor, defekt_turi, transport_ulush,
-                                 tannarx_birlik, yaratdi_id)
+                                 narx_asosi, defekt_miqdor, defekt_turi,
+                                 transport_ulush, tannarx_birlik, yaratdi_id)
         VALUES (${kirimId}, ${q.materialId}, ${q.miqdorKirim}, ${q.narxBirlik},
+                -- 0036 — asos QOTADI: tannarxni qayta hisoblash uchun shart (9.11)
+                ${q.narxAsosi ?? 'BIRLIK'},
                 ${q.defektMiqdor}, ${q.defektTuri}, ${pulMatn(ulush.ulush)},
                 ${pulMatn(tannarx.birlikTannarx)}, ${xodimId})
         RETURNING id`;
 
       const qatorId = qator[0]?.id;
+      if (qatorId === undefined) throw new BiznesXato('KIRIM_SAQLANMADI');
+
+      /**
+       * TZ 7.9 — «10 shtanga 660 000 so'm, 1 tasi brak bo'lsa...
+       * 66 000 so'm "YETKAZIB BERUVCHI DEFEKTI" XARAJATI bo'lib
+       * hisobotga tushadi.»
+       *
+       * ⚠️ 2026-09-03 auditigacha bu yozuv YO'Q edi: `defektZarari`
+       *    hisoblanar, qaytarilar — lekin hech qayerga yozilmasdi.
+       *    Zarar hisobotdan butunlay tushib qolardi.
+       *
+       * ⚠️ Faqat `HISOBDAN_CHIQADI` da: «qaytariladi» defekt bizning
+       *    zararimiz emas, u qarzdan chegiriladi (9.9) va uni
+       *    `davoniHalQil` hal qiladi.
+       *
+       * ⚠️ 12.1 — pul chiqmagan xarajat: kassaga tegilmaydi, mol
+       *    uchun pul allaqachon yetkazib beruvchiga qarz bo'lib
+       *    yozilgan.
+       */
+      if (musbatmi(tannarx.defektZarari)) {
+        await xarajatYozTx(
+          tx,
+          {
+            sana: kirim.sana,
+            filialId: kirim.filialId,
+            modda: 'YETKAZIB_BERUVCHI_DEFEKTI',
+            summa: pulMatn(tannarx.defektZarari),
+            valyuta: 'SOM',
+            kassaYozuvId: null,
+            manbaTuri: 'kirim_qator',
+            manbaId: qatorId,
+            izoh: `${material.nom} — yetkazib beruvchi defekti (7.9)`,
+          },
+          xodimId,
+        );
+      }
       if (qatorId === undefined) throw new BiznesXato('KIRIM_SAQLANMADI');
 
       // ── 4. Bo'laklar ──
@@ -321,7 +405,8 @@ export async function kirimYarat(
             miqdor: null,
             kirimQatorId: qatorId,
             tannarx: kvMTannarx.toFixed(4),
-            valyuta: kirim.valyuta,
+            // 9.6 — tannarx kirim kursida QOTDI, endi u so'mda
+            valyuta: 'SOM',
             xodimId,
             kvM: maydon,
           });
@@ -348,7 +433,8 @@ export async function kirimYarat(
           miqdor: sarflashMiqdori,
           kirimQatorId: qatorId,
           tannarx: sarflashTannarx.toFixed(4),
-          valyuta: kirim.valyuta,
+          // 9.6 — tannarx kirim kursida QOTDI, endi u so'mda
+          valyuta: 'SOM',
           xodimId,
           sm: material.sarflash_birligi === 'SM' ? sarflashMiqdori : null,
           dona: material.sarflash_birligi === 'DONA' ? Math.round(sarflashMiqdori) : null,

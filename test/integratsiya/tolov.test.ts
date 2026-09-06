@@ -73,7 +73,7 @@ beforeAll(async () => {
 }, 120_000);
 
 afterAll(async () => {
-  await sql.end();
+  await sql.end({ timeout: 5 });
 });
 
 async function rulonYarat(): Promise<void> {
@@ -164,6 +164,7 @@ describe("TZ 3.12 — buyurtma to'lovi", () => {
     const n = await buyurtmaTolovi(
       sql,
       {
+        kalit: belgi(),
         buyurtmaId,
         qatorlar: [
           { kassaId: naqdKassa, summa: '500000', valyuta: 'SOM' },
@@ -194,6 +195,7 @@ describe("TZ 3.12 — buyurtma to'lovi", () => {
     const n = await buyurtmaTolovi(
       sql,
       {
+        kalit: belgi(),
         buyurtmaId,
         qatorlar: [{ kassaId: naqdKassa, summa: '300000', valyuta: 'SOM' }],
         izoh: null,
@@ -217,6 +219,7 @@ describe("TZ 3.12 — buyurtma to'lovi", () => {
       buyurtmaTolovi(
         sql,
         {
+          kalit: belgi(),
           buyurtmaId,
           qatorlar: [{ kassaId: naqdKassa, summa: '300000', valyuta: 'SOM' }],
           izoh: null,
@@ -226,12 +229,14 @@ describe("TZ 3.12 — buyurtma to'lovi", () => {
     ).rejects.toThrow();
   });
 
-  it('TZ 12.3 — ikki marta to\'lab bo\'lmaydi', async () => {
+  it("TZ 12.3 — BIR XIL KALIT ikkinchi marta o'tmaydi", async () => {
     const buyurtmaId = await buyurtmaYaratSinov('400000', true);
+    // Bitta yuborish = bitta kalit. Tugmani ikki marta bosish shunday ko'rinadi.
     const tolov = {
       buyurtmaId,
       qatorlar: [{ kassaId: naqdKassa, summa: '400000', valyuta: 'SOM' as const }],
       izoh: null,
+      kalit: belgi(),
     };
 
     await buyurtmaTolovi(sql, tolov, XODIM);
@@ -243,6 +248,61 @@ describe("TZ 3.12 — buyurtma to'lovi", () => {
     expect(q[0]?.n).toBe(1);
   });
 
+  /**
+   * TZ 3.12 — «To'lov to'liq bo'lmasa, qolgan summa QARZGA yoziladi»,
+   * demak keyin yana to'lanadi.
+   *
+   * ⚠️ Ilgari bu MUMKIN EMAS edi: qator har safar 1 dan boshlanardi va
+   *    `kassa_yozuv_manba` indeksi ikkinchi to'lovni bloklardi. Oldindan
+   *    to'lov olingan har buyurtmada topshirishdagi to'lov rad etilardi.
+   */
+  it("TZ 3.12 — avansdan keyin QOLGAN summa to'lanadi", async () => {
+    const buyurtmaId = await buyurtmaYaratSinov('400000', true);
+
+    const avans = await buyurtmaTolovi(
+      sql,
+      {
+        kalit: belgi(),
+        buyurtmaId,
+        qatorlar: [{ kassaId: naqdKassa, summa: '150000', valyuta: 'SOM' as const }],
+        izoh: 'Oldindan',
+      },
+      XODIM,
+    );
+    expect(Number(avans.qarzgaYozildi)).toBe(250_000);
+
+    // Boshqa yuborish — boshqa kalit
+    const qolgani = await buyurtmaTolovi(
+      sql,
+      {
+        kalit: belgi(),
+        buyurtmaId,
+        qatorlar: [{ kassaId: naqdKassa, summa: '250000', valyuta: 'SOM' as const }],
+        izoh: 'Topshirishda',
+      },
+      XODIM,
+      'K2',
+    );
+    expect(Number(qolgani.qarzgaYozildi)).toBe(0);
+
+    // Ikkala yozuv ham kassada, qatorlar ketma-ket
+    const y = await sql<{ kod: string; summa: string; qator: number }[]>`
+      SELECT kod, summa::text, qator FROM kassa_yozuv
+      WHERE manba_turi = 'buyurtma' AND manba_id = ${buyurtmaId}
+      ORDER BY qator`;
+
+    expect(y).toHaveLength(2);
+    expect(y[0]?.qator).toBe(1);
+    expect(y[1]?.qator).toBe(2);
+    expect(y[1]?.kod).toBe('K2');
+
+    // 2.2-invariant — qarz jurnal yig'indisi, to'liq to'langach nol
+    const q = await sql<{ qarz: string }[]>`
+      SELECT COALESCE(SUM(summa), 0)::text AS qarz FROM mijoz_harakat
+      WHERE manba_id = ${buyurtmaId} AND manba_turi IN ('buyurtma','buyurtma_tolov')`;
+    expect(Number(q[0]?.qarz)).toBe(0);
+  });
+
   it("nol yoki manfiy to'lov rad etiladi", async () => {
     const buyurtmaId = await buyurtmaYaratSinov('400000', true);
 
@@ -250,6 +310,7 @@ describe("TZ 3.12 — buyurtma to'lovi", () => {
       buyurtmaTolovi(
         sql,
         {
+          kalit: belgi(),
           buyurtmaId,
           qatorlar: [{ kassaId: naqdKassa, summa: '0', valyuta: 'SOM' }],
           izoh: null,
@@ -265,6 +326,7 @@ describe("TZ 3.12 — buyurtma to'lovi", () => {
     const n = await buyurtmaTolovi(
       sql,
       {
+        kalit: belgi(),
         buyurtmaId,
         qatorlar: [{ kassaId: naqdKassa, summa: '400000', valyuta: 'SOM' }],
         izoh: null,

@@ -36,6 +36,27 @@ export default async function BoshqaruvSahifasi() {
    *    «−200 000 qarz» deb ko'rsatish chalkashtiradi.
    */
   const qarz = Number(k.mijozQarzi);
+  const qarzUsd = Number(k.mijozQarziUsd);
+
+  /**
+   * ⚠️ Dollar qatori faqat NOL BO'LMAGANDA chiqadi.
+   *
+   *    Egasining ishi asosan so'mda. Har kartada doim «$ 0.00»
+   *    turishi diqqatni oladi va foydasi yo'q.
+   *
+   *    Valyutalar QO'SHILMAYDI (1.3) — dollar alohida qator bo'lib
+   *    ko'rinadi. Ilgari u umuman ko'rinmasdi: uchta so'rov
+   *    `valyuta = 'SOM'` bilan filtrlangan edi.
+   */
+  const usdQatori = (matn: string): string | null => {
+    const n = Number(matn);
+    return Number.isFinite(n) && Math.abs(n) >= 0.005
+      ? `$ ${Math.abs(n).toLocaleString('uz-UZ', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        }).replace(/,/g, ' ')}`
+      : null;
+  };
 
   return (
     <div className="flex flex-col gap-7">
@@ -66,6 +87,7 @@ export default async function BoshqaruvSahifasi() {
         <KorsatkichKartasi
           sarlavha="Bugungi tushum"
           qiymat={pulKorsat(som(k.bugungiTushum))}
+          ikkinchiQiymat={usdQatori(k.bugungiTushumUsd)}
           izoh="Kassaga kirgan pul"
           rang="kok"
           belgi={<SavatBelgisi />}
@@ -74,14 +96,16 @@ export default async function BoshqaruvSahifasi() {
         <KorsatkichKartasi
           sarlavha="Kassa qoldig'i"
           qiymat={pulKorsat(som(k.kassaQoldigi))}
+          ikkinchiQiymat={usdQatori(k.kassaQoldigiUsd)}
           izoh="Hozir kassalarda"
           rang="yashil"
           belgi={<PulBelgisi />}
         />
 
         <KorsatkichKartasi
-          sarlavha={qarz >= 0 ? 'Mijozlar qarzi' : 'Mijozlar avansi'}
+          sarlavha={qarz >= 0 || qarzUsd > 0 ? 'Mijozlar qarzi' : 'Mijozlar avansi'}
           qiymat={pulKorsat(som(Math.abs(qarz).toFixed(2)))}
+          ikkinchiQiymat={usdQatori(k.mijozQarziUsd)}
           izoh={qarz >= 0 ? 'Yig‘ilishi kerak' : 'Oldindan olingan'}
           rang={qarz > 0 ? 'qizil' : 'yashil'}
           belgi={<QarzBelgisi />}

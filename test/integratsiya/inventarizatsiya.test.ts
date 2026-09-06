@@ -37,7 +37,7 @@ beforeAll(async () => {
 }, 120_000);
 
 afterAll(async () => {
-  await sql.end();
+  await sql.end({ timeout: 5 });
 });
 
 let hisoblagich = 0;
@@ -188,6 +188,12 @@ describe('AUDIT Z-05 — metrda sanaladi, soxta farq chiqmaydi', () => {
     expect(n.farqli).toBe(0);
     expect(pulMatn(n.jamiFarq)).toBe('0.00');
 
+    // Farq nol — bo'sh xarajat qatori jurnalni ifloslantirmaydi
+    const x = await sql<{ n: number }[]>`
+      SELECT COUNT(*)::int AS n FROM xarajat
+      WHERE manba_turi = 'inventarizatsiya' AND manba_id = ${v.varaqaId}`;
+    expect(x[0]?.n).toBe(0);
+
     // Farq yo'q — ombor jurnaliga yozuv TUSHMAYDI
     const j = await sql<{ n: number }[]>`
       SELECT COUNT(*)::int AS n FROM ombor_harakat
@@ -237,6 +243,22 @@ describe('TZ 15.1 — farq chiqsa', () => {
     // Bo'lak HAQIQIY songa tenglashdi
     const b = await sql<{ boyi_m: string }[]>`SELECT boyi_m FROM bolak WHERE id = ${id}`;
     expect(Number(b[0]?.boyi_m)).toBe(26.0);
+
+    /**
+     * TZ 12.1 · 15.1 — KAMOMAD FOYDA-ZARARGA TUSHADI.
+     *
+     * ⚠️ 2026-09-03 auditigacha bu yozuv YO'Q edi: inventarizatsiya
+     *    qoldiqni tuzatar, yo'qotish esa hech qayerda ko'rinmasdi.
+     */
+    const x = await sql<{ modda: string; summa: string; kassa: number | null }[]>`
+      SELECT modda, summa::text, kassa_yozuv_id AS kassa FROM xarajat
+      WHERE manba_turi = 'inventarizatsiya' AND manba_id = ${v.varaqaId}`;
+
+    expect(x).toHaveLength(1);
+    expect(x[0]?.modda).toBe('INVENTARIZATSIYA_FARQI');
+    // Kamomad — xarajat MUSBAT, kassaga tegilmaydi
+    expect(Number(x[0]?.summa)).toBe(468_000);
+    expect(x[0]?.kassa).toBeNull();
   });
 
   it('sababsiz farq — butun varaqa RAD ETILADI (2.1-invariant)', async () => {
@@ -299,6 +321,15 @@ describe('TZ 15.1 — farq chiqsa', () => {
     );
 
     expect(pulMatn(n.jamiFarq)).toBe('468000.00');
+
+    /**
+     * ⚠️ Ortiqcha — xarajat MANFIY: u xarajatni kamaytiradi, alohida
+     *    daromad emas (qaytarish ushlanmasi bilan bir xil naqsh, 8.10).
+     */
+    const x = await sql<{ summa: string }[]>`
+      SELECT summa::text FROM xarajat
+      WHERE manba_turi = 'inventarizatsiya' AND manba_id = ${v.varaqaId}`;
+    expect(Number(x[0]?.summa)).toBe(-468_000);
   });
 
   it('DONA — 380 dan 374 ga tushdi', async () => {

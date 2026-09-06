@@ -49,7 +49,7 @@ beforeAll(async () => {
 }, 60_000);
 
 afterAll(async () => {
-  await sql.end();
+  await sql.end({ timeout: 5 });
 });
 
 let raqamHisoblagich = 0;
@@ -542,5 +542,220 @@ describe('TZ 9.2 — kirim yetkazib beruvchiga QARZ yozadi', () => {
     // 2.2-invariant — qarz jurnal YIG'INDISI, u nolga qaytadi
     const jami = q.reduce((y, r) => y + Number(r.summa), 0);
     expect(jami).toBe(0);
+  });
+});
+
+// ─── 9.6 · Dollarli kirim — tannarx SO'MDA qotadi ─────────────────────────
+
+/**
+ * ⚠️ NEGA BU TEST BOR
+ *
+ *    2026-09-03 gacha dollarli kirimda bo'lak tannarxi DOLLARDA
+ *    saqlanardi. Natijada:
+ *
+ *      · ombor qiymati hisobotida bunday bo'lak UMUMAN ko'rinmasdi
+ *      · turlar bo'yicha foydada 4 (dollar) va 50 000 (so'm) bitta
+ *        ustunda qo'shilardi — foyda soxta yuqori chiqardi
+ *
+ *    TZ 9.6: «tannarx kirim kunidagi kursda QOTADI».
+ */
+describe('TZ 9.6 — dollarli kirimda tannarx so\'mga o\'giriladi', () => {
+  const KURS = '12500.00';
+
+  const dollarli = (qatorlar: KirimKirimi['qatorlar']): KirimKirimi => ({
+    ...asos(qatorlar),
+    valyuta: 'USD',
+    kursSnapshot: KURS,
+  });
+
+  it('bo\'lak tannarxi SO\'MDA va kirim kursida yoziladi', async () => {
+    // 1 rulon, 4 $/kv.m asosida: 3 × 10 = 30 kv.m, jami 120 $
+    const n = await kirimYarat(
+      sql,
+      dollarli([
+        {
+          materialId: matoId,
+          miqdorKirim: 1,
+          narxBirlik: '120',
+          defektMiqdor: 0,
+          defektTuri: null,
+          bolaklar: [{ eniM: 3.0, boyiM: 10.0 }],
+        },
+      ]),
+      XODIM,
+    );
+
+    expect(n.bolakSoni).toBe(1);
+
+    const b = await sql<{ tannarx: string; valyuta: string }[]>`
+      SELECT bo.tannarx_birlik_snapshot::text AS tannarx,
+             bo.tannarx_valyuta_snapshot AS valyuta
+      FROM bolak bo
+      JOIN kirim_qator kq ON kq.id = bo.kirim_qator_id
+      WHERE kq.kirim_id = ${n.kirimId}`;
+
+    // 120 $ × 12 500 = 1 500 000 so'm ÷ 30 kv.m = 50 000 so'm/kv.m
+    expect(b[0]?.valyuta).toBe('SOM');
+    expect(Number(b[0]?.tannarx)).toBeCloseTo(50_000, 2);
+  });
+
+  it('ombor jurnaliga ham SO\'MDA tushadi', async () => {
+    const n = await kirimYarat(
+      sql,
+      dollarli([
+        {
+          materialId: matoId,
+          miqdorKirim: 1,
+          narxBirlik: '120',
+          defektMiqdor: 0,
+          defektTuri: null,
+          bolaklar: [{ eniM: 3.0, boyiM: 10.0 }],
+        },
+      ]),
+      XODIM,
+    );
+
+    // ⚠️ Kirim jurnali QATORGA bog'lanadi, hujjatga emas (`kirim_qator`)
+    const h = await sql<{ summa: string }[]>`
+      SELECT oh.tannarx_summa::text AS summa
+      FROM ombor_harakat oh
+      JOIN kirim_qator kq ON kq.id = oh.manba_id AND oh.manba_turi = 'kirim_qator'
+      WHERE kq.kirim_id = ${n.kirimId}`;
+
+    // 30 kv.m × 50 000 = 1 500 000
+    expect(Number(h[0]?.summa)).toBeCloseTo(1_500_000, 2);
+  });
+
+  /**
+   * ⚠️ HUJJAT o'z valyutasida qoladi: sotuvchi 120 $ deb kelishgan
+   *    va qarz ham dollarda (9.2). So'mga faqat OMBOR tomoni o'tadi.
+   */
+  it('yetkazib beruvchiga qarz DOLLARDA qoladi', async () => {
+    const n = await kirimYarat(
+      sql,
+      dollarli([
+        {
+          materialId: matoId,
+          miqdorKirim: 1,
+          narxBirlik: '120',
+          defektMiqdor: 0,
+          defektTuri: null,
+          bolaklar: [{ eniM: 3.0, boyiM: 10.0 }],
+        },
+      ]),
+      XODIM,
+    );
+
+    const q = await sql<{ summa: string; valyuta: string; kurs: string | null }[]>`
+      SELECT summa::text, valyuta, kurs_snapshot::text AS kurs
+      FROM yetkazib_beruvchi_harakat
+      WHERE manba_turi = 'kirim' AND manba_id = ${n.kirimId} AND turi = 'XARID'`;
+
+    expect(q[0]?.valyuta).toBe('USD');
+    expect(Number(q[0]?.summa)).toBeCloseTo(120, 2);
+    expect(Number(q[0]?.kurs)).toBeCloseTo(12_500, 2);
+
+    // Hujjatning o'zida ham narx dollarda
+    const kq = await sql<{ narx: string }[]>`
+      SELECT narx_birlik::text AS narx FROM kirim_qator
+      WHERE kirim_id = ${n.kirimId}`;
+    expect(Number(kq[0]?.narx)).toBeCloseTo(120, 2);
+  });
+
+  it('transport ham kursga uriladi (7.9 taqsimoti)', async () => {
+    // 100 $ transport → 1 250 000 so'm, bitta qatorga to'liq tushadi
+    const n = await kirimYarat(
+      sql,
+      {
+        ...dollarli([
+          {
+            materialId: matoId,
+            miqdorKirim: 1,
+            narxBirlik: '120',
+            defektMiqdor: 0,
+            defektTuri: null,
+            bolaklar: [{ eniM: 3.0, boyiM: 10.0 }],
+          },
+        ]),
+        transportSumma: '100',
+      },
+      XODIM,
+    );
+
+    const b = await sql<{ tannarx: string }[]>`
+      SELECT bo.tannarx_birlik_snapshot::text AS tannarx
+      FROM bolak bo
+      JOIN kirim_qator kq ON kq.id = bo.kirim_qator_id
+      WHERE kq.kirim_id = ${n.kirimId}`;
+
+    // (1 500 000 + 1 250 000) ÷ 30 = 91 666.67 so'm/kv.m
+    expect(Number(b[0]?.tannarx)).toBeCloseTo(91_666.6667, 2);
+  });
+});
+
+// ─── 7.9 · Defekt zarari XARAJATGA tushadi ───────────────────────────────
+
+/**
+ * ⚠️ 2026-09-03 auditi: `defektZarari` hisoblanar, qaytarilar — lekin
+ *    hech qayerga YOZILMASDI. TZ 7.9 esa aniq aytadi: «66 000 so'm
+ *    "yetkazib beruvchi defekti" xarajati bo'lib hisobotga tushadi».
+ */
+describe('TZ 7.9 — defekt zarari xarajat jurnaliga tushadi', () => {
+  it("«hisobdan chiqadi» defekt XARAJAT bo'ladi, kassaga tegmaydi", async () => {
+    const n = await kirimYarat(
+      sql,
+      asos([
+        {
+          materialId: shtangaId,
+          miqdorKirim: 10,
+          narxBirlik: '66000',
+          defektMiqdor: 1,
+          defektTuri: 'HISOBDAN_CHIQADI',
+          narxAsosi: 'BIRLIK',
+          bolaklar: [],
+        },
+      ]),
+      XODIM,
+    );
+
+    const q = await sql<{ id: number }[]>`
+      SELECT id FROM kirim_qator WHERE kirim_id = ${n.kirimId}`;
+
+    const x = await sql<{ modda: string; summa: string; kassa: number | null }[]>`
+      SELECT modda, summa::text, kassa_yozuv_id AS kassa FROM xarajat
+      WHERE manba_turi = 'kirim_qator' AND manba_id = ${q[0]?.id ?? 0}`;
+
+    expect(x).toHaveLength(1);
+    expect(x[0]?.modda).toBe('YETKAZIB_BERUVCHI_DEFEKTI');
+    // 7.9 — bo'luvchi TO'LIQ miqdor: 660 000 / 10 = 66 000
+    expect(Number(x[0]?.summa)).toBeCloseTo(66_000, 2);
+    // 12.1 — pul chiqmagan xarajat
+    expect(x[0]?.kassa).toBeNull();
+  });
+
+  it("«qaytariladi» defekt XARAJAT EMAS — u qarzdan chegiriladi (9.9)", async () => {
+    const n = await kirimYarat(
+      sql,
+      asos([
+        {
+          materialId: shtangaId,
+          miqdorKirim: 10,
+          narxBirlik: '66000',
+          defektMiqdor: 1,
+          defektTuri: 'QAYTARILADI',
+          narxAsosi: 'BIRLIK',
+          bolaklar: [],
+        },
+      ]),
+      XODIM,
+    );
+
+    const q = await sql<{ id: number }[]>`
+      SELECT id FROM kirim_qator WHERE kirim_id = ${n.kirimId}`;
+
+    const x = await sql<{ n: number }[]>`
+      SELECT COUNT(*)::int AS n FROM xarajat
+      WHERE manba_turi = 'kirim_qator' AND manba_id = ${q[0]?.id ?? 0}`;
+    expect(x[0]?.n).toBe(0);
   });
 });

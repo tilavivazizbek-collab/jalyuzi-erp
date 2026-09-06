@@ -110,7 +110,7 @@ afterAll(async () => {
     await sql`UPDATE kassa SET faol = false WHERE filial_id = ${FILIAL}`;
     await sql`UPDATE filial SET faol = false WHERE id = ${FILIAL}`;
   }
-  await sql.end();
+  await sql.end({ timeout: 5 });
 });
 
 describe('TZ 12.2 — kassa ochiladi', () => {

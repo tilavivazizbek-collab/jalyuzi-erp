@@ -11,8 +11,30 @@ import { guruhTanlovlari } from '../../mijoz/guruh/malumot';
 
 export const dynamic = 'force-dynamic';
 
-export default async function SotuvEkrani() {
+export default async function SotuvEkrani({
+  searchParams,
+}: {
+  /** TZ 8.7 — `?qoshish=<id>` bo'lsa mavjud buyurtmaga qo'shiladi */
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const f = await sahifaRuxsati('buyurtma.yarat');
+
+  /**
+   * ⚠️ Buyurtma SHU FILIALNIKI ekani tekshiriladi (Q-25 · §9.4):
+   *    manzilga boshqa filialning raqamini yozib bo'lmasin.
+   */
+  const sp = await searchParams;
+  const xomId = typeof sp['qoshish'] === 'string' ? Number(sp['qoshish']) : 0;
+
+  const qoshish =
+    Number.isSafeInteger(xomId) && xomId > 0
+      ? ((
+          await ulanishOl()<{ id: number; raqam: string }[]>`
+            SELECT id, raqam FROM buyurtma
+            WHERE id = ${xomId} AND sotgan_filial_id = ${f.filialId}
+              AND yopildi IS NULL`
+        )[0] ?? null)
+      : null;
 
   /**
    * ⚠️ Avval FAQAT tur nomlari yuklanadi. Tafsilot (slot, mato,
@@ -59,6 +81,7 @@ export default async function SotuvEkrani() {
       </div>
 
       <SotuvFormasi
+        qoshish={qoshish === null ? null : { buyurtmaId: qoshish.id, raqam: qoshish.raqam }}
         turlar={turlar}
         birinchiTur={birinchiTur}
         filiallar={filiallar}

@@ -7,6 +7,7 @@ import {
   amaldagiNarx,
   buyurtmaNarxi,
   chegirmaHisobla,
+  chegirmaniTaqsimla,
   istisnomi,
   matoNarxi,
   offsetQolla,
@@ -240,5 +241,65 @@ describe('5.4 — ustama', () => {
     expect(ustamaPastmi(som(120_000), som(100_000), 30)).toBe(true);
     expect(ustamaPastmi(som(130_000), som(100_000), 30)).toBe(false);
     expect(ustamaPastmi(som(140_000), som(100_000), 30)).toBe(false);
+  });
+});
+
+// ─── 3.11 · Chegirmani pozitsiyalarga taqsimlash ──────────────────────────
+
+describe('3.11 — chegirma taqsimoti', () => {
+  /** Ulushlar yig'indisi chegirmaga TIYINIGACHA teng bo'lishi shart. */
+  const jamiUlush = (u: readonly ReturnType<typeof som>[]): string =>
+    pulMatn(u.reduce((y, x) => qoshUchun(y, x), som(0)));
+
+  // Testda pul qo'shishning yagona yo'li — narx.ts dagi `buyurtmaNarxi`
+  const qoshUchun = (a: ReturnType<typeof som>, b: ReturnType<typeof som>) =>
+    buyurtmaNarxi([a, b]);
+
+  it('narx ulushi bo\'yicha taqsimlanadi', () => {
+    // 100 000 + 300 000 = 400 000, chegirma 40 000 → 10 000 + 30 000
+    const u = chegirmaniTaqsimla([som(100_000), som(300_000)], som(40_000));
+    expect(u.map(pulMatn)).toEqual(['10000.00', '30000.00']);
+  });
+
+  it('bitta pozitsiyada hammasi o\'shanga tushadi', () => {
+    const u = chegirmaniTaqsimla([som(678_400)], som(78_400));
+    expect(u.map(pulMatn)).toEqual(['78400.00']);
+  });
+
+  it('yaxlitlash qoldig\'i eng qimmat pozitsiyaga qo\'shiladi', () => {
+    // Uchga bo'linmaydigan summa: 10.00 chegirma uchta teng qatorga
+    const u = chegirmaniTaqsimla([som(100), som(100), som(100)], som(10));
+    expect(jamiUlush(u)).toBe('10.00');
+  });
+
+  it('yig\'indi har doim chegirmaga teng — uch xil narx', () => {
+    const u = chegirmaniTaqsimla(
+      [som(133_333), som(266_667), som(100_000)],
+      som(37_777.77),
+    );
+    expect(jamiUlush(u)).toBe('37777.77');
+  });
+
+  it("qo'shimcha haq (manfiy chegirma) ham taqsimlanadi", () => {
+    const u = chegirmaniTaqsimla([som(100_000), som(100_000)], som(-20_000));
+    expect(u.map(pulMatn)).toEqual(['-10000.00', '-10000.00']);
+  });
+
+  it('chegirma nol bo\'lsa hamma ulush nol', () => {
+    const u = chegirmaniTaqsimla([som(100_000), som(50_000)], som(0));
+    expect(u.map(pulMatn)).toEqual(['0.00', '0.00']);
+  });
+
+  it("savat bo'sh yoki summasi nol bo'lsa yiqilmaydi", () => {
+    expect(chegirmaniTaqsimla([], som(1000))).toEqual([]);
+    expect(chegirmaniTaqsimla([som(0), som(0)], som(1000)).map(pulMatn)).toEqual([
+      '0.00',
+      '0.00',
+    ]);
+  });
+
+  it('nol narxli qator chegirma olmaydi — narx manfiyga ketmaydi', () => {
+    const u = chegirmaniTaqsimla([som(0), som(200_000)], som(50_000));
+    expect(u.map(pulMatn)).toEqual(['0.00', '50000.00']);
   });
 });

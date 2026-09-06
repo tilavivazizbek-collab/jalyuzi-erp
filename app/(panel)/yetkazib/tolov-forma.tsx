@@ -39,14 +39,36 @@ export function YetkazibTolovFormasi({
    *    mumkin (9.1). Kassa ro'yxati o'sha valyutaga qarab
    *    filtrlanadi (1.3-invariant).
    */
+  const [qarzValyutasi, qarzValyutasiniOzgartir] = useState(
+    qarzlar[0]?.valyuta ?? 'SOM',
+  );
+  /**
+   * ⚠️ TZ 9.5 — TO'LOV valyutasi QARZ valyutasidan farq qilishi
+   *    mumkin: «Dollar qarzini so'mda to'lash mumkin».
+   *
+   *    Ilgari bitta tanlov ikkalasini ham bildirardi va shu sabab
+   *    dollar qarzini so'mda to'lashning iloji yo'q edi — kurs farqi
+   *    (9.6) ham hech qachon tug'ilmasdi (2026-09-03 auditi).
+   */
   const [valyuta, valyutaniOzgartir] = useState(qarzlar[0]?.valyuta ?? 'SOM');
   const [summa, summaniOzgartir] = useState('');
+  const [kurs, kursniOzgartir] = useState(joriyKurs);
 
   const mos = kassalar.filter((k) => k.valyuta === valyuta);
-  const qarz = qarzlar.find((q) => q.valyuta === valyuta)?.qarz ?? '0';
+  const qarz = qarzlar.find((q) => q.valyuta === qarzValyutasi)?.qarz ?? '0';
+
+  /** 9.5 — so'mda to'lansa qarz `so'm ÷ kurs` bo'yicha kamayadi */
+  const krossmi = qarzValyutasi !== valyuta;
+  const kursSoni = Number(kurs);
+  const yopiladi =
+    krossmi && Number(summa) > 0 && Number.isFinite(kursSoni) && kursSoni > 0
+      ? (Number(summa) / kursSoni).toFixed(2)
+      : null;
 
   /** Qarzdan ortiq to'lov — avans bo'lib qoladi, bloklanmaydi */
-  const ortiq = Number(summa) > 0 && Number(summa) > Number(qarz);
+  const ortiq =
+    Number(summa) > 0 &&
+    Number(yopiladi ?? summa) > Number(qarz);
 
   if (kassalar.length === 0) {
     return (
@@ -89,7 +111,30 @@ export function YetkazibTolovFormasi({
           />
         </Maydon>
 
-        <Maydon nom="valyuta" yorliq="Valyuta">
+        {/* 9.1 — qarz ikkala valyutada bo'lishi mumkin */}
+        <Maydon nom="qarzValyutasi" yorliq="Qaysi qarz">
+          <select
+            id="qarzValyutasi"
+            name="qarzValyutasi"
+            value={qarzValyutasi}
+            onChange={(e) => {
+              qarzValyutasiniOzgartir(e.target.value);
+              // To'lov valyutasi odatda qarz bilan bir xil
+              valyutaniOzgartir(e.target.value);
+            }}
+            className={kirishUslubi(false)}
+          >
+            {qarzlar.map((q) => (
+              <option key={q.valyuta} value={q.valyuta}>
+                {q.valyuta === 'USD' ? '$ qarz' : "so'm qarz"}
+              </option>
+            ))}
+            {qarzlar.length === 0 && <option value="SOM">so&apos;m qarz</option>}
+          </select>
+        </Maydon>
+
+        {/* 9.5 — dollar qarzini so'mda to'lash mumkin */}
+        <Maydon nom="valyuta" yorliq="Nima bilan to'lanadi">
           <select
             id="valyuta"
             name="valyuta"
@@ -119,12 +164,15 @@ export function YetkazibTolovFormasi({
           ⚠️ 9.6 — dollarli to'lovda kurs QOTADI: keyin kurs
              o'zgarsa ham bu yozuv o'zgarmaydi.
         */}
-        {valyuta === 'USD' && (
+        {(valyuta === 'USD' || krossmi) && (
           <Maydon nom="kurs" yorliq="Kurs" izoh="to'lov shu kursda qotadi (9.6)">
             <input
               id="kurs"
               name="kurs"
-              defaultValue={joriyKurs}
+              value={kurs}
+              onChange={(e) => {
+                kursniOzgartir(e.target.value);
+              }}
               inputMode="decimal"
               required
               className={kirishUslubi(false)}
@@ -132,6 +180,17 @@ export function YetkazibTolovFormasi({
           </Maydon>
         )}
       </div>
+
+      {/*
+        ⚠️ Sotuvchi qancha qarz yopilishini SAQLASHDAN OLDIN ko'radi:
+           kurs adashib yozilsa raqam darrov g'alati chiqadi.
+      */}
+      {yopiladi !== null && (
+        <p className="rounded-maydon bg-fon px-3 py-2 text-[13px] text-matn-ikki">
+          Qarzdan <b className="raqam">{yopiladi} $</b> yopiladi (9.5).
+          Kurs farqi bo&apos;lsa alohida xarajat bo&apos;lib yoziladi (9.6).
+        </p>
+      )}
 
       {mos.length === 0 && (
         <p className="text-[13px] text-belgi-sariq">

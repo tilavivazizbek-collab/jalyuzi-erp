@@ -388,3 +388,59 @@ export function Kutmoqda() {
     </svg>
   );
 }
+
+// ─── Tablar ───────────────────────────────────────────────────────────────
+
+export interface Tab {
+  readonly kalit: string;
+  readonly nom: string;
+  /** O'ng tomonda kichik raqam — nechta yozuv borligi */
+  readonly soni?: number;
+}
+
+/**
+ * Kartochka ichidagi bo'limlar (9.7 · 6.7).
+ *
+ * ⚠️ HOLAT MANZILDA, brauzerda emas: `?tab=kirimlar`. Shuning uchun
+ *    bu qism SERVER tomonda ishlaydi — JS yuklanmaydi, sahifa
+ *    yangilansa ham o'sha tab ochiq qoladi va havolani boshqa odamga
+ *    yuborish mumkin.
+ *
+ * ⚠️ Har tab O'Z so'rovini emas, sahifaning tayyor ma'lumotini
+ *    ko'rsatadi — bosilganda kutish bo'lmaydi.
+ */
+export function Tablar({
+  tablar,
+  joriy,
+  asos,
+}: {
+  tablar: readonly Tab[];
+  joriy: string;
+  /** Havola asosi — masalan `/yetkazib/12` */
+  asos: string;
+}) {
+  return (
+    <div className="flex flex-wrap gap-1 border-b border-chegara">
+      {tablar.map((t) => {
+        const faol = t.kalit === joriy;
+        return (
+          <Link
+            key={t.kalit}
+            href={`${asos}?tab=${t.kalit}`}
+            aria-current={faol ? 'page' : undefined}
+            className={`fokus -mb-px rounded-t-maydon border-b-2 px-3 py-2 text-[13px] transition-colors ${
+              faol
+                ? 'border-brend font-medium text-matn'
+                : 'border-transparent text-matn-kuchsiz hover:text-matn'
+            }`}
+          >
+            {t.nom}
+            {t.soni !== undefined && t.soni > 0 && (
+              <span className="raqam ml-1.5 text-[11px] text-matn-kuchsiz">{t.soni}</span>
+            )}
+          </Link>
+        );
+      })}
+    </div>
+  );
+}

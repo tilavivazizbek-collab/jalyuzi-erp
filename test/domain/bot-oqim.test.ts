@@ -249,3 +249,76 @@ describe('sessiyadan tiklash — buzuq qiymat botni yiqitmaydi', () => {
     expect(x.savat).toHaveLength(0);
   });
 });
+
+// ─── 13.10 · Qoralama kaliti ──────────────────────────────────────────────
+
+/**
+ * ⚠️ NEGA BU TESTLAR BOR
+ *
+ *    Takrorlanishdan himoya kaliti ilgari savat JSON ining
+ *    UZUNLIGIDAN qurilardi. 120×150 va 130×160 bir xil uzunlik
+ *    beradi — natijada mijozning KEYINGI, butunlay boshqa
+ *    buyurtmasi «allaqachon yuborilgan» deb jimgina yo'qolardi
+ *    (2026-09-03 auditi).
+ *
+ *    Kalit endi qoralamaning O'ZIDA yotadi va u savat bo'ylab
+ *    o'zgarmasligi shart — aks holda ikki marta bosish ikki
+ *    buyurtma yaratardi.
+ */
+describe('13.10 — qoralama kaliti', () => {
+  const kalitli = (): Qoralama => ({ ...BOSH_QORALAMA, kalit: 'K-1' });
+
+  it("bo'sh qoralamada kalit yo'q", () => {
+    expect(BOSH_QORALAMA.kalit).toBeNull();
+  });
+
+  it('kalit butun oqim davomida SAQLANADI', () => {
+    let q = kalitli();
+    q = turTanla(q, ROLLO, ROLLO_SLOTLARI);
+    expect(q.kalit).toBe('K-1');
+
+    q = matoTanla(q, 10, 100);
+    q = matoTanla(q, 11, 101);
+    expect(q.kalit).toBe('K-1');
+
+    q = olchamQoy(q, '120', 'ENI');
+    q = olchamQoy(q, '150', 'BOYI');
+    expect(q.kalit).toBe('K-1');
+
+    q = izohQoy(q, 'tez kerak');
+    expect(q.kalit).toBe('K-1');
+
+    // Savatga qo'shilgandan keyin ham o'sha kalit
+    q = savatgaQosh(q);
+    expect(q.savat).toHaveLength(1);
+    expect(q.kalit).toBe('K-1');
+  });
+
+  it("«orqaga» kalitni o'zgartirmaydi", () => {
+    let q = turTanla(kalitli(), ROLLO, ROLLO_SLOTLARI);
+    q = matoTanla(q, 10, 100);
+    q = orqaga(q);
+    expect(q.kalit).toBe('K-1');
+  });
+
+  it("aksessuar almashtirish kalitni o'zgartirmaydi", () => {
+    let q = turTanla(kalitli(), ROLLO, ROLLO_SLOTLARI);
+    q = aksessuarAlmash(q, 555);
+    expect(q.kalit).toBe('K-1');
+  });
+
+  /** «Bekor qilish» — yangi savat, YANGI kalit olishi kerak. */
+  it("bekor qilishda kalit TOZALANADI", () => {
+    expect(bekorQil().kalit).toBeNull();
+  });
+
+  it('sessiyadan tiklanadi', () => {
+    expect(qoralamaOqi({ joriy: null, savat: [], kalit: 'K-9' }).kalit).toBe('K-9');
+  });
+
+  it("eski sessiyada kalit bo'lmasa null qaytadi", () => {
+    expect(qoralamaOqi({ joriy: null, savat: [] }).kalit).toBeNull();
+    expect(qoralamaOqi({ joriy: null, savat: [], kalit: '' }).kalit).toBeNull();
+    expect(qoralamaOqi({ joriy: null, savat: [], kalit: 42 }).kalit).toBeNull();
+  });
+});

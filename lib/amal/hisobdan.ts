@@ -16,6 +16,8 @@
 import type postgres from 'postgres';
 import Decimal from 'decimal.js';
 import { manfiy, pulMatn, som, type Som } from '@/lib/domain/pul';
+import { chiqarishModdasi, type XarajatModdasi } from '@/lib/domain/balans';
+import { xarajatYozTx } from './kassa';
 import { bolakQiymati } from '@/lib/domain/tannarx';
 import { BiznesXato } from '@/lib/xato';
 import { SABAB_NOMI, type ChiqarishSababi } from '@/lib/sxema/chiqim';
@@ -153,6 +155,38 @@ export async function hisobdanChiqar(
     const harakatId = harakat[0]?.id;
     if (harakatId === undefined) throw new BiznesXato('CHIQARISH_SAQLANMADI');
 
+    /**
+     * TZ 12.1 — PUL CHIQMAGAN XARAJAT.
+     *
+     * ⚠️ Kassaga tegilmaydi: pul allaqachon material sotib olinganda
+     *    chiqqan. Lekin bu HAQIQIY YO'QOTISH va foyda-zararda
+     *    ko'rinishi shart.
+     *
+     * ⚠️ 2026-09-03 auditigacha bu yozuv YO'Q edi: brak ombordan
+     *    chiqar, `xarajat` jurnaliga esa hech narsa tushmasdi.
+     *    Natijada yo'qotish hech qayerda ko'rinmasdi va foyda
+     *    haqiqatdan yuqori chiqardi.
+     *
+     * ⚠️ Modda sababga qarab tanlanadi (§2.2 — qoida domainda):
+     *    yetkazib beruvchi defekti bizning brakimiz emas.
+     */
+    await xarajatYozTx(
+      tx,
+      {
+        sana: new Date().toISOString().slice(0, 10),
+        filialId: bolak.filial_id,
+        modda: chiqarishModdasi(kirim.sabab),
+        // Xarajat MUSBAT son bo'lib yoziladi
+        summa: pulMatn(zarar),
+        valyuta: 'SOM',
+        kassaYozuvId: null,
+        manbaTuri: 'ombor_harakat',
+        manbaId: harakatId,
+        izoh: izohMatni,
+      },
+      xodimId,
+    );
+
     // TZ 2.4 — «ombordan hisobdan chiqarish» jurnalga tushadigan amallardan
     await tx`
       INSERT INTO audit_jurnal (xodim_id, filial_id, amal, obyekt_turi, obyekt_id,
@@ -255,6 +289,43 @@ export async function chiqarishniBekorQil(
               ${new Decimal(harakat.tannarx_summa).negated().toFixed(2)},
               'ombor_harakat', ${harakatId},
               ${`Hisobdan chiqarish bekor qilindi — ${izoh.trim()}`}, ${xodimId})`;
+
+    /**
+     * TZ 12.1 — XARAJAT HAM QAYTARILADI.
+     *
+     * ⚠️ Brak yozilganda `xarajat` jurnaliga yo'qotish tushgan edi.
+     *    Bo'lak omborga qaytar ekan, u yo'qotish ham bekor bo'lishi
+     *    shart — aks holda tovar ham omborda turadi, zarar ham
+     *    hisobda qoladi va foyda ikki marta kamayadi.
+     *
+     * ⚠️ Teskari yozuv AYNAN o'sha moddaga va AYNAN o'sha manbaga
+     *    yoziladi: `SUM(summa)` shu manba bo'yicha nolga tushadi.
+     *
+     * ⚠️ Eski braklarda (2026-09-03 tuzatishidan oldingi) xarajat
+     *    yozuvi yo'q — u holda qaytariladigan narsa ham yo'q.
+     */
+    const eskiXarajat = await tx<{ modda: string; summa: string }[]>`
+      SELECT modda, summa::text FROM xarajat
+      WHERE manba_turi = 'ombor_harakat' AND manba_id = ${harakatId}
+      ORDER BY id`;
+
+    for (const x of eskiXarajat) {
+      await xarajatYozTx(
+        tx,
+        {
+          sana: new Date().toISOString().slice(0, 10),
+          filialId: harakat.filial_id,
+          modda: x.modda as XarajatModdasi,
+          summa: new Decimal(x.summa).negated().toFixed(2),
+          valyuta: 'SOM',
+          kassaYozuvId: null,
+          manbaTuri: 'ombor_harakat',
+          manbaId: harakatId,
+          izoh: `Hisobdan chiqarish bekor qilindi — ${izoh.trim()}`,
+        },
+        xodimId,
+      );
+    }
 
     // Bo'lak omborga qaytadi
     await tx`

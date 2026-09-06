@@ -10,12 +10,16 @@ import {
   bekorQilinadimi,
   HOLAT_NOMI,
   qaytaribOlinadimi,
+  tahrirlanadimi,
   tasdiqlanadimi,
   type PozitsiyaHolati,
 } from '@/lib/domain/buyurtma';
 import {
   bandBolaklar,
   buyurtmaTafsili,
+  pozitsiyaTahriri,
+  type BandBolak,
+  type PozitsiyaTahriri,
   ishOlaOladiganlar,
   tolovHolati,
   tolovKassalari,
@@ -25,6 +29,9 @@ import { BekorTugmasi, BuyurtmaniOchirishTugmasi, QaytaribOlishTugmasi } from '.
 import { QaytarishTugmasi, RadEtishTugmasi, TopshirishTugmasi, YetibKeldiTugmasi } from '../hayot';
 import { TolovFormasi } from '../tolov-forma';
 import { IshniBoshlashTugmasi, TugatdimTugmasi, type UstaTanlovi } from '../ish';
+import { TahrirTugmasi } from '../tahrir';
+import { StornoTugmasi } from '../storno';
+import { HolatTuzatishTugmasi } from '../holat-tuzat';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,6 +42,10 @@ export default async function BuyurtmaKartochkasi({ params }: { params: Promise<
   const tasdiqlayOladi = ruxsatBormi(f, 'buyurtma.tasdiqla');
   const bekorQilaOladi = ruxsatBormi(f, 'buyurtma.bekor');
   const tahrirlayOladi = ruxsatBormi(f, 'buyurtma.tahrirla');
+  // TZ 8.8 — storno FAQAT adminda: sotuvchi o'z xatosini o'zi yashira olmaydi
+  const stornoQilaOladi = ruxsatBormi(f, 'buyurtma.storno');
+  // TZ 8.3 — qotib qolgan holatni qo'lda to'g'rilash, faqat adminda
+  const holatTuzataOladi = ruxsatBormi(f, 'buyurtma.holat.tuzat');
 
   const { id } = await params;
   const buyurtmaId = Number(id);
@@ -53,11 +64,28 @@ export default async function BuyurtmaKartochkasi({ params }: { params: Promise<
   const ishniOlaOladi = ruxsatBormi(f, 'ish.ol');
   const ishniTugataOladi = ruxsatBormi(f, 'ish.tugat');
 
-  const [tolov, kassalar, ustalar, bandlar] = await Promise.all([
+  const [tolov, kassalar, ustalar, bandlar, tahrirlar] = await Promise.all([
     tolovHolati(buyurtmaId, f.filialId),
     tolovQilaOladi ? tolovKassalari(f.filialId, f.xodimId) : Promise.resolve([]),
     ishniOlaOladi ? ishOlaOladiganlar(f.filialId) : Promise.resolve([] as readonly UstaTanlovi[]),
     ishniTugataOladi ? bandBolaklar(b.pozitsiyalar.map((p) => p.id)) : Promise.resolve([]),
+    /**
+     * TZ 8.7 — tahrirlanadigan pozitsiyalarning tarkibi.
+     *
+     * ⚠️ Faqat tahrir MUMKIN bo'lganlari yuklanadi: ish boshlangan
+     *    pozitsiya uchun bu ma'lumot keraksiz yuk.
+     */
+    tahrirlayOladi
+      ? Promise.all(
+          b.pozitsiyalar
+            .filter(
+              (p) =>
+                p.mahsulotTurId !== null &&
+                tahrirlanadimi(p.holat as PozitsiyaHolati),
+            )
+            .map((p) => pozitsiyaTahriri(p.id, f.filialId)),
+        )
+      : Promise.resolve([] as (PozitsiyaTahriri | null)[]),
   ]);
 
   /**
@@ -100,6 +128,22 @@ export default async function BuyurtmaKartochkasi({ params }: { params: Promise<
         </p>
 
         {/*
+          ⚠️ Storno banneri ENG TEPADA: bu buyurtma «bo'lmagan» deb
+             belgilangan va uni oddiy buyurtma deb o'qish xato
+             bo'lardi (8.8).
+        */}
+        {b.stornoSana !== null && (
+          <p className="mt-3 rounded-maydon bg-belgi-qizil-fon px-3 py-2.5 text-[13px] text-belgi-qizil">
+            <b>STORNO</b> — {b.stornoSana.toLocaleDateString('uz-UZ')} ·{' '}
+            {b.stornoSabab}
+            <span className="mt-1 block text-matn-ikki">
+              Xato yozuv sifatida chiqarilgan. Hisobotda bekor qilinganlardan alohida
+              sanaladi.
+            </span>
+          </p>
+        )}
+
+        {/*
           TZ 8.9 · 8.14 — «Chek» tugmasi FAQAT buyurtma to'liq
           yopilganda chiqadi. Qisman topshirishda kvitansiya
           beriladi, u boshqa hujjat.
@@ -126,6 +170,14 @@ export default async function BuyurtmaKartochkasi({ params }: { params: Promise<
             >
               Kvitansiya
             </Link>
+          )}
+
+          {/*
+            ⚠️ Storno qilingan buyurtmada tugma YO'Q: ikkinchi marta
+               qilib bo'lmaydi va tranzaksiya ham buni rad etadi.
+          */}
+          {stornoQilaOladi && b.stornoSana === null && (
+            <StornoTugmasi buyurtmaId={b.id} raqam={b.raqam} />
           )}
         </div>
       </div>
@@ -305,6 +357,9 @@ export default async function BuyurtmaKartochkasi({ params }: { params: Promise<
               <PozitsiyaAmallari
                 holat={p.holat as PozitsiyaHolati}
                 pozitsiyaId={p.id}
+                tartib={p.tartib}
+                buyurtmaRaqam={b.raqam}
+                holatTuzataOladi={holatTuzataOladi}
                 ustaIsmi={p.ustaIsmi}
                 narx={pulMatn(ayir(som(p.narx), som(p.chegirma)))}
                 bekorQilaOladi={bekorQilaOladi}
@@ -314,7 +369,8 @@ export default async function BuyurtmaKartochkasi({ params }: { params: Promise<
                 ishniOlaOladi={ishniOlaOladi}
                 ishniTugataOladi={ishniTugataOladi}
                 ustalar={ustalar}
-                band={bandlar.find((x) => x.pozitsiyaId === p.id) ?? null}
+                bandlar={bandlar.filter((x) => x.pozitsiyaId === p.id)}
+                tahrir={tahrirlar.find((t) => t !== null && t.pozitsiyaId === p.id) ?? null}
                 eniSm={p.eniSm}
                 boyiSm={p.boyiSm}
               />
@@ -335,6 +391,21 @@ export default async function BuyurtmaKartochkasi({ params }: { params: Promise<
       */}
       {bekorQilaOladi && b.yopildi === null && (
         <div className="border-t border-chegara pt-5">
+          {/*
+            TZ 8.7 — «Mijoz ertasi kuni "yana bittasi kerak" desa —
+            mavjud buyurtmaga qo'shiladi, yangi buyurtma ochilmaydi.
+            Aks holda bitta mijoz, bitta manzil, ikkita chek bo'ladi.»
+
+            ⚠️ Yopilgan buyurtmada ko'rinmaydi: cheki chiqarilgan.
+          */}
+          {tahrirlayOladi && b.yopildi === null && (
+            <Link
+              href={`/buyurtma/yangi?qoshish=${String(b.id)}`}
+              className="fokus rounded-maydon border border-chegara px-3 py-1.5 text-[13px] text-matn-ikki transition-colors hover:border-brend hover:text-brend"
+            >
+              + Pozitsiya qo&apos;shish
+            </Link>
+          )}
           <BuyurtmaniOchirishTugmasi buyurtmaId={b.id} />
         </div>
       )}
@@ -352,6 +423,9 @@ export default async function BuyurtmaKartochkasi({ params }: { params: Promise<
 function PozitsiyaAmallari({
   holat,
   pozitsiyaId,
+  tartib,
+  buyurtmaRaqam,
+  holatTuzataOladi,
   ustaIsmi,
   narx,
   bekorQilaOladi,
@@ -361,12 +435,17 @@ function PozitsiyaAmallari({
   ishniOlaOladi,
   ishniTugataOladi,
   ustalar,
-  band,
+  bandlar,
+  tahrir,
   eniSm,
   boyiSm,
 }: {
   holat: PozitsiyaHolati;
   pozitsiyaId: number;
+  tartib: number;
+  buyurtmaRaqam: string;
+  /** TZ 8.3 — faqat admin: holatni qo'lda to'g'rilash */
+  holatTuzataOladi: boolean;
   ustaIsmi: string | null;
   narx: string;
   bekorQilaOladi: boolean;
@@ -376,8 +455,14 @@ function PozitsiyaAmallari({
   ishniOlaOladi: boolean;
   ishniTugataOladi: boolean;
   ustalar: readonly UstaTanlovi[];
-  /** Pozitsiyaga band qilingan bo'lak — «Tugatdim» oynasida ko'rinadi */
-  band: { kod: string; eniM: number | null; boyiM: number | null } | null;
+  /**
+   * Pozitsiyaga band qilingan bo'laklar — «Tugatdim» oynasida ko'rinadi.
+   *
+   * Har KV_M slot uchun bittadan: Rollo da ikkita, Dikke da uchta.
+   */
+  bandlar: readonly BandBolak[];
+  /** TZ 8.7 — tahrir mumkin bo'lsa pozitsiyaning joriy tarkibi */
+  tahrir: PozitsiyaTahriri | null;
   eniSm: number;
   boyiSm: number;
 }) {
@@ -399,19 +484,57 @@ function PozitsiyaAmallari({
   const boshla = ishniOlaOladi && (holat === 'TASDIQLANGAN' || holat === 'MATERIALGA_KUTMOQDA');
   const tugat = ishniTugataOladi && holat === 'ISHLAB_CHIQARILMOQDA';
 
-  if (!bekor && !qaytaribOl && !topshir && !radEt && !qaytar && !yetibKeldi && !boshla && !tugat) {
+  /**
+   * TZ 8.7 — «Ishlab chiqarilmoqda» ga o'tgach tahrirlash tugmasi
+   * O'CHADI.
+   *
+   * ⚠️ Ilgari u shunchaki YO'QOLARDI va sotuvchi «tugma qani?» deb
+   *    o'ylardi. Endi ko'rinib turadi, lekin bosilmaydi — sababi
+   *    ustiga olib borilganda yoziladi.
+   */
+  const tahrirOchiq = tahrirlayOladi && tahrir === null && holat === 'ISHLAB_CHIQARILMOQDA';
+
+  if (
+    !bekor && !qaytaribOl && !topshir && !radEt && !qaytar && !yetibKeldi &&
+    !boshla && !tugat && tahrir === null && !tahrirOchiq &&
+    !holatTuzataOladi
+  ) {
     return null;
   }
 
   return (
     <div className="flex flex-wrap items-start gap-6 border-t border-chegara px-4 py-3">
+      {/* TZ 8.7 — ish boshlangunga qadar tahrirlanadi */}
+      {tahrir !== null && <TahrirTugmasi pozitsiya={tahrir} />}
+
+      {/*
+        ⚠️ TZ 8.3 — QOTIB QOLGAN holat uchun, odatdagi yo'l emas.
+           Tugma o'zi oqibatini tushuntiradi va sabab so'raydi.
+           Faqat adminda ko'rinadi.
+      */}
+      {holatTuzataOladi && (
+        <HolatTuzatishTugmasi
+          pozitsiyaId={pozitsiyaId}
+          tartib={tartib}
+          joriyHolat={holat}
+          buyurtmaRaqam={buyurtmaRaqam}
+        />
+      )}
+      {tahrirOchiq && (
+        <button
+          type="button"
+          disabled
+          title="Ishlab chiqarilmoqda — o'zgartirib bo'lmaydi (8.7). Kerak bo'lsa pozitsiyani bekor qilib, yangisini qo'shing."
+          className="rounded-maydon border border-chegara px-3 py-1.5 text-[13px] text-matn-kuchsiz opacity-60"
+        >
+          Tahrirlash
+        </button>
+      )}
       {boshla && <IshniBoshlashTugmasi pozitsiyaId={pozitsiyaId} ustalar={ustalar} />}
       {tugat && (
         <TugatdimTugmasi
           pozitsiyaId={pozitsiyaId}
-          manbaKod={band?.kod ?? null}
-          manbaEniM={band?.eniM ?? null}
-          manbaBoyiM={band?.boyiM ?? null}
+          bandlar={bandlar}
           mahsulotEniSm={eniSm}
           mahsulotBoyiSm={boyiSm}
         />

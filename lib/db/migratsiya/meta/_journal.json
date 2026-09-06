@@ -218,6 +218,55 @@
       "when": 1788406613177,
       "tag": "0030_vengeful_madame_masque",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1788492456565,
+      "tag": "0031_tannarx_somga",
+      "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1788493750310,
+      "tag": "0032_qoshimcha_olcham",
+      "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1788581042328,
+      "tag": "0033_yetkazib_izoh",
+      "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1788667442000,
+      "tag": "0034_buyurtma_storno",
+      "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1788667443000,
+      "tag": "0035_ochilgan_rulon",
+      "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1788667444000,
+      "tag": "0036_kirim_narx_asosi",
+      "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1788667445000,
+      "tag": "0037_aksessuar_tannarx",
+      "breakpoints": true
     }
   ]
 }

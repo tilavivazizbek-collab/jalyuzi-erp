@@ -10,6 +10,7 @@ import {
   omborAbc,
   omborQiymati,
   qoldiqMaterialKesimida,
+  rulonOchilganHolatlar,
   sarflanishTezligi,
   ustamaHisoboti,
 } from '../malumot';
@@ -21,8 +22,8 @@ export const dynamic = 'force-dynamic';
  *
  * Bitta sahifada: qoldiq material kesimida (11.7.1), material harakati
  * (11.7.2), kam qolgan va tugagan (11.7.3), chiqindi va brak (11.7.4),
- * ustama eroziyasi (11.7.5), muzlab qolgan pul (11.7.6) va sarflanish
- * tezligi (HISOBOTLAR-ISH §3.1 №13–14).
+ * ustama eroziyasi (11.7.5), muzlab qolgan pul (11.7.6), rulon ochilgan
+ * holatlar (11.7.7) va sarflanish tezligi (HISOBOTLAR-ISH §3.1 №13–14).
  *
  * ⚠️ Ruxsat 11.10 bo'yicha: bu sahifada TANNARX bor, shuning uchun
  *    `hisobot.ombor.kor` kerak — sotuvchida u yo'q.
@@ -50,8 +51,18 @@ export default async function OmborHisoboti({
     davrXom !== undefined && davrTurimi(davrXom) ? davrXom : 'OY';
   const davr = davrYasa(davrTuri, new Date());
 
-  const [qiymat, ustama, muzlagan, tezlik, abc, qoldiqlar, harakat, kamlar, chiqindi] =
-    await Promise.all([
+  const [
+    qiymat,
+    ustama,
+    muzlagan,
+    tezlik,
+    abc,
+    qoldiqlar,
+    harakat,
+    kamlar,
+    chiqindi,
+    ochilganlar,
+  ] = await Promise.all([
       omborQiymati(f.filialId),
       ustamaHisoboti(f.filialId),
       muzlaganPulHisoboti(f.filialId),
@@ -61,6 +72,7 @@ export default async function OmborHisoboti({
       materialHarakati(f.filialId, davr),
       kamQolganlar(f.filialId),
       chiqindiVaBrak(f.filialId, davr),
+      rulonOchilganHolatlar(f.filialId, davr),
     ]);
 
   const xavfli = tezlik
@@ -538,6 +550,72 @@ export default async function OmborHisoboti({
                     </td>
                     <td className="raqam px-4 py-2.5 text-right font-medium">
                       {pulKorsat(som(c.qiymat))}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      {/* 11.7.7 — Rulon ochilgan holatlar */}
+      <section>
+        <h2 className="mb-1 text-sm font-medium text-matn-ikki">
+          Kesma turgan-turib rulondan kesilgan — {davrMatn(davr)}
+        </h2>
+        {/*
+          ⚠️ TZ 7.6 buni BLOKLAMAYDI: kesma iflos yoki yirtiq
+             bo'lishi mumkin va usta haq bo'lishi mumkin. Lekin har
+             holat yozib boriladi — takrorlansa sabab qidiriladi.
+
+          ⚠️ HOLAT USTADAN keladi, tizimdan emas: tanlashda kesma
+             har doim rulondan ustun turadi (7.6, 5-qadam), demak
+             «tizim noto'g'ri tanladi» degan holat yo'q. Yozuv usta
+             «Tugatdim» da manbani o'zgartirganda tug'iladi.
+
+          ⚠️ Qaysi rulon ochilgani NOMA'LUM — usta buni aytmaydi
+             (7.6). Shuning uchun o'tkazib yuborilgan KESMA
+             ko'rsatiladi.
+        */}
+        <p className="mb-3 text-xs text-matn-kuchsiz">
+          Tizim kesmani band qilgan, usta esa rulondan kesgan. Bu xato emas —
+          kesma iflos, yirtiq yoki joyida topilmagan bo&apos;lishi mumkin. Lekin
+          tez-tez takrorlansa kesmalar yig&apos;ilib qoladi va sababini so&apos;rash
+          kerak.
+        </p>
+
+        {ochilganlar.length === 0 ? (
+          <Bosh matn="Bunday holat yo&apos;q — kesmalar avval ishlatilgan." />
+        ) : (
+          <div className="overflow-x-auto rounded-karta border border-chegara bg-sirt">
+            <table className="w-full text-sm">
+              <thead className="border-b border-chegara bg-fon text-left text-xs uppercase tracking-wide text-matn-kuchsiz">
+                <tr>
+                  <th className="px-4 py-2.5 font-medium">Sana</th>
+                  <th className="px-4 py-2.5 font-medium">Mahsulot</th>
+                  <th className="px-4 py-2.5 font-medium">Ishlatilmagan kesma</th>
+                  <th className="px-4 py-2.5 font-medium">Buyurtma</th>
+                  <th className="px-4 py-2.5 font-medium">Kim</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-chegara [&>tr:nth-child(even)]:bg-fon/50">
+                {ochilganlar.map((o) => (
+                  <tr key={`${o.kesmaKod}-${o.sana.toISOString()}`}>
+                    <td className="px-4 py-2.5 text-xs text-matn-kuchsiz">
+                      {o.sana.toLocaleDateString('uz-UZ')}
+                    </td>
+                    <td className="px-4 py-2.5 font-medium">{o.materialNom}</td>
+                    <td className="px-4 py-2.5 text-xs">
+                      <span className="font-mono">{o.kesmaKod}</span>
+                      <span className="raqam ml-2 text-matn-kuchsiz">{o.kesmaOlcham}</span>
+                    </td>
+                    <td className="px-4 py-2.5 text-xs text-matn-kuchsiz">
+                      {o.buyurtmaRaqam ?? '—'}
+                      {o.pozitsiyaTartib !== null && ` · poz. ${String(o.pozitsiyaTartib)}`}
+                    </td>
+                    <td className="px-4 py-2.5 text-xs text-matn-kuchsiz">
+                      {o.xodimIsmi ?? '—'}
                     </td>
                   </tr>
                 ))}

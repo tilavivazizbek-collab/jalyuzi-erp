@@ -58,11 +58,25 @@ async function qoralamaOl(telegramId: number): Promise<Qoralama> {
   return qoralamaOqi(s.holat.qoralama);
 }
 
+/**
+ * ⚠️ Qoralamaga KALIT shu yerda beriladi (13.10).
+ *
+ *    Domen tasodifiy son yasamaydi (§5.1), shuning uchun kalit
+ *    yozish paytida qo'yiladi — bo'sh bo'lmagan qoralama har doim
+ *    kalitli bo'ladi va u buyurtma yuborilgunga qadar o'zgarmaydi.
+ *
+ *    «Bekor qilish» bo'sh qoralamaga qaytaradi — kalit ham
+ *    tozalanadi va keyingi savat YANGI kalit oladi.
+ */
 async function qoralamaYoz(telegramId: number, q: Qoralama): Promise<void> {
+  const bosh = q.joriy === null && q.savat.length === 0;
+  const kalitli: Qoralama =
+    bosh || q.kalit !== null ? q : { ...q, kalit: globalThis.crypto.randomUUID() };
+
   await sessiyaYoz(
     ulanishOl(),
     telegramId,
-    { qadam: keyingiQadam(q), holat: { qoralama: q } },
+    { qadam: keyingiQadam(kalitli), holat: { qoralama: kalitli } },
     TIZIM_XODIM,
   );
 }
@@ -495,12 +509,19 @@ export async function savatniYubor(
   });
 
   /**
-   * ⚠️ Kalit savat MAZMUNIGA bog'lanadi: bir xil savat ikki marta
-   *    yuborilsa ikkinchisi o'tmaydi, lekin mijoz keyin BOSHQA
-   *    buyurtma bera olishi kerak.
+   * ⚠️ Kalit QORALAMAGA bog'lanadi: bir savat ikki marta yuborilsa
+   *    ikkinchisi o'tmaydi, yangi savat esa yangi kalit oladi.
+   *
+   * ⚠️ Ilgari kalit savat JSON ining UZUNLIGIDAN qurilardi va
+   *    mijozning keyingi buyurtmasi «allaqachon yuborilgan» deb
+   *    jimgina yo'qolardi (2026-09-03 auditi).
+   *
+   * ⚠️ Kalit yo'q bo'lsa (bot yangilanishidan oldin boshlangan
+   *    suhbat) yangisi yasaladi: buyurtma YO'QOLMASLIGI ikki marta
+   *    bosishdan himoyadan muhimroq.
    */
   const kalit = amalKaliti(
-    `buyurtma:${JSON.stringify(q.savat).length.toString()}`,
+    `buyurtma:${q.kalit ?? globalThis.crypto.randomUUID()}`,
     telegramId,
     q.savat.length,
   );

@@ -30,7 +30,7 @@ beforeAll(() => {
 });
 
 afterAll(async () => {
-  await sql.end();
+  await sql.end({ timeout: 5 });
 });
 
 describe('tezNomTozala', () => {
@@ -51,51 +51,51 @@ describe('tezNomTozala', () => {
 
 describe("TZ 5.6 — guruhni ro'yxat ichidan qo'shish", () => {
   it('yangi guruh yaratiladi', async () => {
-    const g = await guruhTezYarat(`${belgi} guruh`, XODIM);
+    const g = await guruhTezYarat(`${belgi} guruh`, XODIM, sql);
     expect(g.id).toBeGreaterThan(0);
     expect(g.nom).toBe(`${belgi} guruh`);
   });
 
   it('bir xil nom ikkinchi marta YANGI guruh yaratmaydi', async () => {
-    const a = await guruhTezYarat(`${belgi} takror`, XODIM);
-    const b = await guruhTezYarat(`${belgi} takror`, XODIM);
+    const a = await guruhTezYarat(`${belgi} takror`, XODIM, sql);
+    const b = await guruhTezYarat(`${belgi} takror`, XODIM, sql);
     expect(b.id).toBe(a.id);
   });
 
   it('katta-kichik harf farqi dublikat hisoblanmaydi', async () => {
-    const a = await guruhTezYarat(`${belgi} Harf`, XODIM);
-    const b = await guruhTezYarat(`${belgi} HARF`, XODIM);
+    const a = await guruhTezYarat(`${belgi} Harf`, XODIM, sql);
+    const b = await guruhTezYarat(`${belgi} HARF`, XODIM, sql);
     expect(b.id).toBe(a.id);
   });
 
   it("bo'sh nom rad etiladi", async () => {
-    await expect(guruhTezYarat('  ', XODIM)).rejects.toBeInstanceOf(BiznesXato);
+    await expect(guruhTezYarat('  ', XODIM, sql)).rejects.toBeInstanceOf(BiznesXato);
   });
 });
 
 describe("TZ 9.1 — yetkazib beruvchini ro'yxat ichidan qo'shish", () => {
   it('yangi yetkazib beruvchi yaratiladi', async () => {
-    const y = await yetkazibTezYarat(`${belgi} yetkazuvchi`, XODIM);
+    const y = await yetkazibTezYarat(`${belgi} yetkazuvchi`, XODIM, sql);
     expect(y.id).toBeGreaterThan(0);
   });
 
   it('bir xil nom dublikat yaratmaydi', async () => {
-    const a = await yetkazibTezYarat(`${belgi} y-takror`, XODIM);
-    const b = await yetkazibTezYarat(`  ${belgi} Y-TAKROR  `, XODIM);
+    const a = await yetkazibTezYarat(`${belgi} y-takror`, XODIM, sql);
+    const b = await yetkazibTezYarat(`  ${belgi} Y-TAKROR  `, XODIM, sql);
     expect(b.id).toBe(a.id);
   });
 });
 
 describe("TZ 6.5 — mijozni ro'yxat ichidan qo'shish", () => {
   it('yangi mijoz yaratiladi', async () => {
-    const m = await mijozTezYarat(`${belgi} mijoz`, XODIM);
+    const m = await mijozTezYarat(`${belgi} mijoz`, XODIM, sql);
     expect(m.id).toBeGreaterThan(0);
     expect(m.nom).toBe(`${belgi} mijoz`);
   });
 
   it('bir xil ism dublikat yaratmaydi — qarz chalkashmasin', async () => {
-    const a = await mijozTezYarat(`${belgi} Aziz`, XODIM);
-    const b = await mijozTezYarat(`${belgi} aziz`, XODIM);
+    const a = await mijozTezYarat(`${belgi} Aziz`, XODIM, sql);
+    const b = await mijozTezYarat(`${belgi} aziz`, XODIM, sql);
     expect(b.id).toBe(a.id);
 
     const soni = await sql<{ n: string }[]>`
@@ -105,7 +105,7 @@ describe("TZ 6.5 — mijozni ro'yxat ichidan qo'shish", () => {
   });
 
   it("yangi mijozda offset ham, qarz limiti ham yo'q", async () => {
-    const m = await mijozTezYarat(`${belgi} yalang`, XODIM);
+    const m = await mijozTezYarat(`${belgi} yalang`, XODIM, sql);
     const q = await sql<
       { offset_turi: string | null; qarz_limiti: string | null }[]
     >`SELECT offset_turi, qarz_limiti FROM mijoz WHERE id = ${m.id}`;

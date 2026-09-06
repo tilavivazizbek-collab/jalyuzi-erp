@@ -92,6 +92,7 @@ export function KirimFormasi({
   yetkazibQoshaOladi,
   materialQoshaOladi,
   kassalar,
+  boshMaterialId = null,
 }: {
   materiallar: readonly MaterialTanlovi[];
   yetkazuvchilar: readonly YetkazibTanlovi[];
@@ -106,6 +107,11 @@ export function KirimFormasi({
    *    ma'nosi yo'q (12.2).
    */
   kassalar: readonly { id: number; nom: string; valyuta: string }[];
+  /**
+   * Material kartochkasidan kelgan bo'lsa — birinchi qator shu
+   * material bilan ochiladi (`?material=`).
+   */
+  boshMaterialId?: number | null;
 }) {
   const [holat, yubor, kutilmoqda] = useActionState(kirimYaratAmali, BOSH_HOLAT);
 
@@ -122,7 +128,29 @@ export function KirimFormasi({
   const [bojxona, setBojxona] = useState('');
   const [tolov, setTolov] = useState('');
   const [tolovKassa, setTolovKassa] = useState('');
-  const [qatorlar, setQatorlar] = useState<Qator[]>([]);
+  /**
+   * ⚠️ Boshlang'ich qator FAQAT bir marta yasaladi.
+   *
+   *    `useState` ning funksiyali shakli — aks holda har qayta
+   *    chizishda qator qaytadan tug'ilib, omborchi yozganini
+   *    o'chirib yuborardi.
+   */
+  const [qatorlar, setQatorlar] = useState<Qator[]>(() => {
+    if (boshMaterialId === null || boshMaterialId === undefined) return [];
+    const m = boshMateriallar.find((x) => x.id === boshMaterialId);
+    if (m === undefined) return [];
+    return [
+      {
+        materialId: m.id,
+        miqdorKirim: '',
+        narxBirlik: boshlangichNarx(m, 'SOM'),
+        narxAsosi: qatorAsosi(m),
+        defektMiqdor: '',
+        defektTuri: null,
+        bolaklar: [],
+      },
+    ];
+  });
 
   const material = (id: number): MaterialTanlovi | undefined =>
     materiallar.find((m) => m.id === id);

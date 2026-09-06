@@ -11,7 +11,7 @@
  *    shunday keladi, sotuvchi tanlab o'tirmaydi.
  */
 
-import { useActionState, useState } from 'react';
+import { useActionState, useEffect, useState } from 'react';
 import { Maydon, kirishUslubi } from '../maydon';
 import { pulKorsat, som } from '@/lib/domain/pul';
 import { tolovAmali } from './tolov-amal';
@@ -48,6 +48,23 @@ export function TolovFormasi({
   kassalar: readonly TolovKassasi[];
 }) {
   const [holat, yubor, kutilmoqda] = useActionState(tolovAmali, BOSH_TOLOV);
+
+  /**
+   * TZ 12.3 — TAKRORLANISHDAN HIMOYA KALITI.
+   *
+   * ⚠️ Har yuborish uchun bitta noyob qiymat. Ikki marta bosilsa
+   *    yoki sahifa qayta yuborilsa kalit BIR XIL bo'ladi va server
+   *    ikkinchi yozuvni qabul qilmaydi.
+   *
+   * ⚠️ Muvaffaqiyatli to'lovdan keyin YANGILANADI — sotuvchi shu
+   *    yerning o'zida ikkinchi to'lovni kirita olishi kerak
+   *    (masalan avansdan keyin qolgan summa).
+   */
+  const [kalit, kalitniOzgartir] = useState(() => crypto.randomUUID());
+
+  useEffect(() => {
+    if (holat.bajarildi) kalitniOzgartir(crypto.randomUUID());
+  }, [holat]);
   const [qatorlar, qatorlarniOzgartir] = useState<Qator[]>(() => [
     yangiQator(String(kassalar[0]?.id ?? '')),
   ]);
@@ -80,6 +97,7 @@ export function TolovFormasi({
   return (
     <form action={yubor} className="flex max-w-2xl flex-col gap-4">
       <input type="hidden" name="buyurtmaId" value={buyurtmaId} />
+      <input type="hidden" name="kalit" value={kalit} />
       <input type="hidden" name="qatorlar" value={JSON.stringify(yuborilajak)} />
 
       {holat.xato !== null && (

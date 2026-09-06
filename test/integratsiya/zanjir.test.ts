@@ -68,20 +68,20 @@ beforeAll(() => {
 }, 120_000);
 
 afterAll(async () => {
-  await sql.end();
+  await sql.end({ timeout: 5 });
 });
 
 // ─── 1-2. Ro'yxat ichidan qo'shish ────────────────────────────────────────
 
 describe("1. Ro'yxat ichidan qo'shilgan narsa bazaga tushadi", () => {
   it('guruh yaratiladi', async () => {
-    const g = await guruhTezYarat(`${belgi} matolar`, XODIM);
+    const g = await guruhTezYarat(`${belgi} matolar`, XODIM, sql);
     guruhId = g.id;
     expect(guruhId).toBeGreaterThan(0);
   });
 
   it("material o'lchov birligi bilan yaratiladi", async () => {
-    const m = await materialTezYarat(`${belgi} mato`, 'RULON', XODIM);
+    const m = await materialTezYarat(`${belgi} mato`, 'RULON', XODIM, sql);
     matoId = m.id;
 
     const q = await sql<
@@ -251,7 +251,7 @@ describe('4. Konstruktordagi «sarfi» tanlovi formulaga aylanadi', () => {
 
 describe('5. Sotuv ekrani turni va uning matolarini ko‘radi', () => {
   it('slot va guruhdagi material sotuvga chiqadi', async () => {
-    const tur = await turTafsili(turId, FILIAL);
+    const tur = await turTafsili(turId, FILIAL, sql);
 
     expect(tur).not.toBeNull();
     expect(tur?.slotlar.length).toBe(1);
@@ -371,7 +371,7 @@ describe('7. Dollardagi material narxi sotuvga to‘g‘ri yetadi', () => {
       UPDATE material SET sotuv_narx = 12, sotuv_valyuta = 'USD'
       WHERE id = ${matoId}`;
 
-    const tur = await turTafsili(turId, FILIAL);
+    const tur = await turTafsili(turId, FILIAL, sql);
     const mato = tur?.slotlar[0]?.materiallar.find((m) => m.id === matoId);
 
     expect(Number(mato?.narx)).toBe(12);
@@ -379,7 +379,7 @@ describe('7. Dollardagi material narxi sotuvga to‘g‘ri yetadi', () => {
   });
 
   it('narx kursga urilib so‘mga aylanadi', async () => {
-    const tur = await turTafsili(turId, FILIAL);
+    const tur = await turTafsili(turId, FILIAL, sql);
     const mato = tur?.slotlar[0]?.materiallar.find((m) => m.id === matoId);
 
     const k = kurs('12800', new Date(), 'JORIY');
@@ -389,7 +389,7 @@ describe('7. Dollardagi material narxi sotuvga to‘g‘ri yetadi', () => {
   });
 
   it('kurs yo‘q bo‘lsa narx JIMGINA so‘m deb olinmaydi', async () => {
-    const tur = await turTafsili(turId, FILIAL);
+    const tur = await turTafsili(turId, FILIAL, sql);
     const mato = tur?.slotlar[0]?.materiallar.find((m) => m.id === matoId);
 
     expect(() =>
@@ -423,7 +423,7 @@ describe('7. Dollardagi material narxi sotuvga to‘g‘ri yetadi', () => {
     expect(q[0]?.valyuta).toBe('USD');
 
     // Katalog ham filial narxining valyutasini bermoqda
-    const tur = await turTafsili(turId, FILIAL);
+    const tur = await turTafsili(turId, FILIAL, sql);
     const mato = tur?.slotlar[0]?.materiallar.find((m) => m.id === matoId);
     expect(Number(mato?.narx)).toBe(11);
     expect(mato?.narxValyuta).toBe('USD');

@@ -18,8 +18,9 @@
 
 import { revalidatePath } from 'next/cache';
 import { ulanishOl } from '@/lib/db';
-import { ishniOl, tugatdim } from '@/lib/amal/ish';
+import { ishniOl, tugatdim, type KesimKirimi } from '@/lib/amal/ish';
 import { pozitsiyaStavkasi } from '@/lib/amal/stavka';
+import type { Olcham } from '@/lib/domain/kesish';
 import { ruxsatTalab } from '@/lib/kirish/joriy';
 import { matnMaydon } from '../forma-yordamchi';
 import { xatoXabari } from '../xato-xabari';
@@ -65,6 +66,11 @@ export async function ishniBoshlaAmali(
  * ⚠️ Usta QOLGAN BO'LAK o'lchamini o'zi kiritadi: kesim hech
  *    qachon qog'ozdagidek chiqmaydi, egrilik 5–10 sm bo'ladi.
  *    Tizim taxmin qilsa, ombordagi qoldiq haqiqatdan uzoqlashardi.
+ *
+ * ⚠️ HAR MATO uchun alohida qator keladi (2026-09-03 tuzatishi).
+ *    Rollo — old va orqa mato, Dikke — uchta: har biri o'z
+ *    bo'lagidan kesiladi va o'z qoldig'ini beradi. Ilgari faqat
+ *    birinchisi yechilar, qolganlari omborda band bo'lib qolardi.
  */
 export async function tugatdimAmali(
   pozitsiyaId: number,
@@ -73,55 +79,91 @@ export async function tugatdimAmali(
 ): Promise<IshHolati> {
   const f = await ruxsatTalab('ish.tugat');
 
-  const eni = Number(matnMaydon(forma, 'qoldiqEni'));
-  const boyi = Number(matnMaydon(forma, 'qoldiqBoyi'));
+  const xom = ((): unknown => {
+    const matn = matnMaydon(forma, 'kesimlar');
+    if (matn === '') return null;
+    try {
+      return JSON.parse(matn);
+    } catch {
+      return null;
+    }
+  })();
 
-  if (!Number.isFinite(eni) || !Number.isFinite(boyi) || eni < 0 || boyi < 0) {
-    return { xato: "Qolgan bo'lak o'lchami noto'g'ri" };
+  if (!Array.isArray(xom) || xom.length === 0) {
+    return { xato: "Qolgan bo'lak o'lchamini kiriting" };
   }
 
-  const sql = ulanishOl();
+  /**
+   * ⚠️ Brauzerdan kelgan JSON — har maydon TEKSHIRILADI (§9.4).
+   *
+   * ⚠️ IKKI QOLDIQ keladi (7.4): rulonning davomi va yon kesma.
+   *    Ekran ularni `kesimRejasi()` bilan hisoblab ko'rsatadi, usta
+   *    esa tasdiqlaydi yoki tuzatadi. Bo'sh qoldirilgani — «bunday
+   *    bo'lak qolmadi» degani.
+   */
+  interface XomKesim {
+    readonly bandId?: unknown;
+    readonly manba?: unknown;
+    readonly manbaEni?: unknown;
+    readonly manbaBoyi?: unknown;
+    readonly kesmaEni?: unknown;
+    readonly kesmaBoyi?: unknown;
+    readonly saqlansinmi?: unknown;
+  }
+
+  const kesimlar: KesimKirimi[] = [];
+
+  /** Bo'sh yoki nol o'lcham — bunday bo'lak qolmagan */
+  const olcham = (e: unknown, b: unknown): Olcham | null | 'XATO' => {
+    const eni = Number(e ?? 0);
+    const boyi = Number(b ?? 0);
+    if (!Number.isFinite(eni) || !Number.isFinite(boyi) || eni < 0 || boyi < 0) {
+      return 'XATO';
+    }
+    return eni > 0 && boyi > 0 ? { eniM: eni, boyiM: boyi } : null;
+  };
+
+  for (const x of xom as XomKesim[]) {
+    const bandId = Number(x.bandId);
+
+    if (!Number.isSafeInteger(bandId) || bandId <= 0) {
+      return { xato: "Qaysi mato ekani aniqlanmadi — sahifani yangilang" };
+    }
+
+    const manbaQoldiq = olcham(x.manbaEni, x.manbaBoyi);
+    const kesma = olcham(x.kesmaEni, x.kesmaBoyi);
+    if (manbaQoldiq === 'XATO' || kesma === 'XATO') {
+      return { xato: "Qolgan bo'lak o'lchami noto'g'ri" };
+    }
+
+    kesimlar.push({
+      bandId,
+      manba: x.manba === 'RULON' ? 'RULON' : 'OSTATKA',
+      qoldiqlar: {
+        manbaQoldiq,
+        kesma,
+        /** Belgilanmasa yon kesma chiqindiga ketadi (7.5) */
+        kesmaSaqlansinmi: x.saqlansinmi === true,
+      },
+    });
+  }
 
   try {
     /**
-     * Chegaralar MATERIALDAN olinadi (5.5) — qoldiq yaroqsizmi
-     * yoki ostatka bo'lib qoladimi, shu hal qiladi.
+     * ⚠️ Chegaralar endi `tugatdim` ichida, HAR MATERIALDAN
+     *    alohida o'qiladi (5.5). Ilgari shu yerda bitta so'rov
+     *    `LIMIT 1` bilan olinar va bir materialning chegarasi
+     *    boshqa matoga ham qo'llanardi.
      */
-    const ch = await sql<
-      { yaroqsiz: string | null; kam: string | null }[]
-    >`
-      SELECT m.yaroqsiz_chegara_m::text AS yaroqsiz,
-             m.kam_ishlatiladigan_m::text AS kam
-      FROM band bd
-      JOIN bolak bo ON bo.id = bd.bolak_id
-      JOIN material m ON m.id = bo.material_id
-      WHERE bd.buyurtma_pozitsiya_id = ${pozitsiyaId} AND bd.holat = 'FAOL'
-      LIMIT 1`;
-
-    const chegaralar = {
-      yaroqsizM: ch[0]?.yaroqsiz === undefined || ch[0].yaroqsiz === null
-        ? null
-        : Number(ch[0].yaroqsiz),
-      kamIshlatiladiganM:
-        ch[0]?.kam === undefined || ch[0].kam === null ? null : Number(ch[0].kam),
-    };
-
     await tugatdim(
-      sql,
+      ulanishOl(),
       {
         pozitsiyaId,
-        manba: matnMaydon(forma, 'manba') === 'RULON' ? 'RULON' : 'OSTATKA',
-        qoldiq: {
-          eniM: eni,
-          boyiM: boyi,
-          /** Belgilanmasa qoldiq chiqindiga ketadi (7.5) */
-          saqlansinmi: matnMaydon(forma, 'saqlansinmi') === 'ha',
-        },
+        kesimlar,
         /** Ogohlantirish ekranda ko'rsatilgan va odam davom etgan */
         ogohTasdiqlandi: true,
         izoh: matnMaydon(forma, 'izoh') === '' ? null : matnMaydon(forma, 'izoh'),
       },
-      chegaralar,
       f.xodimId,
     );
   } catch (x) {

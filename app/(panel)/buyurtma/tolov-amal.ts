@@ -74,10 +74,25 @@ export async function tolovAmali(
     return { xato: 'Buyurtma topilmadi', qarz: null, bajarildi: false };
   }
 
+  /**
+   * TZ 12.3 — takrorlanishdan himoya kaliti FORMADAN keladi va har
+   * yuborishda yangilanadi. Tugma ikki marta bosilsa kalit bir xil
+   * bo'ladi — ikkinchisi o'tmaydi.
+   */
+  const kalit = matnMaydon(forma, 'kalit').trim();
+  if (kalit === '') {
+    return { xato: "To'lovni qayta yuboring — sahifani yangilang", qarz: null, bajarildi: false };
+  }
+
   try {
     const n = await buyurtmaTolovi(
       sql,
-      { buyurtmaId, qatorlar, izoh: matnMaydon(forma, 'izoh').trim() || null },
+      {
+        buyurtmaId,
+        qatorlar,
+        izoh: matnMaydon(forma, 'izoh').trim() || null,
+        kalit: `tolov:buyurtma:${String(buyurtmaId)}:${kalit}`,
+      },
       f.xodimId,
       // K2 — topshirishda yoki keyin qabul qilingan to'lov (12.5)
       'K2',

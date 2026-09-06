@@ -20,6 +20,8 @@
 import type postgres from 'postgres';
 import Decimal from 'decimal.js';
 import { bandQilTx, type SlotSorovi } from './band';
+import { kesimOlchami } from '@/lib/domain/kesish';
+import { sarflashniTekshir } from './sarflash';
 import { donaYech } from './dona-yechish';
 import {
   boshHolat,
@@ -123,6 +125,231 @@ export interface BuyurtmaNatijasi {
 }
 
 /**
+ * Bitta pozitsiyani yozadi — material, aksessuar va BAND bilan.
+ *
+ * ⚠️ NEGA ALOHIDA FUNKSIYA
+ *
+ *    Buni IKKI amal chaqiradi: yangi buyurtma yaratish va mavjud
+ *    buyurtmaga pozitsiya qo'shish (8.7). Nusxa ko'chirilsa bir joyda
+ *    band qo'yilib, ikkinchisida unutilardi (§2.2).
+ *
+ * ⚠️ Chaqiruvchining TRANZAKSIYASIDA ishlaydi: buyurtma va pozitsiya
+ *    bir vaqtda yoziladi yoki hech biri yozilmaydi (2.1-invariant).
+ */
+export interface PozitsiyaKonteksti {
+  readonly buyurtmaId: number;
+  /** Buyurtma ichidagi tartib raqami — (buyurtma, tartib) noyob */
+  readonly tartib: number;
+  readonly ishlabChiqaruvchiFilialId: number;
+  /** Manbaga qarab boshlang'ich holat (Q-12) */
+  readonly boshHolati: PozitsiyaHolati;
+  /** Tasdiqdan keyingi holat — 20.5 bo'yicha filialga bog'liq */
+  readonly tasdiqHolati: PozitsiyaHolati;
+  readonly tasdiqlangan: boolean;
+}
+
+export async function pozitsiyaYozTx(
+  tx: postgres.TransactionSql,
+  p: PozitsiyaKirimi,
+  k: PozitsiyaKonteksti,
+  xodimId: number,
+  hozir: Date = new Date(),
+): Promise<PozitsiyaNatijasi> {
+  /**
+   * ⚠️ QO'SHIMCHA BUYUMDA SLOT BO'LMAYDI (3.10).
+   *
+   *    Bu tekshiruv qo'shimcha buyum imkoniyatidan OLDIN yozilgan
+   *    edi va uni yangilash unutilgan: natijada mexanizm sotmoqchi
+   *    bo'lgan sotuvchi «Savatda bironta pozitsiya yo'q» degan
+   *    xatoni olardi. Baza testi topdi (2026-09-03).
+   */
+  const qoshimchami =
+    p.qoshimchaMaterialId !== null && p.qoshimchaMaterialId !== undefined;
+
+  if (!qoshimchami && p.slotlar.length === 0) {
+    throw new BiznesXato('BUYURTMA_BOSH', `pozitsiya ${String(k.tartib)}`);
+  }
+
+  /**
+   * §9.4 — OMBOR SARFLASHI SERVERDA QAYTA HISOBLANADI.
+   *
+   * ⚠️ Shu paytgacha `hisoblangan_miqdor` brauzerdan kelgan ko'yi
+   *    yozilardi: server uni faqat `^\d+(\.\d+)?$` bilan
+   *    tekshirardi. Sotuvchining brauzerida ochiq turgan ESKI
+   *    sahifa eski formulani ushlab qolardi va o'sha buyurtma
+   *    eskicha sarflash bilan bazaga tushardi.
+   *
+   * ⚠️ NARXGA tegilmaydi: uni sotuvchi qo'lda qo'yadi (3.8, 3.11) —
+   *    u mijoz bilan kelishilgan. Sarflash esa kelishuv emas.
+   */
+  if (!qoshimchami && p.mahsulotTurId !== null) {
+    await sarflashniTekshir(tx, {
+      mahsulotTurId: p.mahsulotTurId,
+      eniSm: p.eniSm,
+      boyiSm: p.boyiSm,
+      soni: p.soni,
+      formulaSnapshot: p.formulaSnapshot,
+      slotlar: p.slotlar,
+    });
+  }
+
+  const q = await tx<{ id: number }[]>`
+    INSERT INTO buyurtma_pozitsiya (buyurtma_id, tartib, mahsulot_tur_id,
+                                    qoshimcha_material_id,
+                                    eni_sm, boyi_sm, soni, narx_snapshot,
+                                    chegirma_summa, xizmat_haqi,
+                                    formula_snapshot, holat, yaratdi_id)
+    VALUES (${k.buyurtmaId}, ${k.tartib}, ${p.mahsulotTurId},
+            ${p.qoshimchaMaterialId ?? null}, ${p.eniSm}, ${p.boyiSm},
+            ${p.soni}, ${p.narxSnapshot}, ${p.chegirmaSumma}, ${p.xizmatHaqi},
+            ${tx.json(p.formulaSnapshot as never)},
+            ${k.tasdiqlangan ? k.tasdiqHolati : k.boshHolati}, ${xodimId})
+    RETURNING id`;
+
+  const pozitsiyaId = q[0]?.id;
+  if (pozitsiyaId === undefined) throw new BiznesXato('POZITSIYA_TOPILMADI');
+
+  // Har slot — o'z `pozitsiya_material` qatori (QISM 3 §3.2.1)
+  const sorovlar: SlotSorovi[] = [];
+
+  for (const s of p.slotlar) {
+    const pm = await tx<{ id: number }[]>`
+      INSERT INTO pozitsiya_material (buyurtma_pozitsiya_id, slot_id, material_id,
+                                      hisoblangan_miqdor, tuzatilgan_miqdor,
+                                      birlik, narx_snapshot)
+      VALUES (${pozitsiyaId}, ${s.slotId}, ${s.materialId},
+              ${s.hisoblanganMiqdor}, ${s.tuzatilganMiqdor}, ${s.birlik},
+              ${s.narxSnapshot})
+      RETURNING id`;
+
+    const pmId = pm[0]?.id;
+    if (pmId === undefined) throw new BiznesXato('POZITSIYA_TOPILMADI');
+
+    if (s.kerak !== null) {
+      sorovlar.push({
+        pozitsiyaMaterialId: pmId,
+        materialId: s.materialId,
+        kerak: s.kerak,
+        majburiy: true,
+      });
+    }
+  }
+
+  for (const a of p.aksessuarlar) {
+    await tx`
+      INSERT INTO pozitsiya_aksessuar (buyurtma_pozitsiya_id, material_id,
+                                       soni, birlik, narx_snapshot,
+                                       qolda_kiritildi)
+      VALUES (${pozitsiyaId}, ${a.materialId}, ${a.soni}, ${a.birlik},
+              ${a.narxSnapshot}, ${a.qoldaKiritildi})`;
+  }
+
+  // TZ 7.3 — «Pozitsiya "Tasdiqlangan" bo'lgan ZAHOTI tizim mos
+  // bo'lakni topadi va band qiladi.» Tasdiq kutayotgani band
+  // qilinmaydi.
+  let holat: PozitsiyaHolati = k.tasdiqlangan ? k.tasdiqHolati : k.boshHolati;
+  let topilmagan: readonly number[] = [];
+
+  if (k.tasdiqlangan && sorovlar.length > 0) {
+    const band = await bandQilTx(
+      tx,
+      pozitsiyaId,
+      // 20.4.2 — tekshiruv ISHLAB CHIQARUVCHI filialda
+      k.ishlabChiqaruvchiFilialId,
+      sorovlar,
+      xodimId,
+      hozir,
+    );
+
+    if (band.holat === 'MATERIAL_YOQ') {
+      // TZ 8.12 — «Usta ishga olmoqchi bo'ldi, material yetmadi»
+      // qoidasi Q-03 bilan oldinga surildi: buyurtma berilayotganda
+      holat = 'MATERIALGA_KUTMOQDA';
+      topilmagan = band.topilmagan;
+
+      await tx`
+        UPDATE buyurtma_pozitsiya SET holat = 'MATERIALGA_KUTMOQDA'
+        WHERE id = ${pozitsiyaId}`;
+    }
+  }
+
+  /**
+   * QO'SHIMCHA MAHSULOT — ombordan darhol yechiladi.
+   *
+   * ⚠️ Band qilinmaydi, YECHILADI: u tayyorlanmaydi, kesilmaydi
+   *    va usta ishlamaydi — shu zahoti mijozga beriladi.
+   *
+   * ⚠️ Yetmasa pozitsiya «materialga kutmoqda» ga tushadi, xuddi
+   *    mato yetmagandagi kabi (8.12). Sotuv to'xtatilmaydi:
+   *    qolgan pozitsiyalar baribir tayyorlanadi.
+   */
+  if (k.tasdiqlangan && p.qoshimchaMaterialId !== null && p.qoshimchaMaterialId !== undefined) {
+    const yechim = await donaYech(
+      tx,
+      p.qoshimchaMaterialId,
+      k.ishlabChiqaruvchiFilialId,
+      p.soni,
+    );
+
+    if (yechim.holat === 'YETMADI') {
+      holat = 'MATERIALGA_KUTMOQDA';
+      topilmagan = [p.qoshimchaMaterialId];
+
+      await tx`
+        UPDATE buyurtma_pozitsiya SET holat = 'MATERIALGA_KUTMOQDA'
+        WHERE id = ${pozitsiyaId}`;
+    } else {
+      /**
+       * ⚠️ Qaysi partiyadan olingani YOZILADI — tannarx keyin
+       *    shundan hisoblanadi (2.3-invariant: o'tmish
+       *    o'zgarmaydi).
+       */
+      for (const partiya of yechim.partiyalar) {
+        /**
+         * ⚠️ TANNARX O'Z USTUNIGA yoziladi (0037), `narx_snapshot` ga
+         *    EMAS: u butun tizimda SOTUV narxini saqlaydi.
+         *
+         * ⚠️ `narx_snapshot` NOL: qo'shimcha buyumning daromadi
+         *    POZITSIYANING O'ZIDA turibdi. Bu yerga ham yozilsa
+         *    daromad ikki marta sanalardi.
+         */
+        await tx`
+          INSERT INTO pozitsiya_aksessuar (buyurtma_pozitsiya_id, material_id,
+                                           soni, birlik, narx_snapshot,
+                                           tannarx_snapshot, qolda_kiritildi)
+          VALUES (${pozitsiyaId}, ${p.qoshimchaMaterialId},
+                  ${partiya.miqdor}, 'DONA', 0, ${partiya.tannarx}, true)`;
+
+        /**
+         * ⚠️ OMBOR JURNALIGA HAM YOZILADI.
+         *
+         *    Ilgari `bolak.miqdor` kamayar, lekin `ombor_harakat`
+         *    ga hech narsa tushmasdi. Natijada qoldiq to'g'ri
+         *    bo'lsa ham ombor TARIXIDA bu sotuv KO'RINMASDI:
+         *    omborchi «mexanizm qayoqqa ketdi?» degan savolga
+         *    javob topa olmasdi (2026-09-03 auditi).
+         *
+         *    Yozuv MANFIY — buyum ombordan chiqmoqda. Xuddi
+         *    «Tugatdim» dagi aksessuar yozuvi kabi (`ish.ts`).
+         */
+        const olindi = Number(partiya.miqdor);
+        await tx`
+          INSERT INTO ombor_harakat (filial_id, bolak_id, turi, miqdor_dona,
+                                     tannarx_summa, manba_turi, manba_id,
+                                     izoh, xodim_id)
+          VALUES (${k.ishlabChiqaruvchiFilialId}, ${partiya.bolakId},
+                  'KESIM', ${-olindi},
+                  ${(-olindi * Number(partiya.tannarx)).toFixed(2)},
+                  'buyurtma_pozitsiya', ${pozitsiyaId},
+                  ${"Qo'shimcha buyum sotildi (3.10)"}, ${xodimId})`;
+      }
+    }
+  }
+
+  return { pozitsiyaId, holat, topilmaganMateriallar: topilmagan };
+}
+
+/**
  * TZ 3.14 — buyurtmani saqlaydi.
  *
  * Q-12 — sayt buyurtmasi darhol «Tasdiqlangan», bot buyurtmasi
@@ -177,135 +404,24 @@ export async function buyurtmaYarat(
     let yetishmadi = false;
 
     for (const [i, p] of kirim.pozitsiyalar.entries()) {
-      if (p.slotlar.length === 0) {
-        throw new BiznesXato('BUYURTMA_BOSH', `pozitsiya ${String(i + 1)}`);
-      }
+      // §2.2 — pozitsiya yozish mantig'i BITTA joyda
+      const n = await pozitsiyaYozTx(
+        tx,
+        p,
+        {
+          buyurtmaId,
+          tartib: i + 1,
+          ishlabChiqaruvchiFilialId: kirim.ishlabChiqaruvchiFilialId,
+          boshHolati: bosh,
+          tasdiqHolati,
+          tasdiqlangan,
+        },
+        xodimId,
+        hozir,
+      );
 
-      const q = await tx<{ id: number }[]>`
-        INSERT INTO buyurtma_pozitsiya (buyurtma_id, tartib, mahsulot_tur_id,
-                                        qoshimcha_material_id,
-                                        eni_sm, boyi_sm, soni, narx_snapshot,
-                                        chegirma_summa, xizmat_haqi,
-                                        formula_snapshot, holat, yaratdi_id)
-        VALUES (${buyurtmaId}, ${i + 1}, ${p.mahsulotTurId},
-                ${p.qoshimchaMaterialId ?? null}, ${p.eniSm}, ${p.boyiSm},
-                ${p.soni}, ${p.narxSnapshot}, ${p.chegirmaSumma}, ${p.xizmatHaqi},
-                ${tx.json(p.formulaSnapshot as never)},
-                ${tasdiqlangan ? tasdiqHolati : bosh}, ${xodimId})
-        RETURNING id`;
-
-      const pozitsiyaId = q[0]?.id;
-      if (pozitsiyaId === undefined) throw new BiznesXato('POZITSIYA_TOPILMADI');
-
-      // Har slot — o'z `pozitsiya_material` qatori (QISM 3 §3.2.1)
-      const sorovlar: SlotSorovi[] = [];
-
-      for (const s of p.slotlar) {
-        const pm = await tx<{ id: number }[]>`
-          INSERT INTO pozitsiya_material (buyurtma_pozitsiya_id, slot_id, material_id,
-                                          hisoblangan_miqdor, tuzatilgan_miqdor,
-                                          birlik, narx_snapshot)
-          VALUES (${pozitsiyaId}, ${s.slotId}, ${s.materialId},
-                  ${s.hisoblanganMiqdor}, ${s.tuzatilganMiqdor}, ${s.birlik},
-                  ${s.narxSnapshot})
-          RETURNING id`;
-
-        const pmId = pm[0]?.id;
-        if (pmId === undefined) throw new BiznesXato('POZITSIYA_TOPILMADI');
-
-        if (s.kerak !== null) {
-          sorovlar.push({
-            pozitsiyaMaterialId: pmId,
-            materialId: s.materialId,
-            kerak: s.kerak,
-            majburiy: true,
-          });
-        }
-      }
-
-      for (const a of p.aksessuarlar) {
-        await tx`
-          INSERT INTO pozitsiya_aksessuar (buyurtma_pozitsiya_id, material_id,
-                                           soni, birlik, narx_snapshot,
-                                           qolda_kiritildi)
-          VALUES (${pozitsiyaId}, ${a.materialId}, ${a.soni}, ${a.birlik},
-                  ${a.narxSnapshot}, ${a.qoldaKiritildi})`;
-      }
-
-      // TZ 7.3 — «Pozitsiya "Tasdiqlangan" bo'lgan ZAHOTI tizim mos
-      // bo'lakni topadi va band qiladi.» Tasdiq kutayotgani band
-      // qilinmaydi.
-      let holat: PozitsiyaHolati = tasdiqlangan ? tasdiqHolati : bosh;
-      let topilmagan: readonly number[] = [];
-
-      if (tasdiqlangan && sorovlar.length > 0) {
-        const band = await bandQilTx(
-          tx,
-          pozitsiyaId,
-          // 20.4.2 — tekshiruv ISHLAB CHIQARUVCHI filialda
-          kirim.ishlabChiqaruvchiFilialId,
-          sorovlar,
-          xodimId,
-          hozir,
-        );
-
-        if (band.holat === 'MATERIAL_YOQ') {
-          // TZ 8.12 — «Usta ishga olmoqchi bo'ldi, material yetmadi»
-          // qoidasi Q-03 bilan oldinga surildi: buyurtma berilayotganda
-          holat = 'MATERIALGA_KUTMOQDA';
-          topilmagan = band.topilmagan;
-          yetishmadi = true;
-
-          await tx`
-            UPDATE buyurtma_pozitsiya SET holat = 'MATERIALGA_KUTMOQDA'
-            WHERE id = ${pozitsiyaId}`;
-        }
-      }
-
-      /**
-       * QO'SHIMCHA MAHSULOT — ombordan darhol yechiladi.
-       *
-       * ⚠️ Band qilinmaydi, YECHILADI: u tayyorlanmaydi, kesilmaydi
-       *    va usta ishlamaydi — shu zahoti mijozga beriladi.
-       *
-       * ⚠️ Yetmasa pozitsiya «materialga kutmoqda» ga tushadi, xuddi
-       *    mato yetmagandagi kabi (8.12). Sotuv to'xtatilmaydi:
-       *    qolgan pozitsiyalar baribir tayyorlanadi.
-       */
-      if (tasdiqlangan && p.qoshimchaMaterialId !== null && p.qoshimchaMaterialId !== undefined) {
-        const yechim = await donaYech(
-          tx,
-          p.qoshimchaMaterialId,
-          kirim.ishlabChiqaruvchiFilialId,
-          p.soni,
-        );
-
-        if (yechim.holat === 'YETMADI') {
-          holat = 'MATERIALGA_KUTMOQDA';
-          topilmagan = [p.qoshimchaMaterialId];
-          yetishmadi = true;
-
-          await tx`
-            UPDATE buyurtma_pozitsiya SET holat = 'MATERIALGA_KUTMOQDA'
-            WHERE id = ${pozitsiyaId}`;
-        } else {
-          /**
-           * ⚠️ Qaysi partiyadan olingani YOZILADI — tannarx keyin
-           *    shundan hisoblanadi (2.3-invariant: o'tmish
-           *    o'zgarmaydi).
-           */
-          for (const partiya of yechim.partiyalar) {
-            await tx`
-              INSERT INTO pozitsiya_aksessuar (buyurtma_pozitsiya_id, material_id,
-                                               soni, birlik, narx_snapshot,
-                                               qolda_kiritildi)
-              VALUES (${pozitsiyaId}, ${p.qoshimchaMaterialId},
-                      ${partiya.miqdor}, 'DONA', ${partiya.tannarx}, true)`;
-          }
-        }
-      }
-
-      natijalar.push({ pozitsiyaId, holat, topilmaganMateriallar: topilmagan });
+      if (n.holat === 'MATERIALGA_KUTMOQDA') yetishmadi = true;
+      natijalar.push(n);
     }
 
     /**
@@ -407,15 +523,29 @@ export async function pozitsiyaniTasdiqla(
     const olcham = await tx<{ eni_sm: number; boyi_sm: number }[]>`
       SELECT eni_sm, boyi_sm FROM buyurtma_pozitsiya WHERE id = ${pozitsiyaId}`;
 
-    const eniM = new Decimal(olcham[0]?.eni_sm ?? 0).div(100).toNumber();
-    const boyiM = new Decimal(olcham[0]?.boyi_sm ?? 0).div(100).toNumber();
+    const boyiSm = olcham[0]?.boyi_sm ?? 0;
 
+    /**
+     * ⚠️ P-24 — BAND SLOT KESIMIDAN, butun mahsulot enidan EMAS.
+     *
+     *    Dikke 180 × 220 da CHET sloti atigi 0.30 m keladi. Butun eni
+     *    ishlatilsa, 30 smlik chet uchun 180 smlik bo'lak band qilinar
+     *    va qolgan ikki slotga material yetmay «Materialga kutmoqda»
+     *    ga tushardi.
+     *
+     *    Veb sotuv yo'li buni to'g'ri qilardi
+     *    (`app/(panel)/buyurtma/yangi/amal.ts`), BOT yo'li esa yo'q —
+     *    ikki yo'l bir xil buyurtmani boshqacha band qilardi.
+     *
+     * ⚠️ `hisoblangan_miqdor`, `tuzatilgan_miqdor` EMAS: narx
+     *    tuzatilgan songa, ombor esa hisoblanganiga bog'lanadi (3.6).
+     */
     const sorovlar: SlotSorovi[] = slotlar
       .filter((s) => s.birlik === 'KV_M')
       .map((s) => ({
         pozitsiyaMaterialId: s.id,
         materialId: s.material_id,
-        kerak: { eniM, boyiM },
+        kerak: kesimOlchami(s.hisoblangan_miqdor, boyiSm),
         majburiy: true,
       }));
 

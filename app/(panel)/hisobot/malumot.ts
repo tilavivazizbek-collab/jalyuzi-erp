@@ -357,17 +357,36 @@ export async function sarflanishTezligi(
               FROM bolak b
              WHERE b.material_id = m.id AND b.filial_id = ${filialId}
                AND b.faol = true AND b.holat IN ('BOSH','BAND'))::text AS qoldiq,
-           -- Uch o'lchov ustuni QO'SHILADI, lekin aralashmaydi: materialning
-           -- sarflash birligi bitta (5.3), shuning uchun bir materialda
-           -- faqat bittasi to'ladi, qolgani NULL.
-           (SELECT SUM(COALESCE(oh.miqdor_kv_m, 0)
-                       + COALESCE(oh.miqdor_sm, 0)
-                       + COALESCE(oh.miqdor_dona, 0))
+           /*
+            * SARFLANGAN MIQDOR — ombordan HAQIQATAN kamaygani.
+            *
+            * ⚠️ 2026-09-03 gacha bu yerda uch ustun shunchaki
+            *    QO'SHILARDI va natija MANFIY chiqardi: jurnalda kesim
+            *    manfiy, chiqindi musbat yotadi (2.2). "ortachaTezlik"
+            *    manfiy sarfni rad etadi — butun hisobot ochilmasdi.
+            *
+            * ⚠️ Endi yig'indi TESKARISIGA olinadi (chiqim manfiy →
+            *    sarf musbat) va "OSTATKA" ham hisobga qo'shiladi:
+            *    kesimda butun bo'lak chiqib, qoldig'i qaytib keladi.
+            *    Faqat kesim olinsa sarf qoldiq kesma qadar oshib
+            *    ketardi.
+            *
+            * ⚠️ "CHIQINDI" ALOHIDA QO'SHILMAYDI — u kesim bilan
+            *    qoldiq orasidagi farqda allaqachon bor. Qo'shilsa
+            *    ikki marta sanalardi.
+            *
+            * ⚠️ Uch o'lchov ustuni qo'shiladi, lekin aralashmaydi:
+            *    materialning sarflash birligi bitta (5.3), shuning
+            *    uchun bir materialda faqat bittasi to'ladi.
+            */
+           GREATEST((SELECT -SUM(COALESCE(oh.miqdor_kv_m, 0)
+                                 + COALESCE(oh.miqdor_sm, 0)
+                                 + COALESCE(oh.miqdor_dona, 0))
               FROM ombor_harakat oh
               JOIN bolak b2 ON b2.id = oh.bolak_id
              WHERE b2.material_id = m.id AND oh.filial_id = ${filialId}
-               AND oh.turi IN ('KESIM','CHIQINDI','BRAK')
-               AND oh.sana >= ${davr.boshi} AND oh.sana < ${davr.oxiri})::text AS sarf
+               AND oh.turi IN ('KESIM','OSTATKA','BRAK')
+               AND oh.sana >= ${davr.boshi} AND oh.sana < ${davr.oxiri}), 0)::text AS sarf
     FROM material m
     WHERE m.faol = true
     ORDER BY m.nom`;
@@ -633,7 +652,93 @@ export async function chiqindiVaBrak(
   }));
 }
 
-// ─── 11.7.3 · Kam qolgan va tugagan ───────────────────────────────────────
+// ─── 11.7.7 · Rulon ochilgan holatlar ─────────────────────────────────────
+
+export interface RulonOchildiQatori {
+  readonly sana: Date;
+  readonly materialNom: string;
+  /** Band qilingan, lekin ishlatilmagan kesma */
+  readonly kesmaKod: string;
+  readonly kesmaOlcham: string;
+  readonly buyurtmaRaqam: string | null;
+  readonly pozitsiyaTartib: number | null;
+  readonly xodimIsmi: string | null;
+}
+
+/**
+ * TZ 11.7.7 — «Ostatka bor turib rulon ochilgan holatlar».
+ *
+ * ⚠️ HOLAT USTADAN KELADI, tizimdan emas.
+ *
+ *    Tanlashda tizim qoidaga qat'iy amal qiladi: sig'adigan kesma
+ *    har doim rulondan ustun turadi (7.6, 5-qadam). Demak
+ *    «tizim noto'g'ri tanladi» degan holat yo'q.
+ *
+ *    Yozuv «Tugatdim» da tug'iladi: tizim kesmani band qilgan,
+ *    usta esa «rulondan kesdim» degan. Sabab kesma iflos, yirtiq
+ *    yoki joyida topilmagani bo'lishi mumkin — TZ 7.6 buni
+ *    BLOKLAMAYDI, faqat yozib boradi.
+ *
+ * ⚠️ Qaysi rulon ochilgani NOMA'LUM: usta buni aytmaydi (7.6 —
+ *    «bo'lak raqamini har safar qayd etish ortiqcha ish»). Shuning
+ *    uchun hisobot o'tkazib yuborilgan KESMANI ko'rsatadi.
+ *
+ * ⚠️ Yangi jadval YO'Q: hodisa audit jurnaliga `RULON_OCHILDI`
+ *    amali bo'lib tushadi. Bu «kim, qachon, nega» savoliga javob
+ *    beradigan yagona joy (2.4) va migratsiya talab qilmaydi.
+ */
+export async function rulonOchilganHolatlar(
+  filialId: number,
+  davr: Davr,
+): Promise<readonly RulonOchildiQatori[]> {
+  const q = await ulanishOl()<
+    {
+      sana: Date;
+      material_nom: string;
+      kesma_kod: string;
+      kesma_eni: string | null;
+      kesma_boyi: string | null;
+      buyurtma_raqam: string | null;
+      pozitsiya_tartib: number | null;
+      xodim_ismi: string | null;
+    }[]
+  >`
+    SELECT a.sana,
+           m.nom AS material_nom,
+           k.kod AS kesma_kod,
+           k.eni_m::text AS kesma_eni,
+           k.boyi_m::text AS kesma_boyi,
+           b.raqam AS buyurtma_raqam,
+           p.tartib AS pozitsiya_tartib,
+           x.ism AS xodim_ismi
+    FROM audit_jurnal a
+    JOIN bolak k    ON k.id = a.obyekt_id
+    JOIN material m ON m.id = k.material_id
+    LEFT JOIN buyurtma_pozitsiya p ON p.id = (a.yangi_qiymat ->> 'pozitsiya_id')::bigint
+    LEFT JOIN buyurtma b ON b.id = p.buyurtma_id
+    LEFT JOIN xodim x   ON x.id = a.xodim_id
+    WHERE a.amal = 'RULON_OCHILDI'
+      AND a.obyekt_turi = 'bolak'
+      AND a.filial_id = ${filialId}
+      AND a.sana >= ${davr.boshi} AND a.sana < ${davr.oxiri}
+    ORDER BY a.sana DESC
+    LIMIT 200`;
+
+  return q.map((x) => ({
+    sana: x.sana,
+    materialNom: x.material_nom,
+    kesmaKod: x.kesma_kod,
+    kesmaOlcham:
+      x.kesma_eni === null || x.kesma_boyi === null
+        ? '—'
+        : `${Number(x.kesma_eni).toFixed(2)} × ${Number(x.kesma_boyi).toFixed(2)} m`,
+    buyurtmaRaqam: x.buyurtma_raqam,
+    pozitsiyaTartib: x.pozitsiya_tartib,
+    xodimIsmi: x.xodim_ismi,
+  }));
+}
+
+// ─── 11.7.3 · Kam qolgan va tugagan ─────────────────────────────────
 
 export interface KamQoldiqQatori {
   readonly materialId: number;
@@ -731,9 +836,9 @@ const UXLAGAN_KUN = 90;
  * o'rtacha chek.
  *
  * ⚠️ Buyurtma summasi `buyurtma_pozitsiya` dan yig'iladi:
- *    `narx_snapshot - chegirma_summa + xizmat_haqi`. Snapshot
- *    ATAYLAB — kechagi buyurtma bugungi narxda qayta
- *    hisoblanmaydi (2.3-invariant).
+ *    `(narx_snapshot - chegirma_summa) × kurs`. Snapshot ATAYLAB —
+ *    kechagi buyurtma bugungi narxda qayta hisoblanmaydi
+ *    (2.3-invariant). Ifoda 11.5 bo'limidagi bilan bir xil.
  *
  * ⚠️ BEKOR va RAD ETILGAN pozitsiyalar chiqmaydi: ular tushum
  *    emas. Aks holda «o'rtacha chek» soxta oshib ketardi.
@@ -752,10 +857,11 @@ export async function mijozBazasi(filialId: number, davr: Davr): Promise<MijozBa
   >`
     WITH pozitsiya AS (
       SELECT p.buyurtma_id,
-             SUM(COALESCE(p.narx_snapshot, 0)
-                 - COALESCE(p.chegirma_summa, 0)
-                 + COALESCE(p.xizmat_haqi, 0)) AS summa
+             SUM((COALESCE(p.narx_snapshot, 0) - COALESCE(p.chegirma_summa, 0))
+                 * CASE WHEN bv.valyuta = 'USD'
+                        THEN COALESCE(bv.kurs_snapshot, 0) ELSE 1 END) AS summa
       FROM buyurtma_pozitsiya p
+      JOIN buyurtma bv ON bv.id = p.buyurtma_id
       WHERE p.holat NOT IN ('BEKOR','RAD_ETILGAN')
       GROUP BY p.buyurtma_id
     ),
@@ -833,10 +939,11 @@ export async function mijozAbc(
   >`
     WITH pozitsiya AS (
       SELECT p.buyurtma_id,
-             SUM(COALESCE(p.narx_snapshot, 0)
-                 - COALESCE(p.chegirma_summa, 0)
-                 + COALESCE(p.xizmat_haqi, 0)) AS summa
+             SUM((COALESCE(p.narx_snapshot, 0) - COALESCE(p.chegirma_summa, 0))
+                 * CASE WHEN bv.valyuta = 'USD'
+                        THEN COALESCE(bv.kurs_snapshot, 0) ELSE 1 END) AS summa
       FROM buyurtma_pozitsiya p
+      JOIN buyurtma bv ON bv.id = p.buyurtma_id
       WHERE p.holat NOT IN ('BEKOR','RAD_ETILGAN')
       GROUP BY p.buyurtma_id
     )
@@ -869,10 +976,36 @@ export async function mijozAbc(
 /**
  * ⚠️ POZITSIYA TUSHUMI — bitta ifoda, hamma joyda bir xil:
  *
- *      narx_snapshot − chegirma_summa + xizmat_haqi
+ *      (narx_snapshot − chegirma_summa) × kurs
  *
  *    Snapshot ATAYLAB: kechagi buyurtma bugungi narxda qayta
  *    hisoblanmaydi (2.3-invariant).
+ *
+ * ⚠️ XIZMAT HAQI QO'SHILMAYDI (2026-09-03 tuzatishi).
+ *
+ *    Ilgari bu yerda `+ xizmat_haqi` turardi va tushum har
+ *    buyurtmada xizmat haqicha OSHIB ketardi: `narx_snapshot`
+ *    uning ichida allaqachon bor. Sotuv ekrani ham, bot ham
+ *    pozitsiya narxini `Σ(qatorlar) + xizmat haqi` deb
+ *    hisoblaydi (`pozitsiyaNarxi`, TZ 3.8) va o'sha yig'indini
+ *    snapshotga yozadi. `xizmat_haqi` ustuni esa narxning qaysi
+ *    qismi xizmat ekanini KO'RSATISH uchun saqlanadi.
+ *
+ *    Natijada hisobot mijoz qarzi bilan mos kelmasdi: qarz
+ *    `narx − chegirma` bo'yicha yoziladi (`lib/amal/buyurtma.ts`).
+ *
+ * ⚠️ DOLLARLI BUYURTMA KURSGA URILADI (2026-09-03 tuzatishi).
+ *
+ *    Ilgari valyuta umuman qaralmasdi va 100 $ lik buyurtma
+ *    tushumga 100 SO'M bo'lib tushardi — 1.3-invariant («so'm va
+ *    dollar qo'shilmaydi») ochiqdan-ochiq buzilardi.
+ *
+ *    Kurs BUYURTMANING O'ZIDAN olinadi (`kurs_snapshot`, TZ 8.13):
+ *    u sotuv kunida qotgan va keyin o'zgarmaydi, shuning uchun
+ *    natija joriy kursga bog'liq emas. Dollarli buyurtmada kurs
+ *    bazada MAJBURIY (`buyurtma_usd_kurs` cheklovi); `COALESCE`
+ *    faqat himoya uchun — buzuq qator butun hisobotni NULL
+ *    qilib qo'ymasin.
  *
  * ⚠️ BEKOR va RAD_ETILGAN qatorlar HAMMA JOYDA chiqariladi — ular
  *    tushum emas. QAYTARILGAN esa QOLADI: savdo bo'lgan, keyin
@@ -907,9 +1040,9 @@ async function sotuvJami(filialId: number, davr: Davr): Promise<SotuvJami> {
   >`
     WITH poz AS (
       SELECT b.id AS buyurtma_id,
-             SUM(COALESCE(p.narx_snapshot, 0)
-                 - COALESCE(p.chegirma_summa, 0)
-                 + COALESCE(p.xizmat_haqi, 0)) AS summa,
+             SUM((COALESCE(p.narx_snapshot, 0) - COALESCE(p.chegirma_summa, 0))
+                 * CASE WHEN b.valyuta = 'USD'
+                        THEN COALESCE(b.kurs_snapshot, 0) ELSE 1 END) AS summa,
              COUNT(p.id) AS qatorlar
       FROM buyurtma b
       JOIN buyurtma_pozitsiya p ON p.buyurtma_id = b.id
@@ -950,9 +1083,10 @@ export async function sotuvDinamikasi(
     sotuvJami(filialId, oldingi),
     ulanishOl()<{ sana: string; tushum: string | null }[]>`
       SELECT to_char(b.sana, 'YYYY-MM-DD') AS sana,
-             SUM(COALESCE(p.narx_snapshot, 0)
-                 - COALESCE(p.chegirma_summa, 0)
-                 + COALESCE(p.xizmat_haqi, 0))::numeric(14,2)::text AS tushum
+             SUM((COALESCE(p.narx_snapshot, 0) - COALESCE(p.chegirma_summa, 0))
+                 * CASE WHEN b.valyuta = 'USD'
+                        THEN COALESCE(b.kurs_snapshot, 0) ELSE 1 END)
+               ::numeric(14,2)::text AS tushum
       FROM buyurtma b
       JOIN buyurtma_pozitsiya p ON p.buyurtma_id = b.id
       WHERE b.sotgan_filial_id = ${filialId}
@@ -1032,9 +1166,10 @@ export async function turBoyichaFoyda(
   >`
     SELECT t.id AS tur_id, t.nom,
            SUM(p.soni)::int AS soni,
-           SUM(COALESCE(p.narx_snapshot, 0)
-               - COALESCE(p.chegirma_summa, 0)
-               + COALESCE(p.xizmat_haqi, 0))::numeric(14,2)::text AS tushum,
+           SUM((COALESCE(p.narx_snapshot, 0) - COALESCE(p.chegirma_summa, 0))
+               * CASE WHEN b.valyuta = 'USD'
+                      THEN COALESCE(b.kurs_snapshot, 0) ELSE 1 END)
+             ::numeric(14,2)::text AS tushum,
            SUM(
              COALESCE((
                SELECT -SUM(oh.tannarx_summa) FROM ombor_harakat oh
@@ -1125,9 +1260,9 @@ export async function sotuvchiKesimi(
   >`
     WITH poz AS (
       SELECT b.id AS buyurtma_id, b.sotuvchi_id,
-             SUM(COALESCE(p.narx_snapshot, 0)
-                 - COALESCE(p.chegirma_summa, 0)
-                 + COALESCE(p.xizmat_haqi, 0)) AS summa
+             SUM((COALESCE(p.narx_snapshot, 0) - COALESCE(p.chegirma_summa, 0))
+                 * CASE WHEN b.valyuta = 'USD'
+                        THEN COALESCE(b.kurs_snapshot, 0) ELSE 1 END) AS summa
       FROM buyurtma b
       JOIN buyurtma_pozitsiya p ON p.buyurtma_id = b.id
       WHERE b.sotgan_filial_id = ${filialId}

@@ -10,6 +10,7 @@ import {
   daraja,
   kesimBalansi,
   kesimQatorlari,
+  kesimRejasi,
   ostatkaBorRulonTanlandi,
   rulondanTasma,
   sigadimi,
@@ -161,16 +162,146 @@ describe('7.6 — ostatka bor turib rulon tanlansa ogohlantirish', () => {
   const kerak = { eniM: 1.2, boyiM: 2.0 };
 
   it('mos ostatka borligini aytadi', () => {
-    const o = ostatkaBorRulonTanlandi(bolaklar, kerak, 'RULON');
+    const o = ostatkaBorRulonTanlandi(bolaklar, kerak, bolaklar[1] as Bolak);
     expect(o?.kod).toBe('O-1');
   });
 
   it('ostatka tanlansa ogohlantirish yo\'q', () => {
-    expect(ostatkaBorRulonTanlandi(bolaklar, kerak, 'OSTATKA')).toBeNull();
+    expect(ostatkaBorRulonTanlandi(bolaklar, kerak, bolaklar[0] as Bolak)).toBeNull();
   });
 
   it('mos ostatka bo\'lmasa ogohlantirish yo\'q', () => {
-    expect(ostatkaBorRulonTanlandi([bolaklar[1] as Bolak], kerak, 'RULON')).toBeNull();
+    expect(ostatkaBorRulonTanlandi([bolaklar[1] as Bolak], kerak, bolaklar[1] as Bolak)).toBeNull();
+  });
+
+  it("ochilgan rulon tanlansa ogohlantirish yo'q — bu qoidaning o'zi", () => {
+    const ochilgan = bolak(3, 'RULON', 3.0, 30.0, true);
+    expect(ostatkaBorRulonTanlandi([...bolaklar, ochilgan], kerak, ochilgan)).toBeNull();
+  });
+});
+
+// ─── 7.4 · Kesim rejasi: IKKI QOLDIQ ──────────────────────────────────────
+
+describe("7.4 — kesimdan IKKI qoldiq qoladi (egasi, 2026-09-05)", () => {
+  it("egasining misoli: 3 × 35 rulon, buyurtma 1.5 × 5", () => {
+    const r = kesimRejasi(bolak(1, 'RULON', 3.0, 35.0), { eniM: 1.5, boyiM: 5.0 });
+
+    // Rulonning ENISI o'zgarmaydi, faqat bo'yi kamayadi (7.4)
+    expect(r.manbaQoldiq).toEqual({ eniM: 3.0, boyiM: 30.0 });
+    // Yon kesma: eni 3 − 1.5, bo'yi BUYURTMANIKI
+    expect(r.kesma).toEqual({ eniM: 1.5, boyiM: 5.0 });
+    expect(r.mahsulotKvM).toBeCloseTo(7.5, 4);
+  });
+
+  it("yig'indi manba maydoniga TENG — hech narsa yo'qolmaydi", () => {
+    const manba = bolak(1, 'RULON', 3.0, 35.0);
+    const r = kesimRejasi(manba, { eniM: 1.5, boyiM: 5.0 });
+    const jami =
+      (r.manbaQoldiq?.eniM ?? 0) * (r.manbaQoldiq?.boyiM ?? 0) +
+      (r.kesma?.eniM ?? 0) * (r.kesma?.boyiM ?? 0) +
+      r.mahsulotKvM;
+    expect(jami).toBeCloseTo(manba.eniM * manba.boyiM, 4);
+  });
+
+  it("eni to'liq ishlatilsa yon kesma QOLMAYDI", () => {
+    const r = kesimRejasi(bolak(1, 'RULON', 1.5, 20.0), { eniM: 1.5, boyiM: 5.0 });
+    expect(r.kesma).toBeNull();
+    expect(r.manbaQoldiq).toEqual({ eniM: 1.5, boyiM: 15.0 });
+  });
+
+  it("bo'yi to'liq ishlatilsa manbadan hech narsa qolmaydi", () => {
+    const r = kesimRejasi(bolak(1, 'OSTATKA', 1.8, 2.0), { eniM: 1.2, boyiM: 2.0 });
+    expect(r.manbaQoldiq).toBeNull();
+    expect(r.kesma).toEqual({ eniM: 0.6, boyiM: 2.0 });
+  });
+
+  it('kesmadan kesilganda ham AYNAN shu qoida (egasi tasdiqladi)', () => {
+    // 2 × 8 kesmadan 1.5 × 5 kesilsa → 2 × 3 va 0.5 × 5
+    const r = kesimRejasi(bolak(1, 'OSTATKA', 2.0, 8.0), { eniM: 1.5, boyiM: 5.0 });
+    expect(r.manbaQoldiq).toEqual({ eniM: 2.0, boyiM: 3.0 });
+    expect(r.kesma).toEqual({ eniM: 0.5, boyiM: 5.0 });
+  });
+
+  it("rulondan qolgan qism RULON bo'lib qoladi, kesma esa OSTATKA (7.4)", () => {
+    const manba = bolak(1, 'RULON', 3.0, 35.0);
+    const r = kesimRejasi(manba, { eniM: 1.5, boyiM: 5.0 });
+    const n = kesimQatorlari(
+      manba,
+      { manbaQoldiq: r.manbaQoldiq, kesma: r.kesma, kesmaSaqlansinmi: true },
+      STANDART,
+    );
+
+    expect(n.yangiBolaklar).toHaveLength(2);
+    expect(n.yangiBolaklar[0]?.rol).toBe('MANBA_QOLDIQ');
+    expect(n.yangiBolaklar[0]?.rulonmi).toBe(true);
+    expect(n.yangiBolaklar[1]?.rol).toBe('KESMA');
+    expect(n.yangiBolaklar[1]?.rulonmi).toBe(false);
+    expect(n.mahsulotgaKvM).toBeCloseTo(7.5, 4);
+    expect(kesimBalansi(n)).toBe(true);
+  });
+
+  it('yaroqsiz yon kesma chiqindiga ketadi, rulon esa qoladi (7.5)', () => {
+    // 3.00 enli rulondan 2.70 kesilsa yon parcha 0.30 — yaroqsiz
+    const manba = bolak(1, 'RULON', 3.0, 35.0);
+    const r = kesimRejasi(manba, { eniM: 2.7, boyiM: 5.0 });
+    const n = kesimQatorlari(
+      manba,
+      { manbaQoldiq: r.manbaQoldiq, kesma: r.kesma, kesmaSaqlansinmi: true },
+      STANDART,
+    );
+
+    expect(n.qoldiqDarajasi).toBe('YAROQSIZ');
+    expect(n.yangiBolaklar).toHaveLength(1);
+    expect(n.yangiBolaklar[0]?.rol).toBe('MANBA_QOLDIQ');
+    expect(n.qatorlar[2]?.kvM).toBeCloseTo(1.5, 4); // 0.30 × 5.00 chiqindi
+    expect(kesimBalansi(n)).toBe(true);
+  });
+});
+
+// ─── 7.6 · Yangi tanlov navbati (egasi, 2026-09-05) ───────────────────────
+
+describe('7.6 — aniq mos kesma → ochiq rulon → boshqa kesma → yangi rulon', () => {
+  const kerak = { eniM: 1.5, boyiM: 5.0 };
+
+  it('aynan mos kesma BIRINCHI — u butunlay ishlatiladi', () => {
+    const n = bolakTanla(
+      [
+        bolak(1, 'RULON', 3.0, 12.0, true), // ochiq rulon
+        bolak(2, 'OSTATKA', 2.0, 8.0), // boshqa kesma
+        bolak(3, 'OSTATKA', 1.5, 5.0), // AYNAN mos
+      ],
+      kerak,
+    );
+    expect(n?.bolak.id).toBe(3);
+  });
+
+  it("aniq mos kesma yo'q — ochiq rulon boshqa kesmadan OLDIN", () => {
+    const n = bolakTanla(
+      [bolak(1, 'OSTATKA', 2.0, 8.0), bolak(2, 'RULON', 3.0, 12.0, true)],
+      kerak,
+    );
+    expect(n?.bolak.id).toBe(2);
+  });
+
+  it("ochiq rulon yo'q — kesma ishlatiladi, yangi rulon ochilmaydi", () => {
+    const n = bolakTanla(
+      [bolak(1, 'RULON', 3.0, 35.0), bolak(2, 'OSTATKA', 2.0, 8.0)],
+      kerak,
+    );
+    expect(n?.bolak.id).toBe(2);
+  });
+
+  it("hech narsa yo'q — eng oxirida yangi rulon ochiladi", () => {
+    const n = bolakTanla([bolak(1, 'RULON', 3.0, 35.0)], kerak);
+    expect(n?.bolak.id).toBe(1);
+  });
+
+  it("bag'rikenglik 1 sm aniq moslikda ham amal qiladi", () => {
+    const n = bolakTanla(
+      [bolak(1, 'RULON', 3.0, 12.0, true), bolak(2, 'OSTATKA', 1.51, 5.0)],
+      kerak,
+    );
+    expect(n?.bolak.id).toBe(2);
   });
 });
 
@@ -179,7 +310,12 @@ describe('7.6 — ostatka bor turib rulon tanlansa ogohlantirish', () => {
 describe('K-06 · kesim uch qatori — TZ 7.6', () => {
   // Ostatka 1.80 × 2.00 = 3.60 kv.m, buyurtma 1.20 × 2.00, qoladi 0.60 × 2.00
   const manba = bolak(1, 'OSTATKA', 1.8, 2.0);
-  const qoldiq = { eniM: 0.6, boyiM: 2.0, saqlansinmi: true };
+  // Yangi shakl: manbadan hech narsa qolmaydi (bo'yi teng), yon kesma 0.60 × 2.00
+  const qoldiq = {
+    manbaQoldiq: null,
+    kesma: { eniM: 0.6, boyiM: 2.0 },
+    kesmaSaqlansinmi: true,
+  };
 
   it('3.60 = 1.20 + 2.40 + 0', () => {
     const n = kesimQatorlari(manba, qoldiq, STANDART);
@@ -199,7 +335,7 @@ describe('K-06 · kesim uch qatori — TZ 7.6', () => {
   });
 
   it('YAROQSIZ qoldiq chiqindiga ketadi, ostatka bo\'lmaydi (7.5)', () => {
-    const mayda = { eniM: 0.3, boyiM: 2.0, saqlansinmi: true };
+    const mayda = { manbaQoldiq: null, kesma: { eniM: 0.3, boyiM: 2.0 }, kesmaSaqlansinmi: true };
     const n = kesimQatorlari(manba, mayda, STANDART);
     expect(n.qatorlar[1]?.kvM).toBe(0);
     expect(n.qatorlar[2]?.kvM).toBeCloseTo(0.6, 4);
@@ -207,7 +343,7 @@ describe('K-06 · kesim uch qatori — TZ 7.6', () => {
   });
 
   it('usta chiqindiga chiqarsa ostatka yozilmaydi (7.6)', () => {
-    const n = kesimQatorlari(manba, { ...qoldiq, saqlansinmi: false }, STANDART);
+    const n = kesimQatorlari(manba, { ...qoldiq, kesmaSaqlansinmi: false }, STANDART);
     expect(n.qatorlar[1]?.kvM).toBe(0);
     expect(n.qatorlar[2]?.kvM).toBeCloseTo(1.2, 4);
     expect(kesimBalansi(n)).toBe(true);
@@ -215,7 +351,11 @@ describe('K-06 · kesim uch qatori — TZ 7.6', () => {
 
   it('qoldiq manbadan katta bo\'la olmaydi', () => {
     expect(() =>
-      kesimQatorlari(manba, { eniM: 2.0, boyiM: 3.0, saqlansinmi: true }, STANDART),
+      kesimQatorlari(
+        manba,
+        { manbaQoldiq: null, kesma: { eniM: 2.0, boyiM: 3.0 }, kesmaSaqlansinmi: true },
+        STANDART,
+      ),
     ).toThrow(BiznesXato);
   });
 });

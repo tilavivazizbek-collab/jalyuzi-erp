@@ -25,7 +25,21 @@ export async function yetkazibTolovAmali(
   const summa = matnMaydon(forma, 'summa');
   const kassaId = Number(matnMaydon(forma, 'kassaId'));
   const valyuta = matnMaydon(forma, 'valyuta') === 'USD' ? 'USD' : 'SOM';
+  /**
+   * TZ 9.5 — QAYSI QARZ yopilmoqda. To'lov valyutasidan FARQ QILISHI
+   * mumkin: «Dollar qarzini so'mda to'lash mumkin».
+   */
+  const qarzValyutasi =
+    matnMaydon(forma, 'qarzValyutasi') === 'USD' ? 'USD' : 'SOM';
   const kurs = matnMaydon(forma, 'kurs');
+
+  // 9.5 · 9.6 — kross-valyuta to'lovda kurs MAJBURIY
+  if (qarzValyutasi !== valyuta && kurs === '') {
+    return {
+      xato: "Dollar qarzini so'mda to'lashda kurs kiritilishi shart (9.5)",
+      saqlandi: false,
+    };
+  }
 
   if (!Number.isSafeInteger(kassaId) || kassaId <= 0) {
     return { xato: 'Kassani tanlang', saqlandi: false };
@@ -40,8 +54,9 @@ export async function yetkazibTolovAmali(
         kassaId,
         summa,
         valyuta,
-        /** 9.6 — dollarli to'lovda kurs QOTADI */
-        kursSnapshot: valyuta === 'USD' && kurs !== '' ? kurs : null,
+        /** 9.6 — kurs QOTADI: dollarli to'lovda ham, kross-valyutada ham */
+        kursSnapshot: kurs !== '' ? kurs : null,
+        qarzValyutasi,
         izoh: matnMaydon(forma, 'izoh') === '' ? null : matnMaydon(forma, 'izoh'),
         kirimId: null,
       },

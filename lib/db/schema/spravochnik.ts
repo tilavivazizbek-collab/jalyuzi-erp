@@ -646,3 +646,38 @@ export const yetkazibBeruvchi = pgTable(
     ),
   ],
 );
+
+// ─── 2.10 · yetkazib_beruvchi_izoh — TZ 9.7 ───────────────────────────────
+
+/**
+ * TZ 9.7, «Izohlar» tabi — «erkin matn, XODIM VA SANA bilan».
+ *
+ * ⚠️ NEGA ALOHIDA JADVAL
+ *
+ *    `yetkazib_beruvchi.eslatma` — bitta matn ustuni: yangi izoh
+ *    eskisini o'chirib yozadi va kim yozgani ham qolmaydi. TZ esa
+ *    RO'YXAT talab qiladi: har izoh o'z egasi va sanasi bilan.
+ *
+ *    `eslatma` ustuni O'CHIRILMAYDI — unda yozilgan gaplar joyida
+ *    qoladi va kartochkada ko'rinib turadi (2.1-invariant).
+ *
+ * ⚠️ Izoh O'CHIRILMAYDI, `faol = false` qilinadi: kim nima deganini
+ *    keyin inkor qilib bo'lmasin.
+ */
+export const yetkazibIzoh = pgTable(
+  'yetkazib_beruvchi_izoh',
+  {
+    id: id(),
+    yetkazibBeruvchiId: bigint('yetkazib_beruvchi_id', { mode: 'number' })
+      .notNull()
+      .references(() => yetkazibBeruvchi.id),
+    matn: text('matn').notNull(),
+    ...ochirilmaydi,
+    ...izlar,
+  },
+  (t) => [
+    // Bo'sh izoh ma'nosiz — bazada to'siladi
+    check('yetkazib_izoh_matn', sql`length(btrim(${t.matn})) > 0`),
+    index('yetkazib_izoh_kim').on(t.yetkazibBeruvchiId, t.yaratildi),
+  ],
+);

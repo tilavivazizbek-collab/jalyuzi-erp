@@ -159,7 +159,12 @@ export function QaytaribOlishTugmasi({
 }
 
 /**
- * TZ 8.8 · 8.15 — BUTUN BUYURTMANI o'chirish.
+ * TZ 8.8 · 8.15 — BUTUN BUYURTMANI bekor qilish.
+ *
+ * ⚠️ «O'chirish» EMAS (2.1-invariant): bazadan hech narsa
+ *    o'chirilmaydi. Hamma pozitsiya `BEKOR` holatiga o'tadi va band
+ *    qilingan material bo'shaydi. Ilgari tugma «o'chirish» deb
+ *    atalardi va egasi uni haqiqiy o'chirish deb tushunardi.
  *
  * ⚠️ Pozitsiyani bekor qilishdan FARQI: bu bitta bosishda
  *    buyurtmaning hamma pozitsiyasini bekor qiladi va band
@@ -184,7 +189,7 @@ export function BuyurtmaniOchirishTugmasi({ buyurtmaId }: { buyurtmaId: number }
         }}
         className="fokus rounded-maydon border border-chegara px-3 py-1.5 text-[13px] text-matn-kuchsiz transition-colors hover:border-belgi-qizil hover:text-belgi-qizil"
       >
-        Buyurtmani o&apos;chirish
+        Butun buyurtmani bekor qilish
       </button>
     );
   }
@@ -197,7 +202,7 @@ export function BuyurtmaniOchirishTugmasi({ buyurtmaId }: { buyurtmaId: number }
       <input type="hidden" name="buyurtmaId" value={buyurtmaId} />
 
       <p className="text-[13px] font-medium text-belgi-qizil">
-        Butun buyurtma o&apos;chirilsinmi?
+        Butun buyurtma bekor qilinsinmi?
       </p>
 
       {holat.xato !== null && (
@@ -206,7 +211,7 @@ export function BuyurtmaniOchirishTugmasi({ buyurtmaId }: { buyurtmaId: number }
         </span>
       )}
 
-      <Maydon nom={`buyurtma-ochir-${String(buyurtmaId)}`} yorliq="O'chirish sababi">
+      <Maydon nom={`buyurtma-ochir-${String(buyurtmaId)}`} yorliq="Bekor qilish sababi">
         <input
           id={`buyurtma-ochir-${String(buyurtmaId)}`}
           name="sabab"

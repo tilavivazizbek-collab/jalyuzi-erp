@@ -44,6 +44,20 @@ export interface KunKorsatkichlari {
   readonly ochiqBuyurtma: number;
   /** Mijozlarning jami qarzi (6.8) */
   readonly mijozQarzi: string;
+
+  /**
+   * ⚠️ DOLLAR RAQAMLARI ALOHIDA (1.3-invariant).
+   *
+   *    Valyutalar QO'SHILMAYDI — aks holda 4 (dollar) va 50 000
+   *    (so'm) bitta ustunda yig'ilib ketardi.
+   *
+   *    Ilgari bu uch raqam UMUMAN yo'q edi: so'rov `valyuta = 'SOM'`
+   *    bilan filtrlanar va dollardagi tushum, kassa qoldig'i hamda
+   *    qarz egasiga ko'rinmasdi. Pul bor edi — ekranda yo'q edi.
+   */
+  readonly bugungiTushumUsd: string;
+  readonly kassaQoldigiUsd: string;
+  readonly mijozQarziUsd: string;
 }
 
 /**
@@ -62,6 +76,9 @@ export async function kunKorsatkichlari(
       kassa_qoldigi: string;
       ochiq_buyurtma: number;
       mijoz_qarzi: string;
+      bugungi_tushum_usd: string;
+      kassa_qoldigi_usd: string;
+      mijoz_qarzi_usd: string;
     }[]
   >`
     SELECT
@@ -91,7 +108,29 @@ export async function kunKorsatkichlari(
       COALESCE((
         SELECT SUM(h.summa) FROM mijoz_harakat h
         WHERE h.filial_id = ${filialId} AND h.valyuta = 'SOM'
-      ), 0)::text AS mijoz_qarzi`;
+      ), 0)::text AS mijoz_qarzi,
+
+      /* ── Dollar tomoni — ALOHIDA, qo'shilmaydi (1.3) ── */
+
+      COALESCE((
+        SELECT SUM(y.summa) FROM kassa_yozuv y
+        JOIN kassa k ON k.id = y.kassa_id
+        WHERE k.filial_id = ${filialId}
+          AND y.valyuta = 'USD' AND y.summa > 0
+          AND y.sana::date = CURRENT_DATE
+      ), 0)::text AS bugungi_tushum_usd,
+
+      COALESCE((
+        SELECT SUM(y.summa) FROM kassa_yozuv y
+        JOIN kassa k ON k.id = y.kassa_id
+        WHERE k.filial_id = ${filialId} AND y.valyuta = 'USD'
+          AND k.faol = true
+      ), 0)::text AS kassa_qoldigi_usd,
+
+      COALESCE((
+        SELECT SUM(h.summa) FROM mijoz_harakat h
+        WHERE h.filial_id = ${filialId} AND h.valyuta = 'USD'
+      ), 0)::text AS mijoz_qarzi_usd`;
 
   const r = q[0];
 
@@ -100,5 +139,8 @@ export async function kunKorsatkichlari(
     kassaQoldigi: r?.kassa_qoldigi ?? '0',
     ochiqBuyurtma: r?.ochiq_buyurtma ?? 0,
     mijozQarzi: r?.mijoz_qarzi ?? '0',
+    bugungiTushumUsd: r?.bugungi_tushum_usd ?? '0',
+    kassaQoldigiUsd: r?.kassa_qoldigi_usd ?? '0',
+    mijozQarziUsd: r?.mijoz_qarzi_usd ?? '0',
   };
 }

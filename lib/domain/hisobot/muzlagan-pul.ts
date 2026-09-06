@@ -139,7 +139,14 @@ export function muzlaganPul(kirish: {
  * Materialning qoldiq qiymatidan ostatka qiymatini ayiradi.
  *
  * Chaqiruvchi buni `qimirlamagan` ro'yxatini yasashda ishlatadi — shunda
- * `kesishgan` bo'sh qoladi va jami summa to'g'ri chiqadi.
+ * jami summa to'g'ri chiqadi: bir xil pul ikki bo'lakda sanalmaydi.
+ *
+ * ⚠️ `kesishgan` SHUNDA HAM BO'SH BO'LMAYDI va bu XATO EMAS. U —
+ *    material ikkala ro'yxatda ko'ringanini bildiruvchi ESLATMA:
+ *    ostatkasi ham bor, o'zi ham qimirlamagan. Puli allaqachon
+ *    ayirilgan, faqat nomi ikki joyda chiqadi (2026-09-03 da
+ *    aniqlangan: izoh «bo'sh qoladi» deb va'da qilar, test esa
+ *    o'shanga ishonib qurilgan edi).
  *
  * Ostatka qoldiqdan katta bo'lib qolsa (sanash xatosi) nol qaytadi:
  * manfiy «muzlagan pul» ma'nosiz va jami summani kamaytirib yuborardi.

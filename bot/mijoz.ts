@@ -346,14 +346,20 @@ export async function katalogMatolari(
 export async function boglanishKorsat(ctx: BotKontekst): Promise<void> {
   const q = await ulanishOl()<{ kalit: string; qiymat: string | null }[]>`
     SELECT kalit, qiymat FROM sozlama
-    WHERE kalit IN ('korxona_nomi', 'korxona_telefon', 'korxona_manzil')`;
+    /*
+     * 2026-09-03 — bu yerda 'korxona_nomi' qidirilardi, sozlamada esa
+     * kalit 'korxona_nom' (lib/amal/sozlama.ts). So'rov xato bermas,
+     * shunchaki bo'sh qaytar va botda korxona nomi hech qachon
+     * ko'rinmasdi.
+     */
+    WHERE kalit IN ('korxona_nom', 'korxona_telefon', 'korxona_manzil')`;
 
   const olish = (k: string): string | null =>
     q.find((x) => x.kalit === k)?.qiymat ?? null;
 
   const qatorlar = ['📞 *BOG‘LANISH*', ''];
 
-  const nom = olish('korxona_nomi');
+  const nom = olish('korxona_nom');
   const tel = olish('korxona_telefon');
   const manzil = olish('korxona_manzil');
 

@@ -164,6 +164,105 @@ export function olchamYaroqlimi(matn: string): boolean {
   }
 }
 
+
+// ─── 13.8 · «Tugatdim» — qolgan bo'lak o'lchami ───────────────────────────
+
+/** TZ 7.6 — usta kiritgan qoldiq. */
+export interface QoldiqKiritmasi {
+  readonly eniM: number;
+  readonly boyiM: number;
+  /** Belgilanmasa qoldiq chiqindiga ketadi (7.5) */
+  readonly saqlansinmi: boolean;
+}
+
+/**
+ * TZ 13.8 — usta botda qolgan bo'lak o'lchamini MATN bilan yozadi.
+ *
+ * Qabul qilinadigan shakllar (hammasi METRDA):
+ *
+ * ```
+ *   0.6x2      0,6 x 2,0     0.6*2.0     0.6 2.0
+ *   0          yoq            -           qolmadi
+ * ```
+ *
+ * ⚠️ Nol yoki «yo'q» — qoldiq UMUMAN yo'q degani: butun bo'lak
+ *    mahsulotga ketgan. Bu chiqindidan farq qiladi va shuning
+ *    uchun `saqlansinmi` ham `false` bo'ladi.
+ *
+ * ⚠️ Vergul nuqtaga aylantiriladi: telefon klaviaturasida ko'pchilik
+ *    vergul yozadi va «0,6» ni rad etish ustani bir necha marta
+ *    qayta yozishga majbur qilardi.
+ *
+ * ⚠️ Kirill «х» ham qabul qilinadi — u lotin «x» bilan bir xil
+ *    ko'rinadi va usta qaysi klaviaturada yozganini bilmaydi.
+ */
+export function qoldiqOqi(matn: string): QoldiqKiritmasi {
+  const tozalangan = matn.trim().toLowerCase().replace(/,/g, '.');
+
+  if (tozalangan === '') {
+    throw new BiznesXato('OLCHOV_NOTOGRI', `qoldiq: ${matn}`);
+  }
+
+  // «Qoldiq yo'q» shakllari
+  if (['0', 'yoq', "yo'q", 'yo‘q', '-', 'qolmadi'].includes(tozalangan)) {
+    return { eniM: 0, boyiM: 0, saqlansinmi: false };
+  }
+
+  const bolaklar = tozalangan
+    .split(/[xх*\s]+/)
+    .filter((b) => b !== '');
+
+  if (bolaklar.length !== 2) {
+    throw new BiznesXato('OLCHOV_NOTOGRI', `qoldiq: ${matn}`);
+  }
+
+  const sonlar = bolaklar.map((b) => {
+    if (!/^\d{1,3}(\.\d{1,2})?$/.test(b)) {
+      throw new BiznesXato('OLCHOV_NOTOGRI', `qoldiq: ${matn}`);
+    }
+    return Number(b);
+  });
+
+  const [eniM, boyiM] = sonlar as [number, number];
+
+  if (eniM <= 0 || boyiM <= 0) {
+    throw new BiznesXato('OLCHOV_NOTOGRI', `qoldiq: ${matn}`);
+  }
+
+  /**
+   * ⚠️ Qoldiq SAQLANADI deb belgilanadi. Yaroqsizmi-yo'qmi degan
+   *    qaror ustada emas, MATERIAL CHEGARASIDA (7.5) — uni
+   *    `lib/domain/kesish.ts` hal qiladi.
+   */
+  return { eniM, boyiM, saqlansinmi: true };
+}
+
+/**
+ * Usta tizim taklifini TASDIQLADIMI.
+ *
+ * ⚠️ TZ 7.4 — qoldiq o'lchamini endi tizim hisoblaydi. Usta odatda
+ *    «ha» deb javob beradi; o'lcham yozsa, uniki ustun turadi
+ *    (egasining qarori, 2026-09-05).
+ *
+ * ⚠️ Telefon klaviaturasi turlicha: lotin ham, kirill ham, emoji ham
+ *    qabul qilinadi — usta qaysi birini yozganini bilmaydi.
+ */
+export function tasdiqmi(matn: string): boolean {
+  const t = matn.trim().toLowerCase();
+  return ['ha', 'xa', 'да', 'ok', 'okey', 'tasdiq', "to'g'ri", 'togri', '+', '✅'].includes(t);
+}
+
+/** Tekshiruvni xatosiz shaklda — bot javobi uchun qulay. */
+export function qoldiqYaroqlimi(matn: string): boolean {
+  if (tasdiqmi(matn)) return true;
+  try {
+    qoldiqOqi(matn);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 // ─── 13.10 · Takrorlanishdan himoya ───────────────────────────────────────
 
 export const TAKROR_MATNI = {

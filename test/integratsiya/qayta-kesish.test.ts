@@ -24,6 +24,24 @@ const FILIAL = 1;
 const XODIM = 1;
 const USTA = 1;
 
+/**
+ * Pozitsiyaning HAR FAOL BANDI uchun kesim qatorini yasaydi.
+ *
+ * ⚠️ «Tugatdim» endi har mato uchun alohida qoldiq talab qiladi
+ *    (2026-09-03): ilgari faqat birinchi bo'lak yechilardi.
+ */
+const kesimlar = async (
+  pozitsiyaId: number,
+  qoldiq: { eniM: number; boyiM: number; saqlansinmi: boolean },
+  manba: 'OSTATKA' | 'RULON' = 'OSTATKA',
+): Promise<{ bandId: number; manba: 'OSTATKA' | 'RULON'; qoldiq: typeof qoldiq }[]> => {
+  const b = await sql<{ id: number }[]>`
+    SELECT id FROM band
+    WHERE buyurtma_pozitsiya_id = ${pozitsiyaId} AND holat = 'FAOL'
+    ORDER BY id`;
+  return b.map((x) => ({ bandId: x.id, manba, qoldiq }));
+};
+
 const CHEGARALAR: Chegaralar = { yaroqsizM: 0.3, kamIshlatiladiganM: 0.5 };
 
 beforeAll(async () => {
@@ -31,8 +49,11 @@ beforeAll(async () => {
   const belgi = String(Date.now());
 
   const m = await sql<{ id: number }[]>`
-    INSERT INTO material (nom, hisob_turi, kirim_birligi, sarflash_birligi, yaratdi_id)
-    VALUES (${`QK sinov matosi ${belgi}`}, 'RULON', 'rulon', 'KV_M', ${XODIM})
+    INSERT INTO material (nom, hisob_turi, kirim_birligi, sarflash_birligi,
+                          yaroqsiz_chegara_m, kam_ishlatiladigan_m, yaratdi_id)
+    VALUES (${`QK sinov matosi ${belgi}`}, 'RULON', 'rulon', 'KV_M',
+            -- Chegaralar MATERIALDAN o'qiladi (5.5), parametr emas
+            ${CHEGARALAR.yaroqsizM}, ${CHEGARALAR.kamIshlatiladiganM}, ${XODIM})
     RETURNING id`;
   matoId = m[0]?.id ?? 0;
 
@@ -48,7 +69,7 @@ beforeAll(async () => {
 }, 120_000);
 
 afterAll(async () => {
-  await sql.end();
+  await sql.end({ timeout: 5 });
 });
 
 let hisoblagich = 0;
@@ -316,9 +337,10 @@ describe('TZ 8.17.4 — tasdiqlansa material IKKINCHI MARTA yechiladi', () => {
   it('EC-BRK-02 — yangi bo\'lak yo\'q bo\'lsa MATERIALGA_KUTMOQDA', async () => {
     // Faqat BITTA rulon — u braklanadi, boshqasi qolmaydi
     const yolgiz = await sql<{ id: number }[]>`
-      INSERT INTO material (nom, hisob_turi, kirim_birligi, sarflash_birligi, yaratdi_id)
+      INSERT INTO material (nom, hisob_turi, kirim_birligi, sarflash_birligi,
+                            yaroqsiz_chegara_m, kam_ishlatiladigan_m, yaratdi_id)
       VALUES (${`QK yolg'iz mato ${String(Date.now())}`}, 'RULON', 'rulon', 'KV_M',
-              ${XODIM})
+              ${CHEGARALAR.yaroqsizM}, ${CHEGARALAR.kamIshlatiladiganM}, ${XODIM})
       RETURNING id`;
     const yolgizId = yolgiz[0]?.id ?? 0;
 
@@ -462,12 +484,10 @@ describe('P-25 · EC-BRK-05 — «Tugatdim» bosilgach brak topilsa', () => {
       sql,
       {
         pozitsiyaId,
-        manba: 'RULON',
-        qoldiq: { eniM: 0.6, boyiM: 2.0, saqlansinmi: true },
+        kesimlar: await kesimlar(pozitsiyaId, { eniM: 0.6, boyiM: 2.0, saqlansinmi: true }, 'RULON'),
         ogohTasdiqlandi: false,
         izoh: null,
       },
-      CHEGARALAR,
       USTA,
     );
 
@@ -528,12 +548,10 @@ describe('Q-15 · TZ 8.17.5 — haq BEKOR qilinadi', () => {
       sql,
       {
         pozitsiyaId,
-        manba: 'RULON',
-        qoldiq: { eniM: 0.6, boyiM: 2.0, saqlansinmi: true },
+        kesimlar: await kesimlar(pozitsiyaId, { eniM: 0.6, boyiM: 2.0, saqlansinmi: true }, 'RULON'),
         ogohTasdiqlandi: false,
         izoh: null,
       },
-      CHEGARALAR,
       USTA,
     );
 
@@ -577,12 +595,10 @@ describe('Q-15 · TZ 8.17.5 — haq BEKOR qilinadi', () => {
       sql,
       {
         pozitsiyaId,
-        manba: 'RULON',
-        qoldiq: { eniM: 0.6, boyiM: 2.0, saqlansinmi: true },
+        kesimlar: await kesimlar(pozitsiyaId, { eniM: 0.6, boyiM: 2.0, saqlansinmi: true }, 'RULON'),
         ogohTasdiqlandi: false,
         izoh: null,
       },
-      CHEGARALAR,
       USTA,
     );
 
@@ -622,12 +638,10 @@ describe('Q-15 · TZ 8.17.5 — haq BEKOR qilinadi', () => {
       sql,
       {
         pozitsiyaId,
-        manba: 'RULON',
-        qoldiq: { eniM: 0.6, boyiM: 2.0, saqlansinmi: true },
+        kesimlar: await kesimlar(pozitsiyaId, { eniM: 0.6, boyiM: 2.0, saqlansinmi: true }, 'RULON'),
         ogohTasdiqlandi: false,
         izoh: null,
       },
-      CHEGARALAR,
       USTA,
     );
 

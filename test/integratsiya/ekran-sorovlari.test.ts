@@ -33,10 +33,24 @@ import * as yoldaEkrani from '@/app/(panel)/buyurtma/yolda/malumot';
 import * as boshqaruvEkrani from '@/app/(panel)/boshqaruv/malumot';
 import * as katalog from '@/lib/amal/katalog';
 import * as mahsulotEkrani from '@/app/(panel)/mahsulot/malumot';
+import * as materialKartochka from '@/app/(panel)/ombor/[id]/malumot';
+import * as mijozKartochka from '@/app/(panel)/mijoz/[id]/malumot';
+import * as yetkazibKartochka from '@/app/(panel)/yetkazib/[id]/malumot';
+import { yetkazibSolishtirishAkti } from '@/lib/amal/hisob-kitob';
 import * as mijozGuruhEkrani from '@/app/(panel)/mijoz/guruh/malumot';
 import * as tarixEkrani from '@/app/(panel)/ombor/tarix/malumot';
 import * as hisobotEkrani from '@/app/(panel)/hisobot/malumot';
+/**
+ * ⚠️ BOT SO'ROVLARI HAM SHU YERDA.
+ *
+ *    Ular `app/**` da emas, shuning uchun bu test ilgari ularni
+ *    qamramasdi — va aynan botdagi so'rovda uchta mavjud bo'lmagan
+ *    ustun ikki hafta yashirinib yotdi (2026-09-03).
+ */
+import * as ustaBoti from '@/bot/usta';
+import * as yetkazibEkrani from '@/app/(panel)/yetkazib/malumot';
 import { davrYasa, oldingiDavr } from '@/lib/domain/hisobot/davr';
+import { pulMatn, type Som } from '@/lib/domain/pul';
 
 let sql: Ulanish;
 let filialId = 1;
@@ -63,7 +77,7 @@ beforeAll(async () => {
 }, 120_000);
 
 afterAll(async () => {
-  await sql.end();
+  await sql.end({ timeout: 5 });
   // Ekran funksiyalari umumiy ulanishdan foydalanadi — u ham yopiladi
   await ulanishOl().end();
 });
@@ -151,6 +165,8 @@ describe('Ombor ekranlari', () => {
     await expect(omborEkrani.filialQoldigi(filialId)).resolves.toBeDefined();
     await expect(omborEkrani.barchaFilialQoldigi()).resolves.toBeDefined();
     await expect(omborEkrani.filialNomi(filialId)).resolves.toBeDefined();
+    // TZ 7.4 — qoldiq tarkibi: butun rulon / ochilgan rulon / kesma
+    await expect(omborEkrani.qoldiqTarkibi(filialId)).resolves.toBeDefined();
     await expect(
       omborEkrani.materialBolaklari(materialId, filialId),
     ).resolves.toBeDefined();
@@ -329,8 +345,24 @@ describe('Hisobot ekranlari — TZ 11.7', () => {
 
   it('muzlab qolgan pul — uch bo‘lak (11.7.6)', async () => {
     const m = await hisobotEkrani.muzlaganPulHisoboti(filialId);
-    // Qo'sh sanash bo'lmasligi kerak: ostatka uchinchi bo'lakdan ayirilgan
-    expect(m.kesishgan).toEqual([]);
+
+    /**
+     * ⚠️ QO'SH SANASH TEKSHIRUVI — jami uch bo'lakning ANIQ
+     *    yig'indisi bo'lishi shart: ostatka qiymati uchinchi
+     *    bo'lakdan ayirilgan (`ostatkasizQoldiq`).
+     *
+     * ⚠️ Ilgari bu yerda `kesishgan` bo'sh deb tekshirilardi. U
+     *    noto'g'ri edi: `kesishgan` — qo'sh sanash belgisi emas,
+     *    material ikkala ro'yxatda ko'ringanini bildiruvchi
+     *    eslatma. Puli baribir ayirilgan (2026-09-03).
+     */
+    const son = (x: Som): number => Number(pulMatn(x));
+    expect(son(m.jami)).toBeCloseTo(
+      son(m.ostatkalar.qiymat) +
+        son(m.tayyorMahsulot.qiymat) +
+        son(m.qimirlamagan.qiymat),
+      2,
+    );
     expect(m.ostatkalar.soni).toBe(m.ostatkaQatorlari.length);
   });
 
@@ -388,6 +420,17 @@ describe('Hisobot ekranlari — TZ 11.7', () => {
       expect(['CHIQINDI', 'BRAK']).toContain(x.turi);
       expect(x.miqdor).toBeGreaterThanOrEqual(0);
     }
+  });
+
+  /**
+   * ⚠️ So'rovda `jsonb ->>` va uchta LEFT JOIN bor — ustun nomi
+   *    xato bo'lsa faqat sahifani ochgan odam ko'rardi (T-01).
+   */
+  it('ostatka bor turib rulon ochilgan holatlar (11.7.7)', async () => {
+    const davr = davrYasa('OY', new Date());
+    await expect(
+      hisobotEkrani.rulonOchilganHolatlar(filialId, davr),
+    ).resolves.toBeDefined();
   });
 
   it('mijozlar bazasi (11.6.1)', async () => {
@@ -486,6 +529,56 @@ describe('Hisobot ekranlari — TZ 11.7', () => {
     }
   });
 
+  it('8.7 — tahrirlash oynasi uchun pozitsiya tarkibi', async () => {
+    // Mavjud bo'lmagan pozitsiya — yiqilmaydi, `null` qaytadi
+    await expect(buyurtmaEkrani.pozitsiyaTahriri(YOQ, filialId)).resolves.toBeNull();
+  });
+
+  /**
+   * ⚠️ 7.11 — material kartochkasining to'rt raqami. SQL da to'rtta
+   *    FILTER va uchta JOIN bor: ustun nomi xato bo'lsa faqat shu
+   *    test ko'radi (QOIDALAR §7).
+   */
+  it('7.11 — material kartochkasining xulosasi', async () => {
+    await expect(omborEkrani.materialXulosasi(materialId, filialId)).resolves.toBeDefined();
+    // Mavjud bo'lmagan materialda ham yiqilmaydi
+    await expect(omborEkrani.materialXulosasi(YOQ, filialId)).resolves.toBeDefined();
+  });
+
+  /**
+   * ⚠️ 9.7 · 9.8 · 9.9 — yetkazib beruvchi kartochkasining olti tabi.
+   *    Oyna funksiyasi, ROW_NUMBER va ichki so'rovlar bor.
+   */
+  it('9.7 — yetkazib beruvchi kartochkasining so‘rovlari', async () => {
+    const y = await ulanishOl()<{ id: number }[]>`
+      SELECT id FROM yetkazib_beruvchi ORDER BY id LIMIT 1`;
+    const id = y[0]?.id ?? YOQ;
+
+    await expect(yetkazibEkrani.sarlavhaBloklari(id)).resolves.toBeDefined();
+    await expect(yetkazibEkrani.qarzHarakati(id)).resolves.toBeDefined();
+    await expect(yetkazibEkrani.kirimlar(id)).resolves.toBeDefined();
+    await expect(yetkazibEkrani.tolovlar(id)).resolves.toBeDefined();
+    await expect(yetkazibEkrani.materialNarxTarixi(id)).resolves.toBeDefined();
+    await expect(yetkazibEkrani.davolar(id)).resolves.toBeDefined();
+    await expect(yetkazibEkrani.izohlar(id)).resolves.toBeDefined();
+  });
+
+  it('9.7 — mavjud bo‘lmagan yetkazib beruvchida ham yiqilmaydi', async () => {
+    await expect(yetkazibEkrani.qarzHarakati(YOQ)).resolves.toEqual([]);
+    await expect(yetkazibEkrani.kirimlar(YOQ)).resolves.toEqual([]);
+    await expect(yetkazibEkrani.tolovlar(YOQ)).resolves.toEqual([]);
+    await expect(yetkazibEkrani.materialNarxTarixi(YOQ)).resolves.toEqual([]);
+    await expect(yetkazibEkrani.davolar(YOQ)).resolves.toEqual([]);
+    await expect(yetkazibEkrani.izohlar(YOQ)).resolves.toEqual([]);
+    await expect(yetkazibEkrani.sarlavhaBloklari(YOQ)).resolves.toBeDefined();
+  });
+
+  it('13.8 — usta botining navbat so‘rovi', async () => {
+    await expect(ustaBoti.navbat(filialId)).resolves.toBeDefined();
+    // Mavjud bo'lmagan filialda ham yiqilmaydi, bo'sh qaytadi
+    await expect(ustaBoti.navbat(YOQ)).resolves.toEqual([]);
+  });
+
   it('mavjud bo‘lmagan filialda ham yiqilmaydi', async () => {
     const davr = davrYasa('OY', new Date());
     await expect(hisobotEkrani.mijozBazasi(YOQ, davr)).resolves.toBeDefined();
@@ -495,5 +588,75 @@ describe('Hisobot ekranlari — TZ 11.7', () => {
     await expect(hisobotEkrani.qoldiqMaterialKesimida(YOQ)).resolves.toEqual([]);
     await expect(hisobotEkrani.materialHarakati(YOQ, davr)).resolves.toEqual([]);
     await expect(hisobotEkrani.chiqindiVaBrak(YOQ, davr)).resolves.toEqual([]);
+  });
+});
+
+/**
+ * ⚠️ NEGA BU BLOK BOR
+ *
+ *    Bu so'rovlar KARTOCHKA sahifalarida ishlaydi va ularda
+ *    `jsonb`, `WITH RECURSIVE`, `FILTER` va oyni kesish bor.
+ *    Ustun nomi xato bo'lsa `typecheck` ham, `lint` ham
+ *    KO'RMAYDI — faqat sahifani ochgan odam biladi (T-01).
+ *
+ *    Shuning uchun har biri haqiqiy bazada bir marta chaqiriladi.
+ *    Natija tekshirilmaydi (baza bo'sh bo'lishi mumkin) — SO'ROV
+ *    YIQILMASLIGI tekshiriladi.
+ */
+describe('Kartochka ekranlari — material va mijoz', () => {
+  const MATERIAL = 1;
+  const MIJOZ = 1;
+  const FILIAL = 1;
+
+  it("material kartochkasi — oltala so'rov", async () => {
+    await expect(materialKartochka.materialTezligi(MATERIAL, FILIAL)).resolves.toBeDefined();
+    await expect(
+      materialKartochka.kutayotganBuyurtmalar(MATERIAL, FILIAL),
+    ).resolves.toBeInstanceOf(Array);
+    await expect(materialKartochka.tannarxDinamikasi(MATERIAL)).resolves.toBeInstanceOf(Array);
+    await expect(materialKartochka.materialUstamasi(MATERIAL, FILIAL)).resolves.toBeDefined();
+    await expect(
+      materialKartochka.materialYetkazuvchilari(MATERIAL),
+    ).resolves.toBeInstanceOf(Array);
+    await expect(materialKartochka.yoldaMiqdori(MATERIAL, FILIAL)).resolves.toBeDefined();
+  });
+
+  it("mijoz kartochkasi — beshta so'rov", async () => {
+    await expect(mijozKartochka.mijozXulosasi(MIJOZ)).resolves.toBeDefined();
+    await expect(mijozKartochka.tolovIntizomi(MIJOZ)).resolves.toBeDefined();
+    await expect(mijozKartochka.nimaSotadi(MIJOZ)).resolves.toBeDefined();
+    await expect(mijozKartochka.oylikAylanma(MIJOZ)).resolves.toBeInstanceOf(Array);
+    await expect(mijozKartochka.mijozBuyurtmalari(MIJOZ)).resolves.toBeInstanceOf(Array);
+  });
+
+  /**
+   * ⚠️ Mavjud bo'lmagan id da ham YIQILMASLIGI kerak: sahifa
+   *    `notFound()` bilan javob berishi kerak, 500 bilan emas.
+   */
+  it('yetkazib beruvchi kartochkasi — oltala so’rov', async () => {
+    const Y = 1;
+    await expect(yetkazibKartochka.tolovIntizomimiz(Y)).resolves.toBeDefined();
+    await expect(yetkazibKartochka.kutilayotganTolovlar(Y)).resolves.toBeInstanceOf(Array);
+    await expect(yetkazibKartochka.narxSolishtirish(Y)).resolves.toBeInstanceOf(Array);
+    await expect(yetkazibKartochka.kursFarqiJami(Y)).resolves.toBeDefined();
+    await expect(yetkazibKartochka.ombordaQolgan(Y)).resolves.toBeDefined();
+    await expect(yetkazibKartochka.davolarNatijasi(Y)).resolves.toBeDefined();
+  });
+
+  /**
+   * ⚠️ Solishtirish aktida `SUM() OVER (PARTITION BY ...)` bor —
+   *    oyna funksiyasi. Ustun nomi xato bo'lsa faqat hujjatni
+   *    chop etayotgan odam bilardi.
+   */
+  it('solishtirish akti so’rovi yiqilmaydi (9.7)', async () => {
+    await expect(yetkazibSolishtirishAkti(sql, 1)).resolves.toBeDefined();
+    await expect(yetkazibSolishtirishAkti(sql, 999_999_999)).resolves.toBeNull();
+  });
+
+  it("yo'q id da ham yiqilmaydi", async () => {
+    const YOQ = 999_999_999;
+    await expect(materialKartochka.materialTezligi(YOQ, FILIAL)).resolves.toBeNull();
+    await expect(mijozKartochka.mijozXulosasi(YOQ)).resolves.toBeDefined();
+    await expect(mijozKartochka.mijozBuyurtmalari(YOQ)).resolves.toEqual([]);
   });
 });

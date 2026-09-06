@@ -26,6 +26,8 @@ import type postgres from 'postgres';
 import { BiznesXato } from '@/lib/xato';
 import type { RuxsatKod } from '@/lib/ruxsat/kodlar';
 import { YOPIQ_HOLATLAR } from '@/lib/domain/buyurtma';
+import { nofaolQilinadimi, type Balans } from '@/lib/domain/balans';
+import { dollar, nolmi, pulKorsat, pulMatn, som } from '@/lib/domain/pul';
 
 export const OCHIRILADIGAN_TURLAR = [
   'material',
@@ -381,23 +383,72 @@ export const TUR_TAVSIFI: Record<OchiriladiganTur, TurTavsifi> = {
     jadval: 'xodim',
     nom: 'Xodim',
     ruxsat: 'xodim.ozgartir',
+    /**
+     * TZ 10.4 — «Balansi 0 dan farq qiladigan xodimni NOFAOL QILIB
+     * BO'LMAYDI.»
+     *
+     * ⚠️ VALYUTALAR ALOHIDA TEKSHIRILADI (1.3-invariant).
+     *
+     *    Ilgari ikkalasi bitta `SUM(summa)` bilan qo'shilardi.
+     *    Bu shunchaki noaniqlik emas — XAVFSIZLIK TESHIGI edi:
+     *
+     *      +1 000 so'm  va  −1 000 dollar  →  yig'indi NOL
+     *
+     *    Tizim «hisob-kitob yopilgan» deb xodimni nofaol qilardi,
+     *    holbuki ikkala tomonda ham pul osilib turardi. Teskarisi
+     *    ham bo'lardi: haqiqatan yopilgan hisob «ochiq» ko'rinib,
+     *    ishdan bo'shagan xodimni ro'yxatdan chiqarib bo'lmasdi.
+     */
     bandmi: async (tx, id) => {
       const kassa = (await tx`
-        SELECT COALESCE(SUM(y.summa), 0)::text AS qoldiq
+        SELECT COALESCE(SUM(y.summa) FILTER (WHERE y.valyuta = 'SOM'), 0)::text AS som,
+               COALESCE(SUM(y.summa) FILTER (WHERE y.valyuta = 'USD'), 0)::text AS dollar
         FROM kassa k
         LEFT JOIN kassa_yozuv y ON y.kassa_id = k.id
-        WHERE k.xodim_id = ${id} AND k.faol = true`) as unknown as { qoldiq: string }[];
+        WHERE k.xodim_id = ${id} AND k.faol = true`) as unknown as {
+        som: string;
+        dollar: string;
+      }[];
 
-      if (Number(kassa[0]?.qoldiq ?? '0') !== 0) {
-        return `kassasida ${kassa[0]?.qoldiq ?? '0'} qoldiq bor`;
+      /**
+       * ⚠️ QAROR DOMENDA, bu yerda emas (§2.2).
+       *
+       *    «Balans nolmi» savoliga `nofaolQilinadimi()` javob beradi —
+       *    u TZ 10.4 ni o'qib yozilgan va o'z testlari bor. Ilgari bu
+       *    yerda `Number(...) !== 0` turardi: qoida ikki joyda edi va
+       *    pul JavaScript soni bilan solishtirilardi (CLAUDE.md §3 buni
+       *    taqiqlaydi — katta summada aniqlik yo'qoladi).
+       */
+      const kassaBalansi: Balans = {
+        som: som(kassa[0]?.som ?? '0'),
+        dollar: dollar(kassa[0]?.dollar ?? '0'),
+      };
+
+      if (!nofaolQilinadimi(kassaBalansi)) {
+        if (!nolmi(kassaBalansi.som)) {
+          return `kassasida ${pulKorsat(kassaBalansi.som)} so'm qoldiq bor`;
+        }
+        return `kassasida ${pulMatn(kassaBalansi.dollar)} dollar qoldiq bor`;
       }
 
       const q = (await tx`
-        SELECT COALESCE(SUM(summa), 0)::text AS qoldiq
-        FROM xodim_harakat WHERE xodim_id = ${id}`) as unknown as { qoldiq: string }[];
+        SELECT COALESCE(SUM(summa) FILTER (WHERE valyuta = 'SOM'), 0)::text AS som,
+               COALESCE(SUM(summa) FILTER (WHERE valyuta = 'USD'), 0)::text AS dollar
+        FROM xodim_harakat WHERE xodim_id = ${id}`) as unknown as {
+        som: string;
+        dollar: string;
+      }[];
 
-      if (Number(q[0]?.qoldiq ?? '0') !== 0) {
-        return `hisob-kitob yopilmagan: ${q[0]?.qoldiq ?? '0'}`;
+      const balans: Balans = {
+        som: som(q[0]?.som ?? '0'),
+        dollar: dollar(q[0]?.dollar ?? '0'),
+      };
+
+      if (!nofaolQilinadimi(balans)) {
+        if (!nolmi(balans.som)) {
+          return `hisob-kitob yopilmagan: ${pulKorsat(balans.som)} so'm`;
+        }
+        return `hisob-kitob yopilmagan: ${pulMatn(balans.dollar)} dollar`;
       }
 
       return null;

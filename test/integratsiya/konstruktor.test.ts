@@ -46,7 +46,7 @@ beforeAll(async () => {
 }, 60_000);
 
 afterAll(async () => {
-  await sql.end();
+  await sql.end({ timeout: 5 });
 });
 
 const bilan = (o: Partial<MahsulotTurKirimi>): MahsulotTurKirimi => ({ ...ASOS, ...o });

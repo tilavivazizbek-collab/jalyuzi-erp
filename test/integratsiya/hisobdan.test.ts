@@ -34,7 +34,7 @@ beforeAll(async () => {
 }, 60_000);
 
 afterAll(async () => {
-  await sql.end();
+  await sql.end({ timeout: 5 });
 });
 
 let hisoblagich = 0;
@@ -84,6 +84,58 @@ describe('TZ 7.10 — hisobdan chiqarish', () => {
     expect(q[0]?.turi).toBe('BRAK');
     expect(Number(q[0]?.miqdor_kv_m)).toBe(-20);
     expect(Number(q[0]?.tannarx_summa)).toBe(-1_560_000);
+  });
+
+  /**
+   * TZ 12.1 — PUL CHIQMAGAN XARAJAT.
+   *
+   * ⚠️ 2026-09-03 auditigacha bu yozuv YO'Q edi: brak ombordan
+   *    chiqar, foyda-zararda esa ko'rinmasdi.
+   */
+  it('xarajat jurnaliga PUL CHIQMAGAN yozuv tushadi (12.1)', async () => {
+    const bolakId = await bolakYarat(2.0, 10.0);
+    await hisobdanChiqar(
+      sql,
+      { bolakId, sabab: 'YIRTILDI', izoh: null, kirimId: null, davoQilinadimi: false },
+      XODIM,
+    );
+
+    const h = await sql<{ id: number }[]>`
+      SELECT id FROM ombor_harakat WHERE bolak_id = ${bolakId} AND turi = 'BRAK'`;
+
+    const x = await sql<{ modda: string; summa: string; kassa: number | null }[]>`
+      SELECT modda, summa::text, kassa_yozuv_id AS kassa FROM xarajat
+      WHERE manba_turi = 'ombor_harakat' AND manba_id = ${h[0]?.id ?? 0}`;
+
+    expect(x).toHaveLength(1);
+    expect(x[0]?.modda).toBe('OMBOR_BRAKI');
+    // Xarajat MUSBAT, kassaga tegilmaydi
+    expect(Number(x[0]?.summa)).toBe(1_560_000);
+    expect(x[0]?.kassa).toBeNull();
+  });
+
+  it("yetkazib beruvchi defekti ALOHIDA moddaga tushadi (9.5)", async () => {
+    const bolakId = await bolakYarat(1.0, 10.0);
+    await hisobdanChiqar(
+      sql,
+      {
+        bolakId,
+        sabab: 'YETKAZIB_BERUVCHI_DEFEKTI',
+        izoh: 'Rulon ichida dog',
+        kirimId: null,
+        davoQilinadimi: true,
+      },
+      XODIM,
+    );
+
+    const h = await sql<{ id: number }[]>`
+      SELECT id FROM ombor_harakat WHERE bolak_id = ${bolakId} AND turi = 'BRAK'`;
+
+    const x = await sql<{ modda: string }[]>`
+      SELECT modda FROM xarajat
+      WHERE manba_turi = 'ombor_harakat' AND manba_id = ${h[0]?.id ?? 0}`;
+
+    expect(x[0]?.modda).toBe('YETKAZIB_BERUVCHI_DEFEKTI');
   });
 
   it('TZ 2.4 — audit jurnaliga tushadi, sabab bilan', async () => {
@@ -157,6 +209,34 @@ describe('TZ 7.10 — hisobdan chiqarish', () => {
 // ─── TZ 7.10 · Bekor qilish ───────────────────────────────────────────────
 
 describe('TZ 7.10 — chiqarishni bekor qilish', () => {
+  /**
+   * ⚠️ Tovar omborga qaytar ekan, zarar ham bekor bo'lishi shart —
+   *    aks holda mol ham omborda turadi, yo'qotish ham hisobda
+   *    qoladi va foyda ikki marta kamayadi.
+   */
+  it('xarajat ham QAYTARILADI — yig\'indi nolga tushadi (12.1)', async () => {
+    const bolakId = await bolakYarat(2.0, 10.0);
+    await hisobdanChiqar(
+      sql,
+      { bolakId, sabab: 'YIRTILDI', izoh: null, kirimId: null, davoQilinadimi: false },
+      XODIM,
+    );
+
+    const h = await sql<{ id: number }[]>`
+      SELECT id FROM ombor_harakat WHERE bolak_id = ${bolakId} AND turi = 'BRAK'`;
+    const harakatId = h[0]?.id ?? 0;
+
+    await chiqarishniBekorQil(sql, harakatId, 'Xato yozilgan ekan', XODIM);
+
+    const x = await sql<{ n: number; jami: string | null }[]>`
+      SELECT COUNT(*)::int AS n, SUM(summa)::text AS jami FROM xarajat
+      WHERE manba_turi = 'ombor_harakat' AND manba_id = ${harakatId}`;
+
+    // Ikki qator: brak va uning teskarisi
+    expect(x[0]?.n).toBe(2);
+    expect(Number(x[0]?.jami)).toBe(0);
+  });
+
   it("teskari yozuv qo'shiladi, ESKI YOZUV joyida qoladi (§6.5)", async () => {
     const bolakId = await bolakYarat(2.0, 10.0);
     const n = await hisobdanChiqar(

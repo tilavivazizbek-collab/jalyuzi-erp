@@ -54,13 +54,17 @@ export type Ulanish = ReturnType<typeof postgres>;
 
 export interface UlanishSozlamasi {
   readonly max?: number;
+  /** `0` — bo'sh ulanish YOPILMAYDI (sinov to'plami uchun) */
   readonly idleTimeout?: number;
+  /** Ulanishni kutish, soniyada */
+  readonly connectTimeout?: number;
 }
 
 export function ulanishYarat(url: string, sozlama: UlanishSozlamasi = {}): Ulanish {
   return postgres(url, {
     max: sozlama.max ?? 10,
     idle_timeout: sozlama.idleTimeout ?? 20,
+    connect_timeout: sozlama.connectTimeout ?? 30,
     types: { bigint: int8Number },
   });
 }

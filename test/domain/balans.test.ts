@@ -7,6 +7,7 @@ import {
   kunHisobi,
   manfiyBalansmi,
   nofaolQilinadimi,
+  chiqarishModdasi,
   pulChiqmaydimi,
   tolovniBalansValyutasiga,
   xarajatgaTushadimi,
@@ -172,5 +173,38 @@ describe('K-09 · TZ 12.17 — kun yopish', () => {
 
   it('farq nol — kassa to\'g\'ri', () => {
     expect(pulMatn(kunFarqi(som('3200000'), som('3200000')))).toBe('0.00');
+  });
+});
+
+// ─── 7.10 · Hisobdan chiqarish moddasi ────────────────────────────────────
+
+/**
+ * ⚠️ 2026-09-03 auditigacha brak `xarajat` jurnaliga UMUMAN
+ *    tushmasdi — yo'qotish foyda-zararda ko'rinmasdi.
+ */
+describe('TZ 7.10 — hisobdan chiqarish qaysi moddaga tushadi', () => {
+  it("yetkazib beruvchi defekti ALOHIDA moddada — bizning brakimiz emas", () => {
+    expect(chiqarishModdasi('YETKAZIB_BERUVCHI_DEFEKTI')).toBe(
+      'YETKAZIB_BERUVCHI_DEFEKTI',
+    );
+  });
+
+  it('qolgan hamma sabab — ombor braki', () => {
+    for (const sabab of [
+      'SUV_KETDI',
+      'RANG_OCHDI',
+      'YIRTILDI',
+      'MUDDATI_OTDI',
+      'YOQOLDI',
+      'BOSHQA',
+    ]) {
+      expect(chiqarishModdasi(sabab)).toBe('OMBOR_BRAKI');
+    }
+  });
+
+  it('ikkala modda ham PUL CHIQMAYDIGAN xarajat (12.1)', () => {
+    expect(pulChiqmaydimi(chiqarishModdasi('YIRTILDI'))).toBe(true);
+    expect(pulChiqmaydimi(chiqarishModdasi('YETKAZIB_BERUVCHI_DEFEKTI'))).toBe(true);
+    expect(pulChiqmaydimi('INVENTARIZATSIYA_FARQI')).toBe(true);
   });
 });

@@ -14,11 +14,11 @@
 
 import { Markup, type Telegraf } from 'telegraf';
 import { ulanishOl } from '@/lib/db';
-import { ishniOl, tugatdim } from '@/lib/amal/ish';
+import { ishniOl, tugatdim, type KesimKirimi } from '@/lib/amal/ish';
 import { qaytaKesishSora } from '@/lib/amal/qayta-kesish';
 import { pozitsiyaStavkasi } from '@/lib/amal/stavka';
 import { birMartaBajar, sessiyaOl, sessiyaYoz } from '@/lib/amal/bot';
-import { amalKaliti } from '@/lib/domain/bot';
+import { amalKaliti, qoldiqOqi, qoldiqYaroqlimi, tasdiqmi } from '@/lib/domain/bot';
 import { pulKorsat, som } from '@/lib/domain/pul';
 import { MATN, TAKROR } from './matn';
 import { xavfsiz, type BotKontekst } from './yordamchi';
@@ -57,27 +57,49 @@ interface NavbatQatori {
  * ⚠️ Q-25 — faqat O'Z filialida tikiladigan ishlar. Boshqa filial
  *    navbatini ko'rish ustaga kerak emas va chalkashtiradi.
  */
-async function navbat(filialId: number): Promise<readonly NavbatQatori[]> {
+/**
+ * ⚠️ EKSPORT QILINGAN — `test/integratsiya/ekran-sorovlari.test.ts`
+ *    uni haqiqiy bazada chaqiradi.
+ *
+ *    2026-09-03: bu so'rov uchta mavjud bo'lmagan ustunga murojaat
+ *    qilardi va usta «Umumiy navbat» ni bosgan HAR SAFAR yiqilardi.
+ *    Hech qanday test uni ko'rmasdi: `tsc` SQL ni o'qimaydi, ekran
+ *    so'rovlari testi esa faqat `app/` ni qamrardi. Endi bot
+ *    so'rovlari ham o'sha testda.
+ */
+export async function navbat(filialId: number): Promise<readonly NavbatQatori[]> {
   return ulanishOl()<NavbatQatori[]>`
+    /*
+     * 2026-09-03 — bu so'rov MAVJUD BO'LMAGAN uchta ustunga murojaat
+     * qilardi va usta "Umumiy navbat" ni bosganda har safar yiqilardi:
+     *
+     *   p.muddat        -> muddat buyurtma.tayyorlik_sana da (3.13)
+     *   pm.pozitsiya_id -> pozitsiya_material.buyurtma_pozitsiya_id
+     *   pa.pozitsiya_id -> pozitsiya_aksessuar.buyurtma_pozitsiya_id
+     *
+     * tsc SQL ni ko'rmaydi (QOIDALAR 7-bo'lim), ekran-sorovlari testi
+     * esa faqat app dagi malumot.ts fayllarini qamraydi — shuning uchun
+     * xato faqat botni ochgan usta oldida chiqardi.
+     */
     SELECT p.id AS pozitsiya_id, b.raqam, p.tartib,
            mt.nom AS tur, p.eni_sm, p.boyi_sm,
-           p.muddat::text AS muddat,
+           b.tayyorlik_sana::text AS muddat,
            (SELECT string_agg(ms.nom || ': ' || m.nom, ' · ' ORDER BY ms.tartib)
               FROM pozitsiya_material pm
               JOIN mahsulot_slot ms ON ms.id = pm.slot_id
               JOIN material m       ON m.id = pm.material_id
-             WHERE pm.pozitsiya_id = p.id) AS matolar,
+             WHERE pm.buyurtma_pozitsiya_id = p.id) AS matolar,
            (SELECT string_agg(m.nom, ' · ' ORDER BY m.nom)
               FROM pozitsiya_aksessuar pa
               JOIN material m ON m.id = pa.material_id
-             WHERE pa.pozitsiya_id = p.id) AS aksessuarlar
+             WHERE pa.buyurtma_pozitsiya_id = p.id) AS aksessuarlar
     FROM buyurtma_pozitsiya p
     JOIN buyurtma b       ON b.id = p.buyurtma_id
     JOIN mahsulot_tur mt  ON mt.id = p.mahsulot_tur_id
     WHERE b.ishlab_chiqaruvchi_filial_id = ${filialId}
       AND p.holat IN ('TASDIQLANGAN', 'FILIALGA_YUBORILDI')
       AND p.usta_id IS NULL
-    ORDER BY p.muddat NULLS LAST, b.raqam, p.tartib
+    ORDER BY b.tayyorlik_sana NULLS LAST, b.raqam, p.tartib
     LIMIT 20`;
 }
 
@@ -294,7 +316,16 @@ export async function ustaBalansi(
   const olish = (turi: string): number =>
     Number(q.find((x) => x.turi === turi)?.summa ?? 0);
 
-  const haq = olish('ISH_HAQI');
+  /**
+   * ⚠️ 2026-09-03 — bu yerda 'ISH_HAQI' qidirilardi va usta
+   *    «Hisoblangan haq: 0» ni ko'rardi.
+   *
+   *    'ISH_HAQI' — bu XARAJAT moddasi (12.1), xodim harakati emas.
+   *    `xodim_harakat.turi` da haq 'HAQ' bo'lib yotadi (10.4), qayta
+   *    kesishda bekor qilingani esa 'HAQ_BEKOR' bo'lib MANFIY
+   *    yoziladi (Q-15) — shuning uchun u shu yerda qo'shiladi.
+   */
+  const haq = olish('HAQ') + olish('HAQ_BEKOR');
   const olingan = Math.abs(olish('TOLOV')) + Math.abs(olish('AVANS'));
   const ushlangan = Math.abs(olish('USHLANMA')) + Math.abs(olish('JARIMA'));
 
@@ -324,6 +355,254 @@ export async function ustaBalansi(
 export interface UstaKimligi {
   readonly xodimId: number;
   readonly filialId: number;
+}
+
+// ─── 13.8 · «Tugatdim» suhbati ────────────────────────────────────────────
+
+/**
+ * ⚠️ NEGA SUHBAT KERAK
+ *
+ *    «Tugatdim» bitta tugma emas: TZ 7.6 bo'yicha usta HAR MATO
+ *    uchun qolgan bo'lak o'lchamini aytishi kerak. Rollo da ikki
+ *    mato, Dikke da uchta — har biri o'z bo'lagidan kesiladi.
+ *
+ *    Shuning uchun tugma bosilganda savol boshlanadi va javoblar
+ *    sessiyada yig'iladi. Hammasi yig'ilgach BITTA tranzaksiyada
+ *    ombordan yechiladi (2.1-invariant).
+ *
+ * ⚠️ 2026-09-03 gacha bu tugma UMUMAN ISHLAMASDI: `ish_tugat`
+ *    uchun `bot.action` yozilmagan edi. Usta bosardi — hech narsa
+ *    bo'lmasdi.
+ */
+
+/** Sessiyada saqlanadigan bitta mato. */
+interface TugatilayotganMato {
+  readonly bandId: number;
+  readonly nom: string;
+  readonly kod: string;
+  /** Band qilingan bo'lak turi — manba shundan olinadi (7.6) */
+  readonly turi: string;
+  readonly eniM: number;
+  readonly boyiM: number;
+}
+
+interface TugatdimHolati {
+  readonly pozitsiyaId: number;
+  readonly matolar: readonly TugatilayotganMato[];
+  readonly joriy: number;
+  readonly kesimlar: readonly KesimKirimi[];
+}
+
+/** Sessiyadagi JSON — turlar TEKSHIRILADI, ishonilmaydi. */
+function tugatdimHolatiniOqi(xom: Record<string, unknown>): TugatdimHolati | null {
+  const pozitsiyaId = xom.pozitsiyaId;
+  const matolar = xom.matolar;
+  const joriy = xom.joriy;
+  const kesimlar = xom.kesimlar;
+
+  if (typeof pozitsiyaId !== 'number' || !Array.isArray(matolar)) return null;
+  if (typeof joriy !== 'number' || !Array.isArray(kesimlar)) return null;
+
+  return {
+    pozitsiyaId,
+    matolar: matolar as readonly TugatilayotganMato[],
+    joriy,
+    kesimlar: kesimlar as readonly KesimKirimi[],
+  };
+}
+
+/** Navbatdagi mato haqida savol. */
+function qoldiqSavoli(m: TugatilayotganMato, tartib: number, jami: number): string {
+  const raqam = jami > 1 ? ` (${String(tartib + 1)}/${String(jami)})` : '';
+  return (
+    `🧵 *${m.nom}*${raqam}\n` +
+    `Bo‘lak: ${m.kod} · ${String(m.eniM)} × ${String(m.boyiM)} m\n\n` +
+    `Qolgan bo‘lak o‘lchami?\n${MATN.usta.qoldiqNamuna}`
+  );
+}
+
+/**
+ * TZ 13.8 — «Tugatdim» bosilganda suhbat boshlanadi.
+ *
+ * ⚠️ Ruxsat SHU YERDA qayta tekshiriladi (§9.4): tugma ma'lumotini
+ *    qo'lda yuborish mumkin, shuning uchun ish AYNAN shu ustada
+ *    ekani so'rovda tasdiqlanadi.
+ */
+export async function tugatdimniBoshla(
+  ctx: BotKontekst,
+  ustaId: number,
+  telegramId: number,
+  pozitsiyaId: number,
+): Promise<void> {
+  const sql = ulanishOl();
+
+  const p = await sql<{ id: number }[]>`
+    SELECT id FROM buyurtma_pozitsiya
+    WHERE id = ${pozitsiyaId} AND usta_id = ${ustaId}
+      AND holat = 'ISHLAB_CHIQARILMOQDA'`;
+
+  if (p[0] === undefined) {
+    await ctx.reply(MATN.usta.ishSizdaEmas, {
+      reply_markup: ustaMenyusi().reply_markup,
+    });
+    return;
+  }
+
+  const bandlar = await sql<
+    {
+      band_id: number;
+      nom: string;
+      kod: string;
+      turi: string;
+      eni_m: string | null;
+      boyi_m: string | null;
+    }[]
+  >`
+    SELECT bd.id AS band_id, m.nom, bo.kod, bo.turi,
+           bo.eni_m::text, bo.boyi_m::text
+    FROM band bd
+    JOIN bolak bo   ON bo.id = bd.bolak_id
+    JOIN material m ON m.id = bo.material_id
+    WHERE bd.buyurtma_pozitsiya_id = ${pozitsiyaId} AND bd.holat = 'FAOL'
+    ORDER BY bd.id`;
+
+  if (bandlar.length === 0) {
+    await ctx.reply(MATN.usta.bandYoq, {
+      reply_markup: ustaMenyusi().reply_markup,
+    });
+    return;
+  }
+
+  const matolar: TugatilayotganMato[] = bandlar.map((b) => ({
+    bandId: b.band_id,
+    nom: b.nom,
+    kod: b.kod,
+    turi: b.turi,
+    eniM: Number(b.eni_m ?? 0),
+    boyiM: Number(b.boyi_m ?? 0),
+  }));
+
+  await sessiyaYoz(
+    sql,
+    telegramId,
+    {
+      qadam: 'TUGATDIM',
+      holat: { pozitsiyaId, matolar, joriy: 0, kesimlar: [] },
+    },
+    ustaId,
+  );
+
+  await ctx.reply(MATN.usta.tugatdimBoshlandi);
+  await ctx.reply(qoldiqSavoli(matolar[0] as TugatilayotganMato, 0, matolar.length), {
+    parse_mode: 'Markdown',
+  });
+}
+
+/**
+ * Usta o'lcham yozganda chaqiriladi.
+ *
+ * @returns qabul qilindimi — `false` bo'lsa matn boshqa oqimga o'tadi
+ */
+export async function tugatdimMatniniQabulQil(
+  ctx: BotKontekst,
+  ustaId: number,
+  telegramId: number,
+  matn: string,
+): Promise<boolean> {
+  const sql = ulanishOl();
+  const sessiya = await sessiyaOl(sql, telegramId);
+  if (sessiya.qadam !== 'TUGATDIM') return false;
+
+  const h = tugatdimHolatiniOqi(sessiya.holat);
+  if (h === null) {
+    await sessiyaYoz(sql, telegramId, { qadam: 'BOSH', holat: {} }, ustaId);
+    return false;
+  }
+
+  const mato = h.matolar[h.joriy];
+  if (mato === undefined) {
+    await sessiyaYoz(sql, telegramId, { qadam: 'BOSH', holat: {} }, ustaId);
+    return false;
+  }
+
+  // §2.2 — o'qish qoidasi DOMAINDA, bu yerda takrorlanmaydi
+  if (!qoldiqYaroqlimi(matn)) {
+    await ctx.reply(MATN.usta.qoldiqNotogri);
+    return true;
+  }
+
+  const kesimlar: KesimKirimi[] = [
+    ...h.kesimlar,
+    {
+      bandId: mato.bandId,
+      /**
+       * ⚠️ Manba band qilingan bo'lakning TURIDAN olinadi.
+       *
+       *    Saytda usta uni ro'yxatdan tanlaydi, botda esa har mato
+       *    uchun qo'shimcha savol suhbatni ikki barobar uzaytirardi.
+       *    Bu qiymat ombor hisobiga TA'SIR QILMAYDI — u faqat
+       *    jurnaldagi izohga tushadi.
+       */
+      manba: mato.turi === 'RULON' ? 'RULON' : 'OSTATKA',
+      /**
+       * ⚠️ Usta «ha» desa qoldiq YUBORILMAYDI — tizim uni o'zi
+       *    hisoblaydi (7.4). O'lcham yozsa, u YON KESMA hisoblanadi
+       *    va tizim taklifidan ustun turadi.
+       *
+       *    Botda ikki o'lchovni matn bilan so'rash suhbatni ikki
+       *    barobar uzaytirardi va usta baribir xato yozardi.
+       */
+      qoldiqlar: tasdiqmi(matn)
+        ? undefined
+        : (() => {
+            const q = qoldiqOqi(matn);
+            return {
+              manbaQoldiq: null,
+              kesma: q.saqlansinmi ? { eniM: q.eniM, boyiM: q.boyiM } : null,
+              kesmaSaqlansinmi: q.saqlansinmi,
+            };
+          })(),
+    },
+  ];
+
+  const keyingi = h.joriy + 1;
+
+  // Yana mato bormi — keyingisini so'raymiz
+  if (keyingi < h.matolar.length) {
+    await sessiyaYoz(
+      sql,
+      telegramId,
+      {
+        qadam: 'TUGATDIM',
+        holat: { pozitsiyaId: h.pozitsiyaId, matolar: h.matolar, joriy: keyingi, kesimlar },
+      },
+      ustaId,
+    );
+
+    await ctx.reply(
+      qoldiqSavoli(h.matolar[keyingi] as TugatilayotganMato, keyingi, h.matolar.length),
+      { parse_mode: 'Markdown' },
+    );
+    return true;
+  }
+
+  // Hammasi yig'ildi — BITTA tranzaksiyada yechiladi
+  await sessiyaYoz(sql, telegramId, { qadam: 'BOSH', holat: {} }, ustaId);
+
+  await ishniTugatish(
+    ctx,
+    {
+      pozitsiyaId: h.pozitsiyaId,
+      kesimlar,
+      /** Botda ogohlantirish ko'rsatilmaydi — 11.7.7 hisobotiga tushadi */
+      ogohTasdiqlandi: false,
+      izoh: null,
+    },
+    ustaId,
+    telegramId,
+  );
+
+  return true;
 }
 
 export function ustaPaneliniUla(
@@ -371,6 +650,27 @@ export function ustaPaneliniUla(
 
       const pozitsiyaId = Number(ctx.match[1]);
       await ishniOlish(ctx, pozitsiyaId, u.xodimId, tg);
+    }),
+  );
+
+  /**
+   * TZ 13.8 — «Tugatdim».
+   *
+   * ⚠️ 2026-09-03 gacha bu ishlov beruvchi UMUMAN YO'Q edi: tugma
+   *    chizilardi, bosilardi va hech narsa bo'lmasdi. Usta ishni
+   *    faqat saytdan yakunlay olardi.
+   *
+   * Qolgan bo'lak o'lchami keyingi xabarlarda keladi (har mato
+   * uchun bittadan), shuning uchun suhbat sessiyaga yoziladi.
+   */
+  bot.action(/^ish_tugat:(\d+)$/, (ctx) =>
+    xavfsiz(ctx, async () => {
+      await ctx.answerCbQuery();
+      const u = await ustaOl(ctx);
+      const tg = ctx.from?.id;
+      if (u === null || tg === undefined) return;
+
+      await tugatdimniBoshla(ctx, u.xodimId, tg, Number(ctx.match[1]));
     }),
   );
 
@@ -437,8 +737,12 @@ export async function brakSababiQabul(
  * hisoblanadi. Amal **atomar** (7.3).
  *
  * ⚠️ 7.6 — usta manbani va qolgan bo'lak o'lchamini TASDIQLAYDI.
- *    Shuning uchun kirim to'liq bo'lib keladi: bot uni suhbatda
- *    yig'adi (`bot/tugatish.ts`).
+ *    Shuning uchun kirim to'liq bo'lib keladi: HAR MATO uchun
+ *    bittadan qator (`kesimlar`).
+ *
+ * ⚠️ Bu funksiya hozircha CHAQIRILMAYDI: botda `ish_tugat`
+ *    tugmasi uchun `bot.action` yozilmagan (2026-09-03 auditi).
+ *    Amal saytdan ishlaydi.
  *
  * ⚠️ 13.10 — tugma ikki marta bosilsa ikkinchi marta material
  *    YECHILMAYDI: kalit `amal_kaliti` da turadi.
@@ -446,7 +750,6 @@ export async function brakSababiQabul(
 export async function ishniTugatish(
   ctx: BotKontekst,
   kirim: Parameters<typeof tugatdim>[1],
-  chegaralar: Parameters<typeof tugatdim>[2],
   ustaId: number,
   telegramId: number,
 ): Promise<void> {
@@ -455,7 +758,7 @@ export async function ishniTugatish(
   const { natija, takrormi } = await birMartaBajar(
     sql,
     amalKaliti('ish_tugat', telegramId, kirim.pozitsiyaId),
-    () => tugatdim(sql, kirim, chegaralar, ustaId),
+    () => tugatdim(sql, kirim, ustaId),
   );
 
   if (takrormi) {
@@ -466,11 +769,15 @@ export async function ishniTugatish(
   }
 
   const qatorlar = ['✅ Ish tugatildi.'];
-  if (natija.yangiOstatkaKod !== null) {
-    qatorlar.push(`Qoldiq kesma: ${natija.yangiOstatkaKod}`);
-  }
-  if (natija.chiqindiKvM > 0) {
-    qatorlar.push(`Chiqindi: ${natija.chiqindiKvM.toFixed(2)} kv.m`);
+
+  // Har mato alohida: Rollo da ikkita, Dikke da uchta qoldiq bo'ladi
+  for (const k of natija.kesimlar) {
+    if (k.yangiKodlar.length > 0) {
+      qatorlar.push(`Qoldiq (${k.manbaBolakKod}): ${k.yangiKodlar.join(' · ')}`);
+    }
+    if (k.chiqindiKvM > 0) {
+      qatorlar.push(`Chiqindi (${k.manbaBolakKod}): ${k.chiqindiKvM.toFixed(2)} kv.m`);
+    }
   }
 
   await ctx.reply(qatorlar.join('\n'), {

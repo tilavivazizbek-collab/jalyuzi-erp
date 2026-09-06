@@ -20,7 +20,7 @@ beforeAll(() => {
 });
 
 afterAll(async () => {
-  await sql.end();
+  await sql.end({ timeout: 5 });
 });
 
 /** Amal RAD ETILISHI shart. O'tib ketsa test yiqiladi. */

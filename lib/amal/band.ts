@@ -82,7 +82,13 @@ async function nomzodlarniOqi(
 ): Promise<Bolak[]> {
   const qatorlar = await tx<BolakQatori[]>`
     SELECT b.id, b.kod, b.turi, b.eni_m, b.boyi_m,
-           (b.turi = 'RULON' AND b.ota_bolak_id IS NOT NULL) AS qisman_ochilgan
+           -- 0035 — ochilgan rulon endi HAQIQIY belgi.
+           -- ⚠️ Ilgari bu ota_bolak_id IS NOT NULL edi. Kesimdan
+           --    chiqqan rulonda otasi bor, lekin BOSHLANG'ICH ZAHIRADA
+           --    kiritilgan ochiq rulonda YO'Q — u tizimdan oldin
+           --    ochilgan. Ya'ni egasi qo'lda kiritgan ochiq rulonlar
+           --    tanilmasdi.
+           b.ochilgan AS qisman_ochilgan
     FROM bolak b
     WHERE b.material_id = ${materialId}
       AND b.filial_id = ${filialId}
@@ -90,8 +96,28 @@ async function nomzodlarniOqi(
       AND b.holat = 'BOSH'
       AND b.eni_m  >= ${kerak.eniM} - 0.01
       AND b.boyi_m >= ${kerak.boyiM} - 0.01
+    /*
+     * ⚠️ SARALASH DOMENDAGI TARTIB BILAN BIR XIL BO'LISHI SHART.
+     *
+     *    Bu yerda faqat 20 ta nomzod olinadi. Agar SQL boshqacha
+     *    saralasa, domen afzal ko'radigan bo'lak ro'yxatga UMUMAN
+     *    tushmasligi mumkin va qoida jimgina ishlamay qoladi.
+     *
+     *    Tartib (kesish.ts dagi tartibVazni):
+     *      0) buyurtmaga AYNAN mos kesma — butunlay ishlatiladi
+     *      1) ochilgan rulon — omborda yarim turgan mol
+     *      2) boshqa kesma
+     *      3) yangi rulon
+     */
     ORDER BY
-      CASE b.turi WHEN 'OSTATKA' THEN 0 ELSE 1 END,
+      CASE
+        WHEN b.turi = 'OSTATKA'
+         AND abs(b.eni_m  - ${kerak.eniM})  <= 0.01
+         AND abs(b.boyi_m - ${kerak.boyiM}) <= 0.01 THEN 0
+        WHEN b.turi = 'RULON' AND b.ochilgan THEN 1
+        WHEN b.turi = 'OSTATKA' THEN 2
+        ELSE 3
+      END,
       (b.eni_m - ${kerak.eniM}) ASC,
       b.id ASC
     LIMIT ${NOMZOD_CHEGARASI}`;

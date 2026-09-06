@@ -170,6 +170,30 @@ describe("TZ 10.8 — uch xil hisoblash usuli", () => {
   it("kasrli maydon aniq hisoblanadi", () => {
     expect(pulMatn(haqHisobla('18000', 'KV_M', 2.94))).toBe('52920.00');
   });
+
+  /**
+   * ⚠️ 2026-09-05 — SONI hisobga olinadi.
+   *
+   *    Bitta pozitsiyada uchta bir xil parda bo'lsa, usta uchalasini
+   *    tikadi. Ilgari `soni` umuman ishlatilmasdi: mijozdan uchtasining
+   *    puli olinar, ustaga bittasining haqi to'lanardi.
+   */
+  it('SONI ko‘paytiriladi — uchta parda, uchta haq (10.8)', () => {
+    // Qat'iy summa: 15 000 × 3
+    expect(pulMatn(haqHisobla('15000', 'DONA', 3.2, 3))).toBe('45000.00');
+    // Kv.metrga: 18 000 × 2.94 × 3
+    expect(pulMatn(haqHisobla('18000', 'KV_M', 2.94, 3))).toBe('158760.00');
+  });
+
+  it('soni berilmasa BITTA deb olinadi — eski chaqiruvlar buzilmaydi', () => {
+    expect(pulMatn(haqHisobla('15000', 'DONA', 3.2))).toBe(
+      pulMatn(haqHisobla('15000', 'DONA', 3.2, 1)),
+    );
+  });
+
+  it('soni noldan kichik bo‘la olmaydi', () => {
+    expect(() => haqHisobla('15000', 'DONA', 3.2, 0)).toThrow();
+  });
 });
 
 // ─── TZ 10.12 · Stavkasi yo'q mahsulot ────────────────────────────────────

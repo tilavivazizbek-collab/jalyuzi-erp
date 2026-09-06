@@ -22,6 +22,24 @@ let adminKassa = 0;
 
 const FILIAL = 1;
 const XODIM = 1;
+
+/**
+ * Pozitsiyaning HAR FAOL BANDI uchun kesim qatorini yasaydi.
+ *
+ * ⚠️ «Tugatdim» endi har mato uchun alohida qoldiq talab qiladi
+ *    (2026-09-03): ilgari faqat birinchi bo'lak yechilardi.
+ */
+const kesimlar = async (
+  pozitsiyaId: number,
+  qoldiq: { eniM: number; boyiM: number; saqlansinmi: boolean },
+  manba: 'OSTATKA' | 'RULON' = 'OSTATKA',
+): Promise<{ bandId: number; manba: 'OSTATKA' | 'RULON'; qoldiq: typeof qoldiq }[]> => {
+  const b = await sql<{ id: number }[]>`
+    SELECT id FROM band
+    WHERE buyurtma_pozitsiya_id = ${pozitsiyaId} AND holat = 'FAOL'
+    ORDER BY id`;
+  return b.map((x) => ({ bandId: x.id, manba, qoldiq }));
+};
 const CHEGARALAR: Chegaralar = { yaroqsizM: 0.3, kamIshlatiladiganM: 0.5 };
 
 let hisoblagich = 0;
@@ -35,8 +53,11 @@ beforeAll(async () => {
   const b = belgi();
 
   const m = await sql<{ id: number }[]>`
-    INSERT INTO material (nom, hisob_turi, kirim_birligi, sarflash_birligi, yaratdi_id)
-    VALUES (${`Qaytarish matosi ${b}`}, 'RULON', 'rulon', 'KV_M', ${XODIM})
+    INSERT INTO material (nom, hisob_turi, kirim_birligi, sarflash_birligi,
+                          yaroqsiz_chegara_m, kam_ishlatiladigan_m, yaratdi_id)
+    VALUES (${`Qaytarish matosi ${b}`}, 'RULON', 'rulon', 'KV_M',
+            -- Chegaralar MATERIALDAN o'qiladi (5.5), parametr emas
+            ${CHEGARALAR.yaroqsizM}, ${CHEGARALAR.kamIshlatiladiganM}, ${XODIM})
     RETURNING id`;
   matoId = m[0]?.id ?? 0;
 
@@ -69,7 +90,7 @@ beforeAll(async () => {
 }, 120_000);
 
 afterAll(async () => {
-  await sql.end();
+  await sql.end({ timeout: 5 });
 });
 
 async function mijozYarat(): Promise<number> {
@@ -142,12 +163,10 @@ async function tayyorPozitsiya(
     sql,
     {
       pozitsiyaId,
-      manba: 'RULON',
-      qoldiq: { eniM: 0.6, boyiM: 2.0, saqlansinmi: true },
+      kesimlar: await kesimlar(pozitsiyaId, { eniM: 0.6, boyiM: 2.0, saqlansinmi: true }, 'RULON'),
       ogohTasdiqlandi: false,
       izoh: null,
     },
-    CHEGARALAR,
     XODIM,
   );
 
@@ -197,6 +216,7 @@ describe('TZ 8.10 — qaytarish POZITSIYA darajasida', () => {
     await buyurtmaTolovi(
       sql,
       {
+        kalit: belgi(),
         buyurtmaId: b[0]?.buyurtma_id ?? 0,
         qatorlar: [{ kassaId: naqdKassa, summa: '800000', valyuta: 'SOM' }],
         izoh: null,
@@ -235,6 +255,7 @@ describe('TZ 8.10 — qaytarish POZITSIYA darajasida', () => {
     await buyurtmaTolovi(
       sql,
       {
+        kalit: belgi(),
         buyurtmaId: b[0]?.buyurtma_id ?? 0,
         qatorlar: [{ kassaId: naqdKassa, summa: '500000', valyuta: 'SOM' }],
         izoh: null,

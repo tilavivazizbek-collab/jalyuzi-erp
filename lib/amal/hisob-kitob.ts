@@ -103,3 +103,88 @@ export async function hisobKitobVaraqasi(
       .map(([valyuta, summa]) => ({ valyuta, summa })),
   };
 }
+
+// ─── 9.7 · Yetkazib beruvchi bilan solishtirish akti ─────────────────────
+
+/**
+ * ⚠️ NEGA ALOHIDA FUNKSIYA, PARAMETR EMAS
+ *
+ *    Ikki jadval boshqa: mijozda `mijoz_harakat`, yetkazuvchida
+ *    `yetkazib_beruvchi_harakat`. Bitta funksiyaga jadval nomini
+ *    parametr qilib berish SQL ni dinamik qilardi — postgres.js da
+ *    bu xavfli va o'qilmaydigan bo'lardi.
+ *
+ * ⚠️ ISHORA QOIDASI TESKARI.
+ *
+ *    Mijozda musbat = mijoz qarzdor. Yetkazuvchida musbat = BIZ
+ *    qarzdormiz. Raqam bazadagidek qoldiriladi, ustun sarlavhasi
+ *    tushuntiradi — varaqa hech qachon ishorani o'zgartirmaydi.
+ *
+ * ⚠️ B2B da bu har oy kerak bo'ladigan hujjat: «sizga qancha
+ *    qarzdormiz, siz nima yubordingiz». Shu paytgacha faqat mijoz
+ *    tomoni bor edi va yetkazuvchi bilan qo'lda solishtirilardi.
+ */
+export interface YetkazibSolishtirish {
+  readonly yetkazibId: number;
+  readonly nom: string;
+  readonly telefon: string | null;
+  readonly korxonaNom: string | null;
+  readonly korxonaTelefon: string | null;
+  readonly qatorlar: readonly HisobQatori[];
+  readonly qoldiqlar: readonly { valyuta: string; summa: string }[];
+}
+
+export async function yetkazibSolishtirishAkti(
+  ulanish: postgres.Sql,
+  yetkazibId: number,
+): Promise<YetkazibSolishtirish | null> {
+  const y = await ulanish<{ id: number; nom: string; telefon: string | null }[]>`
+    SELECT id, nom, telefon FROM yetkazib_beruvchi WHERE id = ${yetkazibId}`;
+
+  const yetkazuvchi = y[0];
+  if (yetkazuvchi === undefined) return null;
+
+  const [qatorlar, sozlama] = await Promise.all([
+    ulanish<
+      {
+        sana: Date;
+        turi: string;
+        izoh: string | null;
+        summa: string;
+        valyuta: string;
+        qoldiq: string;
+      }[]
+    >`
+      SELECT h.sana, h.turi, h.izoh, h.summa::text, h.valyuta,
+             /* Har valyuta O'Z ichida sanaladi (1.3-invariant) */
+             SUM(h.summa) OVER (
+               PARTITION BY h.valyuta
+               ORDER BY h.sana, h.id
+               ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+             )::text AS qoldiq
+      FROM yetkazib_beruvchi_harakat h
+      WHERE h.yetkazib_beruvchi_id = ${yetkazibId}
+      ORDER BY h.sana, h.id`,
+
+    ulanish<{ kalit: string; qiymat: string }[]>`
+      SELECT kalit, qiymat FROM sozlama
+      WHERE kalit IN ('korxona_nom', 'korxona_telefon')`,
+  ]);
+
+  const s = new Map(sozlama.map((x) => [x.kalit, x.qiymat]));
+
+  const oxirgi = new Map<string, string>();
+  for (const q of qatorlar) oxirgi.set(q.valyuta, q.qoldiq);
+
+  return {
+    yetkazibId,
+    nom: yetkazuvchi.nom,
+    telefon: yetkazuvchi.telefon,
+    korxonaNom: s.get('korxona_nom') ?? null,
+    korxonaTelefon: s.get('korxona_telefon') ?? null,
+    qatorlar,
+    qoldiqlar: [...oxirgi.entries()]
+      .filter(([, summa]) => Number(summa) !== 0)
+      .map(([valyuta, summa]) => ({ valyuta, summa })),
+  };
+}

@@ -8,6 +8,7 @@
  */
 
 import {
+  dollar,
   kattami,
   nolmi,
   ogir,
@@ -205,16 +206,31 @@ export const xabarYuborilsinmi = (telegramId: number | null): boolean => telegra
  *    qo'llaydi (13.5). Ikki joyda yozilsa mijoz saytda bir narx,
  *    botda boshqa narx ko'rardi (§2.2).
  *
- * ⚠️ `USD` offseti **qo'llanmaydi**: u kursni talab qiladi va kurs
- *    parametr bo'lib kelishi shart (§3.2). Sotuvchiga ochiq
- *    aytiladi — jimgina noto'g'ri narx chiqarishdan ko'ra
+ * ⚠️ `USD` offseti JORIY kursda so'mga o'giriladi.
+ *
+ *    Kurs PARAMETR bo'lib keladi (§3.2) — funksiya uni o'zi
+ *    izlamaydi. Kurs berilmasa offset qo'llanmaydi va `null`
+ *    qaytadi: jimgina noto'g'ri narx chiqarishdan ko'ra
  *    ko'rinadigan cheklov yaxshi.
+ *
+ *    ⚠️ 2026-09-05 gacha USD offseti kurs berilgan-berilmaganidan
+ *       qat'i nazar TASHLAB YUBORILARDI. Mijoz kartochkasida
+ *       «−10 $» turar, forma «joriy kurs ishlatiladi» deb va'da
+ *       qilar, mijoz esa standart narxda olardi — hech qanday
+ *       ogohlantirishsiz.
  */
-export function mijozOffseti(m: OffsetManbasi | null): Offset | null {
+export function mijozOffseti(
+  m: OffsetManbasi | null,
+  joriyKurs: Kurs | null = null,
+): Offset | null {
   if (m === null || m.offsetTuri === null || m.offsetQiymat === null) return null;
   if (m.offsetTuri === 'FOIZ') return { turi: 'FOIZ', foiz: Number(m.offsetQiymat) };
   if (m.offsetTuri === 'SOM') return { turi: 'SOM', summa: som(m.offsetQiymat) };
-  return null; // USD — kurs kerak (6.3)
+  if (m.offsetTuri === 'USD') {
+    if (joriyKurs === null) return null; // kurs yo'q — offset qo'llanmaydi
+    return { turi: 'SOM', summa: ogir(dollar(m.offsetQiymat), joriyKurs) };
+  }
+  return null;
 }
 
 /**
@@ -238,8 +254,45 @@ export function mijozOffseti(m: OffsetManbasi | null): Offset | null {
 export function amaldagiOffset(
   mijoz: OffsetManbasi | null,
   guruh: OffsetManbasi | null,
+  joriyKurs: Kurs | null = null,
 ): Offset | null {
-  return mijozOffseti(mijoz) ?? mijozOffseti(guruh);
+  /**
+   * ⚠️ Shaxsiy offset BOR bo'lsa, u QO'LLAB BO'LMASA HAM guruhnikiga
+   *    o'tilmaydi (6.3 — «shaxsiy ustun»).
+   *
+   *    Ilgari `??` ishlatilardi: kurssiz «−10 $» shaxsiy chegirmasi
+   *    jimgina guruhning «−5 000 so'm» iga aylanib ketardi. Mijoz
+   *    na kartochkasidagi chegirmani, na to'liq narxni olardi —
+   *    uchinchi, hech kim kutmagan raqamni olardi.
+   */
+  return offsetBormi(mijoz)
+    ? mijozOffseti(mijoz, joriyKurs)
+    : mijozOffseti(guruh, joriyKurs);
+}
+
+/** Kartochkada offset yozilganmi — qo'llanishidan qat'i nazar */
+function offsetBormi(m: OffsetManbasi | null): boolean {
+  return m !== null && m.offsetTuri !== null && m.offsetQiymat !== null;
+}
+
+/**
+ * Offset bor, lekin QO'LLANMAYDI — sotuvchiga aytish uchun.
+ *
+ * ⚠️ TZ 6.3 izohi «sotuvchiga ochiq aytiladi» der edi, lekin buni
+ *    aytadigan hech narsa yo'q edi. Endi ekran shu funksiyaga
+ *    qarab ogohlantirish ko'rsatadi.
+ */
+export function offsetQollanmadimi(
+  mijoz: OffsetManbasi | null,
+  guruh: OffsetManbasi | null,
+  joriyKurs: Kurs | null,
+): boolean {
+  const usdmi = (m: OffsetManbasi | null): boolean =>
+    offsetBormi(m) && m?.offsetTuri === 'USD';
+
+  if (joriyKurs !== null) return false;
+  // Mijozniki ustun: uniki USD bo'lsa guruhnikiga o'tilmaydi
+  return usdmi(mijoz) || (!offsetBormi(mijoz) && usdmi(guruh));
 }
 
 export interface OffsetManbasi {

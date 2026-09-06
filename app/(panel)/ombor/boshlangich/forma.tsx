@@ -17,17 +17,36 @@ import { Maydon, kirishUslubi } from '../../maydon';
 import { boshlangichAmali } from '../inventarizatsiya/amal';
 import { BOSH_HOLAT } from '../inventarizatsiya/holat';
 
+type BolakTuri = 'RULON' | 'OCHILGAN' | 'KESMA';
+
+/**
+ * TZ 7.4 · 7.6 — omborda uch xil bo'lak turadi va ular BIR XIL EMAS.
+ *
+ * ⚠️ Egasi (2026-09-05): «boshlang'ich zahirani kiritadigan paytim
+ *    mendagi kesmani, ochiq rulonni qanday kiritaman?»
+ *
+ *    Ilgari hech qanday yo'l yo'q edi — nima yozilsa ham «butun
+ *    rulon» bo'lib tushardi. Endi tur tanlanadi va tanlov
+ *    algoritmi (7.6) uni to'g'ri tartibda ishlatadi.
+ */
+const TURLAR: readonly { readonly qiymat: BolakTuri; readonly nom: string }[] = [
+  { qiymat: 'RULON', nom: 'Butun rulon' },
+  { qiymat: 'OCHILGAN', nom: 'Ochilgan rulon' },
+  { qiymat: 'KESMA', nom: 'Qoldiq kesma' },
+];
+
 interface Olcham {
   /** Ro'yxat o'zgarganda React qatorni adashtirmasligi uchun barqaror kalit */
   readonly kalit: number;
   eniM: string;
   boyiM: string;
+  turi: BolakTuri;
 }
 
 let keyingiKalit = 0;
 const yangiOlcham = (): Olcham => {
   keyingiKalit += 1;
-  return { kalit: keyingiKalit, eniM: '', boyiM: '' };
+  return { kalit: keyingiKalit, eniM: '', boyiM: '', turi: 'RULON' };
 };
 
 export function BoshlangichFormasi({
@@ -71,7 +90,7 @@ export function BoshlangichFormasi({
   };
 
   const tayyor = olchamlar
-    .map((o) => ({ eniM: Number(o.eniM), boyiM: Number(o.boyiM) }))
+    .map((o) => ({ eniM: Number(o.eniM), boyiM: Number(o.boyiM), turi: o.turi }))
     .filter(
       (o) => Number.isFinite(o.eniM) && Number.isFinite(o.boyiM) && o.eniM > 0 && o.boyiM > 0,
     );
@@ -101,7 +120,11 @@ export function BoshlangichFormasi({
         <div>
           <p className="mb-1 text-sm font-medium text-matn-ikki">Rulonlar</p>
           <p className="mb-3 text-xs text-matn-kuchsiz">
-            Har rulon alohida qator: eni × bo&apos;yi, metrda. Kv.m tizim hisoblaydi (Q-05).
+            Har bo&apos;lak alohida qator: eni × bo&apos;yi, metrda. Kv.m tizim hisoblaydi (Q-05).
+          </p>
+          <p className="mb-3 text-xs text-matn-kuchsiz">
+            <b>Ochilgan rulon</b> — ishlatila boshlangan, enisi o&apos;sha, bo&apos;yi kamaygan.
+            Buyurtma tushganda tizim <b>avval shuni</b> tugatadi, yangi rulonni ochmaydi (7.6).
           </p>
 
           <div className="flex flex-col gap-2">
@@ -127,6 +150,20 @@ export function BoshlangichFormasi({
                   placeholder="bo'yi"
                 />
                 <span className="text-xs text-matn-kuchsiz">m</span>
+                <select
+                  value={o.turi}
+                  onChange={(e) => {
+                    yoz(i, 'turi', e.target.value);
+                  }}
+                  aria-label="Bo'lak turi"
+                  className={`${kirishUslubi(false)} w-40`}
+                >
+                  {TURLAR.map((t) => (
+                    <option key={t.qiymat} value={t.qiymat}>
+                      {t.nom}
+                    </option>
+                  ))}
+                </select>
                 {olchamlar.length > 1 && (
                   <button
                     type="button"

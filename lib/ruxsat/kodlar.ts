@@ -134,6 +134,34 @@ export const RUXSATLAR = {
   'buyurtma.tasdiqla': { nom: 'Buyurtmani tasdiqlash', guruh: 'Sotuv', band: '8.4' },
   'buyurtma.tahrirla': { nom: 'Buyurtmani tahrirlash', guruh: 'Sotuv', band: '8.7' },
   'buyurtma.bekor': { nom: 'Buyurtmani bekor qilish', guruh: 'Sotuv', band: '8.8' },
+  /**
+   * ⚠️ BEKOR QILISHDAN ALOHIDA RUXSAT.
+   *
+   *    TZ 8.8: storno — «FAQAT ADMIN qiladi». Bekor qilish real
+   *    biznes holati (mijoz voz kechdi), storno esa sotuvchining
+   *    xatosini yozuvdan o'chirish. Sotuvchi o'z xatosini o'zi
+   *    yashira olmasligi kerak.
+   */
+  /**
+   * ⚠️ FAQAT ADMIN — holatni QO'LDA to'g'rilash (8.3).
+   *
+   *    Odatdagi o'tishlar («Ishga oldim», «Tugatdim») bu koddan
+   *    MUSTAQIL ishlaydi. Bu kod faqat qotib qolgan holatni
+   *    to'g'rilash uchun: sabab majburiy, auditga tushadi.
+   *
+   *    Sotuvchiga berilmaydi: holatni erkin qo'yish ombor va ish
+   *    haqi hisobini buzishi mumkin.
+   */
+  'buyurtma.holat.tuzat': {
+    nom: "Pozitsiya holatini qo'lda to'g'rilash",
+    guruh: 'Sotuv',
+    band: '8.3',
+  },
+  'buyurtma.storno': {
+    nom: 'Buyurtmani storno qilish (xato yozuv)',
+    guruh: 'Sotuv',
+    band: '8.8',
+  },
   // ⚠️ Kod `guruh.amal` ko'rinishida bo'lishi shart (14.6) — pastki
   //    chiziq ishlatilmaydi, shuning uchun `qayta_kesish` emas `brak`.
   /**

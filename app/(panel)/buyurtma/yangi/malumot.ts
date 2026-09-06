@@ -59,6 +59,20 @@ export interface SotuvMijozi {
    */
   readonly mijozTuriId: number | null;
   readonly turNomi: string | null;
+
+  /**
+   * TZ 6.4 — MIJOZNING JORIY QARZI, har valyuta alohida.
+   *
+   * ⚠️ Limit tekshiruvi uchun SHART. Ilgari `qarzLimiti` ekranga
+   *    kelar, lekin joriy qarz umuman so'ralmasdi — ya'ni TZ 6.4
+   *    talab qilgan ogohlantirish HECH QACHON chiqmasdi.
+   *
+   * ⚠️ Valyutalar ARALASHTIRILMAYDI (1.3): so'm va dollar
+   *    alohida keladi, so'mga o'girish `limitHolati` da JORIY kurs
+   *    bilan bajariladi.
+   */
+  readonly qarzSom: string;
+  readonly qarzDollar: string;
 }
 
 export async function mijozQidir(matn: string, chegara = 10): Promise<SotuvMijozi[]> {
@@ -78,6 +92,8 @@ export async function mijozQidir(matn: string, chegara = 10): Promise<SotuvMijoz
       guruh_offset_qiymat: string | null;
       mijoz_turi_id: number | null;
       tur_nomi: string | null;
+      qarz_som: string;
+      qarz_dollar: string;
     }[]
   >`
     SELECT m.id, m.ism, m.telefon, m.qarz_limiti,
@@ -85,7 +101,17 @@ export async function mijozQidir(matn: string, chegara = 10): Promise<SotuvMijoz
            g.nom AS guruh_nomi,
            g.offset_turi AS guruh_offset_turi,
            g.offset_qiymat AS guruh_offset_qiymat,
-           m.mijoz_turi_id, t.nom AS tur_nomi
+           m.mijoz_turi_id, t.nom AS tur_nomi,
+           /*
+            * 2.2-invariant — balans SAQLANMAYDI, har safar SUM() bilan.
+            * Valyutalar alohida yig'iladi (1.3).
+            */
+           COALESCE((SELECT SUM(h.summa) FROM mijoz_harakat h
+                      WHERE h.mijoz_id = m.id AND h.valyuta = 'SOM'), 0)::text
+             AS qarz_som,
+           COALESCE((SELECT SUM(h.summa) FROM mijoz_harakat h
+                      WHERE h.mijoz_id = m.id AND h.valyuta = 'USD'), 0)::text
+             AS qarz_dollar
     FROM mijoz m
     LEFT JOIN mijoz_guruh g ON g.id = m.mijoz_guruh_id AND g.faol = true
     LEFT JOIN mijoz_turi t ON t.id = m.mijoz_turi_id AND t.faol = true
@@ -104,6 +130,8 @@ export async function mijozQidir(matn: string, chegara = 10): Promise<SotuvMijoz
     guruhOffsetQiymat: r.guruh_offset_qiymat,
     mijozTuriId: r.mijoz_turi_id,
     turNomi: r.tur_nomi,
+    qarzSom: r.qarz_som,
+    qarzDollar: r.qarz_dollar,
   }));
 }
 
