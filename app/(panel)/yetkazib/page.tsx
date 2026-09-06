@@ -89,8 +89,22 @@ export default async function YetkazibRoyxati({
             <tbody className="divide-y divide-chegara [&>tr:nth-child(even)]:bg-fon/50">
               {qatorlar.map((y) => (
                 <tr key={y.id} className={y.faol ? '' : 'bg-fon text-matn-kuchsiz'}>
+                  {/*
+                    ⚠️ NOM — KARTOCHKAGA HAVOLA.
+
+                       Ilgari kartochkaga faqat «Tahrirlash» orqali
+                       kirilardi va u FAQAT `yetkazib.ozgartir` bor
+                       odamga ko'rinardi. Omborchi qarzni, to'lov
+                       muddatini va bank rekvizitlarini ko'rish
+                       yo'lini umuman topolmasdi.
+                  */}
                   <td className="px-4 py-2.5 font-medium">
-                    {y.nom}
+                    <Link
+                      href={`/yetkazib/${String(y.id)}`}
+                      className="text-brend hover:underline"
+                    >
+                      {y.nom}
+                    </Link>
                     {!y.faol && <span className="ml-2 text-xs">(nofaol)</span>}
                   </td>
                   <td className="px-4 py-2.5 text-matn-ikki">
@@ -116,16 +130,8 @@ export default async function YetkazibRoyxati({
                     <td className="px-4 py-2.5 text-right">
                       <div className="flex items-center justify-end gap-3">
                         {/* ⚠️ O'chirilganda faqat qaytarish mumkin */}
-                        {y.faol ? (
-                          <Link
-                            href={`/yetkazib/${String(y.id)}`}
-                            className="text-matn-ikki hover:text-matn"
-                          >
-                            Tahrirlash
-                          </Link>
-                        ) : (
-                          <QaytarTugma tur="yetkazib" id={y.id} nom={y.nom} />
-                        )}
+                        {/* Nom allaqachon havola — takroriy «Tahrirlash» olib tashlandi */}
+                        {!y.faol && <QaytarTugma tur="yetkazib" id={y.id} nom={y.nom} />}
                         {/* O'chirish = nofaol qilish; ishlatilayotgani to'siladi */}
                         {y.faol && (
                           <OchirTugma tur="yetkazib" id={y.id} nom={y.nom} ixcham />

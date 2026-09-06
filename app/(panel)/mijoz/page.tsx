@@ -98,8 +98,23 @@ export default async function MijozRoyxati({
             <tbody className="divide-y divide-chegara [&>tr:nth-child(even)]:bg-fon/50">
               {qatorlar.map((m) => (
                 <tr key={m.id} className={m.faol ? '' : 'bg-fon text-matn-kuchsiz'}>
+                  {/*
+                    ⚠️ ISM — KARTOCHKAGA HAVOLA.
+
+                       Ilgari kartochkaga faqat amallar ustunidagi
+                       «Tahrirlash» orqali kirilardi va u FAQAT
+                       `mijoz.ozgartir` bor odamga ko'rinardi. Sotuvchi
+                       kartochka borligini bilmasdi ham — qarzni,
+                       to'lov intizomini va buyurtmalar tarixini
+                       ko'rish yo'li yopiq edi.
+                  */}
                   <td className="px-4 py-2.5 font-medium">
-                    {m.ism}
+                    <Link
+                      href={`/mijoz/${String(m.id)}`}
+                      className="text-brend hover:underline"
+                    >
+                      {m.ism}
+                    </Link>
                     {!m.faol && <span className="ml-2 text-xs">(nofaol)</span>}
                   </td>
                   <td className="px-4 py-2.5">
@@ -140,16 +155,8 @@ export default async function MijozRoyxati({
                     <td className="px-4 py-2.5 text-right">
                       <div className="flex items-center justify-end gap-3">
                         {/* ⚠️ O'chirilganda faqat qaytarish mumkin */}
-                        {m.faol ? (
-                          <Link
-                            href={`/mijoz/${String(m.id)}`}
-                            className="text-matn-ikki hover:text-matn"
-                          >
-                            Tahrirlash
-                          </Link>
-                        ) : (
-                          <QaytarTugma tur="mijoz" id={m.id} nom={m.ism} />
-                        )}
+                        {/* Ism allaqachon havola — takroriy «Tahrirlash» olib tashlandi */}
+                        {!m.faol && <QaytarTugma tur="mijoz" id={m.id} nom={m.ism} />}
                         {/* O'chirish = nofaol qilish; ishlatilayotgani to'siladi */}
                         {m.faol && (
                           <OchirTugma tur="mijoz" id={m.id} nom={m.ism} ixcham />
