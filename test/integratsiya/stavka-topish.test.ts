@@ -7,6 +7,12 @@
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { ustaStavkasi } from '@/lib/amal/stavka';
+import {
+  stavkalarRoyxati,
+  stavkaniBelgila,
+  stavkaniOchir,
+} from '@/lib/amal/stavka-belgila';
+import { BiznesXato } from '@/lib/xato';
 import type { Ulanish } from '@/lib/db/ulanish';
 import { sinovUlanishi } from './yordamchi';
 
@@ -61,13 +67,21 @@ async function stavkaQosh(
   qiymat: string,
   dan = '2026-01-01',
   birlik = 'DONA',
+  chegaraKvM: number | null = null,
 ): Promise<void> {
   await sql`
     INSERT INTO stavka (mahsulot_tur_id, filial_id, xodim_id, qiymat, birlik,
-                        amal_qiladi_dan, yaratdi_id)
+                        chegara_kv_m, amal_qiladi_dan, yaratdi_id)
     VALUES (${turId}, ${filialId}, ${xodimId}, ${qiymat}, ${birlik},
-            ${dan}, ${XODIM})`;
+            ${chegaraKvM}, ${dan}, ${XODIM})`;
 }
+
+/**
+ * Qat'iy va kv.metrli stavkada maydon TANLOVGA ta'sir qilmaydi —
+ * quyidagi testlarda u shunchaki bir qiymat. Bosqichli testlar
+ * o'z maydonini beradi.
+ */
+const MAYDON = 1;
 
 describe('TZ 10.12 — stavkasiz tur ishni TO\'XTATMAYDI', () => {
   it("stavka yo'q bo'lsa nol qaytadi, xato bermaydi", async () => {
@@ -76,6 +90,7 @@ describe('TZ 10.12 — stavkasiz tur ishni TO\'XTATMAYDI', () => {
       filialId: filialA,
       xodimId: ustaId,
       sana: SANA,
+      maydonKvM: MAYDON,
     });
 
     expect(s.topildimi).toBe(false);
@@ -92,6 +107,7 @@ describe('TZ 10.9 — xodim > filial > standart', () => {
       filialId: filialA,
       xodimId: ustaId,
       sana: SANA,
+      maydonKvM: MAYDON,
     });
     expect(Number(a.qiymat)).toBe(30_000);
 
@@ -101,6 +117,7 @@ describe('TZ 10.9 — xodim > filial > standart', () => {
       filialId: filialB,
       xodimId: ustaId,
       sana: SANA,
+      maydonKvM: MAYDON,
     });
     expect(Number(b.qiymat)).toBe(30_000);
   });
@@ -113,6 +130,7 @@ describe('TZ 10.9 — xodim > filial > standart', () => {
       filialId: filialA,
       xodimId: ustaId,
       sana: SANA,
+      maydonKvM: MAYDON,
     });
     expect(Number(a.qiymat)).toBe(35_000);
 
@@ -122,6 +140,7 @@ describe('TZ 10.9 — xodim > filial > standart', () => {
       filialId: filialB,
       xodimId: ustaId,
       sana: SANA,
+      maydonKvM: MAYDON,
     });
     expect(Number(b.qiymat)).toBe(30_000);
   });
@@ -134,6 +153,7 @@ describe('TZ 10.9 — xodim > filial > standart', () => {
       filialId: filialA,
       xodimId: ustaId,
       sana: SANA,
+      maydonKvM: MAYDON,
     });
     expect(Number(s.qiymat)).toBe(45_000);
     expect(s.topildimi).toBe(true);
@@ -151,6 +171,7 @@ describe('TZ 10.9 — xodim > filial > standart', () => {
       filialId: filialA,
       xodimId: boshqa[0]?.id ?? 0,
       sana: SANA,
+      maydonKvM: MAYDON,
     });
     // Filial stavkasiga tushadi, shaxsiyga emas
     expect(Number(s.qiymat)).toBe(35_000);
@@ -167,6 +188,7 @@ describe('2.3-invariant — eski ish eski stavkada qoladi', () => {
       filialId: filialA,
       xodimId: ustaId,
       sana: '2026-06-15',
+      maydonKvM: MAYDON,
     });
     expect(Number(iyun.qiymat)).toBe(45_000);
 
@@ -176,6 +198,7 @@ describe('2.3-invariant — eski ish eski stavkada qoladi', () => {
       filialId: filialA,
       xodimId: ustaId,
       sana: '2026-09-20',
+      maydonKvM: MAYDON,
     });
     expect(Number(sentabr.qiymat)).toBe(60_000);
   });
@@ -186,6 +209,7 @@ describe('2.3-invariant — eski ish eski stavkada qoladi', () => {
       filialId: filialA,
       xodimId: ustaId,
       sana: '2025-12-31',
+      maydonKvM: MAYDON,
     });
     expect(s.topildimi).toBe(false);
   });
@@ -208,8 +232,208 @@ describe('10.8 — birlik ham stavka bilan keladi', () => {
       filialId: filialA,
       xodimId: ustaId,
       sana: SANA,
+      maydonKvM: MAYDON,
     });
     expect(s.birlik).toBe('KV_M');
     expect(Number(s.qiymat)).toBe(12_000);
+  });
+});
+
+// ─── TZ 10.8 · BOSQICHLI stavka ────────────────────────────────
+
+/**
+ * ⚠️ NEGA BU TESTLAR BOR
+ *
+ *    10.8 ning uchinchi usuli — bosqichli jadval — QOG'OZDA bor,
+ *    tizimda yo'q edi: `bosqichniTop()` yozilgan, sinalgan, lekin
+ *    hech kim chaqirmasdi, chunki bazada chegara saqlanmasdi.
+ *
+ *    Bu yerda butun zanjir sinaladi: yozish → o'qish → bosqich
+ *    tanlash. Domen testi buni ko'rmaydi — u bazaga tegmaydi.
+ */
+describe('TZ 10.8 — bosqichli jadval bazadan ishlaydi', () => {
+  let bosqichTur = 0;
+
+  const jadvalYoz = async (turId2: number): Promise<void> => {
+    await stavkaniBelgila(
+      sql,
+      {
+        mahsulotTurId: turId2,
+        filialId: null,
+        xodimId: null,
+        birlik: 'BOSQICH',
+        qiymat: '',
+        bosqichlar: [
+          { chegaraKvM: 1, qiymat: '10000' },
+          { chegaraKvM: 1.5, qiymat: '20000' },
+          { chegaraKvM: null, qiymat: '30000' },
+        ],
+        amalQiladiDan: '2026-01-01',
+      },
+      XODIM,
+    );
+  };
+
+  beforeAll(async () => {
+    const t = await sql<{ id: number }[]>`
+      INSERT INTO mahsulot_tur (nom, yaratdi_id)
+      VALUES (${`Bosqich turi ${belgi()}`}, ${XODIM}) RETURNING id`;
+    bosqichTur = t[0]?.id ?? 0;
+    await jadvalYoz(bosqichTur);
+  }, 120_000);
+
+  const haq = async (maydonKvM: number): Promise<number> => {
+    const s2 = await ustaStavkasi(sql, {
+      mahsulotTurId: bosqichTur,
+      filialId: filialA,
+      xodimId: ustaId,
+      sana: SANA,
+      maydonKvM,
+    });
+    return Number(s2.qiymat);
+  };
+
+  it("chegaraga AYNAN TENG o'lcham QUYI bosqichda", async () => {
+    expect(await haq(1.0)).toBe(10_000);
+    expect(await haq(1.01)).toBe(20_000);
+    expect(await haq(1.5)).toBe(20_000);
+    expect(await haq(1.51)).toBe(30_000);
+  });
+
+  /** 10.8 — «eng quyi bosqich MINIMAL HAQ vazifasini bajaradi» */
+  it("kichkina parda ham nol haq OLMAYDI", async () => {
+    expect(await haq(0.2)).toBe(10_000);
+  });
+
+  it("birlik BOSQICH bo'lib qaytadi", async () => {
+    const s2 = await ustaStavkasi(sql, {
+      mahsulotTurId: bosqichTur,
+      filialId: filialA,
+      xodimId: ustaId,
+      sana: SANA,
+      maydonKvM: 2,
+    });
+    expect(s2.birlik).toBe('BOSQICH');
+    expect(s2.topildimi).toBe(true);
+  });
+
+  /**
+   * ⚠️ ENG XAVFLI HOLAT — jadval QISQARTIRILSA.
+   *
+   *    Uch bosqichli jadval ikkiga tushirilsa, eski uchinchi qator
+   *    qolib ketsa u jimgina ishlab turardi va usta noto'g'ri haq
+   *    olardi. Guruh butunligicha almashtiriladi.
+   */
+  it("jadval qayta yozilsa eski qatorlar QOLMAYDI", async () => {
+    await stavkaniBelgila(
+      sql,
+      {
+        mahsulotTurId: bosqichTur,
+        filialId: null,
+        xodimId: null,
+        birlik: 'BOSQICH',
+        qiymat: '',
+        bosqichlar: [
+          { chegaraKvM: 2, qiymat: '11000' },
+          { chegaraKvM: null, qiymat: '22000' },
+        ],
+        amalQiladiDan: '2026-01-01',
+      },
+      XODIM,
+    );
+
+    const q = await sql<{ n: number }[]>`
+      SELECT COUNT(*)::int AS n FROM stavka
+      WHERE mahsulot_tur_id = ${bosqichTur} AND faol = true`;
+    expect(q[0]?.n).toBe(2);
+
+    expect(await haq(1.5)).toBe(11_000);
+    expect(await haq(2.5)).toBe(22_000);
+
+    // Keyingi testlar uchun asl jadval qaytariladi
+    await jadvalYoz(bosqichTur);
+  });
+
+  it("ro'yxatda bitta guruh bo'lib ko'rinadi", async () => {
+    const r = await stavkalarRoyxati(sql);
+    const meniki = r.filter((x) => x.mahsulotTurId === bosqichTur);
+    expect(meniki).toHaveLength(1);
+    expect(meniki[0]?.qatorlar).toHaveLength(3);
+  });
+
+  /**
+   * ⚠️ Cheksiz bosqichsiz jadval SAQLANMAYDI: eng katta parda
+   *    jadvaldan tashqarida qolib, usta eng og'ir ish uchun ARZON
+   *    haq olardi.
+   */
+  it("cheksiz bosqichsiz jadval RAD ETILADI", async () => {
+    await expect(
+      stavkaniBelgila(
+        sql,
+        {
+          mahsulotTurId: bosqichTur,
+          filialId: null,
+          xodimId: null,
+          birlik: 'BOSQICH',
+          qiymat: '',
+          bosqichlar: [
+            { chegaraKvM: 1, qiymat: '10000' },
+            { chegaraKvM: 2, qiymat: '20000' },
+          ],
+          amalQiladiDan: '2026-02-01',
+        },
+        XODIM,
+      ),
+    ).rejects.toBeInstanceOf(BiznesXato);
+  });
+
+  it("o'chirilgan stavka endi topilmaydi", async () => {
+    const t = await sql<{ id: number }[]>`
+      INSERT INTO mahsulot_tur (nom, yaratdi_id)
+      VALUES (${`O'chadigan tur ${belgi()}`}, ${XODIM}) RETURNING id`;
+    const turId2 = t[0]?.id ?? 0;
+
+    await stavkaniBelgila(
+      sql,
+      {
+        mahsulotTurId: turId2,
+        filialId: null,
+        xodimId: null,
+        birlik: 'DONA',
+        qiymat: '15000',
+        bosqichlar: [],
+        amalQiladiDan: '2026-01-01',
+      },
+      XODIM,
+    );
+
+    const oldin = await ustaStavkasi(sql, {
+      mahsulotTurId: turId2,
+      filialId: filialA,
+      xodimId: ustaId,
+      sana: SANA,
+      maydonKvM: MAYDON,
+    });
+    expect(oldin.topildimi).toBe(true);
+
+    await stavkaniOchir(
+      sql,
+      {
+        mahsulotTurId: turId2,
+        filialId: null,
+        xodimId: null,
+        amalQiladiDan: '2026-01-01',
+      },
+      XODIM,
+    );
+
+    const keyin = await ustaStavkasi(sql, {
+      mahsulotTurId: turId2,
+      filialId: filialA,
+      xodimId: ustaId,
+      sana: SANA,
+      maydonKvM: MAYDON,
+    });
+    expect(keyin.topildimi).toBe(false);
   });
 });

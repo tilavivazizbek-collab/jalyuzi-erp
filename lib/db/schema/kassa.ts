@@ -53,14 +53,31 @@ export const stavka = pgTable(
     xodimId: bigint('xodim_id', { mode: 'number' }).references(() => xodim.id),
     qiymat: numeric('qiymat', { precision: 14, scale: 2 }).notNull(),
     birlik: text('birlik').notNull(),
+    /**
+     * TZ 10.8 — BOSQICHLI jadvalning yuqori chegarasi. Shu qiymat
+     * DAXL bo'ladi: «chegaraga aynan teng qiymat quyi bosqichga
+     * kiradi». Eng yuqori bosqichda NULL — cheksiz.
+     *
+     * Boshqa birliklarda NULL: qat'iy summa va kv.metr stavkasi
+     * bitta qator, ularda bosqich ma'nosiz.
+     */
+    chegaraKvM: numeric('chegara_kv_m', { precision: 10, scale: 4 }),
     /** 2.3-invariant — eski buyurtma eski stavkada qoladi */
     amalQiladiDan: date('amal_qiladi_dan').notNull(),
     ...ochirilmaydi,
     ...izlar,
   },
   (t) => [
-    check('stavka_birlik', sql`${t.birlik} IN ('KV_M','DONA')`),
+    check('stavka_birlik', sql`${t.birlik} IN ('KV_M','DONA','BOSQICH')`),
     check('stavka_qiymat', sql`${t.qiymat} >= 0`),
+    check(
+      'stavka_chegara_faqat_bosqichda',
+      sql`${t.birlik} = 'BOSQICH' OR ${t.chegaraKvM} IS NULL`,
+    ),
+    check(
+      'stavka_chegara_musbat',
+      sql`${t.chegaraKvM} IS NULL OR ${t.chegaraKvM} > 0`,
+    ),
     index('stavka_tur').on(t.mahsulotTurId, t.amalQiladiDan),
   ],
 );

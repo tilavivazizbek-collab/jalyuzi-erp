@@ -12,7 +12,19 @@ import Decimal from 'decimal.js';
 import { kopaytir, nolSom, som, type Som } from './pul';
 import { BiznesXato } from '@/lib/xato';
 
-export type StavkaBirligi = 'KV_M' | 'DONA';
+/**
+ * TZ 10.8 — uch xil hisoblash usuli, uchta birlik:
+ *
+ *   DONA     qat'iy summa, o'lchamdan qat'i nazar
+ *   KV_M     kvadrat metrga
+ *   BOSQICH  jadval — maydonga qarab qat'iy summa tanlanadi
+ *
+ * ⚠️ BOSQICH bir necha QATORdan iborat: har qatorda o'z
+ *    `chegaraKvM` si bor. Qolgan ikkisi doim bitta qator.
+ */
+export type StavkaBirligi = 'KV_M' | 'DONA' | 'BOSQICH';
+
+export const STAVKA_BIRLIKLARI = ['DONA', 'KV_M', 'BOSQICH'] as const;
 
 export interface StavkaQatori {
   readonly id: number;
@@ -23,23 +35,39 @@ export interface StavkaQatori {
   readonly xodimId: number | null;
   readonly qiymat: string;
   readonly birlik: StavkaBirligi;
+  /** Faqat BOSQICH da — yuqori chegara, NULL = cheksiz */
+  readonly chegaraKvM: number | null;
   readonly amalQiladiDan: string;
 }
 
+/** Aniqlik darajasi: xodim (2) > filial (1) > standart (0) — TZ 10.9. */
+function daraja(q: StavkaQatori): number {
+  return (q.xodimId === null ? 0 : 2) + (q.filialId === null ? 0 : 1);
+}
+
 /**
- * TZ 10.9 — eng ANIQ mos keladigan stavka tanlanadi.
+ * TZ 10.9 — eng ANIQ mos keladigan stavka GURUHI.
+ *
+ * ⚠️ NEGA GURUH, BITTA QATOR EMAS
+ *
+ *    Bosqichli stavka (10.8) — bir necha qator: «1 kv.m gacha
+ *    1 $, 1–1.5 → 2 $, undan yuqori → 3 $». Ular
+ *    (tur, filial, xodim, amal_qiladi_dan) bo'yicha BIR guruh.
+ *
+ *    Guruhni tanlash 10.9 qoidasi, guruh ichidan qatorni tanlash
+ *    esa 10.8 qoidasi — ikki xil savol, ketma-ket javob beriladi.
  *
  * ⚠️ 2.3-invariant — `sana` parametr bo'lib keladi: «Stavka keyin
  *    ko'tarilsa yoki tushirilsa, ESKI ISHLAR O'ZGARMAYDI. O'tgan
  *    oyning ish haqi bugun qayta hisoblanmaydi.»
  */
-export function stavkaTanla(
+export function stavkaGuruhi(
   qatorlar: readonly StavkaQatori[],
   mahsulotTurId: number,
   filialId: number,
   xodimId: number,
   sana: string,
-): StavkaQatori | null {
+): readonly StavkaQatori[] {
   const mos = qatorlar.filter(
     (q) =>
       q.mahsulotTurId === mahsulotTurId &&
@@ -48,19 +76,59 @@ export function stavkaTanla(
       (q.xodimId === null || q.xodimId === xodimId),
   );
 
-  if (mos.length === 0) return null;
-
-  /** Aniqlik darajasi: xodim (2) > filial (1) > standart (0). */
-  const daraja = (q: StavkaQatori): number =>
-    (q.xodimId === null ? 0 : 2) + (q.filialId === null ? 0 : 1);
-
-  return mos.reduce((eng, q) => {
+  const eng = mos.reduce<StavkaQatori | null>((u, q) => {
+    if (u === null) return q;
     const a = daraja(q);
-    const b = daraja(eng);
-    if (a !== b) return a > b ? q : eng;
+    const b = daraja(u);
+    if (a !== b) return a > b ? q : u;
     // Bir xil darajada — kechroq boshlangani (2.3: o'sha sanadagi holat)
-    return q.amalQiladiDan > eng.amalQiladiDan ? q : eng;
-  });
+    if (q.amalQiladiDan !== u.amalQiladiDan) {
+      return q.amalQiladiDan > u.amalQiladiDan ? q : u;
+    }
+    /**
+     * ⚠️ Oxirgi ajratuvchi — `id`. Bir xil kunga bir xil qamrovda
+     *    ikkita QAT'IY stavka yozilib qolsa, qaysi biri ishlashi
+     *    TASODIFGA qolmasin: keyin kiritilgani (katta `id`) yutadi.
+     *    Bosqichli guruhda esa qatorlar hammasi kerak — ular
+     *    quyida `chegaraKvM` bo'yicha ajratiladi.
+     */
+    return q.id > u.id ? q : u;
+  }, null);
+
+  if (eng === null) return [];
+
+  const guruh = mos.filter(
+    (q) => daraja(q) === daraja(eng) && q.amalQiladiDan === eng.amalQiladiDan,
+  );
+
+  // Bosqichli bo'lmasa guruh — bitta qator
+  if (eng.birlik !== 'BOSQICH') return [eng];
+
+  return guruh.filter((q) => q.birlik === 'BOSQICH');
+}
+
+/**
+ * TZ 10.9 + 10.8 — shu ish uchun AMALDAGI stavka qatori.
+ *
+ * ⚠️ `maydonKvM` MAJBURIY: bosqichli stavkada u bo'lmasa qaysi
+ *    bosqich ishlashini bilib bo'lmaydi. Qat'iy va kv.metrli
+ *    stavkada u e'tiborga olinmaydi — lekin chaqiruvchi uni
+ *    baribir biladi, shuning uchun ixtiyoriy qilinmadi: unutilsa
+ *    jimgina eng arzon bosqich tanlanib qolardi.
+ */
+export function stavkaTanla(
+  qatorlar: readonly StavkaQatori[],
+  mahsulotTurId: number,
+  filialId: number,
+  xodimId: number,
+  sana: string,
+  maydonKvM: number,
+): StavkaQatori | null {
+  const guruh = stavkaGuruhi(qatorlar, mahsulotTurId, filialId, xodimId, sana);
+  const birinchi = guruh[0];
+  if (birinchi === undefined) return null;
+  if (birinchi.birlik !== 'BOSQICH') return birinchi;
+  return bosqichniTop(guruh, maydonKvM);
 }
 
 // ─── 10.8 · Bosqichli jadval ──────────────────────────────────────────────
@@ -81,7 +149,10 @@ export interface Bosqich {
  *    kichkina parda ham ish talab qiladi, shuning uchun kichik maydon
  *    birinchi bosqichga tushadi va nol bo'lmaydi.
  */
-export function bosqichniTop(bosqichlar: readonly Bosqich[], maydonKvM: number): Bosqich {
+export function bosqichniTop<T extends Bosqich>(
+  bosqichlar: readonly T[],
+  maydonKvM: number,
+): T {
   if (bosqichlar.length === 0) {
     throw new BiznesXato('STAVKA_YOQ', "bosqichlar ro'yxati bo'sh");
   }
@@ -101,6 +172,12 @@ export function bosqichniTop(bosqichlar: readonly Bosqich[], maydonKvM: number):
   if (oxirgi === undefined) throw new BiznesXato('STAVKA_YOQ');
   return oxirgi;
 }
+
+/**
+ * `Bosqich` — `StavkaQatori` ning bosqich uchun kerakli qismi.
+ * Shu sababli `StavkaQatori` to'g'ridan-to'g'ri `bosqichniTop` ga
+ * beriladi va nusxa tuzilma yasalmaydi (§2.2).
+ */
 
 // ─── 10.10 · Haq hisoblash ────────────────────────────────────────────────
 
@@ -135,7 +212,15 @@ export function haqHisobla(
   const n = new Decimal(soni);
   if (n.lessThan(1)) throw new BiznesXato('OLCHOV_NOTOGRI', `soni ${String(soni)}`);
 
-  if (birlik === 'DONA') return kopaytir(som(qiymat), n.toString());
+  /**
+   * ⚠️ BOSQICH — QAT'IY summa. Bosqich allaqachon maydonga
+   *    qarab TANLANGAN (`bosqichniTop`), uning qiymati bitta
+   *    buyum uchun to'liq haq. Uni yana maydonga ko'paytirish
+   *    haqni ikki marta hisoblash bo'lardi.
+   */
+  if (birlik === 'DONA' || birlik === 'BOSQICH') {
+    return kopaytir(som(qiymat), n.toString());
+  }
   return kopaytir(som(qiymat), n.times(maydonKvM).toString());
 }
 
@@ -166,4 +251,66 @@ export function pozitsiyaHaqi(
     haq: haqHisobla(stavka.qiymat, stavka.birlik, maydonKvM, soni),
     stavkaYoq: false,
   };
+}
+
+// ─── 10.8 · Jadvalni SAQLASHDAN OLDIN tekshirish ────────────────────
+
+/**
+ * Bosqichli jadval TO'G'RI tuzilganini tekshiradi.
+ *
+ * ⚠️ NEGA SAQLASHDA, HISOBLASHDA EMAS
+ *
+ *    `bosqichniTop()` har qanday ro'yxatdan bittasini tanlaydi —
+ *    u jadval mantiqan to'g'rimi, deb so'ramaydi. Xato jadval
+ *    saqlanib ketsa, u OYLAR DAVOMIDA jimgina noto'g'ri haq
+ *    hisoblab turardi va buni faqat usta shikoyat qilganda bilib
+ *    qolinardi.
+ *
+ *    Shuning uchun tekshiruv kiritish paytida, odam ekran
+ *    oldida turganda bo'ladi.
+ */
+export function bosqichlarniTekshir(bosqichlar: readonly Bosqich[]): void {
+  if (bosqichlar.length < 2) {
+    throw new BiznesXato(
+      'BOSQICH_NOTOGRI',
+      "bosqichli jadvalda kamida ikkita qator bo'lishi kerak — bitta qator qat'iy summa bilan bir xil",
+    );
+  }
+
+  /**
+   * ⚠️ Cheksiz bosqich MAJBURIY. Bo'lmasa eng katta parda
+   *    jadvaldan tashqarida qolardi va `bosqichniTop` eng
+   *    yuqoridagisini berardi — ya'ni ARZONROQ. Usta eng og'ir
+   *    ish uchun kam haq olardi.
+   */
+  const cheksiz = bosqichlar.filter((b) => b.chegaraKvM === null);
+  if (cheksiz.length !== 1) {
+    throw new BiznesXato(
+      'BOSQICH_NOTOGRI',
+      cheksiz.length === 0
+        ? "oxirgi bosqichning yuqori chegarasi bo'sh qoldirilishi kerak — undan katta o'lchamlar uchun"
+        : "yuqori chegarasi bo'sh qator faqat bitta bo'ladi",
+    );
+  }
+
+  const chegaralar = bosqichlar
+    .map((b) => b.chegaraKvM)
+    .filter((x): x is number => x !== null);
+
+  if (new Set(chegaralar).size !== chegaralar.length) {
+    throw new BiznesXato('BOSQICH_NOTOGRI', 'bir xil chegara ikki marta yozilgan');
+  }
+
+  for (const b of bosqichlar) {
+    const q = new Decimal(b.qiymat);
+    if (!q.isFinite() || q.isNegative()) {
+      throw new BiznesXato('BOSQICH_NOTOGRI', `qiymat noto'g'ri: ${b.qiymat}`);
+    }
+    if (b.chegaraKvM !== null && b.chegaraKvM <= 0) {
+      throw new BiznesXato(
+        'BOSQICH_NOTOGRI',
+        `chegara musbat bo'lishi kerak: ${String(b.chegaraKvM)}`,
+      );
+    }
+  }
 }

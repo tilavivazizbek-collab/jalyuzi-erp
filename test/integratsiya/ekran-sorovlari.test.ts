@@ -49,6 +49,7 @@ import * as hisobotEkrani from '@/app/(panel)/hisobot/malumot';
  */
 import * as ustaBoti from '@/bot/usta';
 import * as yetkazibEkrani from '@/app/(panel)/yetkazib/malumot';
+import { stavkalarRoyxati, stavkasizTurlar } from '@/lib/amal/stavka-belgila';
 import { davrYasa, oldingiDavr } from '@/lib/domain/hisobot/davr';
 import { pulMatn, type Som } from '@/lib/domain/pul';
 
@@ -658,5 +659,20 @@ describe('Kartochka ekranlari — material va mijoz', () => {
     await expect(materialKartochka.materialTezligi(YOQ, FILIAL)).resolves.toBeNull();
     await expect(mijozKartochka.mijozXulosasi(YOQ)).resolves.toBeDefined();
     await expect(mijozKartochka.mijozBuyurtmalari(YOQ)).resolves.toEqual([]);
+  });
+});
+
+/**
+ * ⚠️ Stavka ekrani — TZ 10.8 · 10.12.
+ *
+ *    `stavkalarRoyxati` bosqichli qatorlarni guruhlaydi va uchta
+ *    `LEFT JOIN` bilan yuradi; `stavkasizTurlar` esa `NOT EXISTS`
+ *    bilan. Ikkalasi ham faqat ekran ochilganda yuriladi —
+ *    ustun nomidagi xatoni boshqa hech narsa ko'rmaydi.
+ */
+describe('Usta stavkalari ekrani (10.8)', () => {
+  it("ikkala so'rov ham bazada yuradi", async () => {
+    await expect(stavkalarRoyxati(sql)).resolves.toBeInstanceOf(Array);
+    await expect(stavkasizTurlar(sql)).resolves.toBeInstanceOf(Array);
   });
 });

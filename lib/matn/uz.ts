@@ -12,6 +12,7 @@ export const XATO_MATNI: Record<XatoKod, string> = {
   LIMIT_OSHDI: "Mijozning qarz limiti oshib ketdi",
   CHEGIRMA_LIMITI: "Chegirma belgilangan chegaradan oshdi",
   STAVKA_YOQ: "Bu mahsulot turiga stavka belgilanmagan",
+  BOSQICH_NOTOGRI: "Stavka jadvali noto'g'ri to'ldirilgan",
   KUN_YOPILGAN: "Kun yopilgan — bu sanaga yozuv kiritib bo'lmaydi",
   BOLAK_BAND: "Bo'lak boshqa pozitsiyaga band qilingan",
 

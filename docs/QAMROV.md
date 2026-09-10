@@ -208,12 +208,7 @@ egasining javobini kutadi.
 
 ### Ochiq qolgani
 
-**Usta stavkasi moduli yozilmagan** — jadval bor, ekran yo'q, bazada
-0 ta stavka. Hozir har «Tugatdim» da haq **nol** hisoblanadi (10.12
-bo'yicha ish to'xtamaydi, ogohlantirish ketadi).
-
-Egasidan javob kutiladi: qat'iy summa · kv.metrga · jadval bo'yicha?
-Migratsiya **0038** yozilgan, lekin **qo'llanmagan va ulanmagan**.
+— (usta stavkasi 2026-09-10 da yopildi, quyiga qara)
 
 ### Tekshirilib, xato TOPILMAGANI
 
@@ -447,3 +442,54 @@ TZ matni bo'yicha chizildi; maket qo'yilsa ular bilan solishtirish kerak.
   bo'sh qoldirish — aynan shu hujjat oldini olmoqchi bo'lgan xato
 
 | Mijoz turlari | ✅ | Spravochnik · soliq belgisi |
+
+## 6c. Usta stavkasi moduli — 2026-09-10
+
+Egasi savoliga javob: **uch usulning uchalasi ham** ishlaydi, qaysi
+biri qo'llanishini egasi HAR MAHSULOT TURI uchun o'zi tanlaydi (TZ 10.8).
+
+### Nima yo'q edi
+
+| Nima | Oqibati |
+|---|---|
+| `stavka` jadvalini to'ldiradigan **ekran yo'q** edi | Bazada 0 ta qator — har «Tugatdim» da haq **nol** |
+| Bosqichli jadval bazada **saqlanmasdi** | `bosqichniTop()` yozilgan, sinalgan, lekin **hech kim chaqirmasdi** |
+| `stavkaTanla()` doim **bitta** qator qaytarardi | Bosqichli guruh tushunilmasdi |
+
+Bu `kurs_tarix` bilan bo'lgan xatoning aynan o'zi: jadval bor,
+o'quvchi bor, **yozuvchi yo'q**.
+
+### Nima qilindi
+
+| Qatlam | Fayl |
+|---|---|
+| Baza | **0038** — `chegara_kv_m` ustuni, `BOSQICH` birligi, ikkita `CHECK` |
+| Domen | `stavkaGuruhi()` (10.9 guruhni tanlaydi) + `bosqichniTop()` (10.8 qatorni tanlaydi) + `bosqichlarniTekshir()` |
+| Amal | `stavka-belgila.ts` — yozish, o'chirish, ro'yxat, stavkasiz turlar |
+| Ekran | `/stavka` — Sozlash menyusida |
+
+### Qanday ishlaydi
+
+| Usul | Misol |
+|---|---|
+| Qat'iy summa | 15 000 so'm — o'lchamdan qat'i nazar |
+| Kv.metrga | 18 000 × 3.2 = 57 600 |
+| O'lchamga qarab jadval | 1 kv.m gacha 10 000 · 1–1.5 → 20 000 · undan katta → 30 000 |
+
+Bosqich **qat'iy summa** — maydonga ko'paytirilmaydi, lekin `soni` ga
+ko'paytiriladi. Chegaraga aynan teng o'lcham **quyi** bosqichga kiradi.
+
+### Ushlab turadigan testlar
+
+| Test | Nimani ushlaydi |
+|---|---|
+| `test/domain/stavka.test.ts` (28 ta) | Chegara qoidasi, xodim jadvali standartni to'liq almashtirishi, bosqich maydonga ko'paytirilmasligi |
+| `test/integratsiya/stavka-topish.test.ts` | Butun zanjir: yozish → o'qish → bosqich tanlash; jadval qisqartirilganda eski qator qolmasligi; cheksiz bosqichsiz jadval rad etilishi |
+| `ekran-sorovlari.test.ts` | Ikkala ekran so'rovi bazada yurishi |
+
+### Ochiq qolgani
+
+Stavka **faqat so'mda**. TZ 10.8 misolida dollar bor («1 $, 2 $, 3 $»),
+lekin `xodim_harakat` ga haq hamma joyda `'SOM'` bo'lib yoziladi —
+bu modul o'zgartirmagan mavjud xatti-harakat. Egasi dollarda stavka
+qo'ymoqchi bo'lsa alohida ish kerak.

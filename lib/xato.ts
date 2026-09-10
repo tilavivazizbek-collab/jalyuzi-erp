@@ -18,6 +18,8 @@ export const XATO_BAND = {
   LIMIT_OSHDI: 'TZ 6.4',
   CHEGIRMA_LIMITI: 'TZ 3.11',
   STAVKA_YOQ: 'TZ 10.12',
+  /** Bosqichli jadval noto'g'ri tuzilgan — saqlashda tekshiriladi */
+  BOSQICH_NOTOGRI: 'TZ 10.8',
   KUN_YOPILGAN: 'TZ 12.17',
   BOLAK_BAND: 'TZ 7.3',
 

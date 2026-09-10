@@ -121,6 +121,12 @@ const MENYU: readonly Guruh[] = [
       { yol: '/kurs', nom: 'Dollar kursi', kod: 'sozlama.kor' },
       { yol: '/sozlama', nom: "Korxona ma'lumotlari", kod: 'sozlama.kor' },
       { yol: '/xodim', nom: 'Xodimlar', kod: 'xodim.kor' },
+      /*
+       * ⚠️ TZ 10.8 — usta haqi shu jadvaldan hisoblanadi.
+       *    Jadval bo'sh bo'lsa har «Tugatdim» da haq NOL bo'ladi,
+       *    shuning uchun ekran ko'rinib turishi kerak.
+       */
+      { yol: '/stavka', nom: 'Usta stavkalari', kod: 'sozlama.kor' },
       { yol: '/filial', nom: 'Filiallar', kod: 'filial.kor' },
       { yol: '/filial/hisob', nom: 'Filiallararo hisob', kod: 'filial.hisob' },
     ],

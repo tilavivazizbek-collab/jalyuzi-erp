@@ -20,6 +20,20 @@ import {
 
 type Soruvchi = postgres.Sql | postgres.TransactionSql;
 
+/**
+ * Bazadagi matnni birlikka aylantiradi.
+ *
+ * ⚠️ Noma'lum qiymat `DONA` ga tushadi: baza `CHECK` bilan
+ *    himoyalangan, bu yerdagisi faqat TypeScript uchun so'nggi
+ *    to'siq. Jimgina `KV_M` deb o'ylash xavfliroq bo'lardi — haq
+ *    maydonga ko'paytirilib ketardi.
+ */
+function birlikniOqi(x: string): StavkaBirligi {
+  if (x === 'KV_M') return 'KV_M';
+  if (x === 'BOSQICH') return 'BOSQICH';
+  return 'DONA';
+}
+
 export interface TopilganStavka {
   readonly qiymat: string;
   readonly birlik: StavkaBirligi;
@@ -45,6 +59,11 @@ export async function ustaStavkasi(
     readonly xodimId: number;
     /** Odatda buyurtma sanasi — bugungi emas (2.3) */
     readonly sana: string;
+    /**
+     * Bitta buyumning maydoni — BOSQICHLI stavkada qaysi bosqich
+     * ishlashini shu hal qiladi (10.8).
+     */
+    readonly maydonKvM: number;
   },
 ): Promise<TopilganStavka> {
   const qatorlar = await soruvchi<
@@ -55,11 +74,12 @@ export async function ustaStavkasi(
       xodim_id: number | null;
       qiymat: string;
       birlik: string;
+      chegara_kv_m: string | null;
       amal_qiladi_dan: string;
     }[]
   >`
     SELECT id, mahsulot_tur_id, filial_id, xodim_id,
-           qiymat::text, birlik, amal_qiladi_dan::text
+           qiymat::text, birlik, chegara_kv_m::text, amal_qiladi_dan::text
     FROM stavka
     WHERE mahsulot_tur_id = ${kirim.mahsulotTurId}
       AND faol = true
@@ -73,7 +93,8 @@ export async function ustaStavkasi(
     filialId: q.filial_id,
     xodimId: q.xodim_id,
     qiymat: q.qiymat,
-    birlik: q.birlik === 'KV_M' ? 'KV_M' : 'DONA',
+    birlik: birlikniOqi(q.birlik),
+    chegaraKvM: q.chegara_kv_m === null ? null : Number(q.chegara_kv_m),
     amalQiladiDan: q.amal_qiladi_dan,
   }));
 
@@ -83,6 +104,7 @@ export async function ustaStavkasi(
     kirim.filialId,
     kirim.xodimId,
     kirim.sana,
+    kirim.maydonKvM,
   );
 
   if (tanlangan === null) {
@@ -110,11 +132,18 @@ export async function pozitsiyaStavkasi(
   xodimId: number,
 ): Promise<TopilganStavka> {
   const q = await soruvchi<
-    { mahsulot_tur_id: number; filial_id: number; sana: string }[]
+    {
+      mahsulot_tur_id: number;
+      filial_id: number;
+      sana: string;
+      eni_sm: number;
+      boyi_sm: number;
+    }[]
   >`
     SELECT p.mahsulot_tur_id,
            b.ishlab_chiqaruvchi_filial_id AS filial_id,
-           b.sana::date::text            AS sana
+           b.sana::date::text            AS sana,
+           p.eni_sm, p.boyi_sm
     FROM buyurtma_pozitsiya p
     JOIN buyurtma b ON b.id = p.buyurtma_id
     WHERE p.id = ${pozitsiyaId}`;
@@ -127,5 +156,16 @@ export async function pozitsiyaStavkasi(
     filialId: p.filial_id,
     xodimId,
     sana: p.sana,
+    /**
+     * ⚠️ BITTA buyumning maydoni, `soni` ga ko'paytirilmaydi.
+     *
+     *    Bosqich «bu parda qanchalik katta» degan savolga javob
+     *    beradi. Uchta bir xil parda uchtalik bosqichga
+     *    ko'tarilmaydi — soni haq hisoblanayotganda ko'paytiriladi
+     *    (`haqHisobla`).
+     *
+     * ⚠️ TZ 5.3 — o'lchamlar SANTIMETRDA. 10 000 ga bo'linadi.
+     */
+    maydonKvM: (p.eni_sm * p.boyi_sm) / 10_000,
   });
 }
