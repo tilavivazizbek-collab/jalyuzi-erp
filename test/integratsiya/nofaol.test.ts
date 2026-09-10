@@ -8,9 +8,12 @@
  * qolardi.
  *
  * Lekin o'chirishning o'zi yetarli emas: ishlatilayotgan yozuvni
- * o'chirsak, undan ham yomon bo'ladi. Omborda qoldig'i bor
- * materialni o'chirsak qoldiq egasiz qolardi; qarzi bor mijozni
- * o'chirsak pul yo'qolgandek bo'lardi.
+ * o'chirsak, undan ham yomon bo'ladi. Qarzi bor mijozni o'chirsak
+ * pul yo'qolgandek bo'lardi.
+ *
+ * ⚠️ MATERIAL BUNDAN MUSTASNO (egasi, 2026-09-06): omborda
+ *    qoldig'i bo'lsa ham o'chiriladi. Buning o'rniga ombor QIYMATI
+ *    hisoboti tuzatildi — nofaol materialning matosi ham sanaladi.
  *
  * Shuning uchun testning asosiy qismi — nima o'chirilMASLIGI.
  */
@@ -18,6 +21,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { nofaolQil, qaytar } from '@/lib/amal/nofaol';
 import type { Ulanish } from '@/lib/db/ulanish';
 import { sinovUlanishi } from './yordamchi';
+import { omborQiymati } from '@/app/(panel)/hisobot/malumot';
 
 let sql: Ulanish;
 
@@ -102,7 +106,18 @@ describe("Bo'sh yozuv o'chiriladi", () => {
 // ─── Ishlatilayotgani to'siladi ──────────────────────────────────────────
 
 describe("Ishlatilayotgan yozuv O'CHIRILMAYDI", () => {
-  it("omborda qoldig'i bor material to'siladi", async () => {
+  /**
+   * ⚠️ QOIDA O'ZGARDI (egasi, 2026-09-06).
+   *
+   *    Ilgari omborda qoldig'i bor material O'CHIRILMASDI. Egasi
+   *    to'siqni olib tashlashni so'radi: material ro'yxatdan
+   *    chiqarilishi «buni endi sotmaymiz» degani, omborda qolgani
+   *    esa baribir sotilib yoki hisobdan chiqarilib ketadi.
+   *
+   *    Test endi shu qoidani tekshiradi — va eng muhimi, PUL
+   *    yo'qolmasligini.
+   */
+  it("omborda qoldig'i bor material O'CHIRILADI", async () => {
     const id = await materialYarat(nom('qoldiqli'));
 
     await sql`
@@ -112,15 +127,42 @@ describe("Ishlatilayotgan yozuv O'CHIRILMAYDI", () => {
               'RULON', 3, 30, 78000, ${XODIM})`;
 
     const n = await nofaolQil(sql, 'material', id, XODIM);
-
-    expect(n.holat).toBe('BAND');
-    /** ⚠️ Sabab TUSHUNARLI bo'lishi kerak, raqamli kod emas */
-    expect(n.sabab).toContain('omborda');
-    expect(n.sabab).toContain('1');
+    expect(n.holat).toBe('OCHIRILDI');
 
     const q = await sql<{ faol: boolean }[]>`
       SELECT faol FROM material WHERE id = ${id}`;
-    expect(q[0]?.faol).toBe(true);
+    expect(q[0]?.faol).toBe(false);
+  });
+
+  /**
+   * ⚠️ ENG MUHIM TEKSHIRUV — PUL YO'QOLMAYDI.
+   *
+   *    To'siq bejiz qo'yilmagan edi: `omborQiymati` hisoboti faqat
+   *    FAOL materialni sanardi. Ya'ni material nofaol qilinganda
+   *    uning matosi omborda TURIB, ombor qiymatidan jimgina
+   *    chiqib ketardi.
+   *
+   *    To'siq olib tashlangani uchun hisobot ham tuzatildi. Bu test
+   *    o'sha tuzatishni ushlab turadi: 3 × 30 × 78 000 = 7 020 000
+   *    so'm nofaol qilingandan KEYIN ham sanalishi shart.
+   */
+  it("nofaol material qoldig'i ombor QIYMATIDA qoladi", async () => {
+    const id = await materialYarat(nom('qiymatli'));
+
+    await sql`
+      INSERT INTO bolak (material_id, filial_id, kod, turi, eni_m, boyi_m,
+                         tannarx_birlik_snapshot, yaratdi_id)
+      VALUES (${id}, ${FILIAL}, ${`${belgi}-Q${String(hisoblagich)}`},
+              'RULON', 3, 30, 78000, ${XODIM})`;
+
+    const oldin = Number(await omborQiymati(FILIAL));
+
+    await nofaolQil(sql, 'material', id, XODIM);
+
+    const keyin = Number(await omborQiymati(FILIAL));
+
+    // Qiymat KAMAYMAYDI — mato omborda turibdi
+    expect(keyin).toBeCloseTo(oldin, 2);
   });
 
   it("guruhda material bo'lsa to'siladi", async () => {
@@ -161,23 +203,36 @@ describe("Ishlatilayotgan yozuv O'CHIRILMAYDI", () => {
 // ─── 2.1-invariant ───────────────────────────────────────────────────────
 
 describe('Yarim bajarilgan amal qolmaydi', () => {
-  it("to'silgan yozuvda `ochirildi` sanasi yozilmaydi", async () => {
-    const id = await materialYarat(nom('sanasiz'));
+  /**
+   * ⚠️ MISOL GURUHDA, MATERIALDA EMAS.
+   *
+   *    Ilgari bu test materialni ishlatardi: omborda qoldig'i bor
+   *    material to'silardi. 2026-09-06 da egasi to'siqni olib
+   *    tashlashni so'radi va material endi HECH QACHON
+   *    to'silmaydi — ya'ni u bu invariant uchun misol bo'la
+   *    olmaydi.
+   *
+   *    Guruh esa to'silishda qoladi: ichida material bo'lsa
+   *    o'chirilmaydi.
+   */
+  it("to'silgan yozuvda ochirildi sanasi yozilmaydi", async () => {
+    const g = await sql<{ id: number }[]>`
+      INSERT INTO almashtirish_guruh (nom, yaratdi_id)
+      VALUES (${nom('sanasiz guruh')}, ${XODIM}) RETURNING id`;
+    const guruhId = g[0]?.id ?? 0;
 
-    await sql`
-      INSERT INTO bolak (material_id, filial_id, kod, turi, eni_m, boyi_m,
-                         tannarx_birlik_snapshot, yaratdi_id)
-      VALUES (${id}, ${FILIAL}, ${`${belgi}-S${String(hisoblagich)}`},
-              'RULON', 2, 20, 50000, ${XODIM})`;
+    const materialId = await materialYarat(nom('guruhda qolgan'));
+    await sql`UPDATE material SET almashtirish_guruh_id = ${guruhId} WHERE id = ${materialId}`;
 
-    await nofaolQil(sql, 'material', id, XODIM);
+    const n = await nofaolQil(sql, 'guruh', guruhId, XODIM);
+    expect(n.holat).toBe('BAND');
 
     /**
      * ⚠️ Tekshiruv o'tmasa HECH NARSA o'zgarmasligi kerak —
-     *    yarim o'chirilgan holat bo'lmaydi.
+     *    yarim o'chirilgan holat bo'lmaydi (2.1-invariant).
      */
     const q = await sql<{ faol: boolean; ochirildi: Date | null }[]>`
-      SELECT faol, ochirildi FROM material WHERE id = ${id}`;
+      SELECT faol, ochirildi FROM almashtirish_guruh WHERE id = ${guruhId}`;
     expect(q[0]?.faol).toBe(true);
     expect(q[0]?.ochirildi).toBeNull();
   });

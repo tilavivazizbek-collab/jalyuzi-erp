@@ -98,9 +98,19 @@ export async function ustamaHisoboti(filialId: number): Promise<EroziyaHisoboti>
            )::text AS tannarx
     FROM material m
     JOIN bolak b ON b.material_id = m.id
+    /*
+     * ⚠️ m.faol SHARTI ATAYLAB YO'Q (2026-09-06).
+     *
+     *    Material ro'yxatdan chiqarilgan bo'lishi mumkin, lekin
+     *    uning matosi omborda TURIBDI — u hamon PUL. Shart
+     *    qo'yilsa ombor qiymati jimgina kamayib ketardi va
+     *    farqni topib bo'lmasdi.
+     *
+     *    Bo'lakning O'Z holati esa tekshiriladi: ishlatilgani va
+     *    chiqindi sanalmaydi.
+     */
     WHERE b.filial_id = ${filialId} AND b.faol = true
       AND b.holat IN ('BOSH','BAND')
-      AND m.faol = true
       AND b.tannarx_valyuta_snapshot = 'SOM'
     GROUP BY m.id
     ORDER BY m.nom`;

@@ -101,21 +101,28 @@ export const TUR_TAVSIFI: Record<OchiriladiganTur, TurTavsifi> = {
     jadval: 'material',
     nom: 'Material',
     ruxsat: 'material.ozgartir',
-    bandmi: async (tx, id) => {
+    // Hech qanday to'siq yo'q — sababi quyida
+    bandmi: () => {
       /**
-       * ⚠️ Omborda qoldiq bo'lsa o'chirilmaydi. `CHIQINDI`,
-       *    `ISHLATILDI` va `BRAK` — bular tugagan bo'laklar,
-       *    ular to'smaydi.
+       * ⚠️ OMBORDA QOLDIQ BO'LSA HAM O'CHIRILADI (egasi, 2026-09-06).
+       *
+       *    Ilgari bu yerda «omborda N ta bo'lak bor» degan to'siq
+       *    turardi. Egasi uni olib tashlashni so'radi va u haq:
+       *    material ro'yxatdan chiqarilishi — «buni endi
+       *    sotmaymiz» degani, omborda qolgani esa baribir
+       *    sotilib yoki hisobdan chiqarilib ketadi.
+       *
+       * ⚠️ LEKIN QOLDIQ KO'RINMAY QOLMASLIGI SHART.
+       *
+       *    To'siq bejiz qo'yilmagan edi: `omborQiymati` hisoboti
+       *    (11.7.1) faqat FAOL materialni sanardi, ya'ni nofaol
+       *    qilingan materialning matosi omborda turib, ombor
+       *    QIYMATIDAN yo'qolardi — pul kitobdan chiqib ketardi.
+       *
+       *    Shuning uchun to'siq bilan BIRGA hisobot ham tuzatildi:
+       *    endi qoldiq materialning holatidan qat'i nazar sanaladi.
+       *    Ombor ro'yxati buni allaqachon to'g'ri qilardi.
        */
-      const qoldiq = await son(tx`SELECT COUNT(*)::int AS n FROM bolak
-           WHERE material_id = ${id} AND faol = true
-             AND holat IN ('BOSH','BAND','YOLDA')`);
-      if (qoldiq > 0) {
-        return (
-          `omborda ${String(qoldiq)} ta bo'lak bor — avval ularni hisobdan ` +
-          `chiqaring yoki sarflang, aks holda qoldiq egasiz qolib ketadi`
-        );
-      }
 
       /**
        * ⚠️ 2026-09-03: ilgari bu yerda «N ta mahsulot turida
@@ -129,10 +136,11 @@ export const TUR_TAVSIFI: Record<OchiriladiganTur, TurTavsifi> = {
        *    turdan ham chiqarib qo'yish, va u endi
        *    `ochirilgandan` da avtomatik bajariladi.
        *
-       *    Omborda QOLDIQ borligi esa to'siq bo'lib qoladi: u
-       *    pul, uni ko'rinmas qilib qo'yib bo'lmaydi.
+       *    2026-09-06 da omborda qoldiq borligi ham to'siq
+       *    bo'lishdan chiqdi — yuqoridagi izohga qara. Endi bu
+       *    material HECH QACHON to'silmaydi.
        */
-      return null;
+      return Promise.resolve(null);
     },
 
     ochirilgandan: async (tx, id) => {
