@@ -1,7 +1,7 @@
 /** `'use server'` faylidan alohida — u faqat async funksiya eksport qila oladi. */
 
 import {
-  FORMA_XATO_XABARI,
+  formaXatoXabari,
   maydonXatolari,
   type MaydonXatolari,
   type QaytarilganKirim,
@@ -41,9 +41,15 @@ export const BOSH_HOLAT: MijozHolati = {
 export function xatolarniYig(
   xatolar: readonly { readonly path: readonly PropertyKey[]; readonly message: string }[],
 ): MijozHolati {
+  const maydonlar = maydonXatolari(xatolar);
   return {
-    xato: FORMA_XATO_XABARI,
-    maydonXatolari: maydonXatolari(xatolar),
+    /**
+     * ⚠️ Xabar xatoning O'ZINI aytadi — «qizil maydonlarni
+     *    tekshiring» degan quruq gap emas. Ekranda chizilmagan
+     *    maydonda xato bo'lsa, odam boshqacha bilolmasdi.
+     */
+    xato: formaXatoXabari(maydonlar),
+    maydonXatolari: maydonlar,
     dublikat: null,
     yaratildi: null,
   };

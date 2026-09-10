@@ -83,7 +83,26 @@ export const mijozSxema = z
       ),
 
     // ── Q-23 soliq maydonlari ──
-    shaxsTuri: z.enum(SHAXS_TURLARI).default('JISMONIY'),
+    /**
+     * ⚠️ BO'SH SATR ham `JISMONIY` ga aylanadi.
+     *
+     *    `.default()` faqat `undefined` da ishlaydi. Forma esa bu
+     *    maydonni UMUMAN yubormaydi (u ekranda yo'q), server esa
+     *    har maydonni `matnMaydon` bilan o'qiydi va yo'q maydondan
+     *    BO'SH SATR qaytadi.
+     *
+     *    Natijada `''` enum ga tushmay, tekshiruv yiqilardi — va
+     *    xato KO'RINMAYDIGAN maydonga tegishli bo'lgani uchun
+     *    ekranda «qizil maydonlarni tekshiring» deb turardi,
+     *    qizil maydon esa yo'q edi. Ya'ni mijoz qo'shib
+     *    bo'lmasdi (2026-09-10, egasi topdi).
+     */
+    shaxsTuri: z
+      .string()
+      .trim()
+      .transform((x) => (x === '' ? 'JISMONIY' : x))
+      .pipe(z.enum(SHAXS_TURLARI))
+      .default('JISMONIY'),
 
     /**
      * TZ 6.2 — mijoz turi (narx darajasi).

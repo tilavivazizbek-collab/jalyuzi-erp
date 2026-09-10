@@ -8,6 +8,10 @@
  *    Ular tozalansa tizimga KIRIB BO'LMASDI va hamma sozlamani
  *    qaytadan qilish kerak bo'lardi.
  *
+ * ⚠️ `xato_jurnal` ham qoladi — u ish ma'lumoti emas, ishlab
+ *    chiqarishdagi xatolar jurnali. Tozalansa `npm run db:xato`
+ *    bilan eski nosozlikni izlash imkoni yo'qolardi.
+ *
  * ⚠️ `TRUNCATE` ishlatiladi, `DELETE` emas: pul va ombor
  *    jadvallarida o'chirishni to'sadigan trigger bor (§6.5).
  *    U `DELETE` ni to'sadi — bu to'g'ri himoya. `TRUNCATE` esa
@@ -50,6 +54,20 @@ export const TOZALANADIGAN = [
   'xodim_harakat',
   // Ma'lumotnomalar
   'material_filial_narx',
+  /**
+   * ⚠️ 2026-09-10 da QO'SHILDI — ro'yxatdan tushib qolgan edi.
+   *
+   *    `material_tur_narx` va `yetkazib_beruvchi_izoh` `CASCADE`
+   *    tufayli baribir tozalanardi, lekin ro'yxatda bo'lmagani
+   *    uchun HISOBOTDA ko'rinmasdi: egasi nima o'chganini bilmasdi.
+   *
+   *    `mijoz_guruh` va `mijoz_turi` esa UMUMAN tozalanmasdi —
+   *    ularga hech kim FK bilan bog'lanmagan, `mijoz` ularga
+   *    bog'langan. Ya'ni «hammasini 0 dan» degan tozalashdan keyin
+   *    eski guruhlar va narx darajalari qolib ketardi.
+   */
+  'material_tur_narx',
+  'yetkazib_beruvchi_izoh',
   'mahsulot_aksessuar',
   'mahsulot_parametr',
   'mahsulot_slot',
@@ -57,6 +75,8 @@ export const TOZALANADIGAN = [
   'material',
   'almashtirish_guruh',
   'mijoz',
+  'mijoz_guruh',
+  'mijoz_turi',
   'yetkazib_beruvchi',
   'stavka',
   // Bot va jurnal

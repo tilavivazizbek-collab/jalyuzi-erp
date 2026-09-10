@@ -52,6 +52,29 @@ export function maydonXatolari(
 
 export const FORMA_XATO_XABARI = 'Formada xato bor — qizil maydonlarni tekshiring';
 
+/**
+ * Xato xabari — MAYDON NOMLARI BILAN.
+ *
+ * ⚠️ NEGA KERAK
+ *
+ *    «Qizil maydonlarni tekshiring» degan xabar faqat xato
+ *    KO'RINADIGAN maydonda bo'lsa foyda beradi. Agar xato
+ *    ekranda chizilmagan maydonga tegishli bo'lsa — odam qizil
+ *    maydon izlab topolmaydi va nima qilishni bilmaydi.
+ *
+ *    2026-09-10 da aynan shu bo'ldi: `shaxsTuri` maydoni formada
+ *    yo'q edi, lekin tekshiruvdan o'tmasdi. Ekranda «qizil
+ *    maydonlarni tekshiring» turar, qizil maydon esa yo'q edi —
+ *    mijoz qo'shib bo'lmasdi va sababi ko'rinmasdi.
+ *
+ *    Endi xabar xatoning O'ZINI ham aytadi.
+ */
+export function formaXatoXabari(maydonlar: MaydonXatolari): string {
+  const xabarlar = Object.values(maydonlar);
+  if (xabarlar.length === 0) return FORMA_XATO_XABARI;
+  return `${FORMA_XATO_XABARI}: ${[...new Set(xabarlar)].join(' · ')}`;
+}
+
 // ─── React 19 — forma o'zi tozalanishi ────────────────────────────────────
 
 /**
