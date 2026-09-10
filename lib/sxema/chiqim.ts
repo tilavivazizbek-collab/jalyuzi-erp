@@ -9,6 +9,7 @@
  */
 
 import { z } from 'zod';
+import { royxat } from './umumiy';
 import { INVENTARIZATSIYA_SABABLARI } from '@/lib/domain/inventarizatsiya';
 
 /** TZ 7.10 — sabablar (14.9 spravochnigi). */
@@ -136,7 +137,7 @@ export const boshlangichSxema = z
            * TZ 7.4 — bo'lak turi. Berilmasa butun rulon deb olinadi,
            * ya'ni eski shakldagi ma'lumot ham buzilmaydi.
            */
-          turi: z.enum(['RULON', 'OCHILGAN', 'KESMA']).default('RULON'),
+          turi: royxat(['RULON', 'OCHILGAN', 'KESMA'], 'RULON'),
         }),
       )
       .default([]),

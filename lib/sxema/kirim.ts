@@ -3,6 +3,7 @@
  */
 
 import { z } from 'zod';
+import { royxat } from './umumiy';
 
 const musbatSon = (nom: string) =>
   z
@@ -35,7 +36,7 @@ export const kirimQatorSxema = z
      * ⚠️ `METR` — narx uzunlik metriga berilgan (mato rulonlari).
      *    Rulonning ENI narxga ta'sir qilmaydi.
      */
-    narxAsosi: z.enum(['BIRLIK', 'METR', 'KV_M']).default('BIRLIK'),
+    narxAsosi: royxat(['BIRLIK', 'METR', 'KV_M'], 'BIRLIK'),
     narxBirlik: z
       .string()
       .trim()
@@ -64,7 +65,7 @@ export const kirimSxema = z
     raqam: z.string().trim().min(1, 'Hujjat raqamini kiriting').max(50),
     sana: z.string().trim().min(1, 'Sanani kiriting'),
     yetkazibBeruvchiId: z.coerce.number().int().positive('Yetkazib beruvchini tanlang'),
-    valyuta: z.enum(['SOM', 'USD']).default('SOM'),
+    valyuta: royxat(['SOM', 'USD'], 'SOM'),
     kursSnapshot: ixtiyoriyMusbat('Kurs'),
     transportSumma: ixtiyoriyMusbat('Transport summasi'),
     bojxonaSumma: ixtiyoriyMusbat('Bojxona summasi'),

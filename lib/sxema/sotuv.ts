@@ -8,6 +8,7 @@
  */
 
 import { z } from 'zod';
+import { royxat } from './umumiy';
 
 const pulMatni = (xabar: string) =>
   z
@@ -121,7 +122,7 @@ export const sotuvSxema = z
   .object({
     mijozId: z.number().int().positive().nullable().default(null),
     ishlabChiqaruvchiFilialId: z.number().int().positive('Filialni tanlang'),
-    valyuta: z.enum(['SOM', 'USD']).default('SOM'),
+    valyuta: royxat(['SOM', 'USD'], 'SOM'),
     kursSnapshot: pulMatni("Kurs noto'g'ri").nullable().default(null),
     /** TZ 3.13 — IXTIYORIY */
     tayyorlikSana: z

@@ -9,6 +9,7 @@
  */
 
 import { z } from 'zod';
+import { royxat } from './umumiy';
 
 export const HISOB_TURLARI = ['RULON', 'CHIZIQLI', 'DONA', 'KV_M'] as const;
 export const SARFLASH_BIRLIKLARI = ['SM', 'KV_M', 'DONA'] as const;
@@ -68,14 +69,14 @@ export const materialSxema = z
       .refine((x) => Number(x) > 0, 'Koeffitsient noldan katta bo\'lishi kerak'),
 
     sotuvNarx: ixtiyoriySon('Sotuv narxi'),
-    sotuvValyuta: z.enum(VALYUTALAR).default('SOM'),
+    sotuvValyuta: royxat(VALYUTALAR, 'SOM'),
 
     /**
      * ⚠️ TANNARX EMAS (5.4). Kirimni oldindan to'ldirish va
      *    taxminiy ustamani ko'rsatish uchun.
      */
     kutilayotganKelishNarx: ixtiyoriySon('Kelish narxi'),
-    kutilayotganKelishValyuta: z.enum(VALYUTALAR).default('SOM'),
+    kutilayotganKelishValyuta: royxat(VALYUTALAR, 'SOM'),
 
     minUstamaFoiz: ixtiyoriySon('Minimal ustama'),
 
@@ -179,7 +180,7 @@ export const zahiraSxema = z.object({
     .string()
     .trim()
     .regex(/^\d+(\.\d{1,4})?$/, "Narx noto'g'ri"),
-  asos: z.enum(['BIRLIK', 'METR', 'KV_M']).default('METR'),
+  asos: royxat(['BIRLIK', 'METR', 'KV_M'], 'METR'),
   izoh: ixtiyoriyMatn,
 });
 

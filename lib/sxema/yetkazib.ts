@@ -3,6 +3,7 @@
  */
 
 import { z } from 'zod';
+import { royxat } from './umumiy';
 import { telefonYaroqlimi } from '@/lib/domain/telefon';
 
 export const VALYUTALAR = ['SOM', 'USD'] as const;
@@ -45,7 +46,7 @@ export const yetkazibSxema = z.object({
       "To'lov muddati butun va musbat son bo'lishi kerak",
     ),
 
-  valyuta: z.enum(VALYUTALAR).default('SOM'),
+  valyuta: royxat(VALYUTALAR, 'SOM'),
   eslatma: bosMatn,
 });
 

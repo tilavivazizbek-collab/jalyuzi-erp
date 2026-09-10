@@ -3,6 +3,7 @@
  */
 
 import { z } from 'zod';
+import { royxat } from './umumiy';
 import { telefonYaroqlimi } from '@/lib/domain/telefon';
 
 export const SHAXS_TURLARI = ['JISMONIY', 'YURIDIK'] as const;
@@ -97,12 +98,7 @@ export const mijozSxema = z
      *    qizil maydon esa yo'q edi. Ya'ni mijoz qo'shib
      *    bo'lmasdi (2026-09-10, egasi topdi).
      */
-    shaxsTuri: z
-      .string()
-      .trim()
-      .transform((x) => (x === '' ? 'JISMONIY' : x))
-      .pipe(z.enum(SHAXS_TURLARI))
-      .default('JISMONIY'),
+    shaxsTuri: royxat(SHAXS_TURLARI, 'JISMONIY'),
 
     /**
      * TZ 6.2 — mijoz turi (narx darajasi).

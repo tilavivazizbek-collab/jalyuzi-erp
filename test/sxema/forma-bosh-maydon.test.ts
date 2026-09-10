@@ -21,6 +21,9 @@
  */
 import { describe, expect, it } from 'vitest';
 import { mijozSxema } from '@/lib/sxema/mijoz';
+import { materialSxema } from '@/lib/sxema/material';
+import { yetkazibSxema } from '@/lib/sxema/yetkazib';
+import { royxat } from '@/lib/sxema/umumiy';
 
 /** Forma yuboradigan xom qiymatlar — hammasi matn, yo'g'i bo'sh satr */
 const XOM = {
@@ -90,5 +93,57 @@ describe("Mijoz formasi — yuborilmagan maydon to'smaydi", () => {
     // Faqat mobil emas, shahar raqami ham mijozda bo'lishi mumkin
     const r = mijozSxema.safeParse({ ...XOM, telefon: '+998643425455' });
     expect(r.success).toBe(true);
+  });
+});
+
+// ─── Umumiy yechim: `royxat()` ────────────────────────────────────────────
+
+/**
+ * ⚠️ Bitta joyni tuzatib qo'yish yetarli emas edi: xuddi shu tuzoq
+ *    yana sakkiz maydonda bor edi. Ular faqat formalari yashirin
+ *    maydon yuborgani uchun portlamayotgan edi — bu tasodifiy
+ *    himoya.
+ *
+ *    Endi qoida `lib/sxema/umumiy.ts` da, bir joyda.
+ */
+describe('royxat() — yuborilmagan tanlov standart qiymatga tushadi', () => {
+  const OLCHOV = ['SOM', 'USD'] as const;
+  const sxema = royxat(OLCHOV, 'SOM');
+
+  it("bo'sh satr standart qiymatga aylanadi", () => {
+    expect(sxema.parse('')).toBe('SOM');
+  });
+
+  it('bo‘shliqdan iborat satr ham', () => {
+    expect(sxema.parse('   ')).toBe('SOM');
+  });
+
+  it('haqiqiy qiymat o‘zgarmaydi', () => {
+    expect(sxema.parse('USD')).toBe('USD');
+  });
+
+  /** ⚠️ Bu tekshiruvni YUMSHATISH emas — noma'lum qiymat rad etiladi */
+  it('noma‘lum qiymat RAD ETILADI', () => {
+    expect(() => sxema.parse('EURO')).toThrow();
+  });
+});
+
+describe('Boshqa formalar ham himoyalangan', () => {
+  it('material — valyuta yuborilmasa SOM', () => {
+    const r = materialSxema.safeParse({
+      nom: 'Mato', hisobTuri: 'RULON', kirimBirligi: 'rulon',
+      sarflashBirligi: 'KV_M', koeffitsient: '1',
+      sotuvNarx: '', sotuvValyuta: '',
+      kutilayotganKelishNarx: '', kutilayotganKelishValyuta: '',
+      kirimNarxAsosi: '',
+    });
+    expect(r.success).toBe(true);
+    if (r.success) expect(r.data.sotuvValyuta).toBe('SOM');
+  });
+
+  it('yetkazib beruvchi — valyuta yuborilmasa SOM', () => {
+    const r = yetkazibSxema.safeParse({ nom: 'Akmal aka', valyuta: '' });
+    expect(r.success).toBe(true);
+    if (r.success) expect(r.data.valyuta).toBe('SOM');
   });
 });
