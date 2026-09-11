@@ -185,3 +185,37 @@ export const zahiraSxema = z.object({
 });
 
 export type ZahiraKirimi = z.infer<typeof zahiraSxema>;
+
+/**
+ * «Omborda hozir bor» bo'limi HAQIQATAN to'ldirilganmi.
+ *
+ * ⚠️ NEGA ALOHIDA QOIDA KERAK BO'LDI (egasi, 2026-09-11)
+ *
+ *    Egasi bo'lim OCHIQ tursin dedi — yopiq turgani ko'rinmasdi
+ *    va yangi mato qo'shilib, omborda nol bo'lib qolardi.
+ *
+ *    Lekin bo'limni shunchaki ochib qo'yish MATERIALNI SAQLASHNI
+ *    BLOKLARDI. Sabab: ichidagi kataklar kartochkadan O'ZI to'ladi
+ *    (rulon eni/bo'yi va kelish narxi — 2026-08-30 qarori). Bo'lim
+ *    ochilishi bilan ular formaga tushar, tizim esa «zahira
+ *    kiritilibdi» deb o'ylab, yetishmagan maydonni so'rardi.
+ *
+ *    Natija kechagi `shaxsTuri` xatosining aynan o'zi bo'lardi:
+ *    odam tegmagan bo'limi uchun xato oladi va nima qilishni
+ *    bilmaydi.
+ *
+ * ⚠️ Shuning uchun hal qiluvchi belgi — ODAM TEGDIMI.
+ *    O'zi to'lgan katak «kiritildi» degani emas.
+ */
+export function zahiraKiritildimi(kirim: {
+  /** Brauzer yuboradi: odam shu bo'limdagi biror katakka tegdimi */
+  readonly tegildi: string;
+  readonly narx: string;
+  readonly miqdor: string;
+  readonly bolakBor: boolean;
+}): boolean {
+  if (kirim.tegildi !== 'ha') return false;
+
+  /** Tegib, keyin hammasini o'chirgan bo'lsa ham — zahira yo'q */
+  return kirim.narx !== '' || kirim.miqdor !== '' || kirim.bolakBor;
+}

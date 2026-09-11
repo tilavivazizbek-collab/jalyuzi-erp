@@ -14,7 +14,12 @@ import { ulanishOl } from '@/lib/db';
 import { materialTahrirla, materialYarat } from '@/lib/amal/material';
 import { ruxsatTalab } from '@/lib/kirish/joriy';
 import { ruxsatBormi } from '@/lib/ruxsat/tekshir';
-import { materialSxema, zahiraSxema, type ZahiraKirimi } from '@/lib/sxema/material';
+import {
+  materialSxema,
+  zahiraKiritildimi,
+  zahiraSxema,
+  type ZahiraKirimi,
+} from '@/lib/sxema/material';
 import { biznesXatosimi } from '@/lib/xato';
 import {
   FORMA_XATO_XABARI,
@@ -85,8 +90,22 @@ function zahiraniOqi(forma: FormData): ZahiraKirimi | 'YOQ' | { xatolar: MaydonX
 
   const bolakBor = Array.isArray(bolaklar) && bolaklar.length > 0;
 
-  /** Hech narsa kiritilmagan — bo'lim ochilmagan */
-  if (narx === '' && miqdor === '' && !bolakBor) return 'YOQ';
+  /**
+   * ⚠️ Bo'lim endi OCHIQ turadi (egasi, 2026-09-11), shuning
+   *    uchun «bo'sh emasmi» tekshiruvi yetarli emas: ichidagi
+   *    kataklar kartochkadan o'zi to'ladi. Qoida bir joyda —
+   *    `zahiraKiritildimi()` (§2.2).
+   */
+  if (
+    !zahiraKiritildimi({
+      tegildi: matnMaydon(forma, 'zahiraTegildi'),
+      narx,
+      miqdor,
+      bolakBor,
+    })
+  ) {
+    return 'YOQ';
+  }
 
   const n = zahiraSxema.safeParse({
     bolaklar,

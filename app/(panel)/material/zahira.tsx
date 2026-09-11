@@ -57,7 +57,33 @@ export function ZahiraBolimi({
   /** Kurs belgilanganmi — dollardagi narxni so'mga o'girish uchun */
   kursBormi: boolean;
 }) {
-  const [ochiq, ochiqniOzgartir] = useState(false);
+  /**
+   * ⚠️ OCHIQ turadi (egasi, 2026-09-11): «yopiq bulib turadi,
+   *    u ochiqroq tursin». Yopiq bo'lim ko'rinmasdi — yangi mato
+   *    qo'shilar, omborda esa nol bo'lib qolardi va sotuvda
+   *    «material yetmadi» chiqardi.
+   *
+   *    Yopish mumkin — sarlavha tugmasi joyida.
+   */
+  const [ochiq, ochiqniOzgartir] = useState(true);
+
+  /**
+   * ⚠️ ODAM SHU BO'LIMGA TEGDIMI.
+   *
+   *    Bo'lim ochiq turgani «to'ldirdim» degani emas: ichidagi
+   *    kataklar kartochkadan O'ZI to'ladi (rulon o'lchami va
+   *    kelish narxi). Bu belgisiz tizim har material qo'shishda
+   *    «zahira kiritilibdi» deb o'ylab, yetishmagan maydonni
+   *    so'rardi — odam esa bu bo'limga umuman tegmagan bo'lardi.
+   *
+   *    Faqat `onChange` uni yoqadi. Kartochkadan kelgan avtomatik
+   *    to'ldirish YOQMAYDI.
+   */
+  const [tegildi, tegildiniOzgartir] = useState(false);
+  const tegdi = (): void => {
+    if (!tegildi) tegildiniOzgartir(true);
+  };
+
   const [olchamlar, olchamlarniOzgartir] = useState<Olcham[]>(() => [
     { eniM: boshEni, boyiM: boshBoyi },
   ]);
@@ -206,12 +232,24 @@ export function ZahiraBolimi({
         </span>
       </button>
 
-      {!ochiq && (
-        <p className="mt-1.5 text-xs text-matn-kuchsiz">
-          Bu mahsulotdan omborda hozir bor bo&apos;lsa shu yerda kiriting — aks holda
-          qoldiq nol bo&apos;lib turadi va sotuvda &laquo;material yetmadi&raquo; chiqadi.
-        </p>
-      )}
+      {/*
+        ⚠️ Izoh bo'lim OCHIQ turganda ham ko'rinadi: u nafaqat
+           «ichida nima bor» ni, «to'ldirmasa ham bo'ladi» ni ham
+           aytadi. Ochiq bo'lim odamni to'ldirishga majburlagandek
+           tuyulmasin.
+      */}
+      <p className="mt-1.5 text-xs text-matn-kuchsiz">
+        Bu mahsulotdan omborda hozir bor bo&apos;lsa shu yerda kiriting — aks holda
+        qoldiq nol bo&apos;lib turadi va sotuvda &laquo;material yetmadi&raquo; chiqadi.
+        To&apos;ldirmasangiz ham mahsulot saqlanaveradi.
+      </p>
+
+      {/*
+        ⚠️ Bo'lim ochiq-yopiqligidan QAT'I NAZAR yuboriladi:
+           server shu belgiga qarab zahira yozadimi-yo'qmi deb hal
+           qiladi (`zahiraKiritildimi`).
+      */}
+      <input type="hidden" name="zahiraTegildi" value={tegildi ? 'ha' : ''} />
 
       {ochiq && (
         <div className="mt-4 flex flex-col gap-4">
@@ -227,6 +265,7 @@ export function ZahiraBolimi({
                     <input
                       value={o.eniM}
                       onChange={(e) => {
+                        tegdi();
                         olchamlarniOzgartir((x) =>
                           x.map((y, j) => (j === k ? { ...y, eniM: e.target.value } : y)),
                         );
@@ -239,6 +278,7 @@ export function ZahiraBolimi({
                     <input
                       value={o.boyiM}
                       onChange={(e) => {
+                        tegdi();
                         olchamlarniOzgartir((x) =>
                           x.map((y, j) => (j === k ? { ...y, boyiM: e.target.value } : y)),
                         );
@@ -251,6 +291,7 @@ export function ZahiraBolimi({
                       <button
                         type="button"
                         onClick={() => {
+                          tegdi();
                           olchamlarniOzgartir((x) => x.filter((_, j) => j !== k));
                         }}
                         aria-label={`${String(k + 1)}-rulonni olib tashlash`}
@@ -266,6 +307,7 @@ export function ZahiraBolimi({
               <button
                 type="button"
                 onClick={() => {
+                  tegdi();
                   /** ⚠️ Yangi rulon ham kartochkadagi o'lcham bilan ochiladi */
                   olchamlarniOzgartir((x) => [...x, { eniM: boshEni, boyiM: boshBoyi }]);
                 }}
@@ -296,6 +338,7 @@ export function ZahiraBolimi({
                 name="zahiraMiqdor"
                 value={miqdor}
                 onChange={(e) => {
+                  tegdi();
                   miqdorniOzgartir(e.target.value);
                 }}
                 inputMode="decimal"
@@ -319,6 +362,7 @@ export function ZahiraBolimi({
               name="zahiraNarx"
               value={narx}
               onChange={(e) => {
+                tegdi();
                 narxniOzgartir(e.target.value);
               }}
               inputMode="decimal"
