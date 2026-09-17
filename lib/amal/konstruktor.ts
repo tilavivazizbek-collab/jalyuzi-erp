@@ -83,9 +83,11 @@ async function bolaklarniYoz(
   for (const [i, s] of kirim.slotlar.entries()) {
     await tx`
       INSERT INTO mahsulot_slot (mahsulot_tur_id, nom, tartib, majburiy,
-                                 almashtirish_guruh_id, formula, yaratdi_id)
+                                 almashtirish_guruh_id, formula,
+                                 koeffitsient, kesish_turi, yaratdi_id)
       VALUES (${turId}, ${s.nom}, ${i}, ${s.majburiy},
-              ${s.almashtirishGuruhId}, ${s.formula}, ${xodimId})`;
+              ${s.almashtirishGuruhId}, ${s.formula},
+              ${s.koeffitsient}, ${s.kesishTuri}, ${xodimId})`;
   }
 
   for (const p of kirim.parametrlar) {

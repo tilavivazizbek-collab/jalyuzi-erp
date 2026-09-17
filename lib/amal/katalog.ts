@@ -58,6 +58,10 @@ export interface SotuvSlot {
   readonly tartib: number;
   readonly majburiy: boolean;
   readonly formula: string;
+  /** AUDIT 1-topilma — «nechta marta» (KV_M uchun jami sarf shu) */
+  readonly koeffitsient: number;
+  /** AUDIT 1-topilma — kesish yo'nalishi: `ENIGA` | `BO'YIGA` */
+  readonly kesishTuri: string;
   readonly materiallar: readonly SotuvMaterial[];
 }
 
@@ -157,9 +161,12 @@ export async function sotuvTurlari(
       majburiy: boolean;
       formula: string;
       almashtirish_guruh_id: number | null;
+      koeffitsient: string;
+      kesish_turi: string;
     }[]
   >`
-    SELECT id, mahsulot_tur_id, nom, tartib, majburiy, formula, almashtirish_guruh_id
+    SELECT id, mahsulot_tur_id, nom, tartib, majburiy, formula, almashtirish_guruh_id,
+           koeffitsient::text, kesish_turi
     FROM mahsulot_slot
     WHERE mahsulot_tur_id = ANY(${turIdlar}) AND faol = true
     ORDER BY mahsulot_tur_id, tartib`;
@@ -307,6 +314,9 @@ export async function sotuvTurlari(
         tartib: s.tartib,
         majburiy: s.majburiy,
         formula: s.formula,
+        // AUDIT 1-topilma — kesish sozlamalari sotuv ekraniga ham, botga ham yetib boradi
+        koeffitsient: Number(s.koeffitsient),
+        kesishTuri: s.kesish_turi,
         // 3.3 — guruh belgilangan bo'lsa faqat o'sha guruh matolari
         materiallar: materiallar
           .filter((m) =>

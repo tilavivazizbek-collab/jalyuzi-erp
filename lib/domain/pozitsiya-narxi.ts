@@ -22,12 +22,14 @@ import {
   qatorSummasi,
   type Offset,
 } from './narx';
-import { sarflashHisobla, standartQiymatlar } from './formula';
+import { sarflashHisobla, slotSarfi, standartQiymatlar } from './formula';
 
 export interface SlotKirishi {
   readonly nom: string;
   readonly formula: string;
   readonly sarflashBirligi: SarflashBirligi;
+  /** AUDIT 1-topilma — «nechta marta»; KV_M jami sarf uchun */
+  readonly koeffitsient?: number | null;
   /** Tanlangan matoning STANDART narxi; tanlanmagan bo'lsa `null` */
   readonly narx: string | null;
   /** `USD` bo'lsa narx kursga uriladi (5.4) */
@@ -120,7 +122,7 @@ export function pozitsiyaNarxiniHisobla(k: NarxKirishi): NarxNatijasi {
   );
 
   const slotQatorlari: NarxQatori[] = k.slotlar.map((s) => {
-    const hisoblangan = sarflashHisobla(s.formula, asos, s.sarflashBirligi);
+    const hisoblangan = slotSarfi(s.formula, asos, s.sarflashBirligi, s.koeffitsient);
     // TZ 3.6 — narx TUZATILGAN songa tayanadi
     const miqdor = s.tuzatilganMiqdor ?? hisoblangan;
 

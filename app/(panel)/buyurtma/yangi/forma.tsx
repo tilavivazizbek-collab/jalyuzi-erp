@@ -17,7 +17,7 @@
 
 import { enterYuborilmasin } from '../../forma-yordamchi';
 import { useActionState, useMemo, useState } from 'react';
-import { sarflashHisobla, standartQiymatlar } from '@/lib/domain/formula';
+import { sarflashHisobla, slotSarfi, standartQiymatlar } from '@/lib/domain/formula';
 import { sm, type SarflashBirligi } from '@/lib/domain/birlik';
 import { dollar, kurs, nolSom, pulKorsat, pulMatn, qosh, som, type Som } from '@/lib/domain/pul';
 import { aksessuarNarxi, katalogNarxi, matoNarxi, qatorSummasi } from '@/lib/domain/narx';
@@ -263,7 +263,8 @@ export function SotuvFormasi({
       let hisoblangan: number | null = null;
       let xato: string | null = null;
       try {
-        hisoblangan = sarflashHisobla(s.formula, asos, birlik);
+        // AUDIT 1-topilma — jami sarf = formula × slot koeffitsienti
+        hisoblangan = slotSarfi(s.formula, asos, birlik, s.koeffitsient);
       } catch (x) {
         xato = biznesXatosimi(x) ? x.message : 'Formulada xato';
       }
@@ -313,6 +314,7 @@ export function SotuvFormasi({
                     nom: s.nom,
                     formula: s.formula,
                     sarflashBirligi: birlik,
+                    koeffitsient: s.koeffitsient,
                     narx: material?.narx ?? null,
                     narxValyuta: material?.narxValyuta,
                     tuzatilganMiqdor: tuzatilgan,
@@ -469,6 +471,8 @@ export function SotuvFormasi({
           hisoblanganMiqdor: String(q.hisoblangan ?? 0),
           tuzatilganMiqdor: q.tuzatilgan === null ? null : String(q.tuzatilgan),
           birlik: q.birlik,
+          koeffitsient: q.slot.koeffitsient,
+          kesishTuri: q.slot.kesishTuri,
           narxSnapshot: q.narxMatn ?? '0',
         })),
       aksessuarlar: hisob.aksQatorlar.map((a) => ({

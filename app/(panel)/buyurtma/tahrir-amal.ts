@@ -75,9 +75,14 @@ export async function pozitsiyaTahrirAmali(
           hisoblanganMiqdor: s.hisoblanganMiqdor,
           tuzatilganMiqdor: s.tuzatilganMiqdor,
           birlik: s.birlik,
-          // TZ 3.6 · 7.6 — band qilish HISOBLANGAN sarflash bo'yicha (P-24)
+          // TZ 3.6 · 7.6 — band HISOBLANGAN sarflash bo'yicha (P-24); AUDIT 1 — kesish yo'nalishi bilan
           kerak:
-            s.birlik === 'KV_M' ? kesimOlchami(s.hisoblanganMiqdor, p.boyiSm) : null,
+            s.birlik === 'KV_M'
+              ? kesimOlchami(s.hisoblanganMiqdor, p.boyiSm, {
+                  koeffitsient: s.koeffitsient ?? 1,
+                  yonalish: s.kesishTuri === "BO'YIGA" ? ("BO'YIGA" as const) : ('ENIGA' as const),
+                })
+              : null,
           narxSnapshot: s.narxSnapshot,
         })),
         aksessuarlar: p.aksessuarlar.map((a) => ({

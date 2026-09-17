@@ -31,6 +31,10 @@ export interface SlotQatori {
   formula: string;
   majburiy: boolean;
   almashtirishGuruhId: number | null;
+  /** AUDIT 1-topilma — «nechta marta» (KV_M jami sarf uchun) */
+  koeffitsient: number;
+  /** AUDIT 1-topilma — kesish yo'nalishi */
+  kesishTuri: 'ENIGA' | "BO'YIGA";
 }
 
 export interface ParametrQatori {
@@ -86,6 +90,9 @@ interface Qator {
   /** Raqamli turlarda son, `MURAKKAB` da formulaning o'zi */
   sarfQiymat: string;
   majburiy: boolean;
+  /** AUDIT 1-topilma — faqat GURUH (mato sloti) uchun ishlatiladi */
+  koeffitsient: number;
+  kesishTuri: 'ENIGA' | "BO'YIGA";
 }
 
 const kirish =
@@ -113,6 +120,8 @@ function boshQatorlar(q: MahsulotQiymatlari): Qator[] {
       sarfTuri: sarf.turi,
       sarfQiymat: sarf.qiymat,
       majburiy: s.majburiy,
+      koeffitsient: s.koeffitsient,
+      kesishTuri: s.kesishTuri,
     };
   });
 
@@ -124,6 +133,8 @@ function boshQatorlar(q: MahsulotQiymatlari): Qator[] {
       sarfTuri: sarf.turi,
       sarfQiymat: sarf.qiymat,
       majburiy: a.majburiy,
+      koeffitsient: 1,
+      kesishTuri: 'ENIGA',
     };
   });
 
@@ -209,6 +220,8 @@ export function MahsulotFormasi({
       formula: xavfsizFormula(q.sarfTuri, q.sarfQiymat),
       majburiy: q.majburiy,
       almashtirishGuruhId: q.id,
+      koeffitsient: q.koeffitsient,
+      kesishTuri: q.kesishTuri,
     }));
 
   const aksessuarlar: AksessuarQatori[] = qatorlar
@@ -399,6 +412,52 @@ export function MahsulotFormasi({
                       </p>
                     )}
 
+                    {q.turi === 'GURUH' && (
+                      <div className="mt-2 flex flex-wrap items-center gap-3">
+                        <label className="flex items-center gap-1.5 text-xs text-matn-ikki">
+                          <span>Koeffitsient</span>
+                          <input
+                            type="number"
+                            min="1"
+                            step="0.1"
+                            value={q.koeffitsient}
+                            onChange={(e) => {
+                              const v = Number(e.target.value);
+                              if (Number.isFinite(v) && v > 0) {
+                                yangila(i, { koeffitsient: v });
+                              }
+                            }}
+                            aria-label="Sarf koeffitsienti"
+                            className={`${kichik} w-16`}
+                          />
+                          <span className="text-[11px] text-matn-kuchsiz">marta</span>
+                        </label>
+                        <label className="flex items-center gap-1.5 text-xs text-matn-ikki">
+                          <span>Kesish</span>
+                          <select
+                            value={q.kesishTuri}
+                            onChange={(e) => {
+                              yangila(i, {
+                                kesishTuri: e.target.value as 'ENIGA' | "BO'YIGA",
+                              });
+                            }}
+                            aria-label="Kesish yo'nalishi"
+                            className={kichik}
+                          >
+                            <option value="ENIGA">Eniga (keng rulon)</option>
+                            <option value="BO'YIGA">Bo'yiga (bo'y × K)</option>
+                          </select>
+                        </label>
+                        <span className="text-[11px] text-matn-kuchsiz">
+                          {q.koeffitsient === 1
+                            ? '— oddiy sarf'
+                            : q.kesishTuri === "BO'YIGA"
+                              ? `bo'y × ${String(q.koeffitsient)} (masalan 1.8 × 4.4)`
+                              : `en × ${String(q.koeffitsient)} (masalan 3.6 × 2.2)`}
+                        </span>
+                      </div>
+                    )}
+
                     <div className="mt-2 flex items-center justify-between gap-3">
                       <span className="text-[11px] text-matn-kuchsiz">{tavsif.izoh}</span>
 
@@ -451,6 +510,8 @@ export function MahsulotFormasi({
                   sarfTuri: 'MAYDON',
                   sarfQiymat: '1',
                   majburiy: true,
+                  koeffitsient: 1,
+                  kesishTuri: 'ENIGA',
                 },
               ]);
             }}
@@ -590,6 +651,7 @@ export function MahsulotFormasi({
             nom: s.nom,
             formula: s.formula,
             guruhId: s.almashtirishGuruhId,
+            koeffitsient: s.koeffitsient,
           }))}
           parametrlar={parametrlar.map((p) => ({ kod: p.kod, qiymat: p.standartQiymat }))}
           guruhlar={guruhRoyxati}

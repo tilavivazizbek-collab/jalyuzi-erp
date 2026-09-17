@@ -121,7 +121,12 @@ export async function buyurtmaYaratAmali(
       tuzatilganMiqdor: s.tuzatilganMiqdor,
       birlik: s.birlik,
       // TZ 3.6 · 7.6 — band qilish HISOBLANGAN sarflash bo'yicha (P-24)
-      kerak: s.birlik === 'KV_M' ? kesimOlchami(s.hisoblanganMiqdor, p.boyiSm) : null,
+      kerak: s.birlik === 'KV_M'
+        ? kesimOlchami(s.hisoblanganMiqdor, p.boyiSm, {
+            koeffitsient: s.koeffitsient ?? 1,
+            yonalish: s.kesishTuri === "BO'YIGA" ? ("BO'YIGA" as const) : ('ENIGA' as const),
+          })
+        : null,
       narxSnapshot: s.narxSnapshot,
     })),
     aksessuarlar: p.aksessuarlar.map((a) => ({
@@ -354,7 +359,10 @@ export async function pozitsiyalarQoshAmali(
             // TZ 3.6 · 7.6 — band HISOBLANGAN sarflash bo'yicha (P-24)
             kerak:
               s.birlik === 'KV_M'
-                ? kesimOlchami(s.hisoblanganMiqdor, p.boyiSm)
+                ? kesimOlchami(s.hisoblanganMiqdor, p.boyiSm, {
+                    koeffitsient: s.koeffitsient ?? 1,
+                    yonalish: s.kesishTuri === "BO'YIGA" ? ("BO'YIGA" as const) : ('ENIGA' as const),
+                  })
                 : null,
             narxSnapshot: s.narxSnapshot,
           })),

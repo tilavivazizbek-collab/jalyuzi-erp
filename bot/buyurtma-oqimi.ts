@@ -170,6 +170,7 @@ function pozitsiyaHisobi(
       nom: slot?.nom ?? '',
       formula: slot?.formula ?? '0',
       sarflashBirligi: (material?.sarflashBirligi ?? 'KV_M') as SarflashBirligi,
+      koeffitsient: slot?.koeffitsient ?? 1,
       narx: material?.narx ?? null,
       narxValyuta: material?.narxValyuta,
     };
@@ -459,15 +460,28 @@ export async function savatniYubor(
         const qator = slotQatorlari[i];
         const miqdor = String(qator?.miqdor ?? 0);
         const birlik = qator?.sarflashBirligi ?? 'KV_M';
+        // AUDIT 1 — kesish sozlamalari slotning O'ZIDAN olinadi
+        const slotTarifi = tur?.slotlar.find((x) => x.id === s.slotId);
 
         return {
           slotId: s.slotId,
           materialId: s.materialId ?? 0,
           hisoblanganMiqdor: miqdor,
           tuzatilganMiqdor: null,
+          koeffitsient: slotTarifi?.koeffitsient ?? 1,
+          kesishTuri:
+            slotTarifi?.kesishTuri === "BO'YIGA" ? ("BO'YIGA" as const) : ('ENIGA' as const),
           birlik,
           // TZ 3.6 · 7.6 — band qilish HISOBLANGAN sarflash bo'yicha (P-24)
-          kerak: birlik === 'KV_M' ? kesimOlchami(miqdor, p.boyiSm ?? 0) : null,
+          kerak:
+            birlik === 'KV_M'
+              ? kesimOlchami(miqdor, p.boyiSm ?? 0, {
+                  koeffitsient: slotTarifi?.koeffitsient ?? 1,
+                  yonalish: (slotTarifi?.kesishTuri ?? 'ENIGA') === "BO'YIGA"
+                    ? ("BO'YIGA" as const)
+                    : ('ENIGA' as const),
+                })
+              : null,
           narxSnapshot: qator?.birlikNarxi ?? '0',
         };
       });

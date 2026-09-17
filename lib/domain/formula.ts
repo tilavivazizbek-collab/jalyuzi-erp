@@ -42,7 +42,12 @@ export type Ifoda =
   | { readonly tur: 'SON'; readonly qiymat: Decimal }
   | { readonly tur: 'NOM'; readonly nom: string }
   | { readonly tur: 'AMAL'; readonly amal: Amal; readonly chap: Ifoda; readonly ong: Ifoda }
-  | { readonly tur: 'MANFIY'; readonly ichki: Ifoda };
+  | { readonly tur: 'MANFIY'; readonly ichki: Ifoda }
+  /**
+   * AUDIT 2-topilma tuzatish — funksiya chaqiruvi: `CEIL(...)`,
+   * `ROUND(...)`, `MIN(...)`, `MAX(...)`. `eval` yo'q — whitelist.
+   */
+  | { readonly tur: 'FUNKSIYA'; readonly nom: string; readonly argumentlar: readonly Ifoda[] };
 
 // ─── Belgilarni bir ko'rinishga keltirish ─────────────────────────────────
 
@@ -62,7 +67,7 @@ export function normalla(matn: string): string {
 
 // ─── Tokenlarga ajratish ──────────────────────────────────────────────────
 
-type TokenTuri = 'SON' | 'NOM' | 'AMAL' | 'OCH' | 'YOP';
+type TokenTuri = 'SON' | 'NOM' | 'AMAL' | 'OCH' | 'YOP' | 'VERGUL';
 interface Token {
   readonly tur: TokenTuri;
   readonly matn: string;
@@ -133,6 +138,13 @@ function tokenlar(xom: string): Token[] {
 
     if (belgi === ')') {
       natija.push({ tur: 'YOP', matn: belgi, joy: i });
+      i += 1;
+      continue;
+    }
+
+    // AUDIT 2-topilma — funksiya argumentlarini ajratish: `MIN(ENI, BO'YI)`
+    if (belgi === ',') {
+      natija.push({ tur: 'VERGUL', matn: belgi, joy: i });
       i += 1;
       continue;
     }
@@ -230,6 +242,24 @@ class Tahlilchi {
     }
 
     if (token.tur === 'NOM') {
+      // AUDIT 2-topilma — `NOM(` bo'lsa funksiya chaqiruvi, aks holda o'zgaruvchi
+      if (this.joriy()?.tur === 'OCH') {
+        this.yut(); // '(' ni tashlab o'tamiz
+        const argumentlar: Ifoda[] = [];
+        if (this.joriy()?.tur !== 'YOP') {
+          argumentlar.push(this.ifoda());
+          for (;;) {
+            if (this.joriy()?.tur !== 'VERGUL') break;
+            this.yut();
+            argumentlar.push(this.ifoda());
+          }
+        }
+        if (this.joriy()?.tur !== 'YOP') {
+          throw new BiznesXato('FORMULA_XATO', `«${token.matn}(...» qavsi yopilmagan`);
+        }
+        this.yut();
+        return { tur: 'FUNKSIYA', nom: token.matn, argumentlar };
+      }
       return { tur: 'NOM', nom: token.matn };
     }
 
@@ -276,6 +306,10 @@ export function formulaOzgaruvchilari(matn: string): string[] {
       case 'MANFIY':
         yur(i.ichki);
         return;
+      case 'FUNKSIYA':
+        // Funksiya NOMI o'zgaruvchi emas — faqat argumentlari (AUDIT 2-topilma)
+        for (const a of i.argumentlar) yur(a);
+        return;
       case 'SON':
         return;
     }
@@ -284,6 +318,46 @@ export function formulaOzgaruvchilari(matn: string): string[] {
   return [...topilgan].sort();
 }
 
+/**
+ * AUDIT 6-topilma — pozitsiyadagi bir nechta buyumning JAMI sarfi.
+ *
+ * Formula `SONI` o'zgaruvchisini ishlatsa (`MAYDON * SONI`) natija
+ * allaqachon jamiga teng. Ishlatmasa (TZ dagi standart `MAYDON`,
+ * `CHET × BO'YI`) natija BIR buyum uchun — `soni > 1` bo'lsa jamini
+ * berish uchun songa ko'paytiriladi.
+ *
+ * ⚠️ Aynan shu ko'paytirish bo'lmasa «uchta parda» bitta pozitsiyada
+ *    bo'lsa, ombordan bitta parda sarfi yechilib, qolgan ikki parda
+ *    matosi hisobdan «o'chib» ketardi (ish haqi esa soni bilan
+ *    hisoblanadi — ish.ts:768).
+ */
+export function soniUchun(formula: string, birBuyumNatijasi: number, soni: number): number {
+  if (soni <= 1) return birBuyumNatijasi;
+  if (formulaOzgaruvchilari(formula).includes('SONI')) return birBuyumNatijasi;
+  return new D(birBuyumNatijasi).times(soni).toNumber();
+}
+
+/**
+ * AUDIT 1-topilma tuzatish — slot koeffitsientli umumiy sarf.
+ *
+ * Formula ASOSIY natijani beradi (`MAYDON`, `CHET × BO'YI`), slot
+ * koeffitsienti esa «necha marta» deydi (ikki qavat, rapoor…).
+ * KV_M uchun jami = formula natijasi × koeffitsient.
+ * SM/DONA o'zgarmaydi — chiziqli va dona «necha marta maydon»
+ * tushunchasiga ega emas.
+ */
+export function slotSarfi(
+  formula: string,
+  qiymatlar: Qiymatlar,
+  sarflashBirligi: SarflashBirligi,
+  koeffitsient?: number | null,
+): number {
+  const asos = Number(sarflashHisobla(formula, qiymatlar, sarflashBirligi));
+  if (sarflashBirligi !== 'KV_M') return asos;
+  const k = koeffitsient ?? 1;
+  if (!Number.isFinite(k) || k <= 0) return asos;
+  return Number(new D(asos).times(k).toFixed(4));
+}
 export interface TekshiruvNatijasi {
   readonly yaroqli: boolean;
   readonly ishlatilgan: readonly string[];
@@ -336,6 +410,43 @@ function baholash(i: Ifoda, qiymatlar: Qiymatlar): Decimal {
 
     case 'MANFIY':
       return baholash(i.ichki, qiymatlar).negated();
+
+    case 'FUNKSIYA': {
+      const argumentlar = i.argumentlar.map((a) => baholash(a, qiymatlar));
+      switch (i.nom) {
+        case 'CEIL':
+        case 'FLOOR': {
+          if (argumentlar.length !== 1) {
+            throw new BiznesXato('FORMULA_XATO', `«${i.nom}» bitta argument oladi`);
+          }
+          return i.nom === 'CEIL' ? argumentlar[0]!.ceil() : argumentlar[0]!.floor();
+        }
+        case 'ROUND': {
+          if (argumentlar.length === 1) return argumentlar[0]!.toDecimalPlaces(0);
+          if (argumentlar.length !== 2) {
+            throw new BiznesXato('FORMULA_XATO', '«ROUND» 1 yoki 2 argument oladi');
+          }
+          const xona = argumentlar[1]!.toNumber();
+          if (!Number.isInteger(xona) || xona < 0) {
+            throw new BiznesXato('FORMULA_XATO', "«ROUND» xona soni manfiy bo'lmagan butun bo'lsin");
+          }
+          return argumentlar[0]!.toDecimalPlaces(xona);
+        }
+        case 'MIN':
+        case 'MAX': {
+          if (argumentlar.length < 2) {
+            throw new BiznesXato('FORMULA_XATO', `«${i.nom}» kamida ikkita argument oladi`);
+          }
+          let eng = argumentlar[0] as Decimal;
+          for (const a of argumentlar) {
+            if (i.nom === 'MIN' ? a.lessThan(eng) : a.greaterThan(eng)) eng = a;
+          }
+          return eng;
+        }
+        default:
+          throw new BiznesXato('FORMULA_XATO', `noma'lum funksiya «${i.nom}»`);
+      }
+    }
 
     case 'AMAL': {
       const chap = baholash(i.chap, qiymatlar);

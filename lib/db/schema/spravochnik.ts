@@ -314,6 +314,21 @@ export const mahsulotSlot = pgTable(
      * talqin qilinadi (AUDIT B-01).
      */
     formula: text('formula').notNull(),
+    /**
+     * AUDIT 1-topilma tuzatish — slot sarf koeffitsienti.
+     * «Necha marta»: 1 = oddiy, 2 = ikki qavat/ikki marta.
+     * Jami sarf = formula natijasi × koeffitsient (KV_M uchun).
+     */
+    koeffitsient: numeric('koeffitsient', { precision: 8, scale: 2 })
+      .notNull()
+      .default('1'),
+    /**
+     * AUDIT 1-topilma tuzatish — kesish yo'nalishi.
+     * `ENIGA`   — koeffitsient eni oshiradi (3.6 × 2.2) — keng rulon.
+     * `BO'YIGA` — koeffitsient bo'yi oshiradi (1.8 × 4.4) — rulon eni
+     *              yetadi, mato bo'y bo'ylab ko'p marta kesiladi.
+     */
+    kesishTuri: text('kesish_turi').notNull().default('ENIGA'),
     ...ochirilmaydi,
     ...izlar,
   },

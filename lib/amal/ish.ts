@@ -372,6 +372,8 @@ export async function tugatdim(
         hisoblangan_miqdor: string;
         yaroqsiz_chegara_m: string | null;
         kam_ishlatiladigan_m: string | null;
+        koeffitsient: string;
+        kesish_turi: string;
       }[]
     >`
       SELECT bd.id AS band_id, bo.id AS bolak_id, bo.kod, bo.turi, bo.ochilgan,
@@ -379,11 +381,14 @@ export async function tugatdim(
              bo.tannarx_birlik_snapshot, bo.tannarx_valyuta_snapshot,
              -- P-24 — kesim SLOT sarflashidan chiqadi, mahsulot enidan emas
              pm.hisoblangan_miqdor::text,
-             m.yaroqsiz_chegara_m::text, m.kam_ishlatiladigan_m::text
+             m.yaroqsiz_chegara_m::text, m.kam_ishlatiladigan_m::text,
+             -- AUDIT 1 — kesim yo'nalishi bilan hisoblanadi
+             ms.koeffitsient::text, ms.kesish_turi
       FROM band bd
       JOIN bolak bo    ON bo.id = bd.bolak_id
       JOIN material m  ON m.id = bo.material_id
       JOIN pozitsiya_material pm ON pm.id = bd.pozitsiya_material_id
+      JOIN mahsulot_slot ms ON ms.id = pm.slot_id
       WHERE bd.buyurtma_pozitsiya_id = ${kirim.pozitsiyaId} AND bd.holat = 'FAOL'
       ORDER BY bd.id
       FOR UPDATE OF bo`;
@@ -450,7 +455,10 @@ export async function tugatdim(
         *    §2.2 — hisob `kesimOlchami` da, bir joyda: veb sotuv
         *    yo'li ham, bot yo'li ham aynan shuni chaqiradi.
         */
-       const kerak = kesimOlchami(band.hisoblangan_miqdor, p.boyi_sm);
+       const kerak = kesimOlchami(band.hisoblangan_miqdor, p.boyi_sm, {
+         koeffitsient: Number(band.koeffitsient),
+         yonalish: band.kesish_turi === "BO'YIGA" ? ("BO'YIGA" as const) : ('ENIGA' as const),
+       });
        const reja = kesimRejasi(manbaBolak, kerak);
        const qoldiqlar: Qoldiqlar = k.qoldiqlar ?? {
          manbaQoldiq: reja.manbaQoldiq,

@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { sarflashHisobla, standartQiymatlar } from '@/lib/domain/formula';
+import { slotSarfi, standartQiymatlar } from '@/lib/domain/formula';
 import { sm, type SarflashBirligi } from '@/lib/domain/birlik';
 import { pulKorsat, som, kopaytir, qosh, nolSom } from '@/lib/domain/pul';
 import { biznesXatosimi } from '@/lib/xato';
@@ -22,6 +22,8 @@ export interface SlotHolati {
   readonly nom: string;
   readonly formula: string;
   readonly guruhId: number | null;
+  /** AUDIT 1-topilma — sarf koeffitsienti */
+  readonly koeffitsient: number;
 }
 
 export interface GuruhMalumoti {
@@ -99,7 +101,7 @@ export function TestKalkulyatori({
       const birlik: SarflashBirligi = guruh?.sarflashBirligi ?? 'KV_M';
 
       try {
-        const miqdor = sarflashHisobla(slot.formula, qiymatlar, birlik);
+        const miqdor = slotSarfi(slot.formula, qiymatlar, birlik, slot.koeffitsient);
 
         // TZ 5.4 — chiziqli materialning narxi 1 METR uchun (Q-01)
         let summa: string | null = null;

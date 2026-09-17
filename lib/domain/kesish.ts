@@ -41,6 +41,31 @@ export interface Olcham {
   readonly boyiM: number;
 }
 
+// ─── 1-TOPILMA tuzatish (2026-09-17) · Kesish yo'nalishi ──────────────────
+
+/**
+ * Mato slotining kesish sozlamasi — AUDIT 1-topilma tuzatishi.
+ *
+ * Ilgari `MAYDON × K` ko'paytiruvchisi doim ENIGA tushardi: 180×220 ×2 →
+ * 3.6 × 2.2 keng rulon izlanar, real rulonlar (2.0–3.0 m) sig'masdi.
+ * Endi slot egasi quyidagi bilan belgilaydi:
+ *
+ *   `ENIGA`   → K eni oshiradi (3.6 × 2.2) — keng rulon kerak
+ *   `BO'YIGA` → K bo'yi oshiradi (1.8 × 4.4) — rulon eni yetadi,
+ *               mato bo'y bo'ylab ikki marta kesiladi (ikki qavat,
+ *               rapportli naqsh).
+ *
+ * Koeffitsient kiritilmasa yoki 1 bo'lsa — xulq ilgarigidek.
+ */
+export type KesishYonalishi = 'ENIGA' | "BO'YIGA";
+
+export interface KesishSozlamasi {
+  /** «2 marta» — musbat son; bo'sh/1 = oddiy sarf */
+  readonly koeffitsient?: number | null;
+  /** Qaysi tomonga; bo'sh = `ENIGA` (ilgarigi xulq) */
+  readonly yonalish?: KesishYonalishi | null;
+}
+
 // ─── 7.5 · Uch daraja ─────────────────────────────────────────────────────
 
 export type Daraja = 'YAROQSIZ' | 'KAM_ISHLATILADIGAN' | 'YAROQLI';
@@ -467,17 +492,42 @@ export function birlashtirishTavsiyasi(olchamlar: readonly Olcham[]): Olcham | n
  * rulondan bo'yi bo'ylab tortiladi, faqat eni bo'linadi. Shuning
  * uchun eni maydonni bo'yiga bo'lishdan chiqadi.
  */
-export function kesimOlchami(hisoblanganKvM: string | number, boyiSm: number): Olcham {
+export function kesimOlchami(
+  hisoblanganKvM: string | number,
+  boyiSm: number,
+  kesish?: KesishSozlamasi,
+): Olcham {
   if (boyiSm <= 0) {
     throw new BiznesXato('KESIM_NOTOGRI', "bo'yi noldan katta bo'lsin");
   }
-  const boyiM = new Decimal(boyiSm).div(100);
+  const boyiM0 = new Decimal(boyiSm).div(100);
+  const K = kesish?.koeffitsient ?? 1;
+  const yo = kesish?.yonalish ?? 'ENIGA';
+  if (!Number.isFinite(K) || K <= 0) {
+    throw new BiznesXato('KESIM_NOTOGRI', 'koeffitsient musbat bo\'lsin');
+  }
+
+  /**
+   * `hisoblanganKvM` — JAMI maydon (formula × koeffitsient).
+   *
+   * ENIGA:   boy = buyurtma bo'yi, en = jami ÷ boy   (K enga tushadi)
+   * BO'YIGA: boy = buyurtma bo'yi × K, en = jami ÷ boy
+   *          = (asos ÷ boy) — en O'ZGARMAYDI (K bo'yiga tushadi)
+   */
+  const boyiM = yo === "BO'YIGA" ? boyiM0.times(K) : boyiM0;
   const eniM = new Decimal(hisoblanganKvM).div(boyiM);
   if (eniM.lessThanOrEqualTo(0)) {
     throw new BiznesXato('KESIM_NOTOGRI', "kesim eni noldan katta bo'lsin");
   }
   return {
-    eniM: eniM.toDecimalPlaces(2).toNumber(),
-    boyiM: boyiM.toDecimalPlaces(2).toNumber(),
+    /**
+     * AUDIT 4·5·7-topilmalar — eni va bo'yi YUQORIGA yaxlitlanadi
+     * (ROUND_CEIL), HALF_UP emas. Ilgari 2.10449 → 2.10 PASTGA tushar,
+     * ombor kamomad qilar va jismonan sig'maydigan bo'lak "sig'adi"
+     * deb qabul qilinardi. Endi kesim to'rtburchagi hech qachon formula
+     * talabidan TOR emas — kamomad bo'lishi mumkin emas.
+     */
+    eniM: eniM.toDecimalPlaces(2, Decimal.ROUND_CEIL).toNumber(),
+    boyiM: boyiM.toDecimalPlaces(2, Decimal.ROUND_CEIL).toNumber(),
   };
 }

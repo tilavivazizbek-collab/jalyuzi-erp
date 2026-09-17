@@ -43,6 +43,9 @@ export const sotuvSlotSxema = z.object({
     .nullable()
     .default(null),
   birlik: z.enum(['KV_M', 'SM', 'DONA']),
+  /** AUDIT 1-topilma — kesish sozlamalari (server bandga ishlatadi) */
+  koeffitsient: z.coerce.number().optional(),
+  kesishTuri: z.enum(['ENIGA', "BO'YIGA"]).optional(),
   narxSnapshot: pulMatni("Narx noto'g'ri"),
 });
 

@@ -42,6 +42,12 @@ export interface SlotKirimi {
   /** Sotuvchi tuzatgani — faqat narxga tegadi (3.5) */
   readonly tuzatilganMiqdor: string | null;
   readonly birlik: 'KV_M' | 'SM' | 'DONA';
+  /**
+   * AUDIT 1-topilma — kesish sozlamalari (formadan, katalogdan keladi).
+   * `kerak` to'rtburchagi shulardan qarab hisoblanadi.
+   */
+  readonly koeffitsient?: number | null;
+  readonly kesishTuri?: 'ENIGA' | "BO'YIGA" | null;
   readonly narxSnapshot: string;
   /** Band qilish uchun kerakli o'lcham — faqat RULON materialda */
   readonly kerak: { readonly eniM: number; readonly boyiM: number } | null;
@@ -514,10 +520,20 @@ export async function pozitsiyaniTasdiqla(
     otishniTekshir(p.holat as PozitsiyaHolati, yangi);
 
     const slotlar = await tx<
-      { id: number; material_id: number; hisoblangan_miqdor: string; birlik: string }[]
+      {
+        id: number;
+        material_id: number;
+        hisoblangan_miqdor: string;
+        birlik: string;
+        koeffitsient: string;
+        kesish_turi: string;
+      }[]
     >`
-      SELECT id, material_id, hisoblangan_miqdor, birlik
-      FROM pozitsiya_material WHERE buyurtma_pozitsiya_id = ${pozitsiyaId}`;
+      SELECT pm.id, pm.material_id, pm.hisoblangan_miqdor, pm.birlik,
+             s.koeffitsient::text, s.kesish_turi
+      FROM pozitsiya_material pm
+      JOIN mahsulot_slot s ON s.id = pm.slot_id
+      WHERE pm.buyurtma_pozitsiya_id = ${pozitsiyaId}`;
 
     // O'lchamni pozitsiyadan olamiz — band qilish METRDA ishlaydi (Q-05)
     const olcham = await tx<{ eni_sm: number; boyi_sm: number }[]>`
@@ -545,7 +561,10 @@ export async function pozitsiyaniTasdiqla(
       .map((s) => ({
         pozitsiyaMaterialId: s.id,
         materialId: s.material_id,
-        kerak: kesimOlchami(s.hisoblangan_miqdor, boyiSm),
+        kerak: kesimOlchami(s.hisoblangan_miqdor, boyiSm, {
+          koeffitsient: Number(s.koeffitsient),
+          yonalish: s.kesish_turi === "BO'YIGA" ? ("BO'YIGA" as const) : ('ENIGA' as const),
+        }),
         majburiy: true,
       }));
 

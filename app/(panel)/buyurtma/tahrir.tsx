@@ -22,7 +22,7 @@ import { useActionState, useEffect, useState } from 'react';
 import { Modal } from '../modal';
 import { kirishUslubi } from '../maydon';
 import { pulKorsat, som } from '@/lib/domain/pul';
-import { sarflashHisobla, standartQiymatlar } from '@/lib/domain/formula';
+import { slotSarfi, standartQiymatlar } from '@/lib/domain/formula';
 import { sm, type SarflashBirligi } from '@/lib/domain/birlik';
 import { turTafsiliAmali } from './yangi/amal';
 import { pozitsiyaTahrirAmali } from './tahrir-amal';
@@ -103,7 +103,8 @@ export function TahrirTugmasi({ pozitsiya }: { pozitsiya: PozitsiyaTahriri }) {
     if (olchamYaroqli && formula !== undefined) {
       try {
         const asos = standartQiymatlar(sm(eniSm), sm(boyiSm), pozitsiya.soni, {});
-        miqdor = sarflashHisobla(formula, asos, s.birlik as SarflashBirligi);
+        // AUDIT 1-topilma — jami sarf = formula × slot koeffitsienti
+        miqdor = slotSarfi(formula, asos, s.birlik as SarflashBirligi, slot?.koeffitsient);
       } catch {
         miqdor = null;
       }
@@ -127,15 +128,22 @@ export function TahrirTugmasi({ pozitsiya }: { pozitsiya: PozitsiyaTahriri }) {
     chegirmaSumma: chegirma.trim() === '' ? '0' : chegirma.trim(),
     xizmatHaqi: pozitsiya.xizmatHaqi,
     formulaSnapshot: pozitsiya.formulaSnapshot,
-    slotlar: qatorlar.map((q) => ({
-      slotId: q.slot.slotId,
-      materialId: matolar[q.slot.slotId] ?? q.slot.materialId,
-      hisoblanganMiqdor:
-        q.miqdor === null ? q.slot.hisoblanganMiqdor : q.miqdor.toFixed(4),
-      tuzatilganMiqdor: q.slot.tuzatilganMiqdor,
-      birlik: q.slot.birlik,
-      narxSnapshot: q.slot.narxSnapshot,
-    })),
+    slotlar: qatorlar.map((q) => {
+      // AUDIT 1-topilma — kesish sozlamalari joriy slotdan olinadi
+      const turSlot = tur?.slotlar.find((x) => x.id === q.slot.slotId);
+      return {
+        slotId: q.slot.slotId,
+        materialId: matolar[q.slot.slotId] ?? q.slot.materialId,
+        hisoblanganMiqdor:
+          q.miqdor === null ? q.slot.hisoblanganMiqdor : q.miqdor.toFixed(4),
+        tuzatilganMiqdor: q.slot.tuzatilganMiqdor,
+        birlik: q.slot.birlik,
+        koeffitsient: turSlot?.koeffitsient,
+        kesishTuri:
+          turSlot?.kesishTuri === "BO'YIGA" ? ("BO'YIGA" as const) : ('ENIGA' as const),
+        narxSnapshot: q.slot.narxSnapshot,
+      };
+    }),
     // ⚠️ O'zgarishsiz qaytariladi — server ro'yxatni ustidan yozadi
     aksessuarlar: pozitsiya.aksessuarlar.map((a) => ({
       materialId: a.materialId,

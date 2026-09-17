@@ -31,7 +31,7 @@
 
 import type postgres from 'postgres';
 import { sm, type SarflashBirligi } from '@/lib/domain/birlik';
-import { sarflashHisobla, standartQiymatlar } from '@/lib/domain/formula';
+import { slotSarfi, soniUchun, standartQiymatlar } from '@/lib/domain/formula';
 import { BiznesXato } from '@/lib/xato';
 
 /** Har birlik uchun ruxsat etilgan farq — o'nlik yaxlitlash uchun */
@@ -90,8 +90,9 @@ export async function sarflashniTekshir(
   // Qo'shimcha buyum — formulasi ham, sloti ham yo'q (3.10)
   if (p.slotlar.length === 0) return;
 
-  const slotlar = await tx<{ id: number; nom: string; formula: string }[]>`
-    SELECT id, nom, formula FROM mahsulot_slot
+  const slotlar = await tx<{ id: number; nom: string; formula: string; koeffitsient: string; kesish_turi: string }[]>`
+    SELECT id, nom, formula, koeffitsient::text, kesish_turi
+    FROM mahsulot_slot
     WHERE mahsulot_tur_id = ${p.mahsulotTurId} AND faol = true`;
 
   const formulalar = new Map(slotlar.map((s) => [s.id, s]));
@@ -143,16 +144,23 @@ export async function sarflashniTekshir(
       );
     }
 
-    const kutilgan = Number(
-      sarflashHisobla(slot.formula, asos, birlik as SarflashBirligi),
+    const kutilgan = slotSarfi(
+      slot.formula,
+      asos,
+      birlik as SarflashBirligi,
+      Number(slot.koeffitsient),
     );
+    // AUDIT 6-topilma — SONI > 1 bo'lsa slot miqdori JAMI bo'lishi shart.
+    // Aks holda «uchta parda» bitta pozitsiyada bo'lsa, ombordan bitta
+    // parda sarfi yechilib, qolgani hisobdan o'chib ketardi.
+    const kutilganJami = soniUchun(slot.formula, kutilgan, p.soni);
     const berilgan = Number(s.hisoblanganMiqdor);
-    const farq = Math.abs(kutilgan - berilgan);
+    const farq = Math.abs(kutilganJami - berilgan);
 
     if (farq > BAGRIKENGLIK[birlik as SarflashBirligi]) {
       throw new BiznesXato(
         'SARFLASH_MOS_EMAS',
-        `${slot.nom}: kutilgan ${kutilgan.toFixed(4)}, kelgan ${berilgan.toFixed(4)}`,
+        `${slot.nom}: kutilgan ${kutilganJami.toFixed(4)}, kelgan ${berilgan.toFixed(4)}`,
       );
     }
   }

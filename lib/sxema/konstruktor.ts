@@ -17,6 +17,17 @@ export const slotSxema = z.object({
   formula: z.string().trim().min(1, 'Formulani kiriting').max(500),
   majburiy: z.boolean().default(true),
   almashtirishGuruhId: z.number().int().positive().nullable(),
+  /**
+   * AUDIT 1-topilma tuzatish — sarf koeffitsienti («nechta marta»).
+   */
+  koeffitsient: z.coerce
+    .number()
+    .positive('Koeffitsient musbat son bo\'lishi kerak')
+    .default(1),
+  /**
+   * AUDIT 1-topilma tuzatish — kesish yo'nalishi.
+   */
+  kesishTuri: z.enum(['ENIGA', "BO'YIGA"]).default('ENIGA'),
 });
 
 export const parametrSxema = z.object({

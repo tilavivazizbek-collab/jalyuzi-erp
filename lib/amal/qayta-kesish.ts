@@ -330,18 +330,25 @@ export async function qaytaKesishHal(
 
     // ── 3. Yangi bo'lak (7.3 · 7.6) ──
     const slotlar = await tx<
-      { id: number; material_id: number; hisoblangan_miqdor: string; birlik: string }[]
+      { id: number; material_id: number; hisoblangan_miqdor: string; birlik: string;
+        koeffitsient: string; kesish_turi: string }[]
     >`
-      SELECT id, material_id, hisoblangan_miqdor, birlik
-      FROM pozitsiya_material WHERE buyurtma_pozitsiya_id = ${pozitsiyaId}`;
+      SELECT pm.id, pm.material_id, pm.hisoblangan_miqdor, pm.birlik,
+             s.koeffitsient::text, s.kesish_turi
+      FROM pozitsiya_material pm
+      JOIN mahsulot_slot s ON s.id = pm.slot_id
+      WHERE pm.buyurtma_pozitsiya_id = ${pozitsiyaId}`;
 
     const sorovlarRoyxati: SlotSorovi[] = slotlar
       .filter((s) => s.birlik === 'KV_M')
       .map((s) => ({
         pozitsiyaMaterialId: s.id,
         materialId: s.material_id,
-        // P-24 — kesim to'rtburchagi maydondan chiqadi
-        kerak: kesimOlchami(s.hisoblangan_miqdor, p.boyi_sm),
+        // P-24 — kesim to'rtburchagi maydondan chiqadi (AUDIT 1: kesish yo'nalishi bilan)
+        kerak: kesimOlchami(s.hisoblangan_miqdor, p.boyi_sm, {
+          koeffitsient: Number(s.koeffitsient),
+          yonalish: s.kesish_turi === "BO'YIGA" ? ("BO'YIGA" as const) : ('ENIGA' as const),
+        }),
         majburiy: true,
       }));
 

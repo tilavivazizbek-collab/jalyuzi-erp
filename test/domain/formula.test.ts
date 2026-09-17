@@ -136,3 +136,31 @@ describe('standart o\'zgaruvchilar', () => {
     expect(qiymatlar['CHET']).toBe(25);
   });
 });
+describe('funksiyalar — AUDIT 2-topilma tuzatish (2026-09-17)', () => {
+  it('CEIL / FLOOR / ROUND / MIN / MAX hisoblanadi', () => {
+    expect(formulaHisobla('CEIL(2.1)', {}).toString()).toBe('3');
+    expect(formulaHisobla('FLOOR(2.9)', {}).toString()).toBe('2');
+    expect(formulaHisobla('ROUND(2.5)', {}).toString()).toBe('3');
+    expect(formulaHisobla('ROUND(2.444, 2)', {}).toString()).toBe('2.44');
+    expect(formulaHisobla('MIN(3, 7)', {}).toString()).toBe('3');
+    expect(formulaHisobla('MAX(3, 7)', {}).toString()).toBe('7');
+  });
+
+  it('funksiya ichma-ichcha ishlaydi — rapport yaxlitlash', () => {
+    // 220 / 32 = 6.875 → CEIL → 7 → 224 sm (to\'liq 7 rapport)
+    expect(formulaHisobla("CEIL(220 / 32) * 32", {}).toString()).toBe('224');
+  });
+
+  it("funksiya nomi o'zgaruvchi EMAS — formulaOzgaruvchilari faqat argumentlarni qaytaradi", () => {
+    expect(formulaOzgaruvchilari("CEIL(BO'YI / RAPPORT) * RAPPORT")).toEqual(["BO'YI", 'RAPPORT']);
+    const natija = formulaTekshir("CEIL(BO'YI / RAPPORT)", ['RAPPORT']);
+    expect(natija.yaroqli).toBe(true);
+  });
+
+  it("noma'lum funksiya va noto'g'ri argumentlar rad etiladi", () => {
+    expect(() => formulaHisobla('SIN(1)', {})).toThrow(BiznesXato);
+    expect(() => formulaHisobla('CEIL()', {})).toThrow(BiznesXato);
+    expect(() => formulaHisobla('MIN(1)', {})).toThrow(BiznesXato);
+    expect(() => formulaHisobla('ROUND(1, -1)', {})).toThrow(BiznesXato);
+  });
+});

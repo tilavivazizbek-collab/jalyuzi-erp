@@ -233,6 +233,8 @@ describe('4. Konstruktordagi «sarfi» tanlovi formulaga aylanadi', () => {
             formula,
             majburiy: true,
             almashtirishGuruhId: guruhId,
+            koeffitsient: 1,
+            kesishTuri: 'ENIGA' as const,
           },
         ],
         parametrlar: [],
