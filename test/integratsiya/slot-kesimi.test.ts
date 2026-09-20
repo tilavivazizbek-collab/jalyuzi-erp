@@ -72,10 +72,12 @@ beforeAll(async () => {
 
   const s = await sql<{ id: number }[]>`
     INSERT INTO mahsulot_slot (mahsulot_tur_id, nom, tartib, formula, yaratdi_id)
-    -- ⚠️ TZ 5.3 — barcha uzunlik SMDA: 30 × 220 = 6 600 kv.sm =
-    --    0.66 kv.m. 0.30 deb yozilsa natija 100 barobar kichik
-    --    chiqadi — serverdagi tekshiruv buni topdi.
-    VALUES (${turId}, 'Chet', 1, ${"30 * BO'YI"}, ${XODIM}) RETURNING id`;
+    -- ⚠️ 2026-09-20 — barcha uzunlik METRDA: 0.30 × 2.20 = 0.66 kv.m.
+    --    Ilgari bu yerda 30 * BO'YI turardi (sm) va natija kv.smda
+    --    chiqib ÷10 000 qilinardi. Endi o'girish yo'q — 30 qolsa
+    --    natija 100 barobar KATTA chiqadi va serverdagi sarflash
+    --    tekshiruvi buni darhol ushlaydi (shu test shundan yiqilgan).
+    VALUES (${turId}, 'Chet', 1, ${"0.30 * BO'YI"}, ${XODIM}) RETURNING id`;
   slotId = s[0]?.id ?? 0;
 }, 120_000);
 
@@ -137,7 +139,7 @@ async function bandOlchami(
 // ─── Domen: o'lcham to'g'ri chiqadimi ─────────────────────────────────────
 
 describe('P-24 — kesim to\'rtburchagi maydondan chiqadi', () => {
-  it('0.66 kv.m · bo\'yi 220 sm → 0.30 × 2.20', () => {
+  it('0.66 kv.m · bo\'yi 2.20 m → 0.30 × 2.20', () => {
     expect(kesimOlchami(SLOT_KV_M, BOYI_M)).toEqual({ eniM: 0.3, boyiM: 2.2 });
   });
 });
@@ -231,7 +233,7 @@ describe('P-24 · bot yo\'li ham SLOT kesimini band qiladi', () => {
    *    `pozitsiyaniTasdiqla` da qo'yiladi. U `kerak` ni chaqiruvchidan
    *    OLMAYDI — o'zi hisoblashi kerak.
    */
-  it('30 smlik slotga 180 smlik bo\'lak band QILINMAYDI', async () => {
+  it('0.30 m lik slotga 1.80 m lik bo\'lak band QILINMAYDI', async () => {
     const matoId = await matoYarat();
     await rulonYarat(matoId);
 

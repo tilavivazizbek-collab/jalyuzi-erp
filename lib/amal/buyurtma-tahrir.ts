@@ -67,8 +67,14 @@ interface EskiQator {
   readonly buyurtma_id: number;
   readonly mahsulot_tur_id: number | null;
   readonly qoshimcha_material_id: number | null;
-  readonly eni_m: number;
-  readonly boyi_m: number;
+  /**
+   * ⚠️ `numeric` ustun postgres.js dan MATN bo'lib keladi (P-13).
+   *    0043 da `integer` dan `numeric(8,2)` ga o'tgach bu yerda tur
+   *    `number` dan `string` ga o'zgardi — raqam kerak joyda
+   *    `Number()` bilan o'giriladi.
+   */
+  readonly eni_m: string;
+  readonly boyi_m: string;
   readonly soni: number;
   readonly narx_snapshot: string;
   readonly chegirma_summa: string | null;
@@ -102,7 +108,7 @@ export async function pozitsiyaniTahrirla(
   return ulanish.begin(async (tx) => {
     const q = await tx<EskiQator[]>`
       SELECT p.id, p.holat, p.buyurtma_id, p.mahsulot_tur_id,
-             p.qoshimcha_material_id, p.eni_m, p.boyi_m, p.soni,
+             p.qoshimcha_material_id, p.eni_m::text, p.boyi_m::text, p.soni,
              p.narx_snapshot::text, p.chegirma_summa::text, p.xizmat_haqi::text,
              b.mijoz_id, b.sotgan_filial_id, b.ishlab_chiqaruvchi_filial_id,
              b.valyuta, b.kurs_snapshot::text, b.raqam
@@ -175,8 +181,15 @@ export async function pozitsiyaniTahrirla(
      *    kelmasligi mumkin. Faqat narx yoki aksessuar o'zgarsa —
      *    yo'q, ombordagi bo'lak o'sha-o'sha.
      */
+    /**
+     * ⚠️ `Number()` SHART. `numeric` ustun postgres.js dan MATN
+     *    bo'lib keladi (P-13), matn bilan son `!==` da esa HAR DOIM
+     *    farq qiladi: `'2.50' !== 2.5`. Ya'ni o'lcham umuman
+     *    o'zgarmagan bo'lsa ham band qayta qo'yilardi — ombor
+     *    keraksiz qulflanib, «bo'lak yetmadi» xabari chiqardi.
+     */
     const olchamOzgardi =
-      eski.eni_m !== kirim.eniM || eski.boyi_m !== kirim.boyiM;
+      Number(eski.eni_m) !== kirim.eniM || Number(eski.boyi_m) !== kirim.boyiM;
 
     const eskiXarita = new Map(eskiSlotlar.map((s) => [s.slot_id, s]));
     const matoOzgardi = kirim.slotlar.some((s) => {
@@ -354,8 +367,8 @@ export async function pozitsiyaniTahrirla(
       VALUES (${xodimId}, ${eski.sotgan_filial_id}, 'TAHRIRLASH',
               'buyurtma_pozitsiya', ${kirim.pozitsiyaId},
               ${tx.json({
-                eni_m: eski.eni_m,
-                boyi_m: eski.boyi_m,
+                eni_m: Number(eski.eni_m),
+                boyi_m: Number(eski.boyi_m),
                 soni: eski.soni,
                 narx: eski.narx_snapshot,
                 chegirma: eski.chegirma_summa,

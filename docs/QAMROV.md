@@ -103,6 +103,26 @@ unutilsa raqam 100 (yoki 10 000) barobar adashardi. Endi o'girishning
 | `docs/JALYUZI-TURLARI.md` 28 formula metrda qayta yozildi | ✅ |
 | Bazadagi formulalarni tekshirish asbobi (`db:formula-tekshir`) | ✅ |
 
+### `numeric` → MATN tuzog'i (P-13) — baza testlari ushladi
+
+`eni_sm` `integer` edi va postgres.js undan SON qaytarardi.
+`numeric(8,2)` ga o'tgach ayni ustun MATN qaytara boshladi
+(`'2.50'`). Typecheck buni ko'rmaydi — tur ta'rifi qo'lda
+yozilgan.
+
+| Qayerda | Nima bo'lardi |
+|---|---|
+| `buyurtma-tahrir.ts` | `'2.50' !== 2.5` HAR DOIM rost → o'lcham o'zgarmasa ham band qayta qo'yilardi |
+| `buyurtma.ts` band qilish | kesim bo'yi matn bo'lib ketardi |
+| `stavka.ts` | usta haqi maydoni |
+| `chek.ts`, `malumot.ts`, `usta.ts` | ekran va chek o'lchami |
+
+Hammasi `::text` + `Number()` ga o'tkazildi — `band.ts` dagi
+mavjud konvensiya bo'yicha.
+
+⚠️ Buni FAQAT baza testlari topdi. Bazasiz 1003 ta test
+yashil edi.
+
 ⚠️ **Kanonik raqamlar O'ZGARMADI** — K-01 baribir `147 000`,
 K-02 baribir `3.96 kv.m`, K-03 baribir `570 800`. Pul javobi birlik
 tizimiga bog'liq emas; raqam o'zgarmagani — o'tish to'g'ri
@@ -132,7 +152,7 @@ shubhalisi yo'q.**
 | `mahsulot_slot.kesim_eni_m` ustuni | ✅ |
 | `kesimOlchami` qat'iy enini qo'llaydi | ✅ |
 | Konstruktor ekranida «Kesim eni» katagi | ✅ |
-| Sotuv/band/tugatdim zanjiriga ulanishi | ⏳ |
+| Sotuv/band/tugatdim zanjiriga ulanishi | ✅ |
 
 ⚠️ Vertikal jalyuzi lameli rulonda **0.40 m** enli keladi va uni
 ENIGA kesib bo'lmaydi. 8 kv.m sarf — bu «4.00 × 2.00» emas,

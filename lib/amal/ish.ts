@@ -51,8 +51,14 @@ interface PozitsiyaQatori {
   readonly holat: string;
   readonly usta_id: number | null;
   readonly buyurtma_id: number;
-  readonly eni_m: number;
-  readonly boyi_m: number;
+  /**
+   * ⚠️ `numeric` ustun postgres.js dan MATN bo'lib keladi (P-13).
+   *    0043 da `integer` dan `numeric(8,2)` ga o'tgach bu yerda tur
+   *    `number` dan `string` ga o'zgardi — raqam kerak joyda
+   *    `Number()` bilan o'giriladi.
+   */
+  readonly eni_m: string;
+  readonly boyi_m: string;
   /** 3.4 — bir pozitsiyada bir nechta bir xil buyum bo'lishi mumkin */
   readonly soni: number;
   readonly stavka_snapshot: string | null;
@@ -66,7 +72,7 @@ async function pozitsiyaniQulfla(
   pozitsiyaId: number,
 ): Promise<PozitsiyaQatori> {
   const q = await tx<PozitsiyaQatori[]>`
-    SELECT p.id, p.holat, p.usta_id, p.buyurtma_id, p.eni_m, p.boyi_m,
+    SELECT p.id, p.holat, p.usta_id, p.buyurtma_id, p.eni_m::text, p.boyi_m::text,
            p.soni, p.stavka_snapshot, p.stavka_birlik_snapshot,
            b.sotgan_filial_id, b.ishlab_chiqaruvchi_filial_id
     FROM buyurtma_pozitsiya p
@@ -457,7 +463,7 @@ export async function tugatdim(
         *    yo'li ham, bot yo'li ham aynan shuni chaqiradi.
         */
        /** T-12 — jami sarfdan BIR BUYUM ulushi; usta har bandni alohida kesadi */
-       const kerak = kesimOlchami(band.hisoblangan_miqdor, p.boyi_m, {
+       const kerak = kesimOlchami(band.hisoblangan_miqdor, Number(p.boyi_m), {
          koeffitsient: Number(band.koeffitsient),
          yonalish: band.kesish_turi === "BO'YIGA" ? ("BO'YIGA" as const) : ('ENIGA' as const),
          soni: p.soni,

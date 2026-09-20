@@ -592,8 +592,8 @@ describe("TZ 3.10 — qo'shimcha buyum", () => {
       {
         mahsulot_tur_id: number | null;
         qoshimcha_material_id: number | null;
-        eni_m: number;
-        boyi_m: number;
+        eni_m: string;
+        boyi_m: string;
         soni: number;
         holat: string;
       }[]
@@ -603,8 +603,13 @@ describe("TZ 3.10 — qo'shimcha buyum", () => {
 
     expect(p[0]?.mahsulot_tur_id).toBeNull();
     expect(p[0]?.qoshimcha_material_id).toBe(aksessuarId);
-    expect(p[0]?.eni_m).toBe(0);
-    expect(p[0]?.boyi_m).toBe(0);
+    /**
+     * ⚠️ `numeric` ustun postgres.js dan MATN bo'lib keladi (P-13).
+     *    0043 da `integer` → `numeric(8,2)` bo'lgach bu yerda ham
+     *    matn kutiladi — `250` emas, `'2.50'`.
+     */
+    expect(p[0]?.eni_m).toBe('0.00');
+    expect(p[0]?.boyi_m).toBe('0.00');
     expect(p[0]?.soni).toBe(2);
     // Band qilinmaydi — darhol yechiladi, ish tayyor
     expect(p[0]?.holat).toBe('TASDIQLANGAN');
@@ -893,7 +898,7 @@ describe("T-13 — tanlangan qo'shimcha buyurtmaga yoziladi", () => {
  * T-12 · Egasi qarori 2026-09-20 — pozitsiyada bir nechta buyum.
  *
  * ⚠️ Ilgari `soni = 3` bo'lsa jami maydon BITTA to'rtburchakka
- *    aylanardi: uchta 180 sm parda 5.40 metr KENG bo'lak talab
+ *    aylanardi: uchta 1.80 m parda 5.40 metr KENG bo'lak talab
  *    qilardi va bunday rulon topilmagani uchun pozitsiya abadiy
  *    «Materialga kutmoqda» da qolardi.
  *
@@ -919,7 +924,7 @@ describe('T-12 — soni > 1 da har buyumga ALOHIDA band', () => {
                 tuzatilganMiqdor: null,
                 birlik: 'KV_M',
                 narxSnapshot: '120000',
-                kerak: kesimOlchami('8.8200', 140, { soni: 3 }),
+                kerak: kesimOlchami('8.8200', 1.4, { soni: 3 }),
               },
             ],
           }),
@@ -943,8 +948,8 @@ describe('T-12 — soni > 1 da har buyumga ALOHIDA band', () => {
   });
 
   it('kesim to‘rtburchagi BITTA buyum o‘lchamida', () => {
-    const bitta = kesimOlchami('2.9400', 140);
-    const uchta = kesimOlchami('8.8200', 140, { soni: 3 });
+    const bitta = kesimOlchami('2.9400', 1.4);
+    const uchta = kesimOlchami('8.8200', 1.4, { soni: 3 });
     expect(uchta).toEqual(bitta);
   });
 });
@@ -1000,12 +1005,13 @@ describe("Materialni o'zi sotish — mato metrlab", () => {
     const poz = n.pozitsiyalar[0]?.pozitsiyaId ?? 0;
 
     const p = await sql<
-      { eni_m: number; boyi_m: number; tur: number | null; material: number | null }[]
+      { eni_m: string; boyi_m: string; tur: number | null; material: number | null }[]
     >`
       SELECT eni_m, boyi_m, mahsulot_tur_id AS tur, qoshimcha_material_id AS material
       FROM buyurtma_pozitsiya WHERE id = ${poz}`;
-    expect(p[0]?.eni_m).toBe(250);
-    expect(p[0]?.boyi_m).toBe(500);
+    /** ⚠️ Metrda: 2.50 × 5.00 (ilgari 250 × 500 sm) */
+    expect(p[0]?.eni_m).toBe('2.50');
+    expect(p[0]?.boyi_m).toBe('5.00');
     expect(p[0]?.tur).toBeNull();
     expect(p[0]?.material).toBe(matoId);
 
@@ -1047,10 +1053,11 @@ describe("Materialni o'zi sotish — mato metrlab", () => {
     );
 
     const poz = n.pozitsiyalar[0]?.pozitsiyaId ?? 0;
-    const p = await sql<{ eni_m: number; boyi_m: number }[]>`
+    const p = await sql<{ eni_m: string; boyi_m: string }[]>`
       SELECT eni_m, boyi_m FROM buyurtma_pozitsiya WHERE id = ${poz}`;
-    expect(p[0]?.eni_m).toBe(0);
-    expect(p[0]?.boyi_m).toBe(0);
+    /** ⚠️ `numeric` matn bo'lib keladi (P-13) — `0` emas, `'0.00'` */
+    expect(p[0]?.eni_m).toBe('0.00');
+    expect(p[0]?.boyi_m).toBe('0.00');
 
     const m = await sql<{ n: number }[]>`
       SELECT COUNT(*)::int AS n FROM pozitsiya_material

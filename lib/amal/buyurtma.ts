@@ -623,10 +623,11 @@ export async function pozitsiyaniTasdiqla(
       WHERE pm.buyurtma_pozitsiya_id = ${pozitsiyaId}`;
 
     // O'lchamni pozitsiyadan olamiz — band qilish METRDA ishlaydi (Q-05)
-    const olcham = await tx<{ eni_m: number; boyi_m: number; soni: number }[]>`
-      SELECT eni_m, boyi_m, soni FROM buyurtma_pozitsiya WHERE id = ${pozitsiyaId}`;
+    const olcham = await tx<{ eni_m: string; boyi_m: string; soni: number }[]>`
+      SELECT eni_m::text, boyi_m::text, soni FROM buyurtma_pozitsiya WHERE id = ${pozitsiyaId}`;
 
-    const boyiM = olcham[0]?.boyi_m ?? 0;
+    /** ⚠️ `numeric` matn bo'lib keladi (P-13) — `Number()` shart */
+    const boyiM = Number(olcham[0]?.boyi_m ?? 0);
     /** T-12 — pozitsiyadagi buyum soni; kesim BITTA buyum uchun */
     const soni = olcham[0]?.soni ?? 1;
 

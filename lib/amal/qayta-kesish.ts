@@ -227,8 +227,8 @@ export async function qaytaKesishHal(
     const pozitsiyalar = await tx<
       {
         holat: string;
-        eni_m: number;
-        boyi_m: number;
+        eni_m: string;
+        boyi_m: string;
         soni: number;
         usta_id: number | null;
         qayta_kesildi_soni: number;
@@ -236,7 +236,7 @@ export async function qaytaKesishHal(
         ishlab_chiqaruvchi_filial_id: number;
       }[]
     >`
-      SELECT p.holat, p.eni_m, p.boyi_m, p.soni, p.usta_id, p.qayta_kesildi_soni,
+      SELECT p.holat, p.eni_m::text, p.boyi_m::text, p.soni, p.usta_id, p.qayta_kesildi_soni,
              b.sotgan_filial_id, b.ishlab_chiqaruvchi_filial_id
       FROM buyurtma_pozitsiya p
       JOIN buyurtma b ON b.id = p.buyurtma_id
@@ -345,7 +345,7 @@ export async function qaytaKesishHal(
       .filter((s) => s.birlik === 'KV_M')
       .flatMap((s) => {
         // P-24 — kesim to'rtburchagi maydondan chiqadi (AUDIT 1: kesish yo'nalishi bilan)
-        const kerak = kesimOlchami(s.hisoblangan_miqdor, p.boyi_m, {
+        const kerak = kesimOlchami(s.hisoblangan_miqdor, Number(p.boyi_m), {
           koeffitsient: Number(s.koeffitsient),
           yonalish: s.kesish_turi === "BO'YIGA" ? ("BO'YIGA" as const) : ('ENIGA' as const),
           soni: p.soni,
