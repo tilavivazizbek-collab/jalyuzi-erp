@@ -635,7 +635,9 @@ export function KirimFormasi({
                       onChange={(e) => {
                         miqdorniYangila(i, e.target.value);
                       }}
-                      placeholder={m?.kirimBirligi ?? 'miqdor'}
+                      placeholder={
+                        m === undefined ? 'miqdor' : `nechta ${m.kirimBirligi}`
+                      }
                       inputMode="decimal"
                       className={kichik}
                     />
@@ -718,9 +720,18 @@ export function KirimFormasi({
                   {/* TZ 7.9 — rulon uchun har birining o'lchami */}
                   {rulonmi && q.bolaklar.length > 0 && (
                     <div className="mt-3 rounded-maydon bg-fon p-3">
+                      {/*
+                        ⚠️ Birlik SARLAVHADA yoziladi, placeholderda emas:
+                           placeholder yozishni boshlagan zahoti yo'qoladi
+                           va omborchi «eni 250» deb santimetr yozib
+                           qo'yardi — bo'lak 250 metr enli bo'lib tushardi.
+                      */}
+                      <p className="mb-1 text-[13px] font-medium text-matn">
+                        Har rulonning o&apos;lchami — <b>metrda</b>
+                      </p>
                       <p className="mb-2 text-xs text-matn-ikki">
-                        Har rulon alohida bo&apos;lak bo&apos;lib tushadi — o&apos;lchamini kiriting
-                        (7.9)
+                        Har rulon alohida bo&apos;lak bo&apos;lib tushadi (7.9).
+                        Masalan <b>2.5 × 30</b> — eni 2.5 metr, bo&apos;yi 30 metr.
                       </p>
                       <div className="flex flex-col gap-1.5">
                         {q.bolaklar.map((b, k) => (
@@ -735,7 +746,7 @@ export function KirimFormasi({
                                 yangi[k] = { ...b, eniM: e.target.value };
                                 yangila(i, { bolaklar: yangi });
                               }}
-                              placeholder="eni (m)"
+                              placeholder="eni, metr"
                               inputMode="decimal"
                               className={`${kichik} max-w-28`}
                             />
@@ -747,7 +758,7 @@ export function KirimFormasi({
                                 yangi[k] = { ...b, boyiM: e.target.value };
                                 yangila(i, { bolaklar: yangi });
                               }}
-                              placeholder="bo'yi (m)"
+                              placeholder="bo'yi, metr"
                               inputMode="decimal"
                               className={`${kichik} max-w-28`}
                             />

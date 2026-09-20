@@ -275,7 +275,15 @@ export function MahsulotFormasi({
             </label>
 
             <label className="flex flex-col gap-1">
-              <span className="text-sm font-medium text-matn-ikki">Xizmat haqi</span>
+              {/*
+                ⚠️ VALYUTA aytiladi. Aytilmasa egasi dollar deb yozib
+                   qo'yardi va xizmat haqi 12 ming barobar kichik
+                   chiqardi — bu maydonda valyuta tanlovi yo'q,
+                   u doim so'mda.
+              */}
+              <span className="text-sm font-medium text-matn-ikki">
+                Xizmat haqi (so&apos;m)
+              </span>
               <input
                 name="xizmatHaqi"
                 value={xizmatHaqi}
@@ -286,7 +294,8 @@ export function MahsulotFormasi({
                 className={kirish}
               />
               <span className="text-xs text-matn-kuchsiz">
-                ixtiyoriy — bo&apos;sh qolsa narxga qo&apos;shilmaydi
+                ixtiyoriy — bo&apos;sh qolsa narxga qo&apos;shilmaydi. Har
+                pozitsiyaga bir marta qo&apos;shiladi.
               </span>
             </label>
 

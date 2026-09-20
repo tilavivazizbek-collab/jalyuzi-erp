@@ -509,7 +509,18 @@ export function MaterialFormasi({
                 className={chegara('sarflashBirligi')}
               />
             </Maydon>
-            <Maydon nom="koeffitsient" yorliq="Koeffitsient" xato={x('koeffitsient')}>
+            {/*
+              ⚠️ Bu katak faqat ESKI, ro'yxatga tushmagan birlikli
+                 materialda ko'rinadi. Birligi aytilmasa omborchi
+                 metr deb yozib qo'yardi va sarf 100 barobar xato
+                 chiqardi (Q-01: koeffitsient SANTIMETRDA).
+            */}
+            <Maydon
+              nom="koeffitsient"
+              yorliq="Koeffitsient — 1 kirim birligida necha SANTIMETR"
+              izoh="masalan 1 shtanga = 3 metr bo‘lsa, bu yerga 300 yoziladi"
+              xato={x('koeffitsient')}
+            >
               <input
                 id="koeffitsient"
                 name="koeffitsient"
@@ -602,11 +613,11 @@ export function MaterialFormasi({
           */}
           <Maydon
             nom="kurs"
-            yorliq="Kurs"
+            yorliq="Kurs — 1 dollar necha so'm"
             izoh={
               joriyKurs === ''
                 ? "belgilanmagan — Sozlash → Dollar kursi"
-                : "bugungi kurs, faqat ko'rsatish uchun"
+                : "bugungi kurs, faqat ko'rsatish uchun — saqlanmaydi"
             }
           >
             <input
@@ -733,8 +744,8 @@ export function MaterialFormasi({
             <>
               <Maydon
                 nom="yaroqsizChegaraM"
-            yorliq="Yaroqsiz (m)"
-            izoh="standart 0.5"
+            yorliq="Yaroqsiz qoldiq eni (metr)"
+            izoh="shundan tor qoldiq chiqindiga ketadi · standart 0.5 m"
             xato={x('yaroqsizChegaraM')}
           >
             <input
@@ -747,8 +758,8 @@ export function MaterialFormasi({
           </Maydon>
           <Maydon
             nom="kamIshlatiladiganM"
-            yorliq="Kam ishlatiladigan (m)"
-            izoh="standart 1.0"
+            yorliq="Kam ishlatiladigan qoldiq eni (metr)"
+            izoh="shundan tor qoldiq saqlanadi, lekin belgilanadi · standart 1.0 m"
             xato={x('kamIshlatiladiganM')}
           >
             <input
@@ -765,7 +776,11 @@ export function MaterialFormasi({
           <Maydon
             nom="kamQoldiqChegaraM"
             yorliq={`Kam qoldiq (${chegaraBirligi(tavsif?.sarflashBirligi ?? '')})`}
-            izoh={ostatkaBor ? undefined : 'masalan 10 — 10 donadan kam qolsa ogohlantiradi'}
+            izoh={
+              ostatkaBor
+                ? 'shundan kam qolsa ogohlantiradi — uzunlik bo‘yicha, metrda'
+                : 'masalan 10 — 10 donadan kam qolsa ogohlantiradi'
+            }
             xato={x('kamQoldiqChegaraM')}
           >
             <input
@@ -776,10 +791,23 @@ export function MaterialFormasi({
               className={chegara('kamQoldiqChegaraM')}
             />
           </Maydon>
+          {/*
+            ⚠️ Birligi KIRIM birligida — omborchi shu birlikda xarid
+               qiladi. «2» degani «ikkitalab olinadi»: 3 ta kerak
+               bo'lsa 4 ta buyurtma qilinadi.
+          */}
           <Maydon
             nom="yaxlitlashQadami"
-            yorliq="Yaxlitlash qadami"
-            izoh="xarid ro'yxati uchun"
+            yorliq={
+              tavsif === null
+                ? 'Yaxlitlash qadami'
+                : `Yaxlitlash qadami (${tavsif.kirimBirligi})`
+            }
+            izoh={
+              tavsif === null
+                ? "xarid ro'yxatida shuncha donadan yaxlitlanadi"
+                : `xaridda shuncha ${tavsif.kirimBirligi}dan yaxlitlanadi — masalan 2`
+            }
             xato={x('yaxlitlashQadami')}
           >
             <input

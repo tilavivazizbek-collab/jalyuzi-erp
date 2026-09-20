@@ -255,8 +255,17 @@ export function ZahiraBolimi({
         <div className="mt-4 flex flex-col gap-4">
           {rulonmi ? (
             <div>
+              {/*
+                ⚠️ Birlik SARLAVHADA yoziladi, placeholderda emas:
+                   placeholder yozishni boshlagan zahoti yo'qoladi va
+                   omborchi «eni 250» deb santimetr yozib qo'yardi.
+              */}
+              <p className="mb-1 text-[13px] font-medium text-matn">
+                Har rulonning o&apos;lchami — <b>metrda</b>
+              </p>
               <p className="mb-2 text-xs text-matn-ikki">
-                Har rulon alohida bo&apos;lak bo&apos;lib tushadi (7.9)
+                Har rulon alohida bo&apos;lak bo&apos;lib tushadi (7.9).
+                Masalan <b>2.5 × 30</b> — eni 2.5 metr, bo&apos;yi 30 metr.
               </p>
               <div className="flex flex-col gap-1.5">
                 {olchamlar.map((o, k) => (
@@ -270,7 +279,7 @@ export function ZahiraBolimi({
                           x.map((y, j) => (j === k ? { ...y, eniM: e.target.value } : y)),
                         );
                       }}
-                      placeholder="eni (m)"
+                      placeholder="eni, metr"
                       inputMode="decimal"
                       className={`${kirishUslubi(false)} max-w-28`}
                     />
@@ -283,7 +292,7 @@ export function ZahiraBolimi({
                           x.map((y, j) => (j === k ? { ...y, boyiM: e.target.value } : y)),
                         );
                       }}
-                      placeholder="bo'yi (m)"
+                      placeholder="bo'yi, metr"
                       inputMode="decimal"
                       className={`${kirishUslubi(false)} max-w-28`}
                     />
@@ -330,7 +339,7 @@ export function ZahiraBolimi({
             <Maydon
               nom="zahiraMiqdor"
               yorliq={`Miqdor (${birlikNomi})`}
-              izoh="omborda hozir turgan miqdor"
+              izoh={`omborda hozir turgan miqdor — ${birlikNomi}da`}
               xato={xatolar['miqdor']}
             >
               <input
