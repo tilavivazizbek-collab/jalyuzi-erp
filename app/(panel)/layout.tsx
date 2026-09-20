@@ -77,6 +77,7 @@ const MENYU: readonly Guruh[] = [
     bandlar: [
       { yol: '/material', nom: 'Mahsulotlar', kod: 'material.kor' },
       { yol: '/mahsulot', nom: "Tur yig'ish", kod: 'mahsulot.kor' },
+      { yol: '/narx', nom: 'Narxlar va turlar', kod: 'mahsulot.kor' },
       { yol: '/guruh', nom: 'Guruhlarni boshqarish', kod: 'material.kor' },
     ],
   },

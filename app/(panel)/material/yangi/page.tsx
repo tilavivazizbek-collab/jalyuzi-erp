@@ -18,9 +18,12 @@ export default async function YangiMaterial() {
 
   const ulanish = ulanishOl();
 
-  const [guruhlar, kurs, turNarxlari] = await Promise.all([
+  const [guruhlar, narxGuruhlari, kurs, turNarxlari] = await Promise.all([
     ulanish<Guruh[]>`
       SELECT id, nom FROM almashtirish_guruh WHERE faol = true ORDER BY nom`,
+    /** Mato darajalari — mijoz narxi shundan (egasi qarori 2026-09-20) */
+    ulanish<Guruh[]>`
+      SELECT id, nom FROM narx_guruh WHERE faol = true ORDER BY tartib, nom`,
     // $ ↔ so'm ko'rsatish uchun. Kurs yo'q bo'lsa hamroh katak jim turadi
     joriyKurs(ulanish),
     /** TZ 5.4 · 6.2 — yangi materialda narxlar bo'sh, turlar ro'yxati kerak */
@@ -43,6 +46,8 @@ export default async function YangiMaterial() {
           amal={materialYaratAmali}
           qiymatlar={BOSH_QIYMATLAR}
           guruhlar={guruhlar}
+          narxGuruhlari={narxGuruhlari}
+          narxGuruhQoshaOladi={ruxsatBormi(f, 'narx.standart.ozgartir')}
           guruhQoshaOladi={guruhQoshaOladi}
           joriyKurs={kurs ?? ''}
           oxirgiKelish={null}

@@ -29,6 +29,8 @@ export const MATERIAL_MAYDONLARI = [
   'standartRulonEniM',
   'odatdagiRulonBoyiM',
   'almashtirishGuruhId',
+  /** Mato darajasi — mijoz narxi shundan (egasi qarori 2026-09-20) */
+  'narxGuruhId',
   'yaxlitlashQadami',
   // TZ 7.9 — kirimda narx bo'yiga yoki kv.m ga
   'kirimNarxAsosi',

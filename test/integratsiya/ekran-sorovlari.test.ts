@@ -33,6 +33,7 @@ import * as yoldaEkrani from '@/app/(panel)/buyurtma/yolda/malumot';
 import * as boshqaruvEkrani from '@/app/(panel)/boshqaruv/malumot';
 import * as katalog from '@/lib/amal/katalog';
 import * as mahsulotEkrani from '@/app/(panel)/mahsulot/malumot';
+import * as narxEkrani from '@/app/(panel)/narx/malumot';
 import * as materialKartochka from '@/app/(panel)/ombor/[id]/malumot';
 import * as mijozKartochka from '@/app/(panel)/mijoz/[id]/malumot';
 import * as yetkazibKartochka from '@/app/(panel)/yetkazib/[id]/malumot';
@@ -296,6 +297,35 @@ describe('Spravochnik ekranlari', () => {
     await expect(mahsulotEkrani.turOchirilganSoni()).resolves.toBeTypeOf('number');
     await expect(mahsulotEkrani.guruhlarniOl()).resolves.toBeDefined();
     await expect(mahsulotEkrani.materiallarniOl()).resolves.toBeDefined();
+  });
+
+  /**
+   * «Narxlar va turlar» — egasi qarori 2026-09-20.
+   *
+   * ⚠️ Bu ekran BESH yangi jadvalga murojaat qiladi va ularning
+   *    biri ham hali ma'lumot bilan to'lmagan. Bo'sh natija TO'G'RI
+   *    natija: tekshiriladigan narsa — so'rov YIQILMASLIGI.
+   */
+  it('narx ekrani — qoidalar, bosqichlar, qo‘shimchalar', async () => {
+    await expect(narxEkrani.turlarniOl()).resolves.toBeDefined();
+    await expect(narxEkrani.narxGuruhlariniOl()).resolves.toBeDefined();
+    await expect(narxEkrani.materiallarniOl()).resolves.toBeDefined();
+    await expect(narxEkrani.almashtirishGuruhlariniOl()).resolves.toBeDefined();
+    await expect(narxEkrani.mijozTurlariniOl()).resolves.toBeDefined();
+    await expect(narxEkrani.filiallarniOl()).resolves.toBeDefined();
+    await expect(narxEkrani.joriyKursniOl()).resolves.toBeDefined();
+
+    /** ⚠️ Mavjud bo'lmagan tur — bo'sh ro'yxat qaytishi kerak, yiqilmasligi */
+    await expect(narxEkrani.turQoidalariniOl(-1)).resolves.toEqual([]);
+    await expect(narxEkrani.turQoshimchalariniOl(-1)).resolves.toEqual([]);
+
+    /** Haqiqiy tur bilan — `ANY(...)` bo'lgan ikkinchi so'rov ham yurishi kerak */
+    const turlar = await narxEkrani.turlarniOl();
+    const birinchi = turlar[0];
+    if (birinchi !== undefined) {
+      await expect(narxEkrani.turQoidalariniOl(birinchi.id)).resolves.toBeDefined();
+      await expect(narxEkrani.turQoshimchalariniOl(birinchi.id)).resolves.toBeDefined();
+    }
   });
 
   it('mijoz guruhlari — TZ 6.3', async () => {

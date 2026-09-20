@@ -97,6 +97,17 @@ export const materialSxema = z
       .optional(),
 
     /**
+     * Mato darajasi — mijoz narxi shundan hisoblanadi (egasi qarori
+     * 2026-09-20). Bo'sh bo'lishi mumkin: aksessuar va mexanizmga
+     * daraja kerak emas, ular narxga alohida kirmaydi.
+     */
+    narxGuruhId: z
+      .string()
+      .trim()
+      .transform((x) => (x === '' ? undefined : Number(x)))
+      .optional(),
+
+    /**
      * TZ 7.9 — KIRIMDA narx nimaga berilgani.
      *
      * ⚠️ Sotuvga tegmaydi: sotuvda har doim kv.m ishlaydi.

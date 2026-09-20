@@ -39,6 +39,7 @@ interface Qator {
   readonly ozgartirildi: string | null;
   readonly odatdagi_rulon_boyi_m: string | null;
   readonly almashtirish_guruh_id: number | null;
+  readonly narx_guruh_id: number | null;
   readonly yaxlitlash_qadami: string | null;
   readonly kirim_narx_asosi: string;
 }
@@ -65,7 +66,7 @@ export default async function MaterialTahrirlash({ params }: { params: Promise<{
            sotuv_narx, sotuv_valyuta, kutilayotgan_kelish_narx,
            kutilayotgan_kelish_valyuta, min_ustama_foiz, yaroqsiz_chegara_m,
            kam_ishlatiladigan_m, kam_qoldiq_chegara_m, standart_rulon_eni_m,
-           odatdagi_rulon_boyi_m, almashtirish_guruh_id, yaxlitlash_qadami,
+           odatdagi_rulon_boyi_m, almashtirish_guruh_id, narx_guruh_id, yaxlitlash_qadami,
            kirim_narx_asosi,
            (rasm IS NOT NULL) AS rasm_bormi,
            to_char(ozgartirildi, 'YYYYMMDDHH24MISS') AS ozgartirildi
@@ -73,9 +74,12 @@ export default async function MaterialTahrirlash({ params }: { params: Promise<{
   const material = qatorlar[0];
   if (material === undefined) notFound();
 
-  const [guruhlar, kurs, oxirgiKelish, turNarxlari] = await Promise.all([
+  const [guruhlar, narxGuruhlari, kurs, oxirgiKelish, turNarxlari] = await Promise.all([
     ulanish<Guruh[]>`
       SELECT id, nom FROM almashtirish_guruh WHERE faol = true ORDER BY nom`,
+    /** Mato darajalari — mijoz narxi shundan (egasi qarori 2026-09-20) */
+    ulanish<Guruh[]>`
+      SELECT id, nom FROM narx_guruh WHERE faol = true ORDER BY tartib, nom`,
     // $ ↔ so'm ko'rsatish uchun (bazaga yozilmaydi)
     joriyKurs(ulanish),
     // TZ 5.4 — haqiqiy tannarx kirimdan keladi, faqat ko'rsatiladi
@@ -106,6 +110,8 @@ export default async function MaterialTahrirlash({ params }: { params: Promise<{
     odatdagiRulonBoyiM: m(material.odatdagi_rulon_boyi_m),
     almashtirishGuruhId:
       material.almashtirish_guruh_id === null ? '' : String(material.almashtirish_guruh_id),
+    narxGuruhId:
+      material.narx_guruh_id === null ? '' : String(material.narx_guruh_id),
     yaxlitlashQadami: m(material.yaxlitlash_qadami),
     kirimNarxAsosi: material.kirim_narx_asosi,
   };
@@ -131,6 +137,8 @@ export default async function MaterialTahrirlash({ params }: { params: Promise<{
           amal={amal}
           qiymatlar={qiymatlar}
           guruhlar={guruhlar}
+          narxGuruhlari={narxGuruhlari}
+          narxGuruhQoshaOladi={ruxsatBormi(f, 'narx.standart.ozgartir')}
           guruhQoshaOladi={ruxsatBormi(f, 'material.ozgartir')}
           joriyKurs={kurs ?? ''}
           oxirgiKelish={oxirgiKelish}

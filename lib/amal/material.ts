@@ -92,7 +92,7 @@ export async function materialYarat(
         min_ustama_foiz,
         yaroqsiz_chegara_m, kam_ishlatiladigan_m, kam_qoldiq_chegara_m,
         standart_rulon_eni_m, odatdagi_rulon_boyi_m,
-        almashtirish_guruh_id, yaxlitlash_qadami, kirim_narx_asosi,
+        almashtirish_guruh_id, narx_guruh_id, yaxlitlash_qadami, kirim_narx_asosi,
         yaratdi_id
       ) VALUES (
         ${kirim.nom}, ${kirim.hisobTuri}, ${kirim.kirimBirligi},
@@ -103,7 +103,8 @@ export async function materialYarat(
         ${yoNull(kirim.yaroqsizChegaraM)}, ${yoNull(kirim.kamIshlatiladiganM)},
         ${yoNull(kirim.kamQoldiqChegaraM)}, ${yoNull(kirim.standartRulonEniM)},
         ${yoNull(kirim.odatdagiRulonBoyiM)},
-        ${kirim.almashtirishGuruhId ?? null}, ${yoNull(kirim.yaxlitlashQadami)},
+        ${kirim.almashtirishGuruhId ?? null}, ${kirim.narxGuruhId ?? null},
+        ${yoNull(kirim.yaxlitlashQadami)},
         ${kirim.kirimNarxAsosi},
         ${xodimId}
       ) RETURNING id`;
@@ -218,6 +219,7 @@ export async function materialTahrirla(
         standart_rulon_eni_m = ${yoNull(kirim.standartRulonEniM)},
         odatdagi_rulon_boyi_m = ${yoNull(kirim.odatdagiRulonBoyiM)},
         almashtirish_guruh_id = ${kirim.almashtirishGuruhId ?? null},
+        narx_guruh_id = ${kirim.narxGuruhId ?? null},
         yaxlitlash_qadami = ${yoNull(kirim.yaxlitlashQadami)},
         kirim_narx_asosi = ${kirim.kirimNarxAsosi},
         ozgartirildi = now(), ozgartirdi_id = ${xodimId}
