@@ -65,7 +65,7 @@ describe('sarfFormulasi — natija formula qatlamida ishlaydi', () => {
    */
   it('har turdan chiqqan formula tekshiruvdan o‘tadi', () => {
     for (const t of SARF_TURLARI) {
-      const f = t === 'MURAKKAB' ? "(ENI - 60) * BO'YI" : sarfFormulasi(t, '2');
+      const f = t === 'MURAKKAB' ? "(ENI - 60) * BO'YI" : sarfFormulasi(t, '2', '2');
       expect(formulaTekshir(f, []).yaroqli).toBe(true);
     }
   });
@@ -96,32 +96,32 @@ describe('sarfFormulasi — natija formula qatlamida ishlaydi', () => {
 
 describe('formuladanSarf — saqlangan formulani ekranga qaytarish', () => {
   it('«MAYDON * 2» → Maydondan × 2', () => {
-    expect(formuladanSarf('MAYDON * 2')).toEqual({ turi: 'MAYDON', qiymat: '2' });
+    expect(formuladanSarf('MAYDON * 2')).toEqual({ turi: 'MAYDON', qiymat: '2', qiymat2: '' });
   });
 
   it("bo'shliqsiz yozilgan ham o'qiladi", () => {
-    expect(formuladanSarf('ENI*1.5')).toEqual({ turi: 'ENI', qiymat: '1.5' });
+    expect(formuladanSarf('ENI*1.5')).toEqual({ turi: 'ENI', qiymat: '1.5', qiymat2: '' });
   });
 
   it('`×` belgisi ham `*` kabi o‘qiladi', () => {
-    expect(formuladanSarf('MAYDON × 2')).toEqual({ turi: 'MAYDON', qiymat: '2' });
+    expect(formuladanSarf('MAYDON × 2')).toEqual({ turi: 'MAYDON', qiymat: '2', qiymat2: '' });
   });
 
   it('boshqa apostrof bilan yozilgani ham o‘qiladi', () => {
-    expect(formuladanSarf('BO’YI * 3')).toEqual({ turi: "BO'YI", qiymat: '3' });
+    expect(formuladanSarf('BO’YI * 3')).toEqual({ turi: "BO'YI", qiymat: '3', qiymat2: '' });
   });
 
   it('yolg‘iz son → Har donaga', () => {
-    expect(formuladanSarf('4')).toEqual({ turi: 'DONA', qiymat: '4' });
+    expect(formuladanSarf('4')).toEqual({ turi: 'DONA', qiymat: '4', qiymat2: '' });
   });
 
   it('ko‘paytmasiz `MAYDON` → × 1', () => {
-    expect(formuladanSarf('MAYDON')).toEqual({ turi: 'MAYDON', qiymat: '1' });
+    expect(formuladanSarf('MAYDON')).toEqual({ turi: 'MAYDON', qiymat: '1', qiymat2: '' });
   });
 
   it('murakkab formula MURAKKAB bo‘lib, o‘zgarishsiz qoladi', () => {
     const f = "(ENI - 2 * CHET) * BO'YI";
-    expect(formuladanSarf(f)).toEqual({ turi: 'MURAKKAB', qiymat: f });
+    expect(formuladanSarf(f)).toEqual({ turi: 'MURAKKAB', qiymat: f, qiymat2: '' });
   });
 
   it("qo'shish borligi uchun sodda deb TAXMIN QILINMAYDI", () => {
@@ -136,14 +136,91 @@ describe('formuladanSarf — saqlangan formulani ekranga qaytarish', () => {
 
 describe('Borib-kelish qiymatni buzmaydi', () => {
   it('har raqamli tur formulaga aylanib, qaytib o‘ziga keladi', () => {
-    const raqamlilar = SARF_TURLARI.filter((t) => SARF_TAVSIFI[t].raqamli);
+    const raqamlilar = SARF_TURLARI.filter(
+      (t) => SARF_TAVSIFI[t].raqamli && !SARF_TAVSIFI[t].ikkiQiymat,
+    );
 
     for (const t of raqamlilar) {
       for (const son of ['1', '2', '1.5', '4']) {
         const f = sarfFormulasi(t, son);
         const q = formuladanSarf(f);
-        expect(q).toEqual({ turi: t, qiymat: son });
+        expect(q).toEqual({ turi: t, qiymat: son, qiymat2: '' });
       }
     }
+  });
+
+  it('ikki qiymatli tur ham o‘ziga qaytadi — qiymatlar ALMASHIB KETMAYDI', () => {
+    for (const [eni, boyi] of [
+      ['2', '2'],
+      ['1', '3'],
+      ['1.5', '0.5'],
+      ['4', '1'],
+    ] as const) {
+      const f = sarfFormulasi('ENI_BOYI', eni, boyi);
+      expect(formuladanSarf(f)).toEqual({ turi: 'ENI_BOYI', qiymat: eni, qiymat2: boyi });
+    }
+  });
+});
+
+/**
+ * «Ham eniga, ham bo'yiga» — egasining talabi (2026-09-20).
+ *
+ * ⚠️ QO'SHISH, ko'paytirish emas. `ENI × a × BO'YI × b` yozilsa u
+ *    `MAYDON × (a×b)` ning aynan o'zi bo'lardi va «Maydondan» turini
+ *    takrorlardi. Bu tur boshqa narsa uchun: material HAM eni, HAM
+ *    bo'yi bo'ylab ketadi — ramka profili.
+ */
+describe("ENI_BOYI — «Ham eniga, ham bo'yiga»", () => {
+  it("ikki koeffitsient qo'shiladi: «ENI * 2 + BO'YI * 2»", () => {
+    expect(sarfFormulasi('ENI_BOYI', '2', '2')).toBe("ENI * 2 + BO'YI * 2");
+  });
+
+  it('koeffitsientlar har xil bo‘lishi mumkin', () => {
+    expect(sarfFormulasi('ENI_BOYI', '1', '3')).toBe("ENI * 1 + BO'YI * 3");
+  });
+
+  it('ikkalasi ham tekshiriladi — biri bo‘sh bo‘lsa rad etiladi', () => {
+    expect(() => sarfFormulasi('ENI_BOYI', '2', '')).toThrow(BiznesXato);
+    expect(() => sarfFormulasi('ENI_BOYI', '', '2')).toThrow(BiznesXato);
+    expect(() => sarfFormulasi('ENI_BOYI', '2', '0')).toThrow(BiznesXato);
+    expect(() => sarfFormulasi('ENI_BOYI', '-1', '2')).toThrow(BiznesXato);
+  });
+
+  it('natija haqiqiy formula — dvigatel uni o‘qiy oladi', () => {
+    const f = sarfFormulasi('ENI_BOYI', '2', '2');
+    expect(formulaTekshir(f, []).yaroqli).toBe(true);
+    // Plisse ramkasi 200 × 100: yuqori+pastki 400 sm, ikki yon 200 sm
+    const n = formulaHisobla(f, { ENI: 200, "BO'YI": 100, MAYDON: 20000, SONI: 1 });
+    expect(n.toNumber()).toBe(600);
+  });
+
+  it('eni va bo‘yi MUSTAQIL — biri o‘zgarsa ikkinchisi tegmaydi', () => {
+    const f = sarfFormulasi('ENI_BOYI', '2', '3');
+    const a = formulaHisobla(f, { ENI: 100, "BO'YI": 100, MAYDON: 10000, SONI: 1 });
+    const b = formulaHisobla(f, { ENI: 200, "BO'YI": 100, MAYDON: 20000, SONI: 1 });
+    expect(a.toNumber()).toBe(500);
+    expect(b.toNumber()).toBe(700);
+  });
+
+  it("«MAYDON × (a×b)» EMAS — ko'paytma bilan adashtirilmaydi", () => {
+    const f = sarfFormulasi('ENI_BOYI', '2', '2');
+    const n = formulaHisobla(f, { ENI: 200, "BO'YI": 100, MAYDON: 20000, SONI: 1 });
+    expect(n.toNumber()).not.toBe(80000);
+  });
+
+  it("saqlangan «ENI * 2 + BO'YI * 2» ekranga qaytib o‘qiladi", () => {
+    expect(formuladanSarf("ENI * 2 + BO'YI * 2")).toEqual({
+      turi: 'ENI_BOYI',
+      qiymat: '2',
+      qiymat2: '2',
+    });
+  });
+
+  it("teskari tartib «BO'YI * 2 + ENI * 2» MURAKKAB bo‘ladi — taxmin qilinmaydi", () => {
+    expect(formuladanSarf("BO'YI * 2 + ENI * 2").turi).toBe('MURAKKAB');
+  });
+
+  it("uchinchi had qo‘shilsa MURAKKAB bo‘ladi", () => {
+    expect(formuladanSarf("ENI * 2 + BO'YI * 2 + 50").turi).toBe('MURAKKAB');
   });
 });

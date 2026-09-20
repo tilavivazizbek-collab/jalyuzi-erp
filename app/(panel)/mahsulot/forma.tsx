@@ -89,6 +89,8 @@ interface Qator {
   sarfTuri: SarfTuri;
   /** Raqamli turlarda son, `MURAKKAB` da formulaning o'zi */
   sarfQiymat: string;
+  /** Faqat `ENI_BOYI` — bo'yi koeffitsienti */
+  sarfQiymat2: string;
   majburiy: boolean;
   /** AUDIT 1-topilma — faqat GURUH (mato sloti) uchun ishlatiladi */
   koeffitsient: number;
@@ -119,6 +121,7 @@ function boshQatorlar(q: MahsulotQiymatlari): Qator[] {
       id: s.almashtirishGuruhId,
       sarfTuri: sarf.turi,
       sarfQiymat: sarf.qiymat,
+      sarfQiymat2: sarf.qiymat2,
       majburiy: s.majburiy,
       koeffitsient: s.koeffitsient,
       kesishTuri: s.kesishTuri,
@@ -132,6 +135,7 @@ function boshQatorlar(q: MahsulotQiymatlari): Qator[] {
       id: a.materialId,
       sarfTuri: sarf.turi,
       sarfQiymat: sarf.qiymat,
+      sarfQiymat2: sarf.qiymat2,
       majburiy: a.majburiy,
       koeffitsient: 1,
       kesishTuri: 'ENIGA',
@@ -149,9 +153,9 @@ function boshQatorlar(q: MahsulotQiymatlari): Qator[] {
  *    formula bilan ketadi va serverdagi tekshiruv tushunarli xato
  *    beradi (4.5 — «xato bo'lsa saqlanmaydi»).
  */
-function xavfsizFormula(turi: SarfTuri, qiymat: string): string {
+function xavfsizFormula(turi: SarfTuri, qiymat: string, qiymat2: string): string {
   try {
-    return sarfFormulasi(turi, qiymat);
+    return sarfFormulasi(turi, qiymat, qiymat2);
   } catch {
     return '';
   }
@@ -217,7 +221,7 @@ export function MahsulotFormasi({
        *    sarlavhasi bo'lib chiqadi.
        */
       nom: guruhNomi(q.id),
-      formula: xavfsizFormula(q.sarfTuri, q.sarfQiymat),
+      formula: xavfsizFormula(q.sarfTuri, q.sarfQiymat, q.sarfQiymat2),
       majburiy: q.majburiy,
       almashtirishGuruhId: q.id,
       koeffitsient: q.koeffitsient,
@@ -228,7 +232,7 @@ export function MahsulotFormasi({
     .filter((q) => q.turi === 'MATERIAL' && q.id !== null)
     .map((q) => ({
       materialId: q.id as number,
-      formula: xavfsizFormula(q.sarfTuri, q.sarfQiymat),
+      formula: xavfsizFormula(q.sarfTuri, q.sarfQiymat, q.sarfQiymat2),
       majburiy: q.majburiy,
     }));
 
@@ -334,7 +338,13 @@ export function MahsulotFormasi({
 
                 return (
                   <div key={i} className="rounded-maydon border border-chegara p-3">
-                    <div className="grid gap-2 sm:grid-cols-[1fr_150px_110px] sm:items-center">
+                    <div
+                      className={`grid gap-2 sm:items-center ${
+                        tavsif.ikkiQiymat
+                          ? 'sm:grid-cols-[1fr_150px_210px]'
+                          : 'sm:grid-cols-[1fr_150px_110px]'
+                      }`}
+                    >
                       <select
                         value={qatorQiymati(q)}
                         onChange={(e) => {
@@ -382,22 +392,81 @@ export function MahsulotFormasi({
                         ))}
                       </select>
 
-                      <div className="flex items-center gap-2">
-                        {tavsif.raqamli && (
-                          <span className="shrink-0 text-[13px] text-matn-kuchsiz">×</span>
-                        )}
-                        <input
-                          value={q.sarfQiymat}
-                          onChange={(e) => {
-                            yangila(i, { sarfQiymat: e.target.value });
-                          }}
-                          inputMode={tavsif.raqamli ? 'decimal' : 'text'}
-                          placeholder={tavsif.raqamli ? '1' : "(ENI - 60) * BO'YI"}
-                          aria-label={tavsif.raqamli ? 'Sarf miqdori' : 'Formula'}
-                          className={`${kichik} min-w-0 ${tavsif.raqamli ? '' : 'font-mono'}`}
-                        />
-                      </div>
+                      {tavsif.ikkiQiymat ? (
+                        /*
+                          ⚠️ IKKI KATAK, bitta emas. Eniga ketadigan miqdor va
+                             bo'yiga ketadigan miqdor BOSHQA-BOSHQA bo'ladi:
+                             plisse ramkasida yuqori-pastki profil 2 marta eni,
+                             yon profil esa 2 marta bo'yi. Bitta son bilan buni
+                             yozib bo'lmaydi.
+                        */
+                        <div className="flex items-center gap-1.5">
+                          <label className="flex min-w-0 flex-1 items-center gap-1">
+                            <span className="shrink-0 text-[11px] text-matn-kuchsiz">
+                              eni ×
+                            </span>
+                            <input
+                              value={q.sarfQiymat}
+                              onChange={(e) => {
+                                yangila(i, { sarfQiymat: e.target.value });
+                              }}
+                              inputMode="decimal"
+                              placeholder="2"
+                              aria-label="Eniga koeffitsient"
+                              className={`${kichik} min-w-0`}
+                            />
+                          </label>
+                          <label className="flex min-w-0 flex-1 items-center gap-1">
+                            <span className="shrink-0 text-[11px] text-matn-kuchsiz">
+                              {"bo'yi ×"}
+                            </span>
+                            <input
+                              value={q.sarfQiymat2}
+                              onChange={(e) => {
+                                yangila(i, { sarfQiymat2: e.target.value });
+                              }}
+                              inputMode="decimal"
+                              placeholder="2"
+                              aria-label="Bo'yiga koeffitsient"
+                              className={`${kichik} min-w-0`}
+                            />
+                          </label>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          {tavsif.raqamli && (
+                            <span className="shrink-0 text-[13px] text-matn-kuchsiz">×</span>
+                          )}
+                          <input
+                            value={q.sarfQiymat}
+                            onChange={(e) => {
+                              yangila(i, { sarfQiymat: e.target.value });
+                            }}
+                            inputMode={tavsif.raqamli ? 'decimal' : 'text'}
+                            placeholder={tavsif.raqamli ? '1' : "(ENI - 60) * BO'YI"}
+                            aria-label={tavsif.raqamli ? 'Sarf miqdori' : 'Formula'}
+                            className={`${kichik} min-w-0 ${tavsif.raqamli ? '' : 'font-mono'}`}
+                          />
+                        </div>
+                      )}
                     </div>
+
+                    {/*
+                      ⚠️ Natijaviy formula DARHOL ko'rsatiladi. Admin
+                         «qo'shiladimi yoki ko'paytiriladimi» deb
+                         o'ylab qolmasin — ko'rib tursin.
+                    */}
+                    {tavsif.ikkiQiymat && (
+                      <p className="mt-2 text-[11px] text-matn-kuchsiz">
+                        Formula:{' '}
+                        <code className="font-mono">
+                          ENI × {q.sarfQiymat === '' ? '?' : q.sarfQiymat} + BO&apos;YI ×{' '}
+                          {q.sarfQiymat2 === '' ? '?' : q.sarfQiymat2}
+                        </code>{' '}
+                        — ikkalasi <b>qo&apos;shiladi</b>. Ramka profili uchun:
+                        eniga <b>2</b> (yuqori + pastki), bo&apos;yiga <b>2</b> (ikki yon).
+                      </p>
+                    )}
 
                     {/*
                       ⚠️ «Murakkab» tanlansa katak butun qatorni egallaydi —
@@ -509,6 +578,7 @@ export function MahsulotFormasi({
                   id: null,
                   sarfTuri: 'MAYDON',
                   sarfQiymat: '1',
+                  sarfQiymat2: '',
                   majburiy: true,
                   koeffitsient: 1,
                   kesishTuri: 'ENIGA',
