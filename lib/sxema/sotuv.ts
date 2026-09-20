@@ -61,6 +61,37 @@ export const sotuvAksessuarSxema = z.object({
 });
 
 /**
+ * Mijoz tanlagan qo'shimcha — «usti shabalik», «o'rnatish».
+ * Egasi qarori 2026-09-20.
+ *
+ * ⚠️ Nom va narx NUSXA bo'lib keladi (2.3-invariant): qo'shimchaning
+ *    narxi keyin o'zgarsa yoki o'chirilsa, eski buyurtma o'zgarmaydi.
+ *
+ * ⚠️ Material bo'lsa MIQDOR ham shart — aks holda ombordan nechta
+ *    yechishni hech kim bilmaydi.
+ */
+export const sotuvQoshimchaSxema = z
+  .object({
+    mahsulotQoshimchaId: z.number().int().positive(),
+    nomSnapshot: z.string().trim().min(1).max(100),
+    narxSnapshot: pulMatni("Qo'shimcha narxi noto'g'ri"),
+    materialId: z.number().int().positive().nullable().default(null),
+    miqdor: z
+      .string()
+      .trim()
+      .regex(/^\d+(\.\d{1,4})?$/, "Qo'shimcha miqdori noto'g'ri")
+      .nullable()
+      .default(null),
+    birlik: z.enum(['KV_M', 'SM', 'DONA']).nullable().default(null),
+  })
+  .refine(
+    (q) =>
+      (q.materialId === null && q.miqdor === null && q.birlik === null) ||
+      (q.materialId !== null && q.miqdor !== null && q.birlik !== null),
+    { path: ['miqdor'], message: "Material tanlangan — miqdori ham kerak" },
+  );
+
+/**
  * ⚠️ QATOR IKKI XIL BO'LADI (QISM 3 §4.2):
  *
  *   · TAYYOR MAHSULOT — tur, o'lcham va slotlar bilan
@@ -94,6 +125,7 @@ export const sotuvPozitsiyaSxema = z
     formulaSnapshot: z.unknown(),
     slotlar: z.array(sotuvSlotSxema).default([]),
     aksessuarlar: z.array(sotuvAksessuarSxema).default([]),
+    qoshimchalar: z.array(sotuvQoshimchaSxema).default([]),
   })
   // Yo tayyor mahsulot, yo qo'shimcha buyum — ikkalasi ham emas
   .refine(

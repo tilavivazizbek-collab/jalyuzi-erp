@@ -53,6 +53,26 @@ export interface SlotKirimi {
   readonly kerak: { readonly eniM: number; readonly boyiM: number } | null;
 }
 
+/**
+ * Mijoz tanlagan qo'shimcha — egasi qarori 2026-09-20.
+ *
+ * ⚠️ Material bo'lsa u AKSESSUAR sifatida ham yoziladi: ombordan
+ *    yechish zanjiri (`pozitsiya_aksessuar`) allaqachon bor va
+ *    ishlaydi. `pozitsiya_qoshimcha` esa TANLOVNI va NARXNI
+ *    saqlaydi — chekda «usti shabalik» deb nomi bilan chiqsin.
+ *
+ *    Ikki marta yechilmaydi: `pozitsiya_qoshimcha` ni hech qanday
+ *    ombor kodi o'qimaydi.
+ */
+export interface QoshimchaKirimi {
+  readonly mahsulotQoshimchaId: number;
+  readonly nomSnapshot: string;
+  readonly narxSnapshot: string;
+  readonly materialId: number | null;
+  readonly miqdor: string | null;
+  readonly birlik: 'KV_M' | 'SM' | 'DONA' | null;
+}
+
 export interface AksessuarKirimi {
   readonly materialId: number;
   readonly soni: string;
@@ -99,6 +119,7 @@ export interface PozitsiyaKirimi {
   readonly formulaSnapshot: unknown;
   readonly slotlar: readonly SlotKirimi[];
   readonly aksessuarlar: readonly AksessuarKirimi[];
+  readonly qoshimchalar?: readonly QoshimchaKirimi[];
 }
 
 export interface BuyurtmaKirimi {
@@ -248,6 +269,36 @@ export async function pozitsiyaYozTx(
                                        qolda_kiritildi)
       VALUES (${pozitsiyaId}, ${a.materialId}, ${a.soni}, ${a.birlik},
               ${a.narxSnapshot}, ${a.qoldaKiritildi})`;
+  }
+
+  /**
+   * Tanlangan qo'shimchalar — egasi qarori 2026-09-20 (T-13).
+   *
+   * ⚠️ Materiali borlari AKSESSUAR bo'lib ham yoziladi: shunda
+   *    mavjud ombor zanjiri ularni o'zi yechadi va alohida kod
+   *    yozish shart emas (§2.2).
+   *
+   * ⚠️ `narx_snapshot` AKSESSUAR qatorida NOL: pul allaqachon
+   *    `pozitsiya_qoshimcha` da hisobga olingan va pozitsiya
+   *    narxiga kirgan. Ikki marta sanalmasin.
+   */
+  for (const q of p.qoshimchalar ?? []) {
+    await tx`
+      INSERT INTO pozitsiya_qoshimcha (buyurtma_pozitsiya_id, mahsulot_qoshimcha_id,
+                                       nom_snapshot, narx_snapshot,
+                                       material_id, miqdor, birlik, yaratdi_id)
+      VALUES (${pozitsiyaId}, ${q.mahsulotQoshimchaId}, ${q.nomSnapshot},
+              ${q.narxSnapshot}, ${q.materialId}, ${q.miqdor}, ${q.birlik},
+              ${xodimId})`;
+
+    if (q.materialId !== null && q.miqdor !== null && q.birlik !== null) {
+      await tx`
+        INSERT INTO pozitsiya_aksessuar (buyurtma_pozitsiya_id, material_id,
+                                         soni, birlik, narx_snapshot,
+                                         qolda_kiritildi)
+        VALUES (${pozitsiyaId}, ${q.materialId}, ${q.miqdor}, ${q.birlik},
+                '0', false)`;
+    }
   }
 
   // TZ 7.3 — «Pozitsiya "Tasdiqlangan" bo'lgan ZAHOTI tizim mos

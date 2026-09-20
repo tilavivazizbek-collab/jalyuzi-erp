@@ -8,11 +8,47 @@ majbur bo'ldi («dropdownlarda qo'shish bo'lsin»). Har safar bitta
 joy tuzatilib «bo'ldi» deyilardi. Teshik ko'rinmagani uchun shunday
 bo'ldi. Endi ko'rinadi.
 
-Oxirgi yangilanish: **2026-09-03** — kvitansiya, hisob-kitob va kunlik
+Oxirgi yangilanish: **2026-09-20** — narx modeli butunlay almashtirildi:
+«Narxlar va turlar» sahifasi, bosqichli narx, mato darajasi,
+qo'shimchalar; sotuv ekrani, bot va chek yangi modelga o'tdi — kvitansiya, hisob-kitob va kunlik
 yopish varaqalari (TZ 8.9 · 15.4); sotuv cheki (TZ 8.9) va korxona
 sozlamalari (TZ 14.3); **modullararo audit — 14 ta tuzatish** (§7);
 yetkazib beruvchi kartochkasi (9.7–9.8), kurs farqi (9.5–9.6),
 buyurtmani tahrirlash (8.7), material statistikasi (7.11)
+
+---
+
+## 0. Narxlar va turlar — egasi qarori 2026-09-20
+
+Mijoz narxi **materiallardan yig'ilmaydi**. Egasi eski modelni rad
+etdi: «hozirda qatnashgan har bir narsani narxi hisoblanib qo'shiladi,
+endi unday bo'lmaydi — men belgilab qo'yaman mijozga narx qanday
+hisoblanishini».
+
+| Nima | Holat |
+|---|---|
+| «Narxlar va turlar» sahifasi (`/narx`) | ✅ |
+| Bosqichli narx jadvali (dan / gacha / narx / valyuta) | ✅ |
+| Hisoblash usuli: maydon · eni · bo'yi · dona | ✅ |
+| Mato darajasi (narx guruhi) va materialga biriktirish | ✅ |
+| Mijoz turiga narx (TZ 6.2) · filialga narx (TZ 20.9) | ✅ |
+| Qo'shimchalar («usti shabalik», «o'rnatish») | ✅ |
+| Qo'shimcha ombordan yechilishi | ✅ |
+| Saqlashdan oldin tekshirish kalkulyatori | ✅ |
+| Bo'shliq va chegarada narx tushishi ogohi | ✅ |
+| Sotuv ekrani yangi narxdan | ✅ |
+| Telegram bot yangi narxdan | ✅ |
+| Chek va kvitansiyada qo'shimcha nomi (narxsiz) | ✅ |
+| Narx qo'yilmagan tur sotilmaydi, sabab aytiladi | ✅ |
+
+⚠️ Material formasida **sotuv narxi** endi «to'g'ridan-to'g'ri
+sotiladi» belgisi ostida. Jalyuzi matosiga u kerak emas —
+narx `mahsulot_narx` jadvalidan keladi. Tayyor mahsulot (pult,
+tayyor parda) uchun qoldirildi.
+
+⚠️ **K-03 kanonik raqami 678 400 → 570 800** ga o'zgardi: eski raqam
+aynan rad etilgan modeldan chiqardi. Egasining tasdig'i bilan
+(2026-09-20), `test/kanonik.ts` da sabab to'liq yozilgan.
 
 ---
 
@@ -25,6 +61,7 @@ buyurtmani tahrirlash (8.7), material statistikasi (7.11)
 | Yetkazib beruvchi | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Mahsulot turi | ✅ | ✅ | ✅ | ✅ | — |
 | Almashtirish guruhi | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Narx guruhi (mato darajasi) | ✅ | ✅ | — | — | ✅ |
 | Filial | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Kassa | ✅ | ✅ | — | ✅ | ✅ |
 | Xodim | ✅ | ✅ | ✅ | ✅ | ✅ |

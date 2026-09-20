@@ -772,3 +772,118 @@ describe("TZ 8.7 — mavjud buyurtmaga pozitsiya qo'shish", () => {
     expect(a).toHaveLength(1);
   });
 });
+
+/**
+ * T-13 · Egasi qarori 2026-09-20 — mijoz tanlagan qo'shimcha.
+ *
+ * ⚠️ IKKI JADVALGA yoziladi va bu ATAYLAB:
+ *
+ *      pozitsiya_qoshimcha   tanlov va NARX — chekda nomi bilan chiqadi
+ *      pozitsiya_aksessuar   material — mavjud ombor zanjiri yechadi
+ *
+ *    Ikki marta sanalmasligi kerak: `pozitsiya_qoshimcha` ni hech
+ *    qanday ombor kodi o'qimaydi, shuning uchun pul faqat unda,
+ *    aksessuar qatorining narxi esa NOL bo'ladi.
+ */
+describe("T-13 — tanlangan qo'shimcha buyurtmaga yoziladi", () => {
+  let qoshimchaId: number;
+
+  beforeAll(async () => {
+    const q = await sql<{ id: number }[]>`
+      INSERT INTO mahsulot_qoshimcha (mahsulot_tur_id, nom, hisoblash_usuli, narx,
+                                      valyuta, material_id, formula, yaratdi_id)
+      VALUES (${turId}, ${`Usti shabalik ${String(Date.now())}`}, 'ENI', 80000,
+              'SOM', ${matoId}, 'ENI * 40', 1)
+      RETURNING id`;
+    const id = q[0]?.id;
+    if (id === undefined) throw new Error("qo'shimcha yaratilmadi");
+    qoshimchaId = id;
+  });
+
+  const bilan = (materialli: boolean, id: number) =>
+    pozitsiya({
+      qoshimchalar: [
+        materialli
+          ? {
+              mahsulotQoshimchaId: id,
+              nomSnapshot: 'Usti shabalik',
+              narxSnapshot: '168000',
+              materialId: matoId,
+              miqdor: '8400.0000',
+              birlik: 'SM' as const,
+            }
+          : {
+              mahsulotQoshimchaId: id,
+              nomSnapshot: "O'rnatish",
+              narxSnapshot: '150000',
+              materialId: null,
+              miqdor: null,
+              birlik: null,
+            },
+      ],
+    });
+
+  it('nomi, narxi va materiali snapshot bo‘lib tushadi', async () => {
+    const n = await buyurtmaYarat(
+      sql,
+      asos({ pozitsiyalar: [bilan(true, qoshimchaId)] }),
+      XODIM,
+    );
+    const poz = n.pozitsiyalar[0]?.pozitsiyaId ?? 0;
+
+    const q = await sql<
+      { nom: string; narx: string; material_id: number | null }[]
+    >`
+      SELECT nom_snapshot AS nom, narx_snapshot::text AS narx, material_id
+      FROM pozitsiya_qoshimcha WHERE buyurtma_pozitsiya_id = ${poz}`;
+
+    expect(q).toHaveLength(1);
+    expect(q[0]?.nom).toBe('Usti shabalik');
+    expect(q[0]?.narx).toBe('168000.00');
+    expect(q[0]?.material_id).toBe(matoId);
+  });
+
+  it('materiali AKSESSUAR bo‘lib ham yoziladi, narxi NOL', async () => {
+    const n = await buyurtmaYarat(
+      sql,
+      asos({ pozitsiyalar: [bilan(true, qoshimchaId)] }),
+      XODIM,
+    );
+    const poz = n.pozitsiyalar[0]?.pozitsiyaId ?? 0;
+
+    const a = await sql<{ soni: string; narx: string }[]>`
+      SELECT soni::text, narx_snapshot::text AS narx
+      FROM pozitsiya_aksessuar WHERE buyurtma_pozitsiya_id = ${poz}`;
+
+    expect(a).toHaveLength(1);
+    /** ⚠️ `pozitsiya_aksessuar.soni` NUMERIC(10,2) — kasr ikki xona */
+    expect(a[0]?.soni).toBe('8400.00');
+    /** ⚠️ NOL — pul `pozitsiya_qoshimcha` da, ikki marta sanalmasin */
+    expect(a[0]?.narx).toBe('0.00');
+  });
+
+  it('materialsiz qo‘shimcha aksessuar YASAMAYDI — faqat pul', async () => {
+    const x = await sql<{ id: number }[]>`
+      INSERT INTO mahsulot_qoshimcha (mahsulot_tur_id, nom, hisoblash_usuli, narx,
+                                      valyuta, yaratdi_id)
+      VALUES (${turId}, ${`O'rnatish ${String(Date.now())}`}, 'QATIY', 150000, 'SOM', 1)
+      RETURNING id`;
+
+    const n = await buyurtmaYarat(
+      sql,
+      asos({ pozitsiyalar: [bilan(false, x[0]?.id ?? 0)] }),
+      XODIM,
+    );
+    const poz = n.pozitsiyalar[0]?.pozitsiyaId ?? 0;
+
+    const a = await sql<{ n: number }[]>`
+      SELECT COUNT(*)::int AS n FROM pozitsiya_aksessuar
+      WHERE buyurtma_pozitsiya_id = ${poz}`;
+    expect(a[0]?.n).toBe(0);
+
+    const q = await sql<{ n: number }[]>`
+      SELECT COUNT(*)::int AS n FROM pozitsiya_qoshimcha
+      WHERE buyurtma_pozitsiya_id = ${poz}`;
+    expect(q[0]?.n).toBe(1);
+  });
+});

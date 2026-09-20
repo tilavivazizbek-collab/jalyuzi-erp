@@ -246,6 +246,11 @@ export function SotuvFormasi({
     [],
   );
 
+  /** Guruhli qo'shimchada sotuvchi materialni tanlaydi (mato rangi) */
+  const [qoshimchaMateriali, qoshimchaMaterialiniOzgartir] = useState<
+    Record<number, string>
+  >({});
+
   /** TZ 3.5 — har slot uchun formula bo'yicha miqdor. */
   const hisob = useMemo(() => {
     if (tur === null) return null;
@@ -444,7 +449,53 @@ export function SotuvFormasi({
 
     const jami = narx.jami === null ? nolSom() : som(narx.jami);
 
-    return { qatorlar, aksQatorlar, xizmat, narx, jami, eniSm, boyiSm };
+    /**
+     * Buyurtmaga yoziladigan qo'shimchalar — T-13.
+     *
+     * ⚠️ Narx `narx.narxQatorlari` dan olinadi, qayta hisoblanmaydi:
+     *    mijoz ko'rgan raqam bilan bazaga tushgan raqam bir xil
+     *    bo'lishi shart.
+     */
+    const qoshimchaYuki = tur.qoshimchalar
+      .filter((q) => tanlanganQoshimchalar.includes(q.id))
+      .map((q) => {
+        const qator = narx.narxQatorlari.find((x) => x.nom === q.nom);
+
+        /** Guruhli bo'lsa sotuvchi tanlagan material, aks holda qat'iysi */
+        const tanlangan =
+          q.materialId ??
+          (qoshimchaMateriali[q.id] === undefined
+            ? null
+            : Number(qoshimchaMateriali[q.id]));
+
+        const birlik =
+          q.materialId !== null
+            ? q.sarflashBirligi
+            : (q.materiallar.find((m) => m.id === tanlangan)?.sarflashBirligi ?? null);
+
+        let miqdor: string | null = null;
+        if (tanlangan !== null && birlik !== null && q.formula !== null) {
+          try {
+            miqdor = String(
+              sarflashHisobla(q.formula, asos, birlik as SarflashBirligi),
+            );
+          } catch {
+            miqdor = null;
+          }
+        }
+
+        return {
+          mahsulotQoshimchaId: q.id,
+          nomSnapshot: q.nom,
+          narxSnapshot: qator?.summa ?? '0',
+          /** ⚠️ Miqdor chiqmasa material ham yozilmaydi — sxema shuni talab qiladi */
+          materialId: miqdor === null ? null : tanlangan,
+          miqdor,
+          birlik: miqdor === null ? null : (birlik as 'KV_M' | 'SM' | 'DONA'),
+        };
+      });
+
+    return { qatorlar, aksQatorlar, xizmat, narx, jami, qoshimchaYuki, eniSm, boyiSm };
   }, [
     tur,
     eni,
@@ -455,6 +506,7 @@ export function SotuvFormasi({
     offset,
     mijoz,
     tanlanganQoshimchalar,
+    qoshimchaMateriali,
   ]);
 
   const savatJami = savat.reduce<Som>((y, q) => qosh(y, som(q.narx)), nolSom());
@@ -511,6 +563,7 @@ export function SotuvFormasi({
           qiymat: parametrlar[p.kod] ?? p.standartQiymat,
         })),
       },
+      qoshimchalar: hisob.qoshimchaYuki,
       slotlar: hisob.qatorlar
         .filter((q) => q.material !== null && q.hisoblangan !== null)
         .map((q) => ({
@@ -1028,23 +1081,65 @@ export function SotuvFormasi({
                 </p>
 
                 <div className="flex flex-col gap-2 rounded-karta border border-chegara bg-sirt p-4">
-                  {tur.qoshimchalar.map((q) => (
-                    <label key={q.id} className="flex items-center gap-2 text-sm">
-                      <input
-                        type="checkbox"
-                        checked={tanlanganQoshimchalar.includes(q.id)}
-                        onChange={(e) => {
-                          tanlanganQoshimchalarniOzgartir((t) =>
-                            e.target.checked ? [...t, q.id] : t.filter((x) => x !== q.id),
-                          );
-                        }}
-                      />
-                      <span>{q.nom}</span>
-                      {q.materialId !== null || q.almashtirishGuruhId !== null ? (
-                        <span className="text-[11px] text-matn-kuchsiz">· material yeydi</span>
-                      ) : null}
-                    </label>
-                  ))}
+                  {tur.qoshimchalar.map((q) => {
+                    const tanlandimi = tanlanganQoshimchalar.includes(q.id);
+                    return (
+                      <div key={q.id} className="flex flex-wrap items-center gap-2">
+                        <label className="flex items-center gap-2 text-sm">
+                          <input
+                            type="checkbox"
+                            checked={tanlandimi}
+                            onChange={(e) => {
+                              tanlanganQoshimchalarniOzgartir((t) =>
+                                e.target.checked ? [...t, q.id] : t.filter((x) => x !== q.id),
+                              );
+                            }}
+                          />
+                          <span>{q.nom}</span>
+                          {q.materialId !== null || q.almashtirishGuruhId !== null ? (
+                            <span className="text-[11px] text-matn-kuchsiz">
+                              · ombordan yechiladi
+                            </span>
+                          ) : null}
+                        </label>
+
+                        {/*
+                          ⚠️ Guruhli qo'shimchada MATERIAL TANLANADI — mato
+                             rangi mijozga bog'liq. Tanlanmasa ombordan
+                             hech narsa yechilmaydi va buni sotuvchi
+                             ko'rib turishi kerak.
+                        */}
+                        {tanlandimi && q.materiallar.length > 0 && (
+                          <select
+                            value={qoshimchaMateriali[q.id] ?? ''}
+                            onChange={(e) => {
+                              qoshimchaMaterialiniOzgartir((o) => ({
+                                ...o,
+                                [q.id]: e.target.value,
+                              }));
+                            }}
+                            aria-label={`${q.nom} materiali`}
+                            className={`${kirishUslubi(false)} w-52`}
+                          >
+                            <option value="">— material tanlang —</option>
+                            {q.materiallar.map((m) => (
+                              <option key={m.id} value={m.id}>
+                                {m.nom}
+                              </option>
+                            ))}
+                          </select>
+                        )}
+
+                        {tanlandimi &&
+                          q.materiallar.length > 0 &&
+                          (qoshimchaMateriali[q.id] ?? '') === '' && (
+                            <span className="text-[11px] text-belgi-sariq">
+                              material tanlanmasa ombordan yechilmaydi
+                            </span>
+                          )}
+                      </div>
+                    );
+                  })}
                 </div>
               </section>
             )}

@@ -18,7 +18,7 @@ Shuning uchun bu ro'yxat qisqa bo'lishi va bo'shab borishi kerak.
 | T-08 | Masofadagi baza tarmoq uzilishlari | 10-bosqich | **Yuqori** |
 | T-10 | Jo'natma — bir necha buyurtmani guruhlash (20.8) | 8-bosqich | Past |
 | T-12 | `soni > 1` bo'lgan slotli pozitsiya kesimni buzadi | Sotuvga «soni» maydoni qo'shilsa | **Yuqori** (qo'shilgan kunda) |
-| T-13 | Tanlangan qo'shimcha buyurtmaga YOZILMAYDI | 3-bosqich davomi | **O'rta** |
+| ~~T-13~~ | ~~Tanlangan qo'shimcha buyurtmaga yozilmaydi~~ | ✅ yopildi | — |
 | ~~T-11~~ | ~~EC-FQ-04 — qarzi bor filial yopilishi~~ | ✅ yopildi | — |
 | ~~T-09~~ | ~~Qayta kesishda ustaning haqi bekor qilinmaydi~~ | ✅ yopildi | — |
 
@@ -491,45 +491,34 @@ Sotuvga «soni» maydoni qo'shilmaguncha 1-yo'l yetarli.
 
 ---
 
-## T-13 · Tanlangan qo'shimcha buyurtmaga yozilmaydi
+## T-13 · Tanlangan qo'shimcha — ✅ YOPILDI
 
-**Sana:** 2026-09-20 · **Xavf:** o'rta
+**Sana:** 2026-09-20 · **Holat:** ✅ yopildi
 
-### Holat
+Qo'shimcha endi IKKI jadvalga yoziladi va bu ataylab:
 
-Sotuv ekranida qo'shimcha («usti shabalik», «o'rnatish») TANLANADI va
-narxga to'g'ri qo'shiladi — `narx_snapshot` ga jami bo'lib tushadi,
-ya'ni **mijoz to'g'ri summa to'laydi**.
-
-Lekin `pozitsiya_qoshimcha` jadvaliga hech narsa yozilmaydi. Oqibati:
-
-| Nima | Holat |
+| Jadval | Nima uchun |
 |---|---|
-| Mijoz narxi | ✅ to'g'ri |
-| Keyin qaysi qo'shimcha tanlanganini bilish | ❌ ko'rinmaydi |
-| Material yeydigan qo'shimcha ombordan yechilishi | ❌ yechilmaydi |
+| `pozitsiya_qoshimcha` | tanlov va NARX — chekda nomi bilan chiqadi |
+| `pozitsiya_aksessuar` | material — mavjud ombor zanjiri o'zi yechadi |
 
-⚠️ Ikkinchisi muhim: «usti shabalik» matosi ombordan kamaymaydi va
-   qoldiq haqiqatdan ko'proq ko'rinadi.
+⚠️ Ikkinchisi tufayli alohida ombor kodi yozish shart bo'lmadi (§2.2):
+«usti shabalik» matosi aksessuar kabi band qilinadi va yechiladi.
 
-### Nega hozir yopilmadi
+⚠️ Pul IKKI MARTA SANALMAYDI. `pozitsiya_qoshimcha.narx_snapshot` da
+summa turadi, aksessuar qatorining narxi esa NOL. `pozitsiya_qoshimcha`
+ni hech qanday ombor yoki hisobot kodi o'qimaydi.
 
-3-bosqichning o'zi katta edi: narx modeli, sotuv ekrani, bot va
-kanonik raqam. Qo'shimchani saqlash `lib/amal/buyurtma.ts`,
-`lib/sxema/sotuv.ts` va band qilish zanjiriga tegadi — u alohida
-qadam bo'lgani to'g'ri.
+Guruhli qo'shimchada sotuvchi materialni o'zi tanlaydi (mato rangi).
+Tanlamasa ombordan hech narsa yechilmaydi va ekranda sariq ogoh
+turadi — jimgina o'tib ketmaydi.
 
-### Vaqtinchalik himoya
+Chekda nomi bilan chiqadi, narxsiz: u pozitsiya narxiga allaqachon
+kirgan va alohida ko'rsatilsa mijoz ikki marta to'layotgandek
+tuyulardi.
 
-Jadval va sxema (0040) TAYYOR — faqat yozish qolgan. Qo'shimcha
-kiritilmagan bo'lsa muammo umuman yo'q.
-
-### Qanday yopiladi
-
-1. `lib/sxema/sotuv.ts` ga `qoshimchalar: number[]`
-2. `lib/amal/buyurtma.ts` da o'sha tranzaksiyada `pozitsiya_qoshimcha` ga yozish
-3. Material yeydiganini band qilish zanjiriga qo'shish
-4. Chek va kvitansiyada qator bo'lib chiqishi
+Uchta integratsiya testi: snapshot yozilishi, aksessuar narxi nol
+bo'lishi, materialsiz qo'shimcha aksessuar yasamasligi.
 
 ---
 

@@ -88,6 +88,21 @@ export interface SotuvQoshimcha {
   readonly materialId: number | null;
   readonly almashtirishGuruhId: number | null;
   readonly formula: string | null;
+  /**
+   * Material yeydigan qo'shimcha uchun — sarf qaysi birlikda
+   * hisoblanadi. `materialId` bo'lsa o'shaniki, guruh bo'lsa
+   * sotuvchi tanlagan materialniki.
+   */
+  readonly sarflashBirligi: string | null;
+  /**
+   * Guruh berilgan bo'lsa sotuvchi shulardan tanlaydi (mato rangi).
+   * `materialId` qo'yilgan bo'lsa ro'yxat bo'sh.
+   */
+  readonly materiallar: readonly {
+    readonly id: number;
+    readonly nom: string;
+    readonly sarflashBirligi: string;
+  }[];
 }
 
 export interface SotuvSlot {
@@ -381,13 +396,41 @@ export async function sotuvTurlari(
       material_id: number | null;
       almashtirish_guruh_id: number | null;
       formula: string | null;
+      sarflash_birligi: string | null;
     }[]
   >`
-    SELECT id, mahsulot_tur_id, nom, hisoblash_usuli, narx::text, valyuta,
-           material_id, almashtirish_guruh_id, formula
-    FROM mahsulot_qoshimcha
-    WHERE mahsulot_tur_id = ANY(${turIdlar}) AND faol = true
-    ORDER BY mahsulot_tur_id, tartib, nom`;
+    SELECT q.id, q.mahsulot_tur_id, q.nom, q.hisoblash_usuli, q.narx::text, q.valyuta,
+           q.material_id, q.almashtirish_guruh_id, q.formula,
+           qm.sarflash_birligi
+    FROM mahsulot_qoshimcha q
+    LEFT JOIN material qm ON qm.id = q.material_id
+    WHERE q.mahsulot_tur_id = ANY(${turIdlar}) AND q.faol = true
+    ORDER BY q.mahsulot_tur_id, q.tartib, q.nom`;
+
+  /** Guruhli qo'shimchada sotuvchi material tanlaydi — ro'yxat shu yerdan */
+  const qoshimchaGuruhlari = [
+    ...new Set(
+      qoshimchaQatorlari
+        .map((q) => q.almashtirish_guruh_id)
+        .filter((g): g is number => g !== null),
+    ),
+  ];
+
+  const qoshimchaMateriallari =
+    qoshimchaGuruhlari.length === 0
+      ? []
+      : await sql<
+          {
+            id: number;
+            nom: string;
+            sarflash_birligi: string;
+            almashtirish_guruh_id: number | null;
+          }[]
+        >`
+          SELECT id, nom, sarflash_birligi, almashtirish_guruh_id
+          FROM material
+          WHERE faol = true AND almashtirish_guruh_id = ANY(${qoshimchaGuruhlari})
+          ORDER BY nom`;
 
   const material = (m: (typeof materiallar)[number]): SotuvMaterial => {
     const q = qoldiqBoyicha.get(m.id);
@@ -470,6 +513,17 @@ export async function sotuvTurlari(
         materialId: q.material_id,
         almashtirishGuruhId: q.almashtirish_guruh_id,
         formula: q.formula,
+        sarflashBirligi: q.sarflash_birligi,
+        materiallar:
+          q.almashtirish_guruh_id === null
+            ? []
+            : qoshimchaMateriallari
+                .filter((m) => m.almashtirish_guruh_id === q.almashtirish_guruh_id)
+                .map((m) => ({
+                  id: m.id,
+                  nom: m.nom,
+                  sarflashBirligi: m.sarflash_birligi,
+                })),
       })),
   }));
 }

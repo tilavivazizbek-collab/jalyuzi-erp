@@ -131,7 +131,7 @@ async function chekPozitsiyalari(
    *    mijozga savol tug'diradi («nega 3.96?»), javob esa kesish
    *    formulasi — chekning ishi emas.
    */
-  const [materiallar, aksessuarlar] = await Promise.all([
+  const [materiallar, aksessuarlar, qoshimchalar] = await Promise.all([
     ulanish<{ buyurtma_pozitsiya_id: number; nom: string }[]>`
       SELECT pm.buyurtma_pozitsiya_id, m.nom
       FROM pozitsiya_material pm
@@ -145,6 +145,23 @@ async function chekPozitsiyalari(
       JOIN material m ON m.id = pa.material_id
       WHERE pa.buyurtma_pozitsiya_id = ANY(${idlar})
       ORDER BY m.nom`,
+    /**
+     * Mijoz tanlagan qo'shimchalar — «usti shabalik», «o'rnatish».
+     * Egasi qarori 2026-09-20.
+     *
+     * ⚠️ NOM SNAPSHOTDAN olinadi: qo'shimcha keyin o'chirilsa yoki
+     *    nomi o'zgarsa ham chekda o'sha kungi nomi turadi
+     *    (2.3-invariant).
+     *
+     * ⚠️ Narxi bu yerda ham chiqmaydi — u pozitsiya narxiga
+     *    allaqachon kirgan va alohida ko'rsatilsa mijoz ikki marta
+     *    to'layotgandek tuyulardi.
+     */
+    ulanish<{ buyurtma_pozitsiya_id: number; nom: string }[]>`
+      SELECT buyurtma_pozitsiya_id, nom_snapshot AS nom
+      FROM pozitsiya_qoshimcha
+      WHERE buyurtma_pozitsiya_id = ANY(${idlar})
+      ORDER BY id`,
   ]);
 
   return q.map((p) => ({
@@ -161,6 +178,7 @@ async function chekPozitsiyalari(
       ? [
           ...materiallar.filter((m) => m.buyurtma_pozitsiya_id === p.id).map((m) => m.nom),
           ...aksessuarlar.filter((a) => a.buyurtma_pozitsiya_id === p.id).map((a) => a.nom),
+          ...qoshimchalar.filter((x) => x.buyurtma_pozitsiya_id === p.id).map((x) => x.nom),
         ]
       : [],
   }));

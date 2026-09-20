@@ -136,6 +136,15 @@ export async function buyurtmaYaratAmali(
       narxSnapshot: a.narxSnapshot,
       qoldaKiritildi: a.qoldaKiritildi,
     })),
+    /** Mijoz tanlagan qo'shimchalar — egasi qarori 2026-09-20 (T-13) */
+    qoshimchalar: p.qoshimchalar.map((q) => ({
+      mahsulotQoshimchaId: q.mahsulotQoshimchaId,
+      nomSnapshot: q.nomSnapshot,
+      narxSnapshot: q.narxSnapshot,
+      materialId: q.materialId,
+      miqdor: q.miqdor,
+      birlik: q.birlik,
+    })),
   }));
 
   /**
@@ -372,6 +381,15 @@ export async function pozitsiyalarQoshAmali(
             birlik: a.birlik,
             narxSnapshot: a.narxSnapshot,
             qoldaKiritildi: a.qoldaKiritildi,
+          })),
+          /** Mijoz tanlagan qo'shimchalar — T-13 */
+          qoshimchalar: p.qoshimchalar.map((q) => ({
+            mahsulotQoshimchaId: q.mahsulotQoshimchaId,
+            nomSnapshot: q.nomSnapshot,
+            narxSnapshot: q.narxSnapshot,
+            materialId: q.materialId,
+            miqdor: q.miqdor,
+            birlik: q.birlik,
           })),
         },
         f.xodimId,
