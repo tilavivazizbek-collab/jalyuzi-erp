@@ -54,6 +54,34 @@ export const almashtirishGuruh = pgTable('almashtirish_guruh', {
   ...izlar,
 });
 
+/**
+ * Mato darajasi: «Oddiy», «O'rta», «Premium» — nomini egasi qo'yadi.
+ * Egasi qarori 2026-09-20 · TZ 3.8.
+ *
+ * ⚠️ Bu ALMASHTIRISH GURUHI EMAS. Ikkalasi boshqa savolga javob beradi:
+ *
+ *     almashtirish_guruh  — slotda QAYSI materiallar chiqadi
+ *                           («mato dikkey» — mexanizm chiqmasin)
+ *     narx_guruh          — o'sha materiallardan qaysi biri QIMMAT
+ *
+ *    Bitta almashtirish guruhida arzon ham, qimmat mato ham turadi:
+ *    ular bir-birini almashtiradi, lekin narxi bir xil emas.
+ */
+export const narxGuruh = pgTable(
+  'narx_guruh',
+  {
+    id: id(),
+    nom: text('nom').notNull(),
+    tartib: integer('tartib').notNull().default(0),
+    ...ochirilmaydi,
+    ...izlar,
+  },
+  (t) => [
+    check('narx_guruh_nom', sql`length(btrim(${t.nom})) > 0`),
+    uniqueIndex('narx_guruh_nom_bitta').on(sql`lower(btrim(${t.nom}))`),
+  ],
+);
+
 // ─── 2.1 · material — TZ 5 · Q-01, Q-05, Q-10, Q-14 ───────────────────────
 
 export const HISOB_TURLARI = ['RULON', 'CHIZIQLI', 'DONA', 'KV_M'] as const;
@@ -172,6 +200,12 @@ export const material = pgTable(
     almashtirishGuruhId: bigint('almashtirish_guruh_id', { mode: 'number' }).references(
       () => almashtirishGuruh.id,
     ),
+    /**
+     * Mato darajasi — mijoz narxi shundan hisoblanadi (egasi qarori
+     * 2026-09-20). Bo'sh bo'lishi mumkin: aksessuar va mexanizmga
+     * daraja kerak emas, ular narxga alohida kirmaydi.
+     */
+    narxGuruhId: bigint('narx_guruh_id', { mode: 'number' }).references(() => narxGuruh.id),
     /** Xarid ro'yxati uchun (AUDIT B-08) */
     yaxlitlashQadami: numeric('yaxlitlash_qadami', { precision: 8, scale: 2 }),
 

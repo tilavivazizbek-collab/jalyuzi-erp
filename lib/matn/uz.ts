@@ -37,6 +37,7 @@ export const XATO_MATNI: Record<XatoKod, string> = {
   FILIAL_NOFAOL: "Filial nofaol",
 
   NARX_NOTOGRI: "Narx qiymati noto'g'ri",
+  NARX_QOIDASI_YOQ: 'Bu mahsulot va mato darajasi uchun narx qo‘yilmagan',
   KOEFFITSIENT_NOTOGRI: "Konversiya koeffitsienti noto'g'ri",
   BIRLIK_OZGARMAYDI: "Qoldiq bor ekan, birlikni o'zgartirib bo'lmaydi",
   RASM_NOTOGRI: 'Rasm formati noto‘g‘ri',

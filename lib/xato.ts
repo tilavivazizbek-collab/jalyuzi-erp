@@ -48,6 +48,12 @@ export const XATO_BAND = {
 
   // ── Narx va material — TZ 5, 6.3, 20.9 ─────────────────────────────────
   NARX_NOTOGRI: 'TZ 5.4',
+  /**
+   * Egasi qarori 2026-09-20 — mijoz narxi tur × mato darajasi
+   * jadvalidan keladi. Qoida yoki bosqich topilmasa SOTUV TO'XTAYDI:
+   * jimgina nol narx bilan sotish jalyuzini bepulga berish demak.
+   */
+  NARX_QOIDASI_YOQ: 'TZ 3.8',
   KOEFFITSIENT_NOTOGRI: 'TZ 5.3',
   BIRLIK_OZGARMAYDI: 'TZ 5.3',
   RASM_NOTOGRI: 'TZ 4.2 — rasm formati',

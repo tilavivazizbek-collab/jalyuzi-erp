@@ -25,6 +25,7 @@ export * from './tizim';
 export * from './spravochnik';
 export * from './ombor';
 export * from './buyurtma';
+export * from './narx';
 export * from './kassa';
 export * from './filial-hisob';
 export * from './bot';
