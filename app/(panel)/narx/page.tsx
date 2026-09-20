@@ -4,6 +4,7 @@ import { ruxsatBormi } from '@/lib/ruxsat/tekshir';
 import { NarxFormasi } from './forma';
 import {
   almashtirishGuruhlariniOl,
+  materialQoidalariSoni,
   filiallarniOl,
   joriyKursniOl,
   materiallarniOl,
@@ -35,30 +36,48 @@ export default async function NarxSahifasi({
   const f = await sahifaRuxsati('mahsulot.kor');
   const ozgartiraOladi = ruxsatBormi(f, 'narx.standart.ozgartir');
 
+  /**
+   * ⚠️ `?tur=material` — «MATERIALNI O'ZI SOTISH» (egasi qarori
+   *    2026-09-20). Mato metrlab sotilganda mahsulot turi yo'q,
+   *    narx esa baribir kerak.
+   */
   const sp = await searchParams;
   const xomTur = sp['tur'];
+  const materialTanlandi = xomTur === 'material';
   const soralgan = typeof xomTur === 'string' ? Number(xomTur) : Number.NaN;
 
   const turlar = await turlarniOl();
-  const tanlangan =
-    turlar.find((t) => t.id === soralgan) ?? turlar[0] ?? null;
+  const tanlangan = materialTanlandi
+    ? null
+    : (turlar.find((t) => t.id === soralgan) ?? turlar[0] ?? null);
 
-  const [guruhlar, materiallar, almashtirishGuruhlari, mijozTurlari, filiallar, kursQiymati] =
-    await Promise.all([
+  const [
+    guruhlar,
+    materiallar,
+    almashtirishGuruhlari,
+    mijozTurlari,
+    filiallar,
+    kursQiymati,
+    materialQoidaSoni,
+  ] = await Promise.all([
       narxGuruhlariniOl(),
       materiallarniOl(),
       almashtirishGuruhlariniOl(),
       mijozTurlariniOl(),
       filiallarniOl(),
       joriyKursniOl(),
+      materialQoidalariSoni(),
     ]);
 
+  /** Materialni o'zi sotishda tur yo'q — `null` beriladi */
+  const tanlanganId = materialTanlandi ? null : (tanlangan?.id ?? null);
+
   const [qoidalar, qoshimchalar] =
-    tanlangan === null
+    tanlangan === null && !materialTanlandi
       ? [[], []]
       : await Promise.all([
-          turQoidalariniOl(tanlangan.id),
-          turQoshimchalariniOl(tanlangan.id),
+          turQoidalariniOl(tanlanganId),
+          turQoshimchalariniOl(tanlanganId),
         ]);
 
   return (
@@ -84,6 +103,36 @@ export default async function NarxSahifasi({
         <div className="grid gap-5 lg:grid-cols-[220px_minmax(0,1fr)]">
           {/* ─── Turlar ro'yxati ──────────────────────────────────────── */}
           <nav className="flex flex-col gap-1">
+            {/*
+              ⚠️ ALOHIDA BAND — mahsulot turi emas. Mijoz «menga 5 metr
+                 shu matodan» desa tur yo'q, narx esa baribir kerak.
+                 Bazada bu `mahsulot_tur_id IS NULL` qatorlari.
+            */}
+            <Link
+              href="/narx?tur=material"
+              className={`flex items-center justify-between rounded-maydon px-3 py-2 text-sm transition-colors ${
+                materialTanlandi
+                  ? 'bg-brend/10 font-medium text-brend'
+                  : 'text-matn-ikki hover:bg-fon-ikki'
+              }`}
+            >
+              <span className="truncate">Materialni o&apos;zi sotish</span>
+              <span
+                className={`ml-2 shrink-0 text-[11px] ${
+                  materialQoidaSoni === 0 ? 'text-belgi-qizil' : 'text-matn-kuchsiz'
+                }`}
+                title={
+                  materialQoidaSoni === 0
+                    ? "Narx qo'yilmagan — mato metrlab sotilmaydi"
+                    : `${String(materialQoidaSoni)} daraja`
+                }
+              >
+                {materialQoidaSoni === 0 ? '⚠' : materialQoidaSoni}
+              </span>
+            </Link>
+
+            <div className="my-1 border-t border-chegara" />
+
             {turlar.map((t) => {
               const faolmi = tanlangan !== null && t.id === tanlangan.id;
               return (
@@ -120,11 +169,11 @@ export default async function NarxSahifasi({
           </nav>
 
           {/* ─── Tanlangan turning narxi ──────────────────────────────── */}
-          {tanlangan === null ? null : (
+          {tanlangan === null && !materialTanlandi ? null : (
             <NarxFormasi
-              key={tanlangan.id}
-              turId={tanlangan.id}
-              turNomi={tanlangan.nom}
+              key={materialTanlandi ? 'material' : String(tanlangan?.id ?? 0)}
+              turId={materialTanlandi ? null : (tanlangan?.id ?? 0)}
+              turNomi={materialTanlandi ? "Materialni o'zi sotish" : (tanlangan?.nom ?? '')}
               guruhlar={guruhlar}
               qoidalar={qoidalar}
               qoshimchalar={qoshimchalar}

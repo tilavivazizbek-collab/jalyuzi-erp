@@ -77,7 +77,11 @@ export const qoshimchaSxema = z
 
 /** Bitta mahsulot turining butun narx sozlamasi */
 export const turNarxiSxema = z.object({
-  mahsulotTurId: z.number().int().positive(),
+  /**
+   * ⚠️ `null` — «materialni o'zi sotish» (egasi qarori 2026-09-20).
+   *    Mato metrlab sotilganda mahsulot turi yo'q.
+   */
+  mahsulotTurId: z.number().int().positive().nullable().default(null),
   qoidalar: z.array(narxQoidaSxema).default([]),
   qoshimchalar: z.array(qoshimchaSxema).default([]),
 });

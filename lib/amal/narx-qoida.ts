@@ -104,21 +104,31 @@ export async function turNarxiniSaqla(
   if (xabarlar.length > 0) return { holat: 'NUQSON', xabarlar };
 
   // ── Eskilarini nofaol qilish (2.1-invariant) ──
+  /**
+   * ⚠️ `mahsulot_tur_id IS NULL` — «materialni o'zi sotish». SQL da
+   *    `= NULL` hech qachon rost bo'lmaydi, shuning uchun `coalesce`
+   *    bilan solishtiriladi — noyob indeks ham aynan shunday.
+   */
+  const tur = kirim.mahsulotTurId;
+
   await tx`
     UPDATE mahsulot_narx_bosqich SET faol = false, ozgartirdi_id = ${xodimId},
            ozgartirildi = now()
      WHERE faol = true
        AND mahsulot_narx_id IN (
-         SELECT id FROM mahsulot_narx WHERE mahsulot_tur_id = ${kirim.mahsulotTurId})`;
+         SELECT id FROM mahsulot_narx
+          WHERE coalesce(mahsulot_tur_id, 0) = ${tur ?? 0})`;
 
   await tx`
     UPDATE mahsulot_narx SET faol = false, ozgartirdi_id = ${xodimId}, ozgartirildi = now()
-     WHERE mahsulot_tur_id = ${kirim.mahsulotTurId} AND faol = true`;
+     WHERE coalesce(mahsulot_tur_id, 0) = ${tur ?? 0} AND faol = true`;
 
-  await tx`
-    UPDATE mahsulot_qoshimcha SET faol = false, ozgartirdi_id = ${xodimId},
-           ozgartirildi = now()
-     WHERE mahsulot_tur_id = ${kirim.mahsulotTurId} AND faol = true`;
+  if (tur !== null) {
+    await tx`
+      UPDATE mahsulot_qoshimcha SET faol = false, ozgartirdi_id = ${xodimId},
+             ozgartirildi = now()
+       WHERE mahsulot_tur_id = ${tur} AND faol = true`;
+  }
 
   // ── Yangilarini yozish ──
   for (const q of kirim.qoidalar) {
@@ -130,9 +140,9 @@ export async function turNarxiniSaqla(
     const qator = await tx<{ id: number }[]>`
       INSERT INTO mahsulot_narx (mahsulot_tur_id, narx_guruh_id, mijoz_turi_id,
                                  filial_id, hisoblash_usuli, yaratdi_id)
-      VALUES (${kirim.mahsulotTurId}, ${q.narxGuruhId}, ${q.mijozTuriId},
+      VALUES (${tur}, ${q.narxGuruhId}, ${q.mijozTuriId},
               ${q.filialId}, ${q.hisoblashUsuli}, ${xodimId})
-      ON CONFLICT (mahsulot_tur_id, narx_guruh_id,
+      ON CONFLICT (coalesce(mahsulot_tur_id, 0), narx_guruh_id,
                    coalesce(mijoz_turi_id, 0), coalesce(filial_id, 0))
       DO UPDATE SET hisoblash_usuli = EXCLUDED.hisoblash_usuli,
                     faol = true, ochirildi = NULL,
@@ -153,12 +163,13 @@ export async function turNarxiniSaqla(
     }
   }
 
-  for (const [i, q] of kirim.qoshimchalar.entries()) {
+  /** ⚠️ Materialni o'zi sotishda qo'shimcha bo'lmaydi — tur yo'q */
+  for (const [i, q] of (tur === null ? [] : kirim.qoshimchalar).entries()) {
     await tx`
       INSERT INTO mahsulot_qoshimcha (mahsulot_tur_id, nom, hisoblash_usuli, narx,
                                       valyuta, material_id, formula,
                                       almashtirish_guruh_id, tartib, yaratdi_id)
-      VALUES (${kirim.mahsulotTurId}, ${q.nom}, ${q.hisoblashUsuli}, ${q.narx},
+      VALUES (${tur}, ${q.nom}, ${q.hisoblashUsuli}, ${q.narx},
               ${q.valyuta}, ${q.materialId}, ${q.formula},
               ${q.almashtirishGuruhId}, ${i}, ${xodimId})`;
   }

@@ -233,10 +233,21 @@ export const buyurtmaPozitsiya = pgTable(
      * ⚠️ Qo'shimcha buyumda O'LCHAM YO'Q — u tayyorlanmaydi,
      *    kesilmaydi. Nol qo'yiladi va shu tekshiriladi.
      */
+    /**
+     * ⚠️ Egasi qarori 2026-09-20 — MATO METRLAB SOTILADI.
+     *
+     *    Ilgari slotsiz pozitsiyada o'lcham NOL bo'lishi shart edi:
+     *    «qo'shimcha buyum tayyorlanmaydi, kesilmaydi». Endi qoida
+     *    kengaydi — mato sotilganda rulondan kesiladi va o'lcham
+     *    kerak bo'ladi.
+     *
+     *    Yo ikkalasi nol (donalab), yo ikkalasi musbat (metrlab).
+     *    Yarim to'ldirilgan o'lcham baribir o'tmaydi.
+     */
     check(
-      'pozitsiya_qoshimcha_olchamsiz',
-      sql`${t.qoshimchaMaterialId} IS NULL
-           OR (${t.eniSm} = 0 AND ${t.boyiSm} = 0)`,
+      'pozitsiya_olcham_juft',
+      sql`(${t.eniSm} = 0 AND ${t.boyiSm} = 0)
+           OR (${t.eniSm} > 0 AND ${t.boyiSm} > 0)`,
     ),
 
     check(
@@ -289,9 +300,14 @@ export const pozitsiyaMaterial = pgTable(
     buyurtmaPozitsiyaId: bigint('buyurtma_pozitsiya_id', { mode: 'number' })
       .notNull()
       .references(() => buyurtmaPozitsiya.id),
-    slotId: bigint('slot_id', { mode: 'number' })
-      .notNull()
-      .references(() => mahsulotSlot.id),
+    /**
+     * ⚠️ BO'SH BO'LISHI MUMKIN — egasi qarori 2026-09-20.
+     *
+     *    Materialni o'zi sotishda (mato metrlab) slot yo'q, lekin
+     *    band qilish va kesish zanjiri shu jadvaldan o'qiydi.
+     *    Slotsiz qator bo'lmasa ombordan hech narsa yechilmasdi.
+     */
+    slotId: bigint('slot_id', { mode: 'number' }).references(() => mahsulotSlot.id),
     materialId: bigint('material_id', { mode: 'number' })
       .notNull()
       .references(() => material.id),
@@ -314,7 +330,14 @@ export const pozitsiyaMaterial = pgTable(
       'pozitsiya_material_tuzatilgan',
       sql`${t.tuzatilganMiqdor} IS NULL OR ${t.tuzatilganMiqdor} > 0`,
     ),
-    uniqueIndex('pozitsiya_material_slot').on(t.buyurtmaPozitsiyaId, t.slotId),
+    /**
+     * ⚠️ PARTIAL: bitta pozitsiyada bitta slot bir marta uchraydi.
+     *    Slotsiz qator (materialni o'zi sotish) bittagina bo'ladi
+     *    va indeksga umuman tushmaydi.
+     */
+    uniqueIndex('pozitsiya_material_slot')
+      .on(t.buyurtmaPozitsiyaId, t.slotId)
+      .where(sql`${t.slotId} IS NOT NULL`),
   ],
 );
 

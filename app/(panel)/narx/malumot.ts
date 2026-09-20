@@ -74,6 +74,17 @@ export async function turlarniOl(): Promise<TurQatori[]> {
     ORDER BY t.tartib, t.nom`;
 }
 
+/**
+ * Materialni o'zi sotish uchun nechta qoida bor — chap ustundagi
+ * belgi shundan chiqadi (egasi qarori 2026-09-20).
+ */
+export async function materialQoidalariSoni(): Promise<number> {
+  const q = await ulanishOl()<{ n: number }[]>`
+    SELECT COUNT(*)::int AS n FROM mahsulot_narx
+    WHERE mahsulot_tur_id IS NULL AND faol = true`;
+  return q[0]?.n ?? 0;
+}
+
 /** Mato darajalari — «Oddiy», «Premium» … */
 export async function narxGuruhlariniOl(): Promise<NarxGuruhQatori[]> {
   return ulanishOl()<NarxGuruhQatori[]>`
@@ -90,8 +101,13 @@ export async function narxGuruhlariniOl(): Promise<NarxGuruhQatori[]> {
  *
  * ⚠️ Bosqichlar `dan` bo'yicha tartiblanadi — ekranda ular jadval
  *    bo'lib chiqadi va tartibsiz ko'rinsa admin bo'shliqni sezmaydi.
+ *
+ * ⚠️ `turId === null` — «MATERIALNI O'ZI SOTISH» (egasi qarori
+ *    2026-09-20). Mato metrlab sotilganda mahsulot turi yo'q, narx
+ *    esa baribir kerak: `mahsulot_tur_id IS NULL` qatorlari aynan
+ *    shu holat uchun.
  */
-export async function turQoidalariniOl(turId: number): Promise<QoidaQatori[]> {
+export async function turQoidalariniOl(turId: number | null): Promise<QoidaQatori[]> {
   const sql = ulanishOl();
 
   const qoidalar = await sql<
@@ -109,7 +125,9 @@ export async function turQoidalariniOl(turId: number): Promise<QoidaQatori[]> {
            mn.hisoblash_usuli AS "hisoblashUsuli"
     FROM mahsulot_narx mn
     JOIN narx_guruh g ON g.id = mn.narx_guruh_id
-    WHERE mn.mahsulot_tur_id = ${turId} AND mn.faol = true
+    WHERE mn.faol = true
+      AND (${turId === null} OR mn.mahsulot_tur_id = ${turId ?? 0})
+      AND (${turId !== null} OR mn.mahsulot_tur_id IS NULL)
     ORDER BY g.tartib, g.nom`;
 
   if (qoidalar.length === 0) return [];
@@ -135,7 +153,16 @@ export async function turQoidalariniOl(turId: number): Promise<QoidaQatori[]> {
   }));
 }
 
-export async function turQoshimchalariniOl(turId: number): Promise<QoshimchaQatori[]> {
+/**
+ * ⚠️ Materialni o'zi sotishda qo'shimcha BO'LMAYDI: «usti shabalik»
+ *    tayyor mahsulotga qo'shiladi, matoning o'ziga emas. Shuning
+ *    uchun `null` turda bo'sh ro'yxat qaytadi.
+ */
+export async function turQoshimchalariniOl(
+  turId: number | null,
+): Promise<QoshimchaQatori[]> {
+  if (turId === null) return [];
+
   return ulanishOl()<QoshimchaQatori[]>`
     SELECT nom, hisoblash_usuli AS "hisoblashUsuli", narx::text, valyuta,
            material_id AS "materialId", almashtirish_guruh_id AS "almashtirishGuruhId",

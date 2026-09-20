@@ -39,8 +39,11 @@ export async function narxSaqlaAmali(
 ): Promise<NarxHolati> {
   const f = await ruxsatTalab('narx.standart.ozgartir');
 
+  /** ⚠️ Bo'sh — «materialni o'zi sotish», mahsulot turi yo'q */
+  const turMatni = xom(forma, 'mahsulotTurId').trim();
+
   const tekshiruv = turNarxiSxema.safeParse({
-    mahsulotTurId: Number(xom(forma, 'mahsulotTurId')),
+    mahsulotTurId: turMatni === '' ? null : Number(turMatni),
     qoidalar: jsonOqi(forma, 'qoidalar'),
     qoshimchalar: jsonOqi(forma, 'qoshimchalar'),
   });

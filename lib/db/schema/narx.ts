@@ -72,9 +72,16 @@ export const mahsulotNarx = pgTable(
   'mahsulot_narx',
   {
     id: id(),
-    mahsulotTurId: bigint('mahsulot_tur_id', { mode: 'number' })
-      .notNull()
-      .references(() => mahsulotTur.id),
+    /**
+     * ⚠️ BO'SH = «MATERIALNI O'ZI SOTISH» (egasi qarori 2026-09-20).
+     *
+     *    Mijoz «menga 5 metr shu matodan» desa mahsulot turi yo'q,
+     *    narx esa baribir kerak. Bo'sh qator shu holat uchun va
+     *    butun bosqichli hisoblash mantig'i qayta ishlatiladi.
+     */
+    mahsulotTurId: bigint('mahsulot_tur_id', { mode: 'number' }).references(
+      () => mahsulotTur.id,
+    ),
     narxGuruhId: bigint('narx_guruh_id', { mode: 'number' })
       .notNull()
       .references(() => narxGuruh.id),
@@ -97,7 +104,7 @@ export const mahsulotNarx = pgTable(
      *    o'tkazib yuborardi.
      */
     uniqueIndex('mahsulot_narx_bitta').on(
-      t.mahsulotTurId,
+      sql`coalesce(${t.mahsulotTurId}, 0)`,
       t.narxGuruhId,
       sql`coalesce(${t.mijozTuriId}, 0)`,
       sql`coalesce(${t.filialId}, 0)`,

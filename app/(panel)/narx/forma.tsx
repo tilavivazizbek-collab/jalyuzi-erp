@@ -120,7 +120,8 @@ export function NarxFormasi({
   kursQiymati,
   ozgartiraOladi,
 }: {
-  turId: number;
+  /** ⚠️ `null` — «materialni o'zi sotish», mahsulot turi yo'q */
+  turId: number | null;
   turNomi: string;
   guruhlar: readonly NarxGuruhQatori[];
   qoidalar: readonly QoidaQatori[];
@@ -268,7 +269,7 @@ export function NarxFormasi({
 
   return (
     <form action={yubor} className="flex flex-col gap-5">
-      <input type="hidden" name="mahsulotTurId" value={turId} />
+      <input type="hidden" name="mahsulotTurId" value={turId ?? ''} />
       <input type="hidden" name="qoidalar" value={JSON.stringify(yuk.qoidalar)} />
       <input type="hidden" name="qoshimchalar" value={JSON.stringify(yuk.qoshimchalar)} />
 
@@ -621,7 +622,12 @@ export function NarxFormasi({
         </div>
       </section>
 
-      {/* ─── Qo'shimchalar ────────────────────────────────────────────── */}
+      {/*
+        ⚠️ Qo'shimcha FAQAT mahsulot turida bo'ladi. «Usti shabalik»
+           tayyor pardaga qo'shiladi, matoning o'ziga emas —
+           matoni metrlab sotganda qo'shimcha tushunchasi yo'q.
+      */}
+      {turId !== null && (
       <section className="rounded-maydon border border-chegara p-4">
         <h2 className="text-[15px] font-semibold text-matn">Qo‘shimchalar</h2>
         <p className="mt-0.5 mb-3 text-[12px] text-matn-ikki">
@@ -795,6 +801,7 @@ export function NarxFormasi({
           </button>
         )}
       </section>
+      )}
 
       {/* ─── Tekshirish ───────────────────────────────────────────────── */}
       <section className="rounded-maydon border border-chegara bg-fon-ikki p-4">
