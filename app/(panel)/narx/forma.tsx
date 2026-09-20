@@ -228,7 +228,15 @@ export function NarxFormasi({
   // ─── Hisob natijasi ─────────────────────────────────────────────────────
   const natija = useMemo(() => {
     const q = qoidalar.find((x) => x.narxGuruhId === sinovGuruh);
-    if (q === undefined) return { xato: "Daraja tanlanmagan", hisob: null };
+    if (q === undefined) {
+      return {
+        xato:
+          qoidalar.length === 0
+            ? "Avval yuqorida narx jadvalini to'ldiring"
+            : 'Yuqoridagi ro‘yxatdan darajani tanlang',
+        hisob: null,
+      };
+    }
 
     const eni = son(sinovEni);
     const boyi = son(sinovBoyi);
@@ -327,10 +335,47 @@ export function NarxFormasi({
         </div>
 
         {qoidalar.length === 0 ? (
-          <p className="text-sm text-matn-kuchsiz">
-            Hali narx qo‘yilmagan. Yuqoridagi ro‘yxatdan mato darajasini tanlang
-            {guruhlar.length === 0 && ' — avval daraja yarating'}.
-          </p>
+          /*
+            ⚠️ BO'SH HOLAT NIMA QILISHNI AYTADI.
+               Ilgari bu yerda bitta kulrang jumla turardi va «+ yangi
+               mato darajasi» kichkina yozuv bo'lib pastda yashiringandi —
+               egasi darajani qayerdan qo'shishni topolmadi (2026-09-20).
+          */
+          <div className="rounded-maydon border border-dashed border-chegara-quyuq px-4 py-6 text-center">
+            {guruhlar.length === 0 ? (
+              <>
+                <p className="text-sm font-medium text-matn">
+                  Avval mato darajasi kerak
+                </p>
+                <p className="mx-auto mt-1 max-w-md text-[13px] text-matn-ikki">
+                  Narx jadvali darajalar bo‘yicha to‘ldiriladi: «Oddiy» matoga bir
+                  narx, «Premium» ga boshqa narx. Bittasini yarating va shu yerga
+                  qaytib narx qo‘yasiz.
+                </p>
+                {ozgartiraOladi && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setGuruhModali(true);
+                    }}
+                    className="mt-4 rounded-maydon bg-brend px-4 py-2.5 text-sm font-medium text-white transition-all hover:bg-brend-quyuq active:scale-[0.98]"
+                  >
+                    + Yangi daraja yaratish
+                  </button>
+                )}
+              </>
+            ) : (
+              <>
+                <p className="text-sm font-medium text-matn">
+                  Bu turga hali narx qo‘yilmagan
+                </p>
+                <p className="mx-auto mt-1 max-w-md text-[13px] text-matn-ikki">
+                  Yuqoridagi <b>«+ daraja qo‘shish»</b> ro‘yxatidan mato darajasini
+                  tanlang — shundan keyin bosqichlar jadvali ochiladi.
+                </p>
+              </>
+            )}
+          </div>
         ) : (
           <div className="flex flex-col gap-4">
             {qoidalar.map((q, qi) => {
@@ -554,27 +599,26 @@ export function NarxFormasi({
           </div>
         )}
 
-        {ozgartiraOladi && (
-          <button
-            type="button"
-            onClick={() => {
-              setGuruhModali(true);
-            }}
-            className="mt-3 text-[12px] text-brend hover:underline"
-          >
-            + yangi mato darajasi
-          </button>
-        )}
-        {/*
-          ⚠️ Darajani TAHRIRLASH va O'CHIRISH shu yerda emas, alohida
-             sahifada: bu ekran narx jadvaliga bag'ishlangan.
-        */}
-        <a
-          href="/daraja"
-          className="mt-3 ml-4 text-[12px] text-matn-kuchsiz hover:text-matn hover:underline"
-        >
-          darajalarni boshqarish →
-        </a>
+        <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-chegara pt-3">
+          {ozgartiraOladi && (
+            <button
+              type="button"
+              onClick={() => {
+                setGuruhModali(true);
+              }}
+              className="rounded-maydon border border-chegara-quyuq bg-sirt px-3 py-1.5 text-[13px] font-medium text-matn transition-colors hover:border-brend hover:text-brend"
+            >
+              + Yangi mato darajasi
+            </button>
+          )}
+          {/*
+            ⚠️ Darajani TAHRIRLASH va O'CHIRISH shu yerda emas, alohida
+               sahifada: bu ekran narx jadvaliga bag'ishlangan.
+          */}
+          <a href="/daraja" className="text-[12px] text-matn-kuchsiz hover:text-matn hover:underline">
+            darajalarni boshqarish →
+          </a>
+        </div>
       </section>
 
       {/* ─── Qo'shimchalar ────────────────────────────────────────────── */}
