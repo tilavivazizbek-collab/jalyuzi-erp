@@ -22,6 +22,30 @@
 
 import { useEffect } from 'react';
 
+/**
+ * ⚠️ DASTUR YANGILANGANDA CHIQADIGAN XATO — kod xatosi EMAS.
+ *
+ *    Next.js har yig'ishda server amallariga YANGI identifikator
+ *    beradi. Deploy paytida brauzerda ochiq turgan sahifa eskisini
+ *    so'raydi va 404 oladi:
+ *
+ *      UnrecognizedActionError: Server Action "60126…" was not
+ *      found on the server
+ *
+ *    Bu holatda «xato raqami» ham, dasturchi ham kerak emas —
+ *    sahifani yangilash yetadi. Umumiy xato xabarini ko'rsatish
+ *    esa egasini behuda qo'rqitardi va u menga «sayt buzildi»
+ *    deb yozardi (2026-09-20 da aynan shunday bo'ldi).
+ */
+function dasturYangilandimi(xato: Error): boolean {
+  const matn = `${xato.name} ${xato.message}`;
+  return (
+    matn.includes('UnrecognizedActionError') ||
+    matn.includes('Server Action') ||
+    matn.includes('Failed to find Server Action')
+  );
+}
+
 export default function PanelXatosi({
   error,
   reset,
@@ -30,9 +54,47 @@ export default function PanelXatosi({
   reset: () => void;
 }) {
   useEffect(() => {
+    /**
+     * ⚠️ Dastur yangilangani XATO EMAS — uni «Panel xatosi» deb
+     *    yozish jurnalni chalg'itardi va haqiqiy xatolar orasida
+     *    yo'qolib ketardi.
+     */
+    if (dasturYangilandimi(error)) {
+      console.info('Dastur yangilandi — sahifani yangilash kerak');
+      return;
+    }
     // Brauzer konsoliga — dasturchi ochsa to'liq ko'radi
     console.error('Panel xatosi:', error);
   }, [error]);
+
+  /**
+   * ⚠️ Dastur yangilangan bo'lsa — boshqa ekran: qo'rqinchli emas,
+   *    bitta tugma bilan hal bo'ladi.
+   */
+  if (dasturYangilandimi(error)) {
+    return (
+      <div className="mx-auto flex max-w-xl flex-col items-start gap-4 rounded-karta border border-chegara bg-sirt p-6">
+        <h1 className="text-[20px] font-semibold tracking-[-0.02em] text-matn">
+          Dastur yangilandi
+        </h1>
+
+        <p className="text-sm text-matn-ikki">
+          Siz ochgan sahifa eski nusxada qolgan. Yangilasangiz davom etasiz —
+          kiritilgan ma&apos;lumotlaringizga hech narsa bo&apos;lmadi.
+        </p>
+
+        <button
+          type="button"
+          onClick={() => {
+            window.location.reload();
+          }}
+          className="fokus rounded-maydon bg-brend px-4 py-2.5 text-sm font-medium text-white transition-all hover:bg-brend-quyuq active:scale-[0.98]"
+        >
+          Sahifani yangilash
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto flex max-w-xl flex-col items-start gap-4 rounded-karta border border-chegara bg-sirt p-6">

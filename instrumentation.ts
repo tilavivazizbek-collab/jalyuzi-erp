@@ -34,6 +34,27 @@ export const onRequestError: Instrumentation.onRequestError = async (
     const x = xato as { message?: unknown; stack?: unknown; digest?: unknown };
 
     const xabar = typeof x.message === 'string' ? x.message : String(xato);
+
+    /**
+     * ⚠️ DASTUR YANGILANGANI XATO EMAS — yozilmaydi.
+     *
+     *    Next.js har yig'ishda server amallariga yangi identifikator
+     *    beradi. Deploy paytida brauzerda ochiq turgan sahifa
+     *    eskisini so'raydi va «Server Action … was not found»
+     *    chiqadi. Foydalanuvchi sahifani yangilasa bo'ldi.
+     *
+     *    Buni jurnalga yozish zararli: har deploydan keyin o'nlab
+     *    shunday yozuv to'planadi va HAQIQIY xatolar ular orasida
+     *    ko'rinmay qoladi. `npm run db:xato` esa aynan haqiqiy
+     *    xatoni topish uchun.
+     */
+    if (
+      xabar.includes('Server Action') ||
+      xabar.includes('UnrecognizedActionError') ||
+      xabar.includes('Failed to find Server Action')
+    ) {
+      return;
+    }
     const stek = typeof x.stack === 'string' ? x.stack : null;
     const digest = typeof x.digest === 'string' ? x.digest : null;
 
