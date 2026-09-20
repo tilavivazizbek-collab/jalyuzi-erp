@@ -40,6 +40,7 @@ import {
   type Qoralama,
 } from '@/lib/domain/bot-oqim';
 import { pozitsiyaNarxiniHisobla } from '@/lib/domain/pozitsiya-narxi';
+import type { HisoblashUsuli } from '@/lib/domain/narx-qoidasi';
 import { amaldagiOffset } from '@/lib/domain/mijoz';
 import type { SarflashBirligi } from '@/lib/domain/birlik';
 import { kesimOlchami } from '@/lib/domain/kesish';
@@ -162,6 +163,8 @@ function pozitsiyaHisobi(
   offset: MijozKonteksti['offset'],
   /** 5.4 — dollardagi material narxini so'mga o'girish uchun */
   kurs: Kurs | null = null,
+  /** TZ 6.2 — mijoz turiga qo'yilgan narx qoidasi uchun */
+  mijozTuriId: number | null = null,
 ) {
   const slotlar = p.slotlar.map((s) => {
     const slot = tur.slotlar.find((x) => x.id === s.slotId);
@@ -171,10 +174,34 @@ function pozitsiyaHisobi(
       formula: slot?.formula ?? '0',
       sarflashBirligi: (material?.sarflashBirligi ?? 'KV_M') as SarflashBirligi,
       koeffitsient: slot?.koeffitsient ?? 1,
-      narx: material?.narx ?? null,
-      narxValyuta: material?.narxValyuta,
     };
   });
+
+  /**
+   * ⚠️ MIJOZ NARXI — egasi qarori 2026-09-20.
+   *
+   *    Tanlangan matoning DARAJASI qoidani topadi. Materiallarning
+   *    narxi endi mijoz narxiga umuman ta'sir qilmaydi.
+   *
+   *    Bot ham AYNAN shu qoidadan oladi (§2.2): aks holda botda bir
+   *    narx, saytda boshqa narx chiqardi.
+   */
+  const narxGuruhId =
+    p.slotlar
+      .map((s) => tur.slotlar.find((x) => x.id === s.slotId)
+        ?.materiallar.find((m) => m.id === s.materialId)?.narxGuruhId ?? null)
+      .find((g) => g !== null) ?? null;
+
+  /** TZ 6.2 — mijoz turiga qo'yilgan qoida umumiysidan USTUN */
+  const qoidaQatori =
+    narxGuruhId === null
+      ? undefined
+      : (tur.narxQoidalari.find(
+          (q) => q.narxGuruhId === narxGuruhId && q.mijozTuriId === mijozTuriId,
+        ) ??
+        tur.narxQoidalari.find(
+          (q) => q.narxGuruhId === narxGuruhId && q.mijozTuriId === null,
+        ));
 
   // Majburiylar avtomatik, ixtiyoriylardan tanlanganlari (13.4)
   const aksessuarlar = tur.aksessuarlar
@@ -183,8 +210,6 @@ function pozitsiyaHisobi(
       nom: a.nom,
       formula: a.formula,
       sarflashBirligi: a.sarflashBirligi as SarflashBirligi,
-      narx: a.narx,
-      narxValyuta: a.narxValyuta,
       majburiy: a.majburiy,
     }));
 
@@ -201,6 +226,23 @@ function pozitsiyaHisobi(
     parametrlar,
     slotlar,
     aksessuarlar,
+    qoida:
+      qoidaQatori === undefined
+        ? null
+        : {
+            hisoblashUsuli: qoidaQatori.hisoblashUsuli as HisoblashUsuli,
+            bosqichlar: qoidaQatori.bosqichlar.map((b) => ({
+              dan: b.dan,
+              gacha: b.gacha,
+              narx: b.narx,
+              valyuta: b.valyuta,
+            })),
+          },
+    /**
+     * ⚠️ Botda qo'shimcha TANLANMAYDI (13.4 da bunday qadam yo'q).
+     *    Mijoz ularni sotuvchi bilan gaplashib qo'shadi.
+     */
+    qoshimchalar: [],
     offset,
     kurs,
     xizmatHaqi: tur.xizmatHaqi,
@@ -214,7 +256,13 @@ function pozitsiyaNarxi(
   offset: MijozKonteksti['offset'],
   joriyKursi: Kurs | null,
 ): string {
-  return pozitsiyaHisobi(p, tur, offset, joriyKursi).jami;
+  /**
+   * ⚠️ `null` — narx qo'yilmagan. Botda «0» ko'rsatiladi va
+   *    sotuvchi buyurtmani ko'rganda «Narxlar va turlar» da narx
+   *    yo'qligini biladi. Bot mijozga bepul deb aytmasligi uchun
+   *    qadam matnida ham shu ko'rinadi.
+   */
+  return pozitsiyaHisobi(p, tur, offset, joriyKursi).jami ?? '0';
 }
 
 // ─── Qadamni ko'rsatish ───────────────────────────────────────────────────
@@ -451,8 +499,8 @@ export async function savatniYubor(
      * Alohida hisoblansa mijoz ko'rgan narx bilan bazaga tushgan
      * narx bir-biriga to'g'ri kelmasligi mumkin edi.
      */
-    const slotQatorlari = (hisob?.qatorlar ?? []).filter((x) => x.matomi);
-    const aksQatorlari = (hisob?.qatorlar ?? []).filter((x) => !x.matomi);
+    const slotQatorlari = (hisob?.sarf ?? []).filter((x) => x.matomi);
+    const aksQatorlari = (hisob?.sarf ?? []).filter((x) => !x.matomi);
 
     const slotlar = p.slotlar
       .filter((s) => s.materialId !== null)
@@ -482,7 +530,15 @@ export async function savatniYubor(
                     : ('ENIGA' as const),
                 })
               : null,
-          narxSnapshot: qator?.birlikNarxi ?? '0',
+          /**
+           * ⚠️ `pozitsiya_material.narx_snapshot` NOT NULL. Mijoz narxi
+           *    endi materialdan kelmaydi (egasi qarori 2026-09-20),
+           *    shuning uchun bu yerga materialning O'Z narxi yoziladi —
+           *    tarixda qolsin va tannarx hisobotlari ishlayversin.
+           */
+          narxSnapshot:
+            tur?.slotlar.find((x) => x.id === s.slotId)
+              ?.materiallar.find((m) => m.id === s.materialId)?.narx ?? '0',
         };
       });
 
@@ -494,7 +550,8 @@ export async function savatniYubor(
           materialId: a.materialId,
           soni: String(qator?.miqdor ?? 0),
           birlik: (qator?.sarflashBirligi ?? 'DONA'),
-          narxSnapshot: qator?.birlikNarxi ?? '0',
+          /** ⚠️ Yuqoridagi izoh — aksessuarga ham tegishli */
+          narxSnapshot: a.narx ?? '0',
           // 13.4 — botda qo'lda son kiritilmaydi
           qoldaKiritildi: false,
         };

@@ -1,154 +1,264 @@
 /**
- * TZ 3.5 · 3.6 · 3.8 · 6.3 · Q-01 — pozitsiya narxini konstruktordan
- * yig'ish.
+ * test/domain/pozitsiya-narxi.test.ts — TZ 3.5 · 3.6 · 3.7 · 3.8 · 4.7 · 6.3
  *
- * ⚠️ K-03 kanonik raqami shu yerda uchidan uchigacha tekshiriladi:
- *    formula → miqdor → qator → jami. Ilgari bu zanjir faqat
- *    brauzerdagi formada bor edi va sinalmasdi.
+ * ⚠️ NARX MODELI 2026-09-20 DA O'ZGARDI
+ *
+ *    Ilgari narx MATERIALLARDAN yig'ilardi va bu testlar o'sha
+ *    yig'indini tekshirardi. Egasi modelni rad etdi: narx endi
+ *    tur × mato darajasi jadvalidan keladi.
+ *
+ *    Shuning uchun bu yerda ikki narsa ALOHIDA sinaladi:
+ *
+ *      sarf           qaysi materialdan qancha — NARXSIZ
+ *      narxQatorlari  mijoz qancha to'laydi
+ *
+ *    Ilgari ular bitta ro'yxat edi va aynan shu chalkashlik narxni
+ *    materialga bog'lab qo'ygandi.
  */
+
 import { describe, expect, it } from 'vitest';
-import { pozitsiyaNarxiniHisobla } from '@/lib/domain/pozitsiya-narxi';
-import { K03 } from '../kanonik';
+import {
+  pozitsiyaNarxiniHisobla,
+  type NarxKirishi,
+} from '@/lib/domain/pozitsiya-narxi';
+import type { Qoida } from '@/lib/domain/narx-qoidasi';
+import { dollar, kurs, som } from '@/lib/domain/pul';
 
-const OLD_MATO = {
-  nom: 'old mato',
-  formula: 'maydon',
-  sarflashBirligi: 'KV_M' as const,
-  narx: '120000',
+/** «1 kv.m gacha 150 000, undan katta 120 000» */
+const QOIDA: Qoida = {
+  hisoblashUsuli: 'MAYDON',
+  bosqichlar: [
+    { dan: 0, gacha: 1, narx: '150000', valyuta: 'SOM' },
+    { dan: 1, gacha: null, narx: '120000', valyuta: 'SOM' },
+  ],
 };
 
-const ORQA_MATO = {
-  nom: 'orqa mato',
-  formula: 'maydon',
-  sarflashBirligi: 'KV_M' as const,
-  narx: '90000',
-};
-
-const KRONSHTEYN = {
-  nom: 'kronshteyn',
-  formula: 'soni * 2',
-  sarflashBirligi: 'DONA' as const,
-  narx: '5000',
-  majburiy: true,
-};
-
-/** K-03 — Rollo 210 × 140, ikki mato va uch aksessuar. */
-const KANONIK = {
-  eniSm: K03.eni,
-  boyiSm: K03.boyi,
+/** Rollo 210 × 140 = 2.94 kv.m — kanonik o'lcham (K-03) */
+const ASOS: NarxKirishi = {
+  eniSm: 210,
+  boyiSm: 140,
   soni: 1,
   parametrlar: {},
-  slotlar: [OLD_MATO, ORQA_MATO],
-  aksessuarlar: [
-    {
-      nom: 'mexanizm',
-      formula: 'soni',
-      sarflashBirligi: 'DONA' as const,
-      narx: '45000',
-      majburiy: true,
-    },
-    KRONSHTEYN,
-    {
-      nom: 'brelok',
-      formula: 'soni * 2',
-      sarflashBirligi: 'DONA' as const,
-      narx: '3000',
-      majburiy: true,
-    },
+  slotlar: [
+    { nom: 'Mato', formula: 'MAYDON', sarflashBirligi: 'KV_M', majburiy: true } as never,
   ],
+  aksessuarlar: [
+    { nom: 'Kronshteyn', formula: '2', sarflashBirligi: 'DONA', majburiy: true },
+  ],
+  qoida: QOIDA,
+  qoshimchalar: [],
   offset: null,
+  kurs: null,
   xizmatHaqi: null,
 };
 
-describe('K-03 · TZ 3.8 — kanonik buyurtma 678 400', () => {
-  it('jami aynan kanonik raqamga teng', () => {
-    const n = pozitsiyaNarxiniHisobla(KANONIK);
-    expect(n.jami).toBe(K03.jami);
+describe('sarf — NARXSIZ ro‘yxat (egasi qarori 2026-09-20)', () => {
+  it('mato va aksessuar miqdori chiqadi, narxi YO‘Q', () => {
+    const n = pozitsiyaNarxiniHisobla(ASOS);
+
+    expect(n.sarf).toHaveLength(2);
+    expect(n.sarf[0]).toEqual({
+      nom: 'Mato',
+      miqdor: 2.94,
+      sarflashBirligi: 'KV_M',
+      matomi: true,
+    });
+    expect(n.sarf[1]).toEqual({
+      nom: 'Kronshteyn',
+      miqdor: 2,
+      sarflashBirligi: 'DONA',
+      matomi: false,
+    });
+
+    /** ⚠️ Qatorda `narx` yoki `summa` MAYDONI BO'LMASLIGI kerak */
+    expect(Object.keys(n.sarf[0] as object).sort()).toEqual([
+      'matomi',
+      'miqdor',
+      'nom',
+      'sarflashBirligi',
+    ]);
   });
 
-  it('har qator alohida to‘g‘ri — «har slot O‘Z narxi bilan»', () => {
-    const n = pozitsiyaNarxiniHisobla(KANONIK);
-
-    for (const kutilgan of K03.qatorlar) {
-      const q = n.qatorlar.find((x) => x.nom === kutilgan.nom);
-      expect(q, kutilgan.nom).toBeDefined();
-      expect(q?.summa, kutilgan.nom).toBe(kutilgan.jami);
-    }
+  it('TZ 3.6 — sotuvchi tuzatgan miqdor ombor uchun ustun', () => {
+    const n = pozitsiyaNarxiniHisobla({
+      ...ASOS,
+      slotlar: [{ ...(ASOS.slotlar[0] as object), tuzatilganMiqdor: 3.5 } as never],
+    });
+    expect(n.sarf[0]?.miqdor).toBe(3.5);
   });
 
-  it('maydon eni × bo‘yi dan chiqadi, kiritilmaydi (Q-05)', () => {
-    const n = pozitsiyaNarxiniHisobla(KANONIK);
-    const old = n.qatorlar.find((x) => x.nom === 'old mato');
-    expect(old?.miqdor).toBeCloseTo(K03.maydonKvM, 4);
+  it('TZ 3.7 — qo‘lda kiritilgan aksessuar soni formulani USTIDAN YOZMAYDI', () => {
+    const n = pozitsiyaNarxiniHisobla({
+      ...ASOS,
+      aksessuarlar: [{ ...(ASOS.aksessuarlar[0] as object), qoldaSoni: 5 } as never],
+    });
+    expect(n.sarf[1]?.miqdor).toBe(5);
+  });
+
+  /**
+   * ⚠️ Narx qoidasi yo'q bo'lsa ham sarf TO'LA chiqadi: sotuvchi
+   *    qaysi materialdan qancha ketishini baribir ko'radi.
+   */
+  it('narx qo‘yilmagan bo‘lsa ham sarf ro‘yxati to‘la', () => {
+    const n = pozitsiyaNarxiniHisobla({ ...ASOS, qoida: null });
+    expect(n.sarf).toHaveLength(2);
+    expect(n.jami).toBeNull();
   });
 });
 
-describe('TZ 6.3 — offset MATOGA, aksessuarga TEGMAYDI', () => {
-  it('−10% da mato arzonlashadi, aksessuar o‘zgarmaydi', () => {
-    const n = pozitsiyaNarxiniHisobla({
-      ...KANONIK,
-      offset: { turi: 'FOIZ', foiz: -10 },
-    });
-
-    const old = n.qatorlar.find((x) => x.nom === 'old mato');
-    const mexanizm = n.qatorlar.find((x) => x.nom === 'mexanizm');
-
-    // 120 000 − 10% = 108 000
-    expect(Number(old?.birlikNarxi)).toBe(108_000);
-    // Aksessuar tegilmadi
-    expect(Number(mexanizm?.birlikNarxi)).toBe(45_000);
+describe('narx — tur × mato darajasi jadvalidan', () => {
+  it('2.94 kv.m «1 dan katta» bosqichiga tushadi: 2.94 × 120 000', () => {
+    const n = pozitsiyaNarxiniHisobla(ASOS);
+    expect(n.olchov).toBeCloseTo(2.94, 4);
+    expect(n.bosqich?.narx).toBe('120000');
+    expect(n.jami).toBe('352800.00');
   });
 
-  it('offsetsiz narx kanonik bilan bir xil', () => {
-    const a = pozitsiyaNarxiniHisobla(KANONIK);
-    const b = pozitsiyaNarxiniHisobla({ ...KANONIK, offset: null });
-    expect(a.jami).toBe(b.jami);
+  it('kichik o‘lcham qimmatroq bosqichga tushadi', () => {
+    // 60 × 80 = 0.48 kv.m → «1 gacha» → 150 000
+    const n = pozitsiyaNarxiniHisobla({ ...ASOS, eniSm: 60, boyiSm: 80 });
+    expect(n.bosqich?.narx).toBe('150000');
+    expect(n.jami).toBe('72000.00');
+  });
+
+  /**
+   * ⚠️ ENG MUHIM TEKSHIRUV — narx endi materialga BOG'LIQ EMAS.
+   *    Slot va aksessuar butunlay o'zgarsa ham jami o'zgarmasligi
+   *    kerak: ilgari bu raqamni aynan ular belgilardi.
+   */
+  it('material o‘zgarsa narx O‘ZGARMAYDI', () => {
+    const a = pozitsiyaNarxiniHisobla(ASOS);
+    const b = pozitsiyaNarxiniHisobla({
+      ...ASOS,
+      slotlar: [
+        { nom: 'Boshqa mato', formula: 'MAYDON * 3', sarflashBirligi: 'KV_M' } as never,
+      ],
+      aksessuarlar: [
+        { nom: 'Boshqa aksessuar', formula: '99', sarflashBirligi: 'DONA', majburiy: true },
+      ],
+    });
+
+    expect(b.jami).toBe(a.jami);
+    // Sarf esa o'zgargan bo'lishi kerak
+    expect(b.sarf[0]?.miqdor).not.toBe(a.sarf[0]?.miqdor);
+  });
+
+  it('narx qo‘yilmagan bo‘lsa jami NULL va sabab aytiladi', () => {
+    const n = pozitsiyaNarxiniHisobla({ ...ASOS, qoida: null });
+    expect(n.jami).toBeNull();
+    expect(n.xato).toContain("narx qo'yilmagan");
+  });
+
+  it('o‘lchamga bosqich topilmasa ham jami NULL — bepulga sotilmaydi', () => {
+    const teshik: Qoida = {
+      hisoblashUsuli: 'MAYDON',
+      bosqichlar: [{ dan: 5, gacha: null, narx: '120000', valyuta: 'SOM' }],
+    };
+    const n = pozitsiyaNarxiniHisobla({ ...ASOS, qoida: teshik });
+    expect(n.jami).toBeNull();
+    expect(n.xato).not.toBeNull();
   });
 });
 
-describe('TZ 3.6 · 3.7 — qo‘lda tuzatish', () => {
-  it('tuzatilgan miqdor NARXGA tayanadi', () => {
-    const n = pozitsiyaNarxiniHisobla({
-      ...KANONIK,
-      slotlar: [{ ...OLD_MATO, tuzatilganMiqdor: 3 }, ORQA_MATO],
-    });
+describe('qo‘shimchalar — TZ 3.8', () => {
+  const BILAN: NarxKirishi = {
+    ...ASOS,
+    qoshimchalar: [
+      { nom: 'Usti shabalik', hisoblashUsuli: 'ENI', narx: '80000', valyuta: 'SOM' },
+      { nom: "O'rnatish", hisoblashUsuli: 'QATIY', narx: '150000', valyuta: 'SOM' },
+    ],
+  };
 
-    const old = n.qatorlar.find((x) => x.nom === 'old mato');
-    expect(old?.miqdor).toBe(3);
-    // 3 × 120 000 = 360 000
-    expect(Number(old?.summa)).toBe(360_000);
+  it('asosiy + qo‘shimchalar alohida qator bo‘lib chiqadi', () => {
+    const n = pozitsiyaNarxiniHisobla(BILAN);
+    expect(n.narxQatorlari).toEqual([
+      { nom: 'Asosiy narx', summa: '352800.00' },
+      { nom: 'Usti shabalik', summa: '168000.00' },
+      { nom: "O'rnatish", summa: '150000.00' },
+    ]);
+    // 352 800 + 168 000 + 150 000
+    expect(n.jami).toBe('670800.00');
   });
 
-  it('qo‘lda kiritilgan aksessuar soni formulani USTIDAN YOZMAYDI', () => {
-    const n = pozitsiyaNarxiniHisobla({
-      ...KANONIK,
-      aksessuarlar: [{ ...KRONSHTEYN, qoldaSoni: 5 }],
-    });
-
-    const k = n.qatorlar.find((x) => x.nom === 'kronshteyn');
-    expect(k?.miqdor).toBe(5);
-    expect(Number(k?.summa)).toBe(25_000);
+  it('tanlanmagan qo‘shimcha jamiga kirmaydi', () => {
+    expect(pozitsiyaNarxiniHisobla(ASOS).jami).toBe('352800.00');
   });
 });
 
 describe('TZ 4.7 — xizmat haqi', () => {
-  it('jamiga qo‘shiladi', () => {
-    const n = pozitsiyaNarxiniHisobla({ ...KANONIK, xizmatHaqi: '50000' });
-    expect(Number(n.jami)).toBe(678_400 + 50_000);
+  it('alohida qator bo‘lib jamiga qo‘shiladi', () => {
+    const n = pozitsiyaNarxiniHisobla({ ...ASOS, xizmatHaqi: '50000' });
+    expect(n.narxQatorlari.at(-1)).toEqual({ nom: 'Xizmat haqi', summa: '50000.00' });
+    expect(n.jami).toBe('402800.00');
+  });
+
+  it('nol xizmat haqi qator YASAMAYDI — «0 so‘m» yozilmaydi', () => {
+    const n = pozitsiyaNarxiniHisobla({ ...ASOS, xizmatHaqi: '0' });
+    expect(n.narxQatorlari).toHaveLength(1);
   });
 });
 
-describe('narxsiz mato — buyurtma yig‘ilaveradi', () => {
-  it('narxi yo‘q slot nol bilan hisoblanadi, yiqilmaydi', () => {
+/**
+ * TZ 6.3 — offset MATOGA qo'llanadi, aksessuarga tegmaydi.
+ * Yangi modelda buning ma'nosi: ASOSIY narxga tushadi, qo'shimchaga emas.
+ * O'rnatish haqiga chegirma berish alohida qaror bo'lishi kerak.
+ */
+describe('TZ 6.3 — offset faqat asosiy narxga', () => {
+  it('−10% asosiyni arzonlashtiradi, qo‘shimcha o‘zgarmaydi', () => {
     const n = pozitsiyaNarxiniHisobla({
-      ...KANONIK,
-      slotlar: [{ ...OLD_MATO, narx: null }, ORQA_MATO],
+      ...ASOS,
+      qoshimchalar: [
+        { nom: "O'rnatish", hisoblashUsuli: 'QATIY', narx: '150000', valyuta: 'SOM' },
+      ],
+      offset: { turi: 'FOIZ', foiz: -10 },
     });
+    expect(n.narxQatorlari[0]?.summa).toBe('317520.00'); // 352 800 − 10%
+    expect(n.narxQatorlari[1]?.summa).toBe('150000.00');
+    expect(n.jami).toBe('467520.00');
+  });
 
-    const old = n.qatorlar.find((x) => x.nom === 'old mato');
-    expect(old?.birlikNarxi).toBeNull();
-    expect(Number(old?.summa)).toBe(0);
-    // Qolgan qatorlar hisoblanaveradi
-    expect(Number(n.jami)).toBe(678_400 - 352_800);
+  it('offsetsiz narx o‘zgarmaydi', () => {
+    expect(pozitsiyaNarxiniHisobla({ ...ASOS, offset: null }).jami).toBe('352800.00');
+  });
+
+  it('so‘mdagi offset qo‘shiladi', () => {
+    const n = pozitsiyaNarxiniHisobla({
+      ...ASOS,
+      offset: { turi: 'SOM', summa: som('20000') },
+    });
+    expect(n.jami).toBe('372800.00');
+  });
+});
+
+describe('valyuta — TZ 5.4', () => {
+  const KURS = kurs(12_500, new Date('2026-09-20'), 'JORIY');
+  const DOLLARDA: Qoida = {
+    hisoblashUsuli: 'MAYDON',
+    bosqichlar: [{ dan: 0, gacha: null, narx: '10', valyuta: 'USD' }],
+  };
+
+  it('dollardagi bosqich kurs bilan so‘mga o‘giriladi', () => {
+    // 2.94 × 10 $ = 29.4 $ × 12 500 = 367 500
+    const n = pozitsiyaNarxiniHisobla({ ...ASOS, qoida: DOLLARDA, kurs: KURS });
+    expect(n.jami).toBe('367500.00');
+  });
+
+  /**
+   * ⚠️ Kurs yo'q bo'lsa jimgina so'm deb olish narxni MING BAROBAR
+   *    kamaytirardi. Sotuvchi xatoni ko'rgani ancha yaxshi.
+   */
+  it('kurssiz dollar narxi XATO beradi, jim so‘m deb olinmaydi', () => {
+    const n = pozitsiyaNarxiniHisobla({ ...ASOS, qoida: DOLLARDA, kurs: null });
+    expect(n.jami).toBeNull();
+    expect(n.xato).not.toBeNull();
+  });
+
+  it('dollardagi offset ham kurs bilan o‘giriladi', () => {
+    const n = pozitsiyaNarxiniHisobla({
+      ...ASOS,
+      offset: { turi: 'USD', summa: dollar('4') },
+      kurs: KURS,
+    });
+    expect(n.jami).toBe('402800.00'); // 352 800 + 50 000
   });
 });

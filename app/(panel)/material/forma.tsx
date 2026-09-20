@@ -56,6 +56,8 @@ export interface MaterialQiymatlari {
   readonly almashtirishGuruhId: string;
   /** Mato darajasi — mijoz narxi shundan (egasi qarori 2026-09-20) */
   readonly narxGuruhId: string;
+  /** Tayyor mahsulot — to‘g‘ridan-to‘g‘ri sotiladi (egasi qarori 2026-09-20) */
+  readonly togridanSotiladi: boolean;
   readonly yaxlitlashQadami: string;
 }
 
@@ -78,6 +80,7 @@ export const BOSH_QIYMATLAR: MaterialQiymatlari = {
   kirimNarxAsosi: 'METR',
   almashtirishGuruhId: '',
   narxGuruhId: '',
+  togridanSotiladi: false,
   yaxlitlashQadami: '',
 };
 
@@ -144,8 +147,12 @@ export function MaterialFormasi({
    *    bo'lganda ham. Server kiritilgan qiymatlarni qaytaradi va
    *    ular shu yerda qayta ko'rsatiladi.
    */
-  const q = (nom: keyof MaterialQiymatlari): string =>
-    holat.kiritilgan?.[nom] ?? qiymatlar[nom];
+  /** ⚠️ Faqat MATN maydonlari — `togridanSotiladi` mantiqiy, u alohida o'qiladi */
+  type MatnMaydoni = {
+    [K in keyof MaterialQiymatlari]: MaterialQiymatlari[K] extends string ? K : never;
+  }[keyof MaterialQiymatlari];
+
+  const q = (nom: MatnMaydoni): string => holat.kiritilgan?.[nom] ?? qiymatlar[nom];
 
   /**
    * ⚠️ Eski material qo'lda kiritilgan birlik bilan turishi mumkin
@@ -166,6 +173,18 @@ export function MaterialFormasi({
   const [kelishNarx, kelishNarxniOzgartir] = useState(q('kutilayotganKelishNarx'));
   const [kelishValyuta, kelishValyutaniOzgartir] = useState(q('kutilayotganKelishValyuta'));
   const [sotuvNarx, sotuvNarxniOzgartir] = useState(q('sotuvNarx'));
+
+  /**
+   * ⚠️ Egasi qarori 2026-09-20 — jalyuzi narxi endi «Narxlar va turlar»
+   *    jadvalidan keladi, materialdan emas. Shuning uchun omborchidan
+   *    har mato uchun sotuv narxi SO'RALMAYDI.
+   *
+   *    Lekin tayyor mahsulot (pult, tayyor parda) to'g'ridan-to'g'ri
+   *    sotiladi va unga narx kerak. Belgi shu ikkisini ajratadi.
+   */
+  const [togridanSotiladi, togridanSotiladiniOzgartir] = useState(
+    qiymatlar.togridanSotiladi,
+  );
   const [sotuvValyuta, sotuvValyutaniOzgartir] = useState(q('sotuvValyuta'));
 
   const tavsif = birlik === null ? null : BIRLIK_TAVSIFI[birlik];
@@ -507,6 +526,36 @@ export function MaterialFormasi({
         <h2 className="mb-3 text-sm font-semibold text-matn">Narx</h2>
 
         <div className="grid gap-4 sm:grid-cols-2">
+          {/*
+            ⚠️ Belgi SOTUV NARXINI ochadi. Egasi (2026-09-20): «mahsulot
+               qo'shish sahifasidan sotuv narxini olib tashlaymiz, faqat
+               kelish narxini yozamiz».
+
+               Jalyuzi narxi «Narxlar va turlar» jadvalidan keladi.
+               Tayyor mahsulot esa o'lchamsiz sotiladi va unga baribir
+               narx kerak — shuning uchun butunlay olib tashlanmadi,
+               yashirildi.
+          */}
+          <label className="flex items-start gap-2 sm:col-span-2">
+            <input
+              type="checkbox"
+              name="togridanSotiladi"
+              checked={togridanSotiladi}
+              onChange={(e) => {
+                togridanSotiladiniOzgartir(e.target.checked);
+              }}
+              className="mt-0.5"
+            />
+            <span>
+              <span className="text-sm text-matn">To&apos;g&apos;ridan-to&apos;g&apos;ri sotiladi</span>
+              <span className="block text-[12px] text-matn-kuchsiz">
+                tayyor mahsulot — o&apos;lchamsiz sotiladi (pult, tayyor parda).
+                Jalyuzi matosiga bu belgi KERAK EMAS: uning narxi «Narxlar va
+                turlar» dan keladi.
+              </span>
+            </span>
+          </label>
+
           <NarxKatagi
             nom={NARX_MAYDONLARI[1].narx}
             valyutaNom={NARX_MAYDONLARI[1].valyuta}
@@ -526,20 +575,22 @@ export function MaterialFormasi({
             }}
           />
 
-          <NarxKatagi
-            nom={NARX_MAYDONLARI[0].narx}
-            valyutaNom={NARX_MAYDONLARI[0].valyuta}
-            yorliq="Sotish narxi"
-            izoh={tavsif === null ? undefined : `1 ${tavsif.narxBirligi} uchun`}
-            boshNarx={qiymatlar.sotuvNarx}
-            boshValyuta={qiymatlar.sotuvValyuta}
-            kurs={kurs}
-            xato={x('sotuvNarx') ?? x('sotuvValyuta')}
-            ozgardi={(n, v) => {
-              sotuvNarxniOzgartir(n);
-              sotuvValyutaniOzgartir(v);
-            }}
-          />
+          {togridanSotiladi && (
+            <NarxKatagi
+              nom={NARX_MAYDONLARI[0].narx}
+              valyutaNom={NARX_MAYDONLARI[0].valyuta}
+              yorliq="Sotish narxi"
+              izoh={tavsif === null ? undefined : `1 ${tavsif.narxBirligi} uchun`}
+              boshNarx={qiymatlar.sotuvNarx}
+              boshValyuta={qiymatlar.sotuvValyuta}
+              kurs={kurs}
+              xato={x('sotuvNarx') ?? x('sotuvValyuta')}
+              ozgardi={(n, v) => {
+                sotuvNarxniOzgartir(n);
+                sotuvValyutaniOzgartir(v);
+              }}
+            />
+          )}
         </div>
 
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
@@ -603,7 +654,7 @@ export function MaterialFormasi({
         </div>
 
         <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs">
-          {ustama !== null && (
+          {togridanSotiladi && ustama !== null && (
             <span className="text-matn-ikki">
               Taxminiy ustama: <b className="text-matn">{ustama}%</b>
             </span>
@@ -629,16 +680,24 @@ export function MaterialFormasi({
           ⚠️ TZ 5.4 · 6.2 — tur narxlari. Dinamik: spravochnikdagi
              har faol tur uchun bitta katak.
         */}
-        <div className="mt-5 border-t border-chegara pt-5">
-          <h3 className="mb-1 text-sm font-medium text-matn-ikki">
-            Mijoz turi bo&apos;yicha narx
-          </h3>
-          <TurNarxlari
-            turlar={turNarxlari}
-            tannarx={oxirgiKelish?.narx ?? null}
-            standartNarx={sotuvNarx}
-          />
-        </div>
+        {/*
+          ⚠️ Mijoz turi narxi ham SOTUV narxining bir turi (TZ 6.2) —
+             u ham faqat to'g'ridan-to'g'ri sotiladigan mahsulotda
+             ma'noga ega. Jalyuzida mijoz turi «Narxlar va turlar»
+             jadvalida, qoida qatorida tanlanadi.
+        */}
+        {togridanSotiladi && (
+          <div className="mt-5 border-t border-chegara pt-5">
+            <h3 className="mb-1 text-sm font-medium text-matn-ikki">
+              Mijoz turi bo&apos;yicha narx
+            </h3>
+            <TurNarxlari
+              turlar={turNarxlari}
+              tannarx={oxirgiKelish?.narx ?? null}
+              standartNarx={sotuvNarx}
+            />
+          </div>
+        )}
 
         {tavsif?.sarflashBirligi === 'SM' && (
           <p className="mt-3 rounded-maydon bg-belgi-sariq-fon px-3 py-2 text-xs text-belgi-sariq ">

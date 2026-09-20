@@ -108,6 +108,16 @@ export const materialSxema = z
       .optional(),
 
     /**
+     * Tayyor mahsulot — to'g'ridan-to'g'ri sotiladi (egasi qarori
+     * 2026-09-20). Belgilanmagan katak formadan UMUMAN kelmaydi,
+     * shuning uchun `'on'` dan boshqasi `false` deb o'qiladi.
+     */
+    togridanSotiladi: z
+      .union([z.string(), z.boolean()])
+      .optional()
+      .transform((x) => x === true || x === 'on' || x === 'true'),
+
+    /**
      * TZ 7.9 — KIRIMDA narx nimaga berilgani.
      *
      * ⚠️ Sotuvga tegmaydi: sotuvda har doim kv.m ishlaydi.

@@ -40,6 +40,7 @@ interface Qator {
   readonly odatdagi_rulon_boyi_m: string | null;
   readonly almashtirish_guruh_id: number | null;
   readonly narx_guruh_id: number | null;
+  readonly togridan_sotiladi: boolean;
   readonly yaxlitlash_qadami: string | null;
   readonly kirim_narx_asosi: string;
 }
@@ -66,7 +67,8 @@ export default async function MaterialTahrirlash({ params }: { params: Promise<{
            sotuv_narx, sotuv_valyuta, kutilayotgan_kelish_narx,
            kutilayotgan_kelish_valyuta, min_ustama_foiz, yaroqsiz_chegara_m,
            kam_ishlatiladigan_m, kam_qoldiq_chegara_m, standart_rulon_eni_m,
-           odatdagi_rulon_boyi_m, almashtirish_guruh_id, narx_guruh_id, yaxlitlash_qadami,
+           odatdagi_rulon_boyi_m, almashtirish_guruh_id, narx_guruh_id,
+           togridan_sotiladi, yaxlitlash_qadami,
            kirim_narx_asosi,
            (rasm IS NOT NULL) AS rasm_bormi,
            to_char(ozgartirildi, 'YYYYMMDDHH24MISS') AS ozgartirildi
@@ -112,6 +114,7 @@ export default async function MaterialTahrirlash({ params }: { params: Promise<{
       material.almashtirish_guruh_id === null ? '' : String(material.almashtirish_guruh_id),
     narxGuruhId:
       material.narx_guruh_id === null ? '' : String(material.narx_guruh_id),
+    togridanSotiladi: material.togridan_sotiladi,
     yaxlitlashQadami: m(material.yaxlitlash_qadami),
     kirimNarxAsosi: material.kirim_narx_asosi,
   };

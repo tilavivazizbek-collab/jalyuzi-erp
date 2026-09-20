@@ -42,9 +42,9 @@ export const KANONIK: readonly Kanonik[] = [
   },
   {
     kod: 'K-03',
-    nom: 'Kanonik buyurtma — Rollo 210 × 140',
+    nom: 'Kanonik buyurtma — Rollo 210 × 140 (narx qoidasi)',
     band: 'TZ 3.8',
-    kutilgan: '678 400',
+    kutilgan: '570 800',
     bosqich: 2,
     holat: 'TAYYOR',
   },
@@ -139,19 +139,47 @@ export const K02 = {
   jami: 3.96,
 } as const;
 
-/** K-03 · TZ 3.8 — Rollo 210 × 140. Narx moduli 4-bosqichda quriladi. */
+/**
+ * K-03 · TZ 3.8 — Rollo 210 × 140.
+ *
+ * ⚠️ BU RAQAM 2026-09-20 DA O'ZGARDI: 678 400 → 570 800.
+ *
+ *    Eski raqam MATERIALLARNI QO'SHISH modelidan chiqardi:
+ *      old mato 352 800 + orqa mato 264 600 + mexanizm 45 000
+ *      + kronshteyn 10 000 + brelok 6 000 = 678 400
+ *
+ *    Egasi bu modelni RAD ETDI: «hozirda qatnashgan har bir narsani
+ *    narxi hisoblanib qo'shiladi, endi unday bo'lmaydi — men
+ *    belgilab qo'yaman mijozga narx qanday hisoblanishini».
+ *
+ *    Narx endi tur × mato darajasi jadvalidan keladi. Materiallar
+ *    sarfi avvalgidek hisoblanadi, lekin narxga ta'sir qilmaydi.
+ *
+ *    O'zgarish egasining yozma tasdig'i bilan (2026-09-20).
+ *    `test/kanonik.ts` qoidasi: raqam faqat TZ o'zgarganda o'zgaradi.
+ *
+ * Yangi hisob:
+ *   maydon        2.10 × 1.40                    = 2.94 kv.m
+ *   bosqich       «1 kv.m dan katta» → 120 000/kv.m
+ *   asosiy        2.94 × 120 000                 = 352 800
+ *   usti shabalik eni bo'yicha, 2.10 × 80 000    = 168 000
+ *   xizmat haqi                                  =  50 000
+ *   ─────────────────────────────────────────────────────────
+ *   JAMI                                           570 800
+ */
 export const K03 = {
   eni: 210,
   boyi: 140,
   maydonKvM: 2.94,
-  qatorlar: [
-    { nom: 'old mato', narx: '120000', miqdor: '2.94', jami: '352800.00' },
-    { nom: 'orqa mato', narx: '90000', miqdor: '2.94', jami: '264600.00' },
-    { nom: 'mexanizm', narx: '45000', miqdor: '1', jami: '45000.00' },
-    { nom: 'kronshteyn', narx: '5000', miqdor: '2', jami: '10000.00' },
-    { nom: 'brelok', narx: '3000', miqdor: '2', jami: '6000.00' },
+  /** Bitta bosqich: 1 kv.m dan kattasiga 120 000 so'm */
+  bosqichlar: [
+    { dan: 0, gacha: 1, narx: '150000', valyuta: 'SOM' },
+    { dan: 1, gacha: null, narx: '120000', valyuta: 'SOM' },
   ],
-  jami: '678400.00',
+  asosiy: '352800.00',
+  qoshimcha: { nom: 'Usti shabalik', usuli: 'ENI', narx: '80000', jami: '168000.00' },
+  xizmatHaqi: '50000',
+  jami: '570800.00',
 } as const;
 
 /** K-07 · TZ 9.6 — 3 000 $ qarz, kirim kursi 12 650, to'lov kursi 13 200 */

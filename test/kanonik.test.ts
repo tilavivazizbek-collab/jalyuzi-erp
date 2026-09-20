@@ -8,7 +8,6 @@
 import { describe, expect, it } from 'vitest';
 import { K01, K02, K03, K04, K05, K06, K07, K09, K10, KANONIK } from './kanonik';
 import {
-  dona,
   kvM,
   kvMYigindi,
   kvSmToKvM,
@@ -18,7 +17,7 @@ import {
   type KvadratMetr,
 } from '@/lib/domain/birlik';
 import { sarflashHisobla, standartQiymatlar } from '@/lib/domain/formula';
-import { pozitsiyaNarxi, qatorSummasi, type Qator } from '@/lib/domain/narx';
+import { pozitsiyaNarxiniHisobla } from '@/lib/domain/pozitsiya-narxi';
 import { dollar, kopaytir, kurs, kursFarqi, nolSom, pulKorsat, pulMatn, som } from '@/lib/domain/pul';
 import { birlikTannarxi, xarajatniTaqsimla } from '@/lib/domain/tannarx';
 import { bolakTanla, kesimBalansi, kesimQatorlari } from '@/lib/domain/kesish';
@@ -67,27 +66,69 @@ describe('K-02: slot formulalari — TZ 3.5', () => {
   });
 });
 
+/**
+ * K-03 · TZ 3.8 — kanonik buyurtma.
+ *
+ * ⚠️ Raqam 2026-09-20 da 678 400 dan 570 800 ga o'zgardi: egasi
+ *    materiallarni qo'shish modelini rad etdi va narx endi
+ *    tur × mato darajasi jadvalidan keladi. Sabab `test/kanonik.ts`
+ *    dagi K03 izohida to'liq yozilgan.
+ */
 describe('K-03: kanonik buyurtma — TZ 3.8', () => {
-  it("Rollo 210 × 140 → 678 400 so'm", () => {
+  it("Rollo 210 × 140 → 570 800 so'm", () => {
     // Maydon Q-05 bo'yicha eni × bo'yi dan hisoblanadi, kiritilmaydi
     const maydon = kvSmToKvM(maydonKvSm(sm(K03.eni), sm(K03.boyi)));
     expect(maydon).toBe(K03.maydonKvM);
 
-    const qatorlar: Qator[] = [
-      { nom: 'old mato', sarflashBirligi: 'KV_M', miqdor: maydon, narx: som('120000') },
-      { nom: 'orqa mato', sarflashBirligi: 'KV_M', miqdor: maydon, narx: som('90000') },
-      { nom: 'mexanizm', sarflashBirligi: 'DONA', miqdor: dona(1), narx: som('45000') },
-      { nom: 'kronshteyn', sarflashBirligi: 'DONA', miqdor: dona(2), narx: som('5000') },
-      { nom: 'brelok', sarflashBirligi: 'DONA', miqdor: dona(2), narx: som('3000') },
-    ];
+    const natija = pozitsiyaNarxiniHisobla({
+      eniSm: K03.eni,
+      boyiSm: K03.boyi,
+      soni: 1,
+      parametrlar: {},
+      slotlar: [],
+      aksessuarlar: [],
+      qoida: { hisoblashUsuli: 'MAYDON', bosqichlar: [...K03.bosqichlar] },
+      qoshimchalar: [
+        {
+          nom: K03.qoshimcha.nom,
+          hisoblashUsuli: 'ENI',
+          narx: K03.qoshimcha.narx,
+          valyuta: 'SOM',
+        },
+      ],
+      offset: null,
+      kurs: null,
+      xizmatHaqi: K03.xizmatHaqi,
+    });
 
-    // Har qator TZ 3.8 jadvalidagi raqamga mos kelishi kerak
-    expect(qatorlar.map((q) => pulMatn(qatorSummasi(q)))).toEqual(
-      K03.qatorlar.map((q) => q.jami),
-    );
+    // 2.94 kv.m «1 dan katta» bosqichiga tushadi — 150 000 emas, 120 000
+    expect(natija.bosqich?.narx).toBe('120000');
+    expect(natija.narxQatorlari.map((q) => q.summa)).toEqual([
+      K03.asosiy,
+      K03.qoshimcha.jami,
+      '50000.00',
+    ]);
 
-    expect(pulMatn(pozitsiyaNarxi(qatorlar, null))).toBe(K03.jami);
-    expect(pulKorsat(pozitsiyaNarxi(qatorlar, null))).toBe('678 400');
+    expect(natija.jami).toBe(K03.jami);
+    expect(pulKorsat(som(K03.jami))).toBe('570 800');
+  });
+
+  it('narx qo‘yilmagan bo‘lsa jami NULL — bepulga sotilmaydi', () => {
+    const natija = pozitsiyaNarxiniHisobla({
+      eniSm: K03.eni,
+      boyiSm: K03.boyi,
+      soni: 1,
+      parametrlar: {},
+      slotlar: [],
+      aksessuarlar: [],
+      qoida: null,
+      qoshimchalar: [],
+      offset: null,
+      kurs: null,
+      xizmatHaqi: null,
+    });
+    expect(natija.jami).toBeNull();
+    expect(natija.xato).not.toBeNull();
   });
 });
 

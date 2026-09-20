@@ -50,6 +50,44 @@ export interface SotuvMaterial {
   /** Q-25 — shu filialdagi bo'sh qoldiq (3.3: «har mato yonida qoldiq») */
   readonly boshKvM: number;
   readonly boshDona: number;
+  /**
+   * Mato darajasi — mijoz narxi shundan hisoblanadi (egasi qarori
+   * 2026-09-20). `null` bo'lsa bu materialga narx qoidasi topilmaydi
+   * va sotuvchi «narx qo'yilmagan» xabarini oladi.
+   */
+  readonly narxGuruhId: number | null;
+}
+
+/**
+ * Bitta mato darajasi uchun narx qoidasi — egasi qarori 2026-09-20.
+ *
+ * ⚠️ Mijoz narxi ENDI SHUNDAN keladi, materialdan emas. Sotuvchi
+ *    matoni tanlaydi, uning darajasi qoidani topadi, qoida esa
+ *    o'lchamga qarab bosqichni tanlaydi.
+ */
+export interface SotuvNarxQoidasi {
+  readonly narxGuruhId: number;
+  /** TZ 6.2 — `null` bo'lsa hamma mijoz turiga */
+  readonly mijozTuriId: number | null;
+  readonly hisoblashUsuli: string;
+  readonly bosqichlar: readonly {
+    readonly dan: number;
+    readonly gacha: number | null;
+    readonly narx: string;
+    readonly valyuta: string;
+  }[];
+}
+
+/** Mijoz tanlashi mumkin bo'lgan qo'shimcha — «usti shabalik», «o'rnatish» */
+export interface SotuvQoshimcha {
+  readonly id: number;
+  readonly nom: string;
+  readonly hisoblashUsuli: string;
+  readonly narx: string;
+  readonly valyuta: string;
+  readonly materialId: number | null;
+  readonly almashtirishGuruhId: number | null;
+  readonly formula: string | null;
 }
 
 export interface SotuvSlot {
@@ -90,6 +128,9 @@ export interface SotuvTuri {
   readonly slotlar: readonly SotuvSlot[];
   readonly parametrlar: readonly SotuvParametr[];
   readonly aksessuarlar: readonly SotuvAksessuar[];
+  /** Egasi qarori 2026-09-20 — mijoz narxi shu qoidalardan */
+  readonly narxQoidalari: readonly SotuvNarxQoidasi[];
+  readonly qoshimchalar: readonly SotuvQoshimcha[];
 }
 
 export interface TurQatori {
@@ -242,12 +283,14 @@ export async function sotuvTurlari(
       nom: string;
       sarflash_birligi: string;
       almashtirish_guruh_id: number | null;
+      narx_guruh_id: number | null;
       narx: string | null;
       narx_valyuta: string;
       rasm_bormi: boolean;
     }[]
   >`
     SELECT m.id, m.nom, m.sarflash_birligi, m.almashtirish_guruh_id,
+           m.narx_guruh_id,
            COALESCE(fn.sotuv_narx::text, m.sotuv_narx::text) AS narx,
            /*
             * ⚠️ Valyuta narx bilan BIRGA olinadi. Filial narxi
@@ -287,6 +330,65 @@ export async function sotuvTurlari(
     turNarxBoyicha.set(q.material_id, bor);
   }
 
+  /**
+   * Narx qoidalari — egasi qarori 2026-09-20.
+   *
+   * ⚠️ FILIAL bo'yicha tanlanadi (TZ 20.9): shu filialga qo'yilgan
+   *    qoida bo'lsa o'sha, bo'lmasa umumiysi. Mijoz turi esa
+   *    ekranda hal bo'ladi — mijoz sotuv paytida tanlanadi va
+   *    serverga qayta borish shart emas.
+   */
+  const narxQatorlari = await sql<
+    {
+      id: number;
+      mahsulot_tur_id: number;
+      narx_guruh_id: number;
+      mijoz_turi_id: number | null;
+      hisoblash_usuli: string;
+    }[]
+  >`
+    SELECT id, mahsulot_tur_id, narx_guruh_id, mijoz_turi_id, hisoblash_usuli
+    FROM mahsulot_narx
+    WHERE mahsulot_tur_id = ANY(${turIdlar}) AND faol = true
+      AND (filial_id IS NULL OR filial_id = ${filialId})
+    ORDER BY mahsulot_tur_id, narx_guruh_id, (filial_id IS NULL)`;
+
+  const bosqichQatorlari =
+    narxQatorlari.length === 0
+      ? []
+      : await sql<
+          {
+            mahsulot_narx_id: number;
+            dan: string;
+            gacha: string | null;
+            narx: string;
+            valyuta: string;
+          }[]
+        >`
+          SELECT mahsulot_narx_id, dan::text, gacha::text, narx::text, valyuta
+          FROM mahsulot_narx_bosqich
+          WHERE mahsulot_narx_id = ANY(${narxQatorlari.map((q) => q.id)}) AND faol = true
+          ORDER BY dan`;
+
+  const qoshimchaQatorlari = await sql<
+    {
+      id: number;
+      mahsulot_tur_id: number;
+      nom: string;
+      hisoblash_usuli: string;
+      narx: string;
+      valyuta: string;
+      material_id: number | null;
+      almashtirish_guruh_id: number | null;
+      formula: string | null;
+    }[]
+  >`
+    SELECT id, mahsulot_tur_id, nom, hisoblash_usuli, narx::text, valyuta,
+           material_id, almashtirish_guruh_id, formula
+    FROM mahsulot_qoshimcha
+    WHERE mahsulot_tur_id = ANY(${turIdlar}) AND faol = true
+    ORDER BY mahsulot_tur_id, tartib, nom`;
+
   const material = (m: (typeof materiallar)[number]): SotuvMaterial => {
     const q = qoldiqBoyicha.get(m.id);
     return {
@@ -299,6 +401,7 @@ export async function sotuvTurlari(
       rasmBormi: m.rasm_bormi,
       boshKvM: q?.kvM ?? 0,
       boshDona: q?.dona ?? 0,
+      narxGuruhId: m.narx_guruh_id,
     };
   };
 
@@ -340,6 +443,33 @@ export async function sotuvTurlari(
         narx: a.narx,
         narxValyuta: a.narx_valyuta,
         turNarxlari: turNarxBoyicha.get(a.material_id) ?? {},
+      })),
+    narxQoidalari: narxQatorlari
+      .filter((q) => q.mahsulot_tur_id === t.id)
+      .map((q) => ({
+        narxGuruhId: q.narx_guruh_id,
+        mijozTuriId: q.mijoz_turi_id,
+        hisoblashUsuli: q.hisoblash_usuli,
+        bosqichlar: bosqichQatorlari
+          .filter((b) => b.mahsulot_narx_id === q.id)
+          .map((b) => ({
+            dan: Number(b.dan),
+            gacha: b.gacha === null ? null : Number(b.gacha),
+            narx: b.narx,
+            valyuta: b.valyuta,
+          })),
+      })),
+    qoshimchalar: qoshimchaQatorlari
+      .filter((q) => q.mahsulot_tur_id === t.id)
+      .map((q) => ({
+        id: q.id,
+        nom: q.nom,
+        hisoblashUsuli: q.hisoblash_usuli,
+        narx: q.narx,
+        valyuta: q.valyuta,
+        materialId: q.material_id,
+        almashtirishGuruhId: q.almashtirish_guruh_id,
+        formula: q.formula,
       })),
   }));
 }

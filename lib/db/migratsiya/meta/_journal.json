@@ -288,6 +288,13 @@
       "when": 1789884547259,
       "tag": "0040_narx_qoidasi",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1789884547260,
+      "tag": "0041_togridan_sotiladi",
+      "breakpoints": true
     }
   ]
 }

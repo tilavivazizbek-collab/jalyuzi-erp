@@ -20,8 +20,9 @@ import { useActionState, useMemo, useState } from 'react';
 import { sarflashHisobla, slotSarfi, standartQiymatlar } from '@/lib/domain/formula';
 import { sm, type SarflashBirligi } from '@/lib/domain/birlik';
 import { dollar, kurs, nolSom, pulKorsat, pulMatn, qosh, som, type Som } from '@/lib/domain/pul';
-import { aksessuarNarxi, katalogNarxi, matoNarxi, qatorSummasi } from '@/lib/domain/narx';
+import { aksessuarNarxi, katalogNarxi, matoNarxi } from '@/lib/domain/narx';
 import { pozitsiyaNarxiniHisobla } from '@/lib/domain/pozitsiya-narxi';
+import type { HisoblashUsuli, QoshimchaUsuli } from '@/lib/domain/narx-qoidasi';
 import { amaldagiOffset, limitHolati, offsetQollanmadimi } from '@/lib/domain/mijoz';
 import { chegirmaMatni } from '../../mijoz/guruh/royxat';
 import { biznesXatosimi } from '@/lib/xato';
@@ -236,6 +237,15 @@ export function SotuvFormasi({
     return katalogNarxi(n.narx, n.valyuta, kursObyekti) ?? som(n.narx);
   };
 
+  /**
+   * Mijoz tanlagan qo'shimchalar — «usti shabalik», «o'rnatish».
+   * Egasi qarori 2026-09-20: «mijoz 1 ta narx ko'radi, lekin
+   * o'rnatish narxi yoki qo'shimcha narx qo'shilishi mumkin».
+   */
+  const [tanlanganQoshimchalar, tanlanganQoshimchalarniOzgartir] = useState<readonly number[]>(
+    [],
+  );
+
   /** TZ 3.5 — har slot uchun formula bo'yicha miqdor. */
   const hisob = useMemo(() => {
     if (tur === null) return null;
@@ -271,11 +281,14 @@ export function SotuvFormasi({
 
       const tuzatilgan = son(tanlov?.tuzatilgan ?? '');
       /**
-       * TZ 20.9.3 ning to'liq zanjiri — `lib/domain/narx.ts` da:
-       * filial narxi → mijoz offseti → yaxlitlash.
+       * ⚠️ Bu MIJOZ NARXI EMAS (egasi qarori 2026-09-20). Mijoz narxi
+       *    endi «Narxlar va turlar» jadvalidan keladi va quyida
+       *    bir marta hisoblanadi.
        *
-       * Filial narxi SQL da hal qilingan (`COALESCE`), shuning uchun
-       * bu yerda `filialNarxi` yo'q.
+       *    Bu qiymat faqat `pozitsiya_material.narx_snapshot` ga
+       *    yoziladi: material o'sha kuni qanday narxda turgani
+       *    tarixda qolsin (2.3-invariant) va tannarx hisobotlari
+       *    ishlayversin. EKRANDA KO'RSATILMAYDI.
        */
       const narxMatn =
         material === null || material.narx === null
@@ -290,41 +303,6 @@ export function SotuvFormasi({
                 offset,
                 kurs: kursObyekti,
               }),
-            );
-
-      /**
-       * TZ 3.6 — NARX tuzatilgan songa, ombor hisoblanganiga tayanadi.
-       *
-       * ⚠️ Summa `lib/domain/pozitsiya-narxi.ts` dagi umumiy
-       *    funksiyadan olinadi (§2.2): bot ham AYNAN shuni chaqiradi.
-       *    Ikki joyda hisoblansa botda bir narx, saytda boshqa narx
-       *    chiqardi.
-       */
-      const summa =
-        narxMatn === null || hisoblangan === null
-          ? nolSom()
-          : som(
-              pozitsiyaNarxiniHisobla({
-                eniSm,
-                boyiSm,
-                soni: 1,
-                parametrlar: qiymatlar,
-                slotlar: [
-                  {
-                    nom: s.nom,
-                    formula: s.formula,
-                    sarflashBirligi: birlik,
-                    koeffitsient: s.koeffitsient,
-                    narx: material?.narx ?? null,
-                    narxValyuta: material?.narxValyuta,
-                    tuzatilganMiqdor: tuzatilgan,
-                  },
-                ],
-                aksessuarlar: [],
-                offset,
-                kurs: kursObyekti,
-                xizmatHaqi: null,
-              }).jami,
             );
 
       /**
@@ -349,7 +327,6 @@ export function SotuvFormasi({
         birlik,
         hisoblangan,
         tuzatilgan,
-        summa,
         xato,
         narxMatn,
         yetarlimi,
@@ -391,25 +368,94 @@ export function SotuvFormasi({
                 turNarxi(a.turNarxlari),
               );
 
-        const summa =
-          narx === null
-            ? nolSom()
-            : qatorSummasi({
-                nom: a.nom,
-                sarflashBirligi: birlik,
-                miqdor: soni as never,
-                narx,
-              });
-
-        return { aksessuar: a, birlik, soni, summa, narx };
+        return { aksessuar: a, birlik, soni, narx };
       });
 
     const xizmat = tur.xizmatHaqi === null ? nolSom() : som(tur.xizmatHaqi);
 
-    const jami = [...qatorlar, ...aksQatorlar].reduce<Som>((y, q) => qosh(y, q.summa), xizmat);
+    /**
+     * ⚠️ MIJOZ NARXI — egasi qarori 2026-09-20.
+     *
+     *    Tanlangan matoning DARAJASI qoidani topadi, qoida esa
+     *    o'lchamga qarab bosqichni tanlaydi. Materiallarning narxi
+     *    endi mijoz narxiga umuman ta'sir qilmaydi.
+     *
+     * ⚠️ Daraja BIRINCHI topilgan matodan olinadi. Odatda bu mato
+     *    sloti: mexanizm va kronshteynga daraja qo'yilmaydi va
+     *    ularning `narxGuruhId` si `null` bo'ladi.
+     */
+    const narxGuruhId =
+      qatorlar.find((q) => (q.material?.narxGuruhId ?? null) !== null)?.material?.narxGuruhId ??
+      null;
 
-    return { qatorlar, aksQatorlar, xizmat, jami, eniSm, boyiSm };
-  }, [tur, eni, boyi, parametrlar, slotlar, aksessuarlar, offset]);
+    /**
+     * TZ 6.2 — mijoz turiga qo'yilgan qoida umumiysidan USTUN.
+     * Yozuv bo'lsa shu narx, bo'lmasa umumiysi.
+     */
+    const mijozTuriId = mijoz?.mijozTuriId ?? null;
+    const qoidaQatori =
+      narxGuruhId === null
+        ? undefined
+        : (tur.narxQoidalari.find(
+            (q) => q.narxGuruhId === narxGuruhId && q.mijozTuriId === mijozTuriId,
+          ) ??
+          tur.narxQoidalari.find(
+            (q) => q.narxGuruhId === narxGuruhId && q.mijozTuriId === null,
+          ));
+
+    /**
+     * ⚠️ `slotlar` va `aksessuarlar` BO'SH berilyapti — sarf
+     *    yuqorida allaqachon hisoblandi (ekran material tanlovini,
+     *    qoldiqni va tuzatilgan sonni ham biladi). Bu yerdan faqat
+     *    NARX olinadi. Bot esa o'sha funksiyadan ikkalasini ham
+     *    oladi — mantiq baribir bitta joyda (§2.2).
+     */
+    const narx = pozitsiyaNarxiniHisobla({
+      eniSm,
+      boyiSm,
+      soni: 1,
+      parametrlar: qiymatlar,
+      slotlar: [],
+      aksessuarlar: [],
+      qoida:
+        qoidaQatori === undefined
+          ? null
+          : {
+              hisoblashUsuli: qoidaQatori.hisoblashUsuli as HisoblashUsuli,
+              bosqichlar: qoidaQatori.bosqichlar.map((b) => ({
+                dan: b.dan,
+                gacha: b.gacha,
+                narx: b.narx,
+                valyuta: b.valyuta,
+              })),
+            },
+      qoshimchalar: tur.qoshimchalar
+        .filter((q) => tanlanganQoshimchalar.includes(q.id))
+        .map((q) => ({
+          nom: q.nom,
+          hisoblashUsuli: q.hisoblashUsuli as QoshimchaUsuli,
+          narx: q.narx,
+          valyuta: q.valyuta,
+        })),
+      offset,
+      kurs: kursObyekti,
+      xizmatHaqi: tur.xizmatHaqi,
+    });
+
+    const jami = narx.jami === null ? nolSom() : som(narx.jami);
+
+    return { qatorlar, aksQatorlar, xizmat, narx, jami, eniSm, boyiSm };
+  }, [
+    tur,
+    eni,
+    boyi,
+    parametrlar,
+    slotlar,
+    aksessuarlar,
+    offset,
+    mijoz,
+    tanlanganQoshimchalar,
+  ]);
 
   const savatJami = savat.reduce<Som>((y, q) => qosh(y, som(q.narx)), nolSom());
 
@@ -437,6 +483,8 @@ export function SotuvFormasi({
 
   const savatgaQoshilsinmi =
     hisob !== null &&
+    /** ⚠️ Narx qo'yilmagan pozitsiya savatga TUSHMAYDI — bepulga sotilmaydi */
+    hisob.narx.xato === null &&
     tur !== null &&
     narxYaroqli &&
     tur.slotlar.filter((s) => s.majburiy).every((s) => (slotlar[s.id]?.materialId ?? '') !== '');
@@ -732,9 +780,13 @@ export function SotuvFormasi({
                       <th className="px-3 py-2.5 font-medium">Slot</th>
                       <th className="px-3 py-2.5 font-medium">Mato</th>
                       <th className="px-3 py-2.5 text-right font-medium">Hisoblangan</th>
+                      {/*
+                        ⚠️ «Narx» va «Summa» ustunlari OLIB TASHLANDI —
+                           egasi qarori 2026-09-20: «ro'yxatda baribir
+                           qaysi mahsulotdan qancha ketishi bo'ladi,
+                           faqat ularni narxi yozilmaydi».
+                      */}
                       <th className="px-3 py-2.5 font-medium">Kelishilgan</th>
-                      <th className="px-3 py-2.5 text-right font-medium">Narx</th>
-                      <th className="px-3 py-2.5 text-right font-medium">Summa</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-chegara [&>tr:nth-child(even)]:bg-fon/50">
@@ -812,10 +864,7 @@ export function SotuvFormasi({
                             className={`${kirishUslubi(false)} w-24`}
                           />
                         </td>
-                        <td className="raqam px-3 py-2">
-                          {q.narxMatn === null ? '—' : pulKorsat(som(q.narxMatn))}
-                        </td>
-                        <td className="raqam px-3 py-2 font-medium">{pulKorsat(q.summa)}</td>
+
                       </tr>
                     ))}
                   </tbody>
@@ -863,10 +912,7 @@ export function SotuvFormasi({
                           <td className="px-3 py-2 text-xs text-matn-kuchsiz">
                             {BIRLIK_MATNI[a.birlik]}
                           </td>
-                          <td className="raqam px-3 py-2">
-                            {a.narx === null ? '—' : pulKorsat(a.narx)}
-                          </td>
-                          <td className="raqam px-3 py-2 font-medium">{pulKorsat(a.summa)}</td>
+
                           <td className="px-3 py-2 text-right">
                             <button
                               type="button"
@@ -969,6 +1015,84 @@ export function SotuvFormasi({
                   <b>boshqa mato</b>
                   &nbsp;tanlang.
                 </p>
+              </div>
+            )}
+
+            {/* ── Qo'shimchalar — egasi qarori 2026-09-20 ── */}
+            {tur.qoshimchalar.length > 0 && (
+              <section>
+                <h2 className="mb-1 text-sm font-medium text-matn-ikki">Qo&apos;shimchalar</h2>
+                <p className="mb-3 text-xs text-matn-kuchsiz">
+                  Mijoz tanlasa narxga qo&apos;shiladi. Materiali bo&apos;lgani ombordan ham
+                  yechiladi.
+                </p>
+
+                <div className="flex flex-col gap-2 rounded-karta border border-chegara bg-sirt p-4">
+                  {tur.qoshimchalar.map((q) => (
+                    <label key={q.id} className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={tanlanganQoshimchalar.includes(q.id)}
+                        onChange={(e) => {
+                          tanlanganQoshimchalarniOzgartir((t) =>
+                            e.target.checked ? [...t, q.id] : t.filter((x) => x !== q.id),
+                          );
+                        }}
+                      />
+                      <span>{q.nom}</span>
+                      {q.materialId !== null || q.almashtirishGuruhId !== null ? (
+                        <span className="text-[11px] text-matn-kuchsiz">· material yeydi</span>
+                      ) : null}
+                    </label>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {/*
+              ⚠️ NARX QO'YILMAGAN — sotuv TO'XTAYDI.
+
+                 Jimgina nol narx bilan savatga qo'shish jalyuzini
+                 bepulga berish demak edi. Sotuvchi sababni ko'radi
+                 va adminga aytadi.
+            */}
+            {hisob !== null && hisob.narx.xato !== null && (
+              <div
+                role="alert"
+                className="rounded-karta border border-belgi-qizil bg-belgi-qizil-fon px-5 py-4 text-sm text-belgi-qizil"
+              >
+                <p className="font-medium">{hisob.narx.xato}</p>
+                <p className="mt-1 text-xs">
+                  «Narxlar va turlar» sahifasida shu mahsulot turi va tanlangan matoning
+                  darajasi uchun narx qo&apos;ying.
+                </p>
+              </div>
+            )}
+
+            {/* Narx nimadan chiqqani — sotuvchi mijozga tushuntira olsin */}
+            {hisob !== null && hisob.narx.xato === null && (
+              <div className="rounded-karta border border-chegara bg-sirt px-5 py-4 text-sm">
+                <dl className="flex flex-col gap-1">
+                  {hisob.narx.olchov !== null && (
+                    <div className="flex justify-between text-[12px] text-matn-kuchsiz">
+                      <dt>
+                        O&apos;lchov
+                        {hisob.narx.bosqich === null
+                          ? ''
+                          : ` · bosqich ${hisob.narx.bosqich.narx} ${
+                              hisob.narx.bosqich.valyuta === 'USD' ? '$' : "so'm"
+                            }`}
+                      </dt>
+                      <dd className="raqam">{hisob.narx.olchov.toFixed(4)}</dd>
+                    </div>
+                  )}
+                  {hisob.narx.narxQatorlari.map((q, i) => (
+                    <div key={i} className="flex justify-between">
+                      <dt className="text-matn-ikki">{q.nom}</dt>
+                      <dd className="raqam">{pulKorsat(som(q.summa))}</dd>
+                    </div>
+                  ))}
+                </dl>
               </div>
             )}
 

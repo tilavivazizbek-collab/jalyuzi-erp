@@ -206,6 +206,16 @@ export const material = pgTable(
      * daraja kerak emas, ular narxga alohida kirmaydi.
      */
     narxGuruhId: bigint('narx_guruh_id', { mode: 'number' }).references(() => narxGuruh.id),
+    /**
+     * Tayyor mahsulot: o'lchamsiz, slotsiz, to'g'ridan-to'g'ri sotiladi
+     * (pult, tayyor parda). Egasi qarori 2026-09-20.
+     *
+     * ⚠️ FAQAT SHUNDA `sotuv_narx` ma'noga ega. Jalyuzi narxi endi
+     *    `mahsulot_narx` jadvalidan keladi, materialdan emas —
+     *    shuning uchun omborchidan har mato uchun sotuv narxi
+     *    so'ralmaydi.
+     */
+    togridanSotiladi: boolean('togridan_sotiladi').notNull().default(false),
     /** Xarid ro'yxati uchun (AUDIT B-08) */
     yaxlitlashQadami: numeric('yaxlitlash_qadami', { precision: 8, scale: 2 }),
 
