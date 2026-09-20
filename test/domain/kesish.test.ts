@@ -449,3 +449,50 @@ describe("P-24 — slot maydonidan kesim eni chiqadi", () => {
     expect(() => kesimOlchami('0', 140)).toThrow(BiznesXato);
   });
 });
+
+/**
+ * T-12 · Egasi qarori 2026-09-20 — pozitsiyada bir nechta buyum.
+ *
+ * ⚠️ `hisoblangan_miqdor` JAMI maydon (`soniUchun`). Kesim
+ *    to'rtburchagi esa BITTA buyum uchun bo'lishi kerak: usta uchta
+ *    alohida parda kesadi, bitta 5.40 metrlik bo'lak emas —
+ *    bunday rulon dunyoda yo'q.
+ */
+describe('T-12 — kesim BIR BUYUM uchun, jami emas', () => {
+  it('soni berilmasa xulq O‘ZGARMAYDI', () => {
+    const a = kesimOlchami(4.4352, 220, { koeffitsient: 1.12, yonalish: "BO'YIGA" });
+    const b = kesimOlchami(4.4352, 220, {
+      koeffitsient: 1.12,
+      yonalish: "BO'YIGA",
+      soni: 1,
+    });
+    expect(b).toEqual(a);
+  });
+
+  it('soni = 3 da eni UCH BAROBAR kengaymaydi', () => {
+    // Bitta parda 4.4352 kv.m; uchtasi 13.3056
+    const bitta = kesimOlchami(4.4352, 220, { koeffitsient: 1.12, yonalish: "BO'YIGA" });
+    const uchta = kesimOlchami(13.3056, 220, {
+      koeffitsient: 1.12,
+      yonalish: "BO'YIGA",
+      soni: 3,
+    });
+
+    expect(uchta.eniM).toBeCloseTo(bitta.eniM, 2);
+    expect(uchta.boyiM).toBeCloseTo(bitta.boyiM, 2);
+    /** ⚠️ Tuzatishdan oldin bu 5.40 chiqardi va rulon topilmasdi */
+    expect(uchta.eniM).toBeLessThan(2);
+  });
+
+  it('ENIGA yo‘nalishida ham ishlaydi', () => {
+    const bitta = kesimOlchami(3.96, 220, {});
+    const ikkita = kesimOlchami(7.92, 220, { soni: 2 });
+    expect(ikkita.eniM).toBeCloseTo(bitta.eniM, 2);
+  });
+
+  it('soni butun va musbat bo‘lishi shart', () => {
+    expect(() => kesimOlchami(3.96, 220, { soni: 0 })).toThrow(BiznesXato);
+    expect(() => kesimOlchami(3.96, 220, { soni: -1 })).toThrow(BiznesXato);
+    expect(() => kesimOlchami(3.96, 220, { soni: 1.5 })).toThrow(BiznesXato);
+  });
+});

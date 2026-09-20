@@ -64,6 +64,12 @@ export interface KesishSozlamasi {
   readonly koeffitsient?: number | null;
   /** Qaysi tomonga; bo'sh = `ENIGA` (ilgarigi xulq) */
   readonly yonalish?: KesishYonalishi | null;
+  /**
+   * Pozitsiyadagi buyum SONI — T-12 tuzatishi (2026-09-20).
+   * Jami sarf shu songa bo'linadi, band qilish esa `soni` marta
+   * takrorlanadi.
+   */
+  readonly soni?: number | null;
 }
 
 // ─── 7.5 · Uch daraja ─────────────────────────────────────────────────────
@@ -508,6 +514,22 @@ export function kesimOlchami(
   }
 
   /**
+   * T-12 — jami sarfdan BIR BUYUM ulushi (2026-09-20).
+   *
+   * ⚠️ `hisoblanganKvM` JAMI maydon: uchta parda bo'lsa uchalasi
+   *    qo'shilgan. Kesim to'rtburchagi esa BITTA buyum uchun bo'lishi
+   *    kerak — usta uchta alohida parda kesadi, bitta 5.4 metrlik
+   *    bo'lak emas (bunday rulon dunyoda yo'q).
+   *
+   *    `soni` berilmasa 1 — avvalgi xulq to'liq saqlanadi.
+   */
+  const soni = kesish?.soni ?? 1;
+  if (!Number.isInteger(soni) || soni < 1) {
+    throw new BiznesXato('KESIM_NOTOGRI', "soni musbat butun bo'lsin");
+  }
+  const birBuyum = new Decimal(hisoblanganKvM).div(soni);
+
+  /**
    * `hisoblanganKvM` — JAMI maydon (formula × koeffitsient).
    *
    * ENIGA:   boy = buyurtma bo'yi, en = jami ÷ boy   (K enga tushadi)
@@ -515,7 +537,7 @@ export function kesimOlchami(
    *          = (asos ÷ boy) — en O'ZGARMAYDI (K bo'yiga tushadi)
    */
   const boyiM = yo === "BO'YIGA" ? boyiM0.times(K) : boyiM0;
-  const eniM = new Decimal(hisoblanganKvM).div(boyiM);
+  const eniM = birBuyum.div(boyiM);
   if (eniM.lessThanOrEqualTo(0)) {
     throw new BiznesXato('KESIM_NOTOGRI', "kesim eni noldan katta bo'lsin");
   }

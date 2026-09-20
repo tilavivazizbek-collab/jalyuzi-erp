@@ -455,9 +455,11 @@ export async function tugatdim(
         *    §2.2 — hisob `kesimOlchami` da, bir joyda: veb sotuv
         *    yo'li ham, bot yo'li ham aynan shuni chaqiradi.
         */
+       /** T-12 — jami sarfdan BIR BUYUM ulushi; usta har bandni alohida kesadi */
        const kerak = kesimOlchami(band.hisoblangan_miqdor, p.boyi_sm, {
          koeffitsient: Number(band.koeffitsient),
          yonalish: band.kesish_turi === "BO'YIGA" ? ("BO'YIGA" as const) : ('ENIGA' as const),
+         soni: p.soni,
        });
        const reja = kesimRejasi(manbaBolak, kerak);
        const qoldiqlar: Qoldiqlar = k.qoldiqlar ?? {

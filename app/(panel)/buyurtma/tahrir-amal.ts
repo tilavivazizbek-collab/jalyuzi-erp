@@ -81,6 +81,8 @@ export async function pozitsiyaTahrirAmali(
               ? kesimOlchami(s.hisoblanganMiqdor, p.boyiSm, {
                   koeffitsient: s.koeffitsient ?? 1,
                   yonalish: s.kesishTuri === "BO'YIGA" ? ("BO'YIGA" as const) : ('ENIGA' as const),
+                    /** T-12 — kesim BITTA buyum uchun, jami emas */
+                    soni: p.soni,
                 })
               : null,
           narxSnapshot: s.narxSnapshot,

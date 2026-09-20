@@ -17,7 +17,7 @@ Shuning uchun bu ro'yxat qisqa bo'lishi va bo'shab borishi kerak.
 | T-07 | Inventarizatsiya farqlari hisoboti | 8-bosqich | Past |
 | T-08 | Masofadagi baza tarmoq uzilishlari | 10-bosqich | **Yuqori** |
 | T-10 | Jo'natma — bir necha buyurtmani guruhlash (20.8) | 8-bosqich | Past |
-| T-12 | `soni > 1` bo'lgan slotli pozitsiya kesimni buzadi | Sotuvga «soni» maydoni qo'shilsa | **Yuqori** (qo'shilgan kunda) |
+| ~~T-12~~ | ~~`soni > 1` slotli pozitsiyada kesimni buzadi~~ | ✅ yopildi | — |
 | ~~T-13~~ | ~~Tanlangan qo'shimcha buyurtmaga yozilmaydi~~ | ✅ yopildi | — |
 | ~~T-11~~ | ~~EC-FQ-04 — qarzi bor filial yopilishi~~ | ✅ yopildi | — |
 | ~~T-09~~ | ~~Qayta kesishda ustaning haqi bekor qilinmaydi~~ | ✅ yopildi | — |
@@ -433,61 +433,42 @@ bo'ladi, lekin hech narsa noto'g'ri hisoblanmaydi.
 
 ---
 
-## T-12 · `soni > 1` slotli pozitsiyada kesimni buzadi
+## T-12 · `soni > 1` — ✅ YOPILDI
 
-**Sana:** 2026-09-20 · **Xavf:** hozir yo'q, «soni» maydoni qo'shilgan kuni yuqori
+**Sana:** 2026-09-20 · **Holat:** ✅ yopildi
 
-### Nima bo'ladi
+Qoida BITTA joyga qo'yildi — `kesimOlchami` ning o'ziga (§2.2):
 
-`lib/amal/sarflash.ts:156` ombordan yechiladigan miqdorni JAMI qiladi
-(`soniUchun` — AUDIT 6-topilma, to'g'ri qaror). Keyin
-`lib/amal/buyurtma.ts:564` o'sha JAMI maydonni kesim to'rtburchagiga
-aylantiradi, bo'yi esa BITTA buyumniki:
-
-```
-eni = jami_kv_m ÷ boyi
+```ts
+soni = kesish?.soni ?? 1;        // berilmasa 1 — avvalgi xulq
+birBuyum = hisoblanganKvM / soni;
 ```
 
-Natijada eni `soni` marta kengayadi. 180 × 220 rulon, 1.8 m rulonlar bilan:
+Band qilish esa `soni` MARTA takrorlanadi. Uchta 180 sm parda uchun
+uchta 1.80 m bo'lak izlanadi, bitta 5.40 m emas — bunday rulon
+dunyoda yo'q.
 
-| soni | jami | kesim | ombor |
-|---|---|---|---|
-| 1 | 4.4352 kv.m | 1.80 × 2.47 m | ✅ 1.8 m rulon |
-| 2 | 8.8704 kv.m | **3.60** × 2.47 m | ❌ topilmadi |
-| 3 | 13.3056 kv.m | **5.40** × 2.47 m | ❌ topilmadi |
+⚠️ `band` jadvalidagi noyoblik `bolak_id` bo'yicha, ya'ni bitta
+`pozitsiya_material` ga bir nechta band qo'yish allaqachon mumkin edi.
+Jadval o'zgarmadi.
 
-Formula shakli ahamiyatsiz — `MAYDON * SONI` deb yozilsa ham shu natija.
+Zanjirning BARCHA bo'g'inida tuzatildi, chunki ular bir xil
+to'rtburchakni kutadi:
 
-Fizik jihatdan to'g'risi: **uchta alohida 1.80 × 2.47 kesim**, bitta
-5.40 m keng bo'lak emas — bunday rulon dunyoda yo'q.
+| Joy | Nima |
+|---|---|
+| `buyurtma.ts` — yangi buyurtma | `soni` marta band |
+| `buyurtma.ts` — tasdiqlash | `soni` marta band |
+| `qayta-kesish.ts` | `soni` marta band |
+| `ish.ts` — «Tugatdim» | kesim bir buyum uchun |
+| sotuv va tahrir ekranlari | `kesimOlchami` ga `soni` |
 
-### Nega hozir xavf yo'q
+⚠️ Sotuv ekranida «soni» maydoni HAMON YO'Q — u alohida ish. Lekin
+endi qo'shilsa tizim to'g'ri ishlaydi: tuzoq olib tashlandi.
 
-Slotli pozitsiyaga `soni` hech qayerdan `1` dan boshqa kelmaydi:
-
-| Yo'l | Joy | Qiymat |
-|---|---|---|
-| Sotuv formasi | `app/(panel)/buyurtma/yangi/forma.tsx:310, 452` | qat'iy `1` |
-| Telegram bot | `bot/buyurtma-oqimi.ts:200, 507` | qat'iy `1` |
-| Tahrir | `app/(panel)/buyurtma/tahrir.tsx:126` | mavjud pozitsiyadan o'qiydi |
-
-`soni > 1` faqat **qo'shimcha material** (slotsiz tayyor mahsulot)
-uchun ishlatiladi — u kesilmaydi.
-
-⚠️ Lekin `lib/sxema/sotuv.ts:90` da `soni: z.number().int().positive()` —
-ya'ni **sxema ruxsat beradi**. Interfeysni chetlab o'tgan so'rov buzuq
-pozitsiya yaratadi va u «Materialga kutmoqda»da abadiy qoladi.
-
-### Qanday yopiladi
-
-Ikki yo'l bor, ikkalasi ham yaroqli:
-
-1. **Arzon va darhol** — slotli pozitsiyada `soni > 1` ni sxemada RAD etish
-   (`lib/sxema/sotuv.ts` `.refine`). Jim xato o'rniga tushunarli xabar.
-2. **To'g'ri va qimmat** — `soni` ta alohida kesim to'rtburchagi band qilinadi.
-   Bu `band`, `pozitsiya_material` va `ish.ts` ni ham o'zgartiradi.
-
-Sotuvga «soni» maydoni qo'shilmaguncha 1-yo'l yetarli.
+To'rtta domen testi (`soni` berilmasa xulq o'zgarmasligi, uch barobar
+kengaymasligi, ENIGA da ham ishlashi, butun-musbat tekshiruvi) va
+ikkita integratsiya testi (uchta band, uchta boshqa bo'lak).
 
 ---
 

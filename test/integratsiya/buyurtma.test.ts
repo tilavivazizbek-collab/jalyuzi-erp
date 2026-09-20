@@ -14,6 +14,7 @@ import {
 import { pozitsiyaQosh } from '@/lib/amal/buyurtma-tahrir';
 import type { Ulanish } from '@/lib/db/ulanish';
 import { sinovUlanishi } from './yordamchi';
+import { kesimOlchami } from '@/lib/domain/kesish';
 
 let sql: Ulanish;
 let matoId: number;
@@ -885,5 +886,65 @@ describe("T-13 — tanlangan qo'shimcha buyurtmaga yoziladi", () => {
       SELECT COUNT(*)::int AS n FROM pozitsiya_qoshimcha
       WHERE buyurtma_pozitsiya_id = ${poz}`;
     expect(q[0]?.n).toBe(1);
+  });
+});
+
+/**
+ * T-12 · Egasi qarori 2026-09-20 — pozitsiyada bir nechta buyum.
+ *
+ * ⚠️ Ilgari `soni = 3` bo'lsa jami maydon BITTA to'rtburchakka
+ *    aylanardi: uchta 180 sm parda 5.40 metr KENG bo'lak talab
+ *    qilardi va bunday rulon topilmagani uchun pozitsiya abadiy
+ *    «Materialga kutmoqda» da qolardi.
+ *
+ *    Endi uchta 1.80 m bo'lak izlanadi — uchta alohida band.
+ */
+describe('T-12 — soni > 1 da har buyumga ALOHIDA band', () => {
+  it('soni = 3 → uchta band qatori', async () => {
+    // Uchta 2.1 × 1.4 kesim sig'adigan uchta rulon
+    for (let i = 0; i < 3; i += 1) await rulonYarat(2.5, 5, matoId);
+
+    const n = await buyurtmaYarat(
+      sql,
+      asos({
+        pozitsiyalar: [
+          pozitsiya({
+            soni: 3,
+            /** ⚠️ JAMI miqdor — `soniUchun` shunday yozadi */
+            slotlar: [
+              {
+                slotId,
+                materialId: matoId,
+                hisoblanganMiqdor: '8.8200',
+                tuzatilganMiqdor: null,
+                birlik: 'KV_M',
+                narxSnapshot: '120000',
+                kerak: kesimOlchami('8.8200', 140, { soni: 3 }),
+              },
+            ],
+          }),
+        ],
+      }),
+      XODIM,
+    );
+
+    const poz = n.pozitsiyalar[0]?.pozitsiyaId ?? 0;
+
+    const b = await sql<{ n: number }[]>`
+      SELECT COUNT(*)::int AS n FROM band
+      WHERE buyurtma_pozitsiya_id = ${poz} AND holat = 'FAOL'`;
+    expect(b[0]?.n).toBe(3);
+
+    /** ⚠️ Har band BOSHQA bo'lakka tushishi kerak — bittasi uch marta emas */
+    const x = await sql<{ n: number }[]>`
+      SELECT COUNT(DISTINCT bolak_id)::int AS n FROM band
+      WHERE buyurtma_pozitsiya_id = ${poz} AND holat = 'FAOL'`;
+    expect(x[0]?.n).toBe(3);
+  });
+
+  it('kesim to‘rtburchagi BITTA buyum o‘lchamida', () => {
+    const bitta = kesimOlchami('2.9400', 140);
+    const uchta = kesimOlchami('8.8200', 140, { soni: 3 });
+    expect(uchta).toEqual(bitta);
   });
 });

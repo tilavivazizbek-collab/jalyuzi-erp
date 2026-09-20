@@ -253,12 +253,22 @@ export async function pozitsiyaYozTx(
     if (pmId === undefined) throw new BiznesXato('POZITSIYA_TOPILMADI');
 
     if (s.kerak !== null) {
-      sorovlar.push({
-        pozitsiyaMaterialId: pmId,
-        materialId: s.materialId,
-        kerak: s.kerak,
-        majburiy: true,
-      });
+      /**
+       * T-12 tuzatishi (2026-09-20) — `soni` MARTA band qilinadi.
+       *
+       * ⚠️ `s.kerak` BITTA buyum to'rtburchagi (chaqiruvchi
+       *    `kesimOlchami` ga `soni` ni berdi). Uchta parda uchun
+       *    uchta 1.80 m bo'lak izlanadi, bitta 5.40 m emas —
+       *    bunday rulon dunyoda yo'q.
+       */
+      for (let i = 0; i < p.soni; i += 1) {
+        sorovlar.push({
+          pozitsiyaMaterialId: pmId,
+          materialId: s.materialId,
+          kerak: s.kerak,
+          majburiy: true,
+        });
+      }
     }
   }
 
@@ -587,10 +597,12 @@ export async function pozitsiyaniTasdiqla(
       WHERE pm.buyurtma_pozitsiya_id = ${pozitsiyaId}`;
 
     // O'lchamni pozitsiyadan olamiz — band qilish METRDA ishlaydi (Q-05)
-    const olcham = await tx<{ eni_sm: number; boyi_sm: number }[]>`
-      SELECT eni_sm, boyi_sm FROM buyurtma_pozitsiya WHERE id = ${pozitsiyaId}`;
+    const olcham = await tx<{ eni_sm: number; boyi_sm: number; soni: number }[]>`
+      SELECT eni_sm, boyi_sm, soni FROM buyurtma_pozitsiya WHERE id = ${pozitsiyaId}`;
 
     const boyiSm = olcham[0]?.boyi_sm ?? 0;
+    /** T-12 — pozitsiyadagi buyum soni; kesim BITTA buyum uchun */
+    const soni = olcham[0]?.soni ?? 1;
 
     /**
      * ⚠️ P-24 — BAND SLOT KESIMIDAN, butun mahsulot enidan EMAS.
@@ -607,17 +619,32 @@ export async function pozitsiyaniTasdiqla(
      * ⚠️ `hisoblangan_miqdor`, `tuzatilgan_miqdor` EMAS: narx
      *    tuzatilgan songa, ombor esa hisoblanganiga bog'lanadi (3.6).
      */
+    /**
+     * T-12 tuzatishi (2026-09-20) — `soni > 1` bo'lsa `soni` MARTA
+     * band qilinadi, har biri BITTA buyum to'rtburchagi bilan.
+     *
+     * ⚠️ Ilgari jami maydon bitta to'rtburchakka aylanardi: uchta
+     *    180 sm parda 5.40 metr KENG bo'lak talab qilardi va
+     *    bunday rulon topilmasdi. Endi uchta 1.80 m bo'lak izlanadi.
+     *
+     * ⚠️ `band` jadvalidagi noyoblik `bolak_id` bo'yicha, ya'ni
+     *    bitta pozitsiya_material ga bir nechta band qo'yish mumkin.
+     */
     const sorovlar: SlotSorovi[] = slotlar
       .filter((s) => s.birlik === 'KV_M')
-      .map((s) => ({
-        pozitsiyaMaterialId: s.id,
-        materialId: s.material_id,
-        kerak: kesimOlchami(s.hisoblangan_miqdor, boyiSm, {
+      .flatMap((s) => {
+        const kerak = kesimOlchami(s.hisoblangan_miqdor, boyiSm, {
           koeffitsient: Number(s.koeffitsient),
           yonalish: s.kesish_turi === "BO'YIGA" ? ("BO'YIGA" as const) : ('ENIGA' as const),
-        }),
-        majburiy: true,
-      }));
+          soni,
+        });
+        return Array.from({ length: soni }, () => ({
+          pozitsiyaMaterialId: s.id,
+          materialId: s.material_id,
+          kerak,
+          majburiy: true,
+        }));
+      });
 
     const band =
       sorovlar.length === 0

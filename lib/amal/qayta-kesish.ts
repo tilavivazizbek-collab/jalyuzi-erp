@@ -229,13 +229,14 @@ export async function qaytaKesishHal(
         holat: string;
         eni_sm: number;
         boyi_sm: number;
+        soni: number;
         usta_id: number | null;
         qayta_kesildi_soni: number;
         sotgan_filial_id: number;
         ishlab_chiqaruvchi_filial_id: number;
       }[]
     >`
-      SELECT p.holat, p.eni_sm, p.boyi_sm, p.usta_id, p.qayta_kesildi_soni,
+      SELECT p.holat, p.eni_sm, p.boyi_sm, p.soni, p.usta_id, p.qayta_kesildi_soni,
              b.sotgan_filial_id, b.ishlab_chiqaruvchi_filial_id
       FROM buyurtma_pozitsiya p
       JOIN buyurtma b ON b.id = p.buyurtma_id
@@ -339,18 +340,23 @@ export async function qaytaKesishHal(
       JOIN mahsulot_slot s ON s.id = pm.slot_id
       WHERE pm.buyurtma_pozitsiya_id = ${pozitsiyaId}`;
 
+    /** T-12 — `soni` marta band, har biri BITTA buyum to'rtburchagi bilan */
     const sorovlarRoyxati: SlotSorovi[] = slotlar
       .filter((s) => s.birlik === 'KV_M')
-      .map((s) => ({
-        pozitsiyaMaterialId: s.id,
-        materialId: s.material_id,
+      .flatMap((s) => {
         // P-24 — kesim to'rtburchagi maydondan chiqadi (AUDIT 1: kesish yo'nalishi bilan)
-        kerak: kesimOlchami(s.hisoblangan_miqdor, p.boyi_sm, {
+        const kerak = kesimOlchami(s.hisoblangan_miqdor, p.boyi_sm, {
           koeffitsient: Number(s.koeffitsient),
           yonalish: s.kesish_turi === "BO'YIGA" ? ("BO'YIGA" as const) : ('ENIGA' as const),
-        }),
-        majburiy: true,
-      }));
+          soni: p.soni,
+        });
+        return Array.from({ length: p.soni }, () => ({
+          pozitsiyaMaterialId: s.id,
+          materialId: s.material_id,
+          kerak,
+          majburiy: true,
+        }));
+      });
 
     const band =
       sorovlarRoyxati.length === 0
