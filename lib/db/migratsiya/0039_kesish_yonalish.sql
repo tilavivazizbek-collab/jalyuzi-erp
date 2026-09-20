@@ -16,5 +16,9 @@
 -- Defaultlar eski xatti-harakatni SAQLAYDI — yangi tur yaratish
 -- shart emas, mavjud turlar avvalgidek kesiladi.
 
-ALTER TABLE "mahsulot_slot" ADD COLUMN "koeffitsient" numeric(8, 2) NOT NULL DEFAULT '1';
-ALTER TABLE "mahsulot_slot" ADD COLUMN "kesish_turi" text NOT NULL DEFAULT 'ENIGA';
+-- ⚠️ `IF NOT EXISTS` — bu migratsiya bir marta QO'LDA qo'llangan, lekin
+--    drizzle jurnaliga yozilmagan (2026-09-20 da aniqlandi). Shuning
+--    uchun `db:migrate` uni qayta yurgizadi va usiz «column already
+--    exists» bilan yiqilardi. Mavjud ma'lumotga tegmaydi.
+ALTER TABLE "mahsulot_slot" ADD COLUMN IF NOT EXISTS "koeffitsient" numeric(8, 2) NOT NULL DEFAULT '1';
+ALTER TABLE "mahsulot_slot" ADD COLUMN IF NOT EXISTS "kesish_turi" text NOT NULL DEFAULT 'ENIGA';
