@@ -176,10 +176,11 @@ describe('TZ 8.7 — pozitsiyani tahrirlash', () => {
       XODIM,
     );
 
-    const p = await sql<{ eni_m: number; boyi_m: number }[]>`
+    const p = await sql<{ eni_m: string; boyi_m: string }[]>`
       SELECT eni_m, boyi_m FROM buyurtma_pozitsiya WHERE id = ${pozitsiyaId}`;
-    expect(p[0]?.eni_m).toBe(130);
-    expect(p[0]?.boyi_m).toBe(210);
+    /** ⚠️ `numeric` matn bo'lib keladi (P-13) — metrda: 1.30 × 2.10 */
+    expect(p[0]?.eni_m).toBe('1.30');
+    expect(p[0]?.boyi_m).toBe('2.10');
 
     const m = await sql<{ hisoblangan_miqdor: string }[]>`
       SELECT hisoblangan_miqdor FROM pozitsiya_material
