@@ -41,6 +41,23 @@ hisoblanishini».
 | Chek va kvitansiyada qo'shimcha nomi (narxsiz) | ✅ |
 | Narx qo'yilmagan tur sotilmaydi, sabab aytiladi | ✅ |
 
+### Materialni o'zi sotish — egasi qarori 2026-09-20
+
+Mijoz jalyuzi emas, materialning o'zini olmoqchi bo'lsa.
+
+| Nima | Holat |
+|---|---|
+| Donalab (kronshteyn, mexanizm, pult) | ✅ |
+| **Metrlab — matoni rulondan kesib** | ✅ |
+| Narx «Narxlar va turlar» → «Materialni o'zi sotish» dan | ✅ |
+| Ombordan yechilishi (band + kesim) | ✅ |
+| Ro'yxat «to'g'ridan-to'g'ri sotiladi» belgisiga qarab | ✅ |
+| «Hozir kesiladi» yorlig'i (ishlab chiqarishni chetlab o'tish) | ❌ keyingi qadam |
+
+⚠️ Hozircha mato sotilganda pozitsiya ODATDAGI oqim bilan ketadi:
+band qilinadi, ishlab chiqarishga tushadi, kesilgach tayyor bo'ladi.
+Sotuvchi uni darhol «Tugatdim» qilib yopishi mumkin.
+
 ⚠️ Material formasida **sotuv narxi** endi «to'g'ridan-to'g'ri
 sotiladi» belgisi ostida. Jalyuzi matosiga u kerak emas —
 narx `mahsulot_narx` jadvalidan keladi. Tayyor mahsulot (pult,

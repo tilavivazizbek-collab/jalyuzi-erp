@@ -38,6 +38,7 @@ import { pozitsiyalarQoshAmali, buyurtmaYaratAmali, turTafsiliAmali } from './am
 import { BOSH_HOLAT } from './holat';
 import type { SotuvMijozi, SotuvTuri } from './malumot';
 import { QoshimchaQoshish, type QoshimchaMaterial } from './qoshimcha';
+import type { MaterialNarxQoidasi } from './malumot';
 
 const BIRLIK_MATNI: Record<SarflashBirligi, string> = {
   KV_M: 'kv.m',
@@ -104,6 +105,7 @@ export function SotuvFormasi({
   mijozTurlari,
   joriyKurs,
   qoshimchalar,
+  materialQoidalari,
   kassalar,
   qoshish = null,
 }: {
@@ -134,6 +136,8 @@ export function SotuvFormasi({
   joriyKurs: string | null;
   /** Alohida sotiladigan buyumlar — mexanizm, kronshteyn, zanjir */
   qoshimchalar: readonly QoshimchaMaterial[];
+  /** Materialni o'zi sotish narx qoidalari (egasi qarori 2026-09-20) */
+  materialQoidalari: readonly MaterialNarxQoidasi[];
   /**
    * TZ 12.2 — oldindan to'lov tushadigan kassalar. Bo'sh bo'lsa
    * to'lov qismi ko'rinmaydi: sotuvchida kassa huquqi yo'q.
@@ -1274,6 +1278,9 @@ export function SotuvFormasi({
             <QoshimchaQoshish
               materiallar={qoshimchalar}
               kurs={kursObyekti}
+              /** Materialni o'zi sotish narxi — egasi qarori 2026-09-20 */
+              qoidalar={materialQoidalari}
+              mijozTuriId={mijoz?.mijozTuriId ?? null}
               qoshildi={(t) => {
                 savatniOzgartir((sv) => [
                   ...sv,
@@ -1281,22 +1288,43 @@ export function SotuvFormasi({
                     kalit: Date.now(),
                     turId: null,
                     turNomi: t.nom,
-                    eniSm: 0,
-                    boyiSm: 0,
+                    eniSm: t.eniSm,
+                    boyiSm: t.boyiSm,
                     soni: t.soni,
                     narx: t.narx,
                     yuk: {
                       mahsulotTurId: null,
                       qoshimchaMaterialId: t.materialId,
-                      eniSm: 0,
-                      boyiSm: 0,
+                      eniSm: t.eniSm,
+                      boyiSm: t.boyiSm,
                       soni: t.soni,
                       narxSnapshot: t.narx,
                       chegirmaSumma: '0',
                       xizmatHaqi: '0',
                       /** ⚠️ Formula yo'q — bu buyum tayyorlanmaydi */
                       formulaSnapshot: { qoshimcha: true },
-                      slotlar: [],
+                      /**
+                       * ⚠️ METRLAB SOTISHDA SLOTSIZ QATOR YOZILADI —
+                       *    band qilish va kesish zanjiri `pozitsiya_material`
+                       *    dan o'qiydi. Usiz mato sotilar, lekin ombordan
+                       *    hech narsa yechilmasdi.
+                       *
+                       *    Kesim to'rtburchagini SERVER hisoblaydi
+                       *    (`kesimOlchami`) — jami maydon va bo'yi bilan.
+                       */
+                      slotlar:
+                        t.miqdorKvM === null
+                          ? []
+                          : [
+                              {
+                                slotId: null,
+                                materialId: t.materialId,
+                                hisoblanganMiqdor: t.miqdorKvM,
+                                tuzatilganMiqdor: null,
+                                birlik: 'KV_M' as const,
+                                narxSnapshot: t.narx,
+                              },
+                            ],
                       aksessuarlar: [],
                     },
                   },

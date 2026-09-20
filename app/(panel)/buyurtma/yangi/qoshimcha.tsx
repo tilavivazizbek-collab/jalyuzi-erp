@@ -8,17 +8,29 @@
  * Egasi: «mijoz yana qo'shimcha xohladi — uyidagi eski mexanizm
  * buzilgani uchun bittasini alohida olay».
  *
- * Bunday buyum TAYYORLANMAYDI: o'lchov olinmaydi, kesilmaydi,
- * usta ishlamaydi. Shunchaki ombordan olinib beriladi. Shuning
- * uchun uning mahsulot turi ham, o'lchami ham yo'q.
+ * ⚠️ IKKI XIL BO'LADI — egasi qarori 2026-09-20.
+ *
+ *    DONALAB (kronshteyn, mexanizm): tayyorlanmaydi, kesilmaydi,
+ *    o'lchami yo'q. Shunchaki ombordan olinib beriladi va narxi
+ *    materialning o'z sotuv narxidan keladi.
+ *
+ *    METRLAB (mato): rulondan KESILADI. O'lcham so'raladi, band
+ *    qilinadi, narx esa «Narxlar va turlar» dagi «Materialni o'zi
+ *    sotish» jadvalidan keladi — mato darajasiga qarab, bosqichli.
  */
 
 import { useState } from 'react';
 import { Modal } from '../../modal';
 import { kirishUslubi } from '../../maydon';
-import { pulKorsat, kopaytir } from '@/lib/domain/pul';
+import { pulKorsat, pulMatn, kopaytir, som } from '@/lib/domain/pul';
 import { katalogNarxi } from '@/lib/domain/narx';
 import type { Kurs } from '@/lib/domain/pul';
+import {
+  pozitsiyaQoidaNarxi,
+  type HisoblashUsuli,
+} from '@/lib/domain/narx-qoidasi';
+import { biznesXatosimi } from '@/lib/xato';
+import type { MaterialNarxQoidasi } from './malumot';
 
 export interface QoshimchaMaterial {
   readonly id: number;
@@ -27,6 +39,14 @@ export interface QoshimchaMaterial {
   readonly narxValyuta: string;
   /** Q-25 — shu filialdagi bo'sh qoldiq */
   readonly boshDona: number;
+  /** `DONA` — donalab, `RULON` — metrlab kesib sotiladi */
+  readonly hisobTuri: string;
+  readonly sarflashBirligi: string;
+  /** Mato darajasi — metrlab sotishda narx shundan */
+  readonly narxGuruhId: number | null;
+  readonly boshKvM: number;
+  /** Eng keng bo'lak, metr — «bundan keng kesib bo'lmaydi» */
+  readonly engKengM: number;
 }
 
 export interface QoshimchaTanlovi {
@@ -34,20 +54,34 @@ export interface QoshimchaTanlovi {
   readonly nom: string;
   readonly soni: number;
   readonly narx: string;
+  /** ⚠️ Metrlab kesib sotishda — santimetrda (TZ 5.3) */
+  readonly eniSm: number;
+  readonly boyiSm: number;
+  /** Kesib sotishda ombordan yechiladigan maydon, kv.m */
+  readonly miqdorKvM: string | null;
 }
 
 export function QoshimchaQoshish({
   materiallar,
   kurs,
   qoshildi,
+  qoidalar = [],
+  mijozTuriId = null,
 }: {
   materiallar: readonly QoshimchaMaterial[];
   kurs: Kurs | null;
   qoshildi: (t: QoshimchaTanlovi) => void;
+  /** Materialni o'zi sotish narxi — metrlab kesishda ishlatiladi */
+  qoidalar?: readonly MaterialNarxQoidasi[];
+  /** TZ 6.2 — mijoz turiga qo'yilgan qoida umumiysidan ustun */
+  mijozTuriId?: number | null;
 }) {
   const [ochiq, ochiqniOzgartir] = useState(false);
   const [materialId, materialniOzgartir] = useState('');
   const [soni, soniniOzgartir] = useState('1');
+  /** ⚠️ Metrda kiritiladi, santimetrga o'giriladi (TZ 5.3) */
+  const [eni, eniniOzgartir] = useState('');
+  const [boyi, boyiniOzgartir] = useState('');
   const [xato, xatoniOzgartir] = useState<string | null>(null);
 
   const tanlangan = materiallar.find((m) => String(m.id) === materialId);
@@ -62,9 +96,61 @@ export function QoshimchaQoshish({
       ? null
       : katalogNarxi(tanlangan.narx, tanlangan.narxValyuta, kurs);
 
+  /** Rulon — metrlab kesib sotiladi, dona — shunchaki olinadi */
+  const kesiladimi = tanlangan?.hisobTuri === 'RULON';
+
   const son = Number(soni);
-  const jami =
-    birlikNarx === null || !Number.isFinite(son) || son <= 0
+  const eniM = Number(eni);
+  const boyiM = Number(boyi);
+  const olchamYaroqli =
+    Number.isFinite(eniM) && Number.isFinite(boyiM) && eniM > 0 && boyiM > 0;
+
+  /**
+   * ⚠️ Metrlab sotishda narx MATERIALDAN EMAS, «Materialni o'zi
+   *    sotish» jadvalidan keladi (egasi qarori 2026-09-20).
+   *
+   *    TZ 6.2 — mijoz turiga qo'yilgan qoida umumiysidan ustun.
+   */
+  const qoida = (() => {
+    if (!kesiladimi || (tanlangan?.narxGuruhId ?? null) === null) return null;
+    const g = tanlangan.narxGuruhId;
+    return (
+      qoidalar.find((q) => q.narxGuruhId === g && q.mijozTuriId === mijozTuriId) ??
+      qoidalar.find((q) => q.narxGuruhId === g && q.mijozTuriId === null) ??
+      null
+    );
+  })();
+
+  const kesimNatijasi = (() => {
+    if (!kesiladimi) return null;
+    if (qoida === null || !olchamYaroqli) return null;
+    try {
+      return pozitsiyaQoidaNarxi({
+        qoida: {
+          hisoblashUsuli: qoida.hisoblashUsuli as HisoblashUsuli,
+          bosqichlar: qoida.bosqichlar.map((x) => ({
+            dan: x.dan,
+            gacha: x.gacha,
+            narx: x.narx,
+            valyuta: x.valyuta,
+          })),
+        },
+        eniSm: Math.round(eniM * 100),
+        boyiSm: Math.round(boyiM * 100),
+        qoshimchalar: [],
+        offset: null,
+        kurs,
+      });
+    } catch (x) {
+      return { xato: biznesXatosimi(x) ? x.message : 'Narxni hisoblab bo‘lmadi' };
+    }
+  })();
+
+  const jami = kesiladimi
+    ? kesimNatijasi !== null && 'jami' in kesimNatijasi
+      ? som(kesimNatijasi.jami)
+      : null
+    : birlikNarx === null || !Number.isFinite(son) || son <= 0
       ? null
       : kopaytir(birlikNarx, son);
 
@@ -78,13 +164,35 @@ export function QoshimchaQoshish({
       xatoniOzgartir('Mahsulotni tanlang');
       return;
     }
-    if (!Number.isInteger(son) || son <= 0) {
-      xatoniOzgartir("Soni butun va noldan katta bo'lishi kerak");
-      return;
-    }
-    if (jami === null) {
-      xatoniOzgartir('Bu mahsulotning sotuv narxi belgilanmagan');
-      return;
+
+    if (kesiladimi) {
+      if (!olchamYaroqli) {
+        xatoniOzgartir("Eni va bo'yini metrda kiriting");
+        return;
+      }
+      if (qoida === null) {
+        xatoniOzgartir(
+          "Bu mato darajasi uchun narx qo'yilmagan — «Narxlar va turlar» → «Materialni o'zi sotish»",
+        );
+        return;
+      }
+      if (jami === null) {
+        xatoniOzgartir(
+          kesimNatijasi !== null && 'xato' in kesimNatijasi
+            ? kesimNatijasi.xato
+            : "Bu o'lcham uchun bosqich qo'yilmagan",
+        );
+        return;
+      }
+    } else {
+      if (!Number.isInteger(son) || son <= 0) {
+        xatoniOzgartir("Soni butun va noldan katta bo'lishi kerak");
+        return;
+      }
+      if (jami === null) {
+        xatoniOzgartir('Bu mahsulotning sotuv narxi belgilanmagan');
+        return;
+      }
     }
 
     /**
@@ -95,12 +203,18 @@ export function QoshimchaQoshish({
     qoshildi({
       materialId: tanlangan.id,
       nom: tanlangan.nom,
-      soni: son,
-      narx: pulKorsat(jami).replace(/\s/g, ''),
+      soni: kesiladimi ? 1 : son,
+      narx: pulMatn(jami),
+      eniSm: kesiladimi ? Math.round(eniM * 100) : 0,
+      boyiSm: kesiladimi ? Math.round(boyiM * 100) : 0,
+      /** ⚠️ Ombordan yechiladigan maydon — kesim to'rtburchagi (Q-05) */
+      miqdorKvM: kesiladimi ? (eniM * boyiM).toFixed(4) : null,
     });
 
     materialniOzgartir('');
     soniniOzgartir('1');
+    eniniOzgartir('');
+    boyiniOzgartir('');
     yop();
   }
 
@@ -120,7 +234,7 @@ export function QoshimchaQoshish({
         ochiq={ochiq}
         yop={yop}
         sarlavha="Qo'shimcha mahsulot"
-        izoh="Tayyorlanmaydi — ombordan olinib beriladi"
+        izoh="Donalab — ombordan olinadi · metrlab — rulondan kesiladi"
         bolalar={
           <div className="flex flex-col gap-4">
             {xato !== null && (
@@ -145,7 +259,10 @@ export function QoshimchaQoshish({
                 <option value="">— tanlang —</option>
                 {materiallar.map((m) => (
                   <option key={m.id} value={m.id}>
-                    {m.nom} · omborda {m.boshDona}
+                    {m.nom} ·{' '}
+                    {m.hisobTuri === 'RULON'
+                      ? `omborda ${m.boshKvM.toFixed(1)} kv.m`
+                      : `omborda ${String(m.boshDona)} dona`}
                   </option>
                 ))}
               </select>
@@ -165,22 +282,92 @@ export function QoshimchaQoshish({
               )}
             </label>
 
-            <label className="flex max-w-32 flex-col gap-1">
-              <span className="text-sm font-medium text-matn-ikki">Soni</span>
-              <input
-                value={soni}
-                onChange={(e) => {
-                  soniniOzgartir(e.target.value);
-                  xatoniOzgartir(null);
-                }}
-                inputMode="numeric"
-                className={kirishUslubi(false)}
-              />
-            </label>
+            {kesiladimi ? (
+              /*
+                ⚠️ METRLAB SOTISH — rulondan kesiladi, shuning uchun
+                   soni emas, O'LCHAM so'raladi. Birlik sarlavhada
+                   yoziladi: placeholder yozishni boshlagan zahoti
+                   yo'qoladi va omborchi santimetr yozib qo'yardi.
+              */
+              <div className="flex flex-col gap-1">
+                <span className="text-sm font-medium text-matn-ikki">
+                  Kesim o&apos;lchami — <b>metrda</b>
+                </span>
+                <div className="flex items-center gap-2">
+                  <input
+                    value={eni}
+                    onChange={(e) => {
+                      eniniOzgartir(e.target.value);
+                      xatoniOzgartir(null);
+                    }}
+                    inputMode="decimal"
+                    placeholder="eni, metr"
+                    aria-label="Kesim eni, metr"
+                    className={`${kirishUslubi(false)} max-w-32`}
+                  />
+                  <span className="text-matn-kuchsiz">×</span>
+                  <input
+                    value={boyi}
+                    onChange={(e) => {
+                      boyiniOzgartir(e.target.value);
+                      xatoniOzgartir(null);
+                    }}
+                    inputMode="decimal"
+                    placeholder="bo'yi, metr"
+                    aria-label="Kesim bo'yi, metr"
+                    className={`${kirishUslubi(false)} max-w-32`}
+                  />
+                </div>
+                {/*
+                  ⚠️ ENG KENG BO'LAK aytiladi. Aks holda sotuvchi 3 m
+                     so'rab, pozitsiya «materialga kutmoqda» ga
+                     tushgandan keyin sababni qidirardi.
+                */}
+                {tanlangan !== undefined && tanlangan.engKengM > 0 && (
+                  <span className="text-[12px] text-matn-kuchsiz">
+                    Omborda eng keng bo&apos;lak: <b>{tanlangan.engKengM.toFixed(2)} m</b> ·
+                    jami {tanlangan.boshKvM.toFixed(2)} kv.m
+                  </span>
+                )}
+              </div>
+            ) : (
+              <label className="flex max-w-32 flex-col gap-1">
+                <span className="text-sm font-medium text-matn-ikki">Soni</span>
+                <input
+                  value={soni}
+                  onChange={(e) => {
+                    soniniOzgartir(e.target.value);
+                    xatoniOzgartir(null);
+                  }}
+                  inputMode="numeric"
+                  className={kirishUslubi(false)}
+                />
+              </label>
+            )}
 
             {tanlangan !== undefined && (
               <div className="rounded-maydon bg-fon px-3 py-2.5 text-sm">
-                {birlikNarx === null ? (
+                {kesiladimi ? (
+                  qoida === null ? (
+                    <span className="text-belgi-sariq">
+                      Bu mato darajasi uchun narx qo&apos;yilmagan — «Narxlar va
+                      turlar» → «Materialni o&apos;zi sotish»
+                    </span>
+                  ) : jami === null ? (
+                    <span className="text-matn-kuchsiz">
+                      {olchamYaroqli
+                        ? "Bu o'lcham uchun bosqich qo'yilmagan"
+                        : "O'lchamni kiriting"}
+                    </span>
+                  ) : (
+                    <>
+                      <span className="text-matn-kuchsiz">
+                        {(eniM * boyiM).toFixed(4)} kv.m ={' '}
+                      </span>
+                      <b>{pulKorsat(jami)}</b>
+                    </>
+                  )
+                ) : birlikNarx === null ? (
                   <span className="text-belgi-sariq">
                     Bu materialning sotuv narxi belgilanmagan
                   </span>

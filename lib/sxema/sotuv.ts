@@ -28,7 +28,12 @@ const olcham = (xabar: string) =>
     .max(100_000, xabar);
 
 export const sotuvSlotSxema = z.object({
-  slotId: z.number().int().positive(),
+  /**
+   * ⚠️ `null` — MATERIALNI O'ZI SOTISH (egasi qarori 2026-09-20).
+   *    Mato metrlab kesilganda slot yo'q, lekin band qilish va
+   *    kesish zanjiri shu qatordan o'qiydi.
+   */
+  slotId: z.number().int().positive().nullable().default(null),
   materialId: z.number().int().positive('Material tanlanmagan'),
   /** TZ 3.6 — ombordan SHU yechiladi */
   hisoblanganMiqdor: z

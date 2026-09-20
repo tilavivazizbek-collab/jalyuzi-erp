@@ -154,13 +154,27 @@ export interface QoshimchaMaterial {
   readonly narx: string | null;
   readonly narxValyuta: string;
   readonly boshDona: number;
+  /**
+   * `DONA` — donalab sotiladi, `RULON` — metrlab kesib sotiladi
+   * (egasi qarori 2026-09-20).
+   */
+  readonly hisobTuri: string;
+  readonly sarflashBirligi: string;
+  /** Mato darajasi — metrlab sotishda narx shundan keladi */
+  readonly narxGuruhId: number | null;
+  /** Kesib sotish uchun omborda bor maydon, kv.m */
+  readonly boshKvM: number;
+  /** Eng keng rulon eni, metr — sotuvchiga «bundan keng kesib bo'lmaydi» */
+  readonly engKengM: number;
 }
 
 /**
  * Alohida sotiladigan buyumlar — mexanizm, kronshteyn, zanjir.
  *
- * ⚠️ Faqat DONA hisobidagi material: mato metrlab kesiladi va
- *    alohida sotilmaydi.
+ * ⚠️ MATO HAM SHU RO'YXATDA — egasi qarori 2026-09-20. Donalab
+ *    sotiladigani (kronshteyn) `hisobTuri = DONA`, metrlab kesib
+ *    sotiladigani (mato) `RULON`. Ekran ikkalasini boshqacha
+ *    so'raydi: birinchisida soni, ikkinchisida eni × bo'yi.
  *
  * ⚠️ «TO'G'RIDAN-TO'G'RI SOTILADI» BELGISI BOR materiallar (egasi
  *    qarori 2026-09-20). Ilgari hamma dona material ro'yxatda
@@ -184,11 +198,106 @@ export async function qoshimchaMateriallar(
                        AND b.filial_id = ${filialId}
                        AND b.turi = 'DONA'
                        AND b.holat = 'BOSH'
-                       AND b.faol = true), 0)::int AS "boshDona"
+                       AND b.faol = true), 0)::int AS "boshDona",
+           m.hisob_turi AS "hisobTuri",
+           m.sarflash_birligi AS "sarflashBirligi",
+           m.narx_guruh_id AS "narxGuruhId",
+           /*
+            * Q-05 — kv.m saqlanmaydi, eni x boyi dan hisoblanadi.
+            * Q-25 — qoldiq SHU FILIALDA sanaladi.
+            */
+           COALESCE((SELECT SUM(b.eni_m * b.boyi_m) FROM bolak b
+                     WHERE b.material_id = m.id
+                       AND b.filial_id = ${filialId}
+                       AND b.holat = 'BOSH'
+                       AND b.faol = true), 0)::float8 AS "boshKvM",
+           /*
+            * ⚠️ Eng keng bo'lak — sotuvchi «bundan keng kesib
+            *    bo'lmaydi» degan chegarani ko'rib tursin. Aks holda
+            *    3 m so'rab, keyin «materialga kutmoqda» ga tushardi.
+            */
+           COALESCE((SELECT MAX(b.eni_m) FROM bolak b
+                     WHERE b.material_id = m.id
+                       AND b.filial_id = ${filialId}
+                       AND b.holat = 'BOSH'
+                       AND b.faol = true), 0)::float8 AS "engKengM"
     FROM material m
     LEFT JOIN material_filial_narx fn
            ON fn.material_id = m.id AND fn.filial_id = ${filialId}
-    WHERE m.faol = true AND m.hisob_turi = 'DONA'
-      AND m.togridan_sotiladi = true
+    WHERE m.faol = true AND m.togridan_sotiladi = true
     ORDER BY m.nom`;
+}
+
+/**
+ * Materialni o'zi sotish narx qoidalari — egasi qarori 2026-09-20.
+ *
+ * ⚠️ `mahsulot_tur_id IS NULL` qatorlari: mato metrlab sotilganda
+ *    mahsulot turi yo'q, narx esa baribir kerak.
+ *
+ * ⚠️ FILIAL bo'yicha tanlanadi (TZ 20.9), mijoz turi esa ekranda
+ *    hal bo'ladi — mijoz sotuv paytida tanlanadi va serverga
+ *    qayta borish shart emas.
+ */
+export interface MaterialNarxQoidasi {
+  readonly narxGuruhId: number;
+  readonly mijozTuriId: number | null;
+  readonly hisoblashUsuli: string;
+  readonly bosqichlar: readonly {
+    readonly dan: number;
+    readonly gacha: number | null;
+    readonly narx: string;
+    readonly valyuta: string;
+  }[];
+}
+
+export async function materialNarxQoidalari(
+  filialId: number,
+): Promise<MaterialNarxQoidasi[]> {
+  const sql = ulanishOl();
+
+  const qoidalar = await sql<
+    {
+      id: number;
+      narxGuruhId: number;
+      mijozTuriId: number | null;
+      hisoblashUsuli: string;
+    }[]
+  >`
+    SELECT id, narx_guruh_id AS "narxGuruhId", mijoz_turi_id AS "mijozTuriId",
+           hisoblash_usuli AS "hisoblashUsuli"
+    FROM mahsulot_narx
+    WHERE mahsulot_tur_id IS NULL AND faol = true
+      AND (filial_id IS NULL OR filial_id = ${filialId})
+    ORDER BY narx_guruh_id, (filial_id IS NULL)`;
+
+  if (qoidalar.length === 0) return [];
+
+  const bosqichlar = await sql<
+    {
+      mahsulotNarxId: number;
+      dan: string;
+      gacha: string | null;
+      narx: string;
+      valyuta: string;
+    }[]
+  >`
+    SELECT mahsulot_narx_id AS "mahsulotNarxId", dan::text, gacha::text,
+           narx::text, valyuta
+    FROM mahsulot_narx_bosqich
+    WHERE mahsulot_narx_id = ANY(${qoidalar.map((q) => q.id)}) AND faol = true
+    ORDER BY dan`;
+
+  return qoidalar.map((q) => ({
+    narxGuruhId: q.narxGuruhId,
+    mijozTuriId: q.mijozTuriId,
+    hisoblashUsuli: q.hisoblashUsuli,
+    bosqichlar: bosqichlar
+      .filter((b) => b.mahsulotNarxId === q.id)
+      .map((b) => ({
+        dan: Number(b.dan),
+        gacha: b.gacha === null ? null : Number(b.gacha),
+        narx: b.narx,
+        valyuta: b.valyuta,
+      })),
+  }));
 }

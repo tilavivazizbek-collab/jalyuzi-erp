@@ -1,6 +1,10 @@
 import { sahifaRuxsati } from '@/lib/kirish/joriy';
 import { faolTurlar } from '@/lib/amal/mijoz-turi';
-import { qoshimchaMateriallar, tikaOladiganFiliallar } from './malumot';
+import {
+  materialNarxQoidalari,
+  qoshimchaMateriallar,
+  tikaOladiganFiliallar,
+} from './malumot';
 import { tolovKassalari } from '../malumot';
 import { turRoyxati, turTafsili } from '@/lib/amal/katalog';
 import { SotuvFormasi } from './forma';
@@ -44,8 +48,16 @@ export default async function SotuvEkrani({
    *    Ilgari hammasi birdan yuklanardi: ~2 mln obyekt, ~230 MB
    *    JSON va sahifa bir daqiqadan ortiq ochilardi.
    */
-  const [turlar, filiallar, kurs, qoshimchalar, mijozGuruhlari, mijozTurlari, kassalar] =
-    await Promise.all([
+  const [
+    turlar,
+    filiallar,
+    kurs,
+    qoshimchalar,
+    mijozGuruhlari,
+    mijozTurlari,
+    kassalar,
+    materialQoidalari,
+  ] = await Promise.all([
       turRoyxati(),
       tikaOladiganFiliallar(),
       // 5.4 — dollardagi material narxini so'mga o'girish uchun
@@ -62,6 +74,8 @@ export default async function SotuvEkrani({
       ruxsatBormi(f, 'kassa.tolov')
         ? tolovKassalari(f.filialId, f.xodimId)
         : Promise.resolve([]),
+      /** Materialni o'zi sotish narxi — egasi qarori 2026-09-20 */
+      materialNarxQoidalari(f.filialId),
     ]);
 
   // Ekran bo'sh ochilmasin — birinchi turning tafsiloti darhol keladi
@@ -92,6 +106,7 @@ export default async function SotuvEkrani({
         kassalar={kassalar}
         joriyKurs={kurs}
         qoshimchalar={qoshimchalar}
+        materialQoidalari={materialQoidalari}
       />
     </div>
   );

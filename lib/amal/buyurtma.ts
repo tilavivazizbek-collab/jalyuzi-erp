@@ -35,7 +35,8 @@ import { tasdiqlandiMatni } from '@/lib/domain/bildirishnoma';
 import { BiznesXato } from '@/lib/xato';
 
 export interface SlotKirimi {
-  readonly slotId: number;
+  /** ⚠️ `null` — materialni o'zi sotish, slot yo'q (egasi qarori 2026-09-20) */
+  readonly slotId: number | null;
   readonly materialId: number;
   /** Formula hisoblagani — OMBORDAN SHU band qilinadi (3.6) */
   readonly hisoblanganMiqdor: string;
@@ -216,7 +217,15 @@ export async function pozitsiyaYozTx(
       boyiSm: p.boyiSm,
       soni: p.soni,
       formulaSnapshot: p.formulaSnapshot,
-      slotlar: p.slotlar,
+      /**
+       * ⚠️ SLOTSIZ QATOR TEKSHIRILMAYDI — materialni o'zi sotishda
+       *    formula ham, slot ham yo'q (egasi qarori 2026-09-20).
+       *    Uning miqdori sotuvchi kiritgan o'lchamdan chiqadi va
+       *    server uni kesim to'rtburchagi bilan solishtiradi.
+       */
+      slotlar: p.slotlar.filter(
+        (s): s is typeof s & { slotId: number } => s.slotId !== null,
+      ),
     });
   }
 

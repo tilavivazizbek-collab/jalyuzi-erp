@@ -948,3 +948,113 @@ describe('T-12 — soni > 1 da har buyumga ALOHIDA band', () => {
     expect(uchta).toEqual(bitta);
   });
 });
+
+/**
+ * Materialni o'zi sotish — egasi qarori 2026-09-20.
+ *
+ * ⚠️ Mijoz «menga 2.5 × 5 metr shu matodan» desa: mahsulot turi yo'q,
+ *    lekin mato RULONDAN KESILADI — ya'ni ombordan yechilishi shart.
+ *
+ *    Uchta cheklov shuni to'sib turardi (0042 da yumshatildi):
+ *      pozitsiya_qoshimcha_olchamsiz  o'lcham nol bo'lishi shart edi
+ *      pozitsiya_material.slot_id     NOT NULL edi
+ *      mahsulot_narx.mahsulot_tur_id  NOT NULL edi
+ */
+describe("Materialni o'zi sotish — mato metrlab", () => {
+  it("o'lchamli slotsiz pozitsiya yoziladi va BAND qilinadi", async () => {
+    await rulonYarat(3.0, 30.0, matoId);
+
+    const n = await buyurtmaYarat(
+      sql,
+      asos({
+        pozitsiyalar: [
+          {
+            mahsulotTurId: null,
+            qoshimchaMaterialId: matoId,
+            eniSm: 250,
+            boyiSm: 500,
+            soni: 1,
+            narxSnapshot: '500000',
+            chegirmaSumma: '0',
+            xizmatHaqi: '0',
+            formulaSnapshot: { qoshimcha: true },
+            slotlar: [
+              {
+                /** ⚠️ SLOT YO'Q — materialni o'zi sotish */
+                slotId: null,
+                materialId: matoId,
+                hisoblanganMiqdor: '12.5000',
+                tuzatilganMiqdor: null,
+                birlik: 'KV_M',
+                narxSnapshot: '500000',
+                kerak: { eniM: 2.5, boyiM: 5 },
+              },
+            ],
+            aksessuarlar: [],
+          },
+        ],
+      }),
+      XODIM,
+    );
+
+    const poz = n.pozitsiyalar[0]?.pozitsiyaId ?? 0;
+
+    const p = await sql<
+      { eni_sm: number; boyi_sm: number; tur: number | null; material: number | null }[]
+    >`
+      SELECT eni_sm, boyi_sm, mahsulot_tur_id AS tur, qoshimcha_material_id AS material
+      FROM buyurtma_pozitsiya WHERE id = ${poz}`;
+    expect(p[0]?.eni_sm).toBe(250);
+    expect(p[0]?.boyi_sm).toBe(500);
+    expect(p[0]?.tur).toBeNull();
+    expect(p[0]?.material).toBe(matoId);
+
+    /** ⚠️ Slotsiz material qatori — band zanjiri shundan o'qiydi */
+    const m = await sql<{ slot_id: number | null; miqdor: string }[]>`
+      SELECT slot_id, hisoblangan_miqdor::text AS miqdor
+      FROM pozitsiya_material WHERE buyurtma_pozitsiya_id = ${poz}`;
+    expect(m).toHaveLength(1);
+    expect(m[0]?.slot_id).toBeNull();
+    expect(m[0]?.miqdor).toBe('12.5000');
+
+    const b = await sql<{ n: number }[]>`
+      SELECT COUNT(*)::int AS n FROM band
+      WHERE buyurtma_pozitsiya_id = ${poz} AND holat = 'FAOL'`;
+    expect(b[0]?.n).toBe(1);
+  });
+
+  it("donalab sotishda o'lcham NOL bo'lib qoladi", async () => {
+    const n = await buyurtmaYarat(
+      sql,
+      asos({
+        pozitsiyalar: [
+          {
+            mahsulotTurId: null,
+            qoshimchaMaterialId: aksessuarId,
+            eniSm: 0,
+            boyiSm: 0,
+            soni: 2,
+            narxSnapshot: '10000',
+            chegirmaSumma: '0',
+            xizmatHaqi: '0',
+            formulaSnapshot: { qoshimcha: true },
+            slotlar: [],
+            aksessuarlar: [],
+          },
+        ],
+      }),
+      XODIM,
+    );
+
+    const poz = n.pozitsiyalar[0]?.pozitsiyaId ?? 0;
+    const p = await sql<{ eni_sm: number; boyi_sm: number }[]>`
+      SELECT eni_sm, boyi_sm FROM buyurtma_pozitsiya WHERE id = ${poz}`;
+    expect(p[0]?.eni_sm).toBe(0);
+    expect(p[0]?.boyi_sm).toBe(0);
+
+    const m = await sql<{ n: number }[]>`
+      SELECT COUNT(*)::int AS n FROM pozitsiya_material
+      WHERE buyurtma_pozitsiya_id = ${poz}`;
+    expect(m[0]?.n).toBe(0);
+  });
+});

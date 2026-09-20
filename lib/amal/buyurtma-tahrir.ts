@@ -143,7 +143,10 @@ export async function pozitsiyaniTahrirla(
         boyiSm: kirim.boyiSm,
         soni: kirim.soni,
         formulaSnapshot: kirim.formulaSnapshot,
-        slotlar: kirim.slotlar,
+        /** ⚠️ Slotsiz qator tekshirilmaydi — formula yo'q */
+        slotlar: kirim.slotlar.filter(
+          (s): s is typeof s & { slotId: number } => s.slotId !== null,
+        ),
       });
     }
 
@@ -177,7 +180,7 @@ export async function pozitsiyaniTahrirla(
 
     const eskiXarita = new Map(eskiSlotlar.map((s) => [s.slot_id, s]));
     const matoOzgardi = kirim.slotlar.some((s) => {
-      const e = eskiXarita.get(s.slotId);
+      const e = s.slotId === null ? undefined : eskiXarita.get(s.slotId);
       return (
         e === undefined ||
         e.material_id !== s.materialId ||
@@ -208,7 +211,7 @@ export async function pozitsiyaniTahrirla(
      *    uzib qo'yardi.
      */
     for (const s of kirim.slotlar) {
-      const e = eskiXarita.get(s.slotId);
+      const e = s.slotId === null ? undefined : eskiXarita.get(s.slotId);
 
       if (e === undefined) {
         await tx`
@@ -272,7 +275,7 @@ export async function pozitsiyaniTahrirla(
 
       const sorovlar: SlotSorovi[] = [];
       for (const s of kirim.slotlar) {
-        const pmId = idBoyicha.get(s.slotId);
+        const pmId = s.slotId === null ? undefined : idBoyicha.get(s.slotId);
         if (s.kerak === null || pmId === undefined) continue;
         sorovlar.push({
           pozitsiyaMaterialId: pmId,
