@@ -416,21 +416,26 @@ function baholash(i: Ifoda, qiymatlar: Qiymatlar): Decimal {
       switch (i.nom) {
         case 'CEIL':
         case 'FLOOR': {
-          if (argumentlar.length !== 1) {
+          const [birinchi] = argumentlar;
+          if (argumentlar.length !== 1 || birinchi === undefined) {
             throw new BiznesXato('FORMULA_XATO', `«${i.nom}» bitta argument oladi`);
           }
-          return i.nom === 'CEIL' ? argumentlar[0]!.ceil() : argumentlar[0]!.floor();
+          return i.nom === 'CEIL' ? birinchi.ceil() : birinchi.floor();
         }
         case 'ROUND': {
-          if (argumentlar.length === 1) return argumentlar[0]!.toDecimalPlaces(0);
-          if (argumentlar.length !== 2) {
+          const [birinchi, ikkinchi] = argumentlar;
+          if (birinchi === undefined) {
             throw new BiznesXato('FORMULA_XATO', '«ROUND» 1 yoki 2 argument oladi');
           }
-          const xona = argumentlar[1]!.toNumber();
+          if (argumentlar.length === 1) return birinchi.toDecimalPlaces(0);
+          if (argumentlar.length !== 2 || ikkinchi === undefined) {
+            throw new BiznesXato('FORMULA_XATO', '«ROUND» 1 yoki 2 argument oladi');
+          }
+          const xona = ikkinchi.toNumber();
           if (!Number.isInteger(xona) || xona < 0) {
             throw new BiznesXato('FORMULA_XATO', "«ROUND» xona soni manfiy bo'lmagan butun bo'lsin");
           }
-          return argumentlar[0]!.toDecimalPlaces(xona);
+          return birinchi.toDecimalPlaces(xona);
         }
         case 'MIN':
         case 'MAX': {

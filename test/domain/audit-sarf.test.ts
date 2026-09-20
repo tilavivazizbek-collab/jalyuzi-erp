@@ -18,7 +18,6 @@ import { describe, expect, it } from 'vitest';
 import { sarflashHisobla, slotSarfi, soniUchun, standartQiymatlar } from '@/lib/domain/formula';
 import { sm } from '@/lib/domain/birlik';
 import {
-  BAGRIKENGLIK_M,
   kesimOlchami,
   kesimQatorlari,
   kesimRejasi,
