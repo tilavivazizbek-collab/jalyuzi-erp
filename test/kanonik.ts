@@ -26,7 +26,7 @@ export interface Kanonik {
 export const KANONIK: readonly Kanonik[] = [
   {
     kod: 'K-01',
-    nom: 'Karniz narxi — 210 sm → 4.20 m × 35 000',
+    nom: 'Karniz narxi — 2.10 m → 4.20 m sarf × 35 000',
     band: 'Q-01',
     kutilgan: '147 000',
     bosqich: 0,
@@ -116,21 +116,37 @@ export const KANONIK: readonly Kanonik[] = [
 
 // ─── 0-bosqichda tekshiriladigan aniq qiymatlar ───────────────────────────
 
-/** K-01 · Q-01 — karniz: eni 210 sm, formula `ENI × 2`, narx 35 000 so'm/metr */
+/**
+ * K-01 · Q-01 — karniz: eni 2.10 m, formula `ENI × 2`, narx 35 000 so'm/metr
+ *
+ * ⚠️ 2026-09-20 — TIZIM METRGA O'TDI, LEKIN BU RAQAM O'ZGARMADI.
+ *    Ilgari: eni 210 sm → sarf 420 sm → ÷100 → 4.20 m → 147 000.
+ *    Endi:   eni 2.10 m → sarf 4.20 m → (o'girish yo'q) → 147 000.
+ *
+ *    Aynan shu K-01 ning ma'nosi: pul javobi birlik tizimiga
+ *    bog'liq emas. Raqam o'zgarmagani — o'tish TO'G'RI bo'lganining
+ *    isboti. `sarflashSm` maydoni o'chirildi: u endi mavjud
+ *    bo'lmagan birlikni nomlardi.
+ */
 export const K01 = {
-  eni: 210,
+  eni: 2.1,
   formula: 'ENI × 2',
-  sarflashSm: 420,
   sarflashMetr: 4.2,
   narxMetrUchun: '35000',
   jami: '147000.00',
 } as const;
 
-/** K-02 · TZ 3.5 — Dikke 180 × 220, CHET = 30 sm */
+/**
+ * K-02 · TZ 3.5 — Dikke 1.80 × 2.20 m, CHET = 0.30 m
+ *
+ * ⚠️ 2026-09-20 — kirish metrga o'tdi (180 → 1.80), natija esa
+ *    o'sha-o'sha 3.96 kv.m. Ilgari formula kv.sm berardi va ÷10 000
+ *    qilinardi; endi to'g'ridan-to'g'ri kv.m chiqadi.
+ */
 export const K02 = {
-  eni: 180,
-  boyi: 220,
-  chet: 30,
+  eni: 1.8,
+  boyi: 2.2,
+  chet: 0.3,
   slotlar: [
     { nom: 'Oq mato (chet)', formula: "CHET × BO'YI", kutilgan: 0.66 },
     { nom: "Ko'k mato (chet)", formula: "CHET × BO'YI", kutilgan: 0.66 },
@@ -168,8 +184,8 @@ export const K02 = {
  *   JAMI                                           570 800
  */
 export const K03 = {
-  eni: 210,
-  boyi: 140,
+  eni: 2.1,
+  boyi: 1.4,
   maydonKvM: 2.94,
   /** Bitta bosqich: 1 kv.m dan kattasiga 120 000 so'm */
   bosqichlar: [

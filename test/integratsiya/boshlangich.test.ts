@@ -175,11 +175,12 @@ describe("TZ 7.10 — boshlang'ich qoldiq", () => {
   });
 });
 
-// ─── Q-01 · Chiziqli material smda ────────────────────────────────────────
+// ─── Q-01 · Chiziqli material METRDA ────────────────────────────────────
 
-describe('Q-01 — chiziqli material SMDA yuritiladi', () => {
-  it("karniz jurnalda `miqdor_sm` ustuniga tushadi, `miqdor_dona` ga emas", async () => {
-    const materialId = await materialYarat('CHIZIQLI', 'SM', '300');
+describe('Q-01 — chiziqli material METRDA yuritiladi', () => {
+  it("karniz jurnalda `miqdor_m` ustuniga tushadi, `miqdor_dona` ga emas", async () => {
+    // ⚠️ 2026-09-20 — koeffitsient METRDA: 1 shtanga = 3 m (ilgari 300)
+    const materialId = await materialYarat('CHIZIQLI', 'M', '3');
 
     const n = await boshlangichQoldiq(
       sql,
@@ -187,22 +188,22 @@ describe('Q-01 — chiziqli material SMDA yuritiladi', () => {
         materialId,
         filialId: FILIAL,
         bolaklar: [],
-        miqdor: 3000, // 10 shtanga × 300 sm
-        tannarxBirlik: '220', // so'm/sm
+        miqdor: 30, // 10 shtanga × 3 m
+        tannarxBirlik: '22000', // so'm/METR (ilgari 220 so'm/sm)
         izoh: null,
       },
       XODIM,
     );
 
-    // 3000 sm × 220 = 660 000
+    // 30 m × 22 000 = 660 000
     expect(n.jamiSumma).toBe('660000.00');
 
-    const j = await sql<{ miqdor_sm: string | null; miqdor_dona: number | null }[]>`
-      SELECT oh.miqdor_sm, oh.miqdor_dona FROM ombor_harakat oh
+    const j = await sql<{ miqdor_m: string | null; miqdor_dona: number | null }[]>`
+      SELECT oh.miqdor_m, oh.miqdor_dona FROM ombor_harakat oh
       JOIN bolak b ON b.id = oh.bolak_id
       WHERE b.material_id = ${materialId}`;
 
-    expect(Number(j[0]?.miqdor_sm)).toBe(3000);
+    expect(Number(j[0]?.miqdor_m)).toBe(30);
     expect(j[0]?.miqdor_dona).toBeNull();
   });
 });

@@ -34,8 +34,8 @@ const FILIAL = 1;
 const XODIM = 1;
 
 /** Dikke misoli: mahsulot 180 × 220, CHET sloti 0.30 × 2.20 */
-const ENI_SM = 180;
-const BOYI_SM = 220;
+const ENI_M = 1.8;
+const BOYI_M = 2.2;
 const SLOT_KV_M = '0.6600';
 
 async function matoYarat(): Promise<number> {
@@ -98,8 +98,8 @@ function kirimYasa(matoId: number, kerakBer: boolean): BuyurtmaKirimi {
     pozitsiyalar: [
       {
         mahsulotTurId: turId,
-        eniSm: ENI_SM,
-        boyiSm: BOYI_SM,
+        eniM: ENI_M,
+        boyiM: BOYI_M,
         soni: 1,
         narxSnapshot: '500000',
         chegirmaSumma: '0',
@@ -114,7 +114,7 @@ function kirimYasa(matoId: number, kerakBer: boolean): BuyurtmaKirimi {
             birlik: 'KV_M',
             narxSnapshot: '120000',
             // Veb yo'lida `kerak` chaqiruvchidan keladi, botda esa yo'q
-            kerak: kerakBer ? kesimOlchami(SLOT_KV_M, BOYI_SM) : null,
+            kerak: kerakBer ? kesimOlchami(SLOT_KV_M, BOYI_M) : null,
           },
         ],
         aksessuarlar: [],
@@ -138,7 +138,7 @@ async function bandOlchami(
 
 describe('P-24 — kesim to\'rtburchagi maydondan chiqadi', () => {
   it('0.66 kv.m · bo\'yi 220 sm → 0.30 × 2.20', () => {
-    expect(kesimOlchami(SLOT_KV_M, BOYI_SM)).toEqual({ eniM: 0.3, boyiM: 2.2 });
+    expect(kesimOlchami(SLOT_KV_M, BOYI_M)).toEqual({ eniM: 0.3, boyiM: 2.2 });
   });
 });
 
@@ -252,7 +252,7 @@ describe('P-24 · bot yo\'li ham SLOT kesimini band qiladi', () => {
      * shuning uchun BAND BORLIGI yetarli dalil emas. Kesim
      * o'lchamining o'zi tekshiriladi.
      */
-    const kerak = kesimOlchami(SLOT_KV_M, BOYI_SM);
+    const kerak = kesimOlchami(SLOT_KV_M, BOYI_M);
     expect(kerak.eniM).toBeCloseTo(0.3, 2);
 
     // Tasdiqlangach pozitsiya ishga tayyor bo'ladi

@@ -227,8 +227,8 @@ export async function qaytaKesishHal(
     const pozitsiyalar = await tx<
       {
         holat: string;
-        eni_sm: number;
-        boyi_sm: number;
+        eni_m: number;
+        boyi_m: number;
         soni: number;
         usta_id: number | null;
         qayta_kesildi_soni: number;
@@ -236,7 +236,7 @@ export async function qaytaKesishHal(
         ishlab_chiqaruvchi_filial_id: number;
       }[]
     >`
-      SELECT p.holat, p.eni_sm, p.boyi_sm, p.soni, p.usta_id, p.qayta_kesildi_soni,
+      SELECT p.holat, p.eni_m, p.boyi_m, p.soni, p.usta_id, p.qayta_kesildi_soni,
              b.sotgan_filial_id, b.ishlab_chiqaruvchi_filial_id
       FROM buyurtma_pozitsiya p
       JOIN buyurtma b ON b.id = p.buyurtma_id
@@ -332,10 +332,10 @@ export async function qaytaKesishHal(
     // ── 3. Yangi bo'lak (7.3 · 7.6) ──
     const slotlar = await tx<
       { id: number; material_id: number; hisoblangan_miqdor: string; birlik: string;
-        koeffitsient: string; kesish_turi: string }[]
+        koeffitsient: string; kesish_turi: string; kesim_eni_m: string | null }[]
     >`
       SELECT pm.id, pm.material_id, pm.hisoblangan_miqdor, pm.birlik,
-             s.koeffitsient::text, s.kesish_turi
+             s.koeffitsient::text, s.kesish_turi, s.kesim_eni_m::text
       FROM pozitsiya_material pm
       JOIN mahsulot_slot s ON s.id = pm.slot_id
       WHERE pm.buyurtma_pozitsiya_id = ${pozitsiyaId}`;
@@ -345,10 +345,12 @@ export async function qaytaKesishHal(
       .filter((s) => s.birlik === 'KV_M')
       .flatMap((s) => {
         // P-24 — kesim to'rtburchagi maydondan chiqadi (AUDIT 1: kesish yo'nalishi bilan)
-        const kerak = kesimOlchami(s.hisoblangan_miqdor, p.boyi_sm, {
+        const kerak = kesimOlchami(s.hisoblangan_miqdor, p.boyi_m, {
           koeffitsient: Number(s.koeffitsient),
           yonalish: s.kesish_turi === "BO'YIGA" ? ("BO'YIGA" as const) : ('ENIGA' as const),
           soni: p.soni,
+          /** ⚠️ «DIKKEY» — rulon eni o'zgarmaydi (egasi, 2026-09-20) */
+          kesimEniM: s.kesim_eni_m === null ? null : Number(s.kesim_eni_m),
         });
         return Array.from({ length: p.soni }, () => ({
           pozitsiyaMaterialId: s.id,

@@ -106,8 +106,8 @@ export async function buyurtmaYaratAmali(
      *    etardi.
      */
     qoshimchaMaterialId: p.qoshimchaMaterialId,
-    eniSm: p.eniSm,
-    boyiSm: p.boyiSm,
+    eniM: p.eniM,
+    boyiM: p.boyiM,
     soni: p.soni,
     narxSnapshot: p.narxSnapshot,
     // TZ 3.11 — kelishilgan summadan chiqqan ulush
@@ -122,11 +122,13 @@ export async function buyurtmaYaratAmali(
       birlik: s.birlik,
       // TZ 3.6 · 7.6 — band qilish HISOBLANGAN sarflash bo'yicha (P-24)
       kerak: s.birlik === 'KV_M'
-        ? kesimOlchami(s.hisoblanganMiqdor, p.boyiSm, {
+        ? kesimOlchami(s.hisoblanganMiqdor, p.boyiM, {
             koeffitsient: s.koeffitsient ?? 1,
             yonalish: s.kesishTuri === "BO'YIGA" ? ("BO'YIGA" as const) : ('ENIGA' as const),
-                    /** T-12 — kesim BITTA buyum uchun, jami emas */
-                    soni: p.soni,
+            /** T-12 — kesim BITTA buyum uchun, jami emas */
+            soni: p.soni,
+            /** ⚠️ «DIKKEY» — rulon eni o'zgarmaydi (egasi, 2026-09-20) */
+            kesimEniM: s.kesimEniM ?? null,
           })
         : null,
       narxSnapshot: s.narxSnapshot,
@@ -354,8 +356,8 @@ export async function pozitsiyalarQoshAmali(
         {
           mahsulotTurId: p.mahsulotTurId,
           qoshimchaMaterialId: p.qoshimchaMaterialId,
-          eniSm: p.eniSm,
-          boyiSm: p.boyiSm,
+          eniM: p.eniM,
+          boyiM: p.boyiM,
           soni: p.soni,
           narxSnapshot: p.narxSnapshot,
           chegirmaSumma: p.chegirmaSumma,
@@ -370,7 +372,7 @@ export async function pozitsiyalarQoshAmali(
             // TZ 3.6 · 7.6 — band HISOBLANGAN sarflash bo'yicha (P-24)
             kerak:
               s.birlik === 'KV_M'
-                ? kesimOlchami(s.hisoblanganMiqdor, p.boyiSm, {
+                ? kesimOlchami(s.hisoblanganMiqdor, p.boyiM, {
                     koeffitsient: s.koeffitsient ?? 1,
                     yonalish: s.kesishTuri === "BO'YIGA" ? ("BO'YIGA" as const) : ('ENIGA' as const),
                     /** T-12 — kesim BITTA buyum uchun, jami emas */

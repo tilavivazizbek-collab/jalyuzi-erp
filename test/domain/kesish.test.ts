@@ -419,23 +419,23 @@ describe('7.6, 0-qadam va Q-13 — birlashtirish TAVSIYASI', () => {
 describe("P-24 — slot maydonidan kesim eni chiqadi", () => {
   it('Rollo 210 × 140 — butun eni qaytadi', () => {
     // 2.94 kv.m ÷ 1.40 m = 2.10 m
-    expect(kesimOlchami('2.9400', 140)).toEqual({ eniM: 2.1, boyiM: 1.4 });
+    expect(kesimOlchami('2.9400', 1.4)).toEqual({ eniM: 2.1, boyiM: 1.4 });
   });
 
   it("Dikke chet sloti — 30 sm, butun eni EMAS (TZ 3.5)", () => {
     // 0.66 kv.m ÷ 2.20 m = 0.30 m
-    expect(kesimOlchami('0.6600', 220)).toEqual({ eniM: 0.3, boyiM: 2.2 });
+    expect(kesimOlchami('0.6600', 2.2)).toEqual({ eniM: 0.3, boyiM: 2.2 });
   });
 
   it("Dikke o'rta sloti — 120 sm", () => {
     // 2.64 kv.m ÷ 2.20 m = 1.20 m
-    expect(kesimOlchami('2.6400', 220)).toEqual({ eniM: 1.2, boyiM: 2.2 });
+    expect(kesimOlchami('2.6400', 2.2)).toEqual({ eniM: 1.2, boyiM: 2.2 });
   });
 
   it("uch slot yig'indisi butun maydonga teng (K-02)", () => {
-    const a = kesimOlchami('0.6600', 220);
-    const b = kesimOlchami('0.6600', 220);
-    const c = kesimOlchami('2.6400', 220);
+    const a = kesimOlchami('0.6600', 2.2);
+    const b = kesimOlchami('0.6600', 2.2);
+    const c = kesimOlchami('2.6400', 2.2);
     const jami = a.eniM + b.eniM + c.eniM;
     // 0.30 + 0.30 + 1.20 = 1.80 m — mahsulotning butun eni
     expect(jami).toBeCloseTo(1.8, 10);
@@ -446,7 +446,7 @@ describe("P-24 — slot maydonidan kesim eni chiqadi", () => {
   });
 
   it("maydon nol bo'lsa rad etiladi", () => {
-    expect(() => kesimOlchami('0', 140)).toThrow(BiznesXato);
+    expect(() => kesimOlchami('0', 1.4)).toThrow(BiznesXato);
   });
 });
 
@@ -460,8 +460,8 @@ describe("P-24 — slot maydonidan kesim eni chiqadi", () => {
  */
 describe('T-12 — kesim BIR BUYUM uchun, jami emas', () => {
   it('soni berilmasa xulq O‘ZGARMAYDI', () => {
-    const a = kesimOlchami(4.4352, 220, { koeffitsient: 1.12, yonalish: "BO'YIGA" });
-    const b = kesimOlchami(4.4352, 220, {
+    const a = kesimOlchami(4.4352, 2.2, { koeffitsient: 1.12, yonalish: "BO'YIGA" });
+    const b = kesimOlchami(4.4352, 2.2, {
       koeffitsient: 1.12,
       yonalish: "BO'YIGA",
       soni: 1,
@@ -471,8 +471,8 @@ describe('T-12 — kesim BIR BUYUM uchun, jami emas', () => {
 
   it('soni = 3 da eni UCH BAROBAR kengaymaydi', () => {
     // Bitta parda 4.4352 kv.m; uchtasi 13.3056
-    const bitta = kesimOlchami(4.4352, 220, { koeffitsient: 1.12, yonalish: "BO'YIGA" });
-    const uchta = kesimOlchami(13.3056, 220, {
+    const bitta = kesimOlchami(4.4352, 2.2, { koeffitsient: 1.12, yonalish: "BO'YIGA" });
+    const uchta = kesimOlchami(13.3056, 2.2, {
       koeffitsient: 1.12,
       yonalish: "BO'YIGA",
       soni: 3,
@@ -485,14 +485,85 @@ describe('T-12 — kesim BIR BUYUM uchun, jami emas', () => {
   });
 
   it('ENIGA yo‘nalishida ham ishlaydi', () => {
-    const bitta = kesimOlchami(3.96, 220, {});
-    const ikkita = kesimOlchami(7.92, 220, { soni: 2 });
+    const bitta = kesimOlchami(3.96, 2.2, {});
+    const ikkita = kesimOlchami(7.92, 2.2, { soni: 2 });
     expect(ikkita.eniM).toBeCloseTo(bitta.eniM, 2);
   });
 
   it('soni butun va musbat bo‘lishi shart', () => {
-    expect(() => kesimOlchami(3.96, 220, { soni: 0 })).toThrow(BiznesXato);
-    expect(() => kesimOlchami(3.96, 220, { soni: -1 })).toThrow(BiznesXato);
-    expect(() => kesimOlchami(3.96, 220, { soni: 1.5 })).toThrow(BiznesXato);
+    expect(() => kesimOlchami(3.96, 2.2, { soni: 0 })).toThrow(BiznesXato);
+    expect(() => kesimOlchami(3.96, 2.2, { soni: -1 })).toThrow(BiznesXato);
+    expect(() => kesimOlchami(3.96, 2.2, { soni: 1.5 })).toThrow(BiznesXato);
+  });
+});
+
+/**
+ * QAT'IY KESIM ENI — egasi holati 2026-09-20 («dikkey»)
+ *
+ * «mato eni 40 sm, bo'yi 100 m rulon keladi. U 40 smlik enli narsa
+ *  10 sm joyni egallaydi — oldinga va orqaga tushib chiqishi
+ *  hisobiga. Mato 1 m enli bo'lsa 10 ta ketadi va bo'yiga nechta
+ *  ketsa shunday bo'ladi.»
+ *
+ * ⚠️ NEGA ALOHIDA HISOB: odatdagi kesim maydonni buyurtma bo'yiga
+ *    bo'lib enini topadi. Vertikal lamelda bu YOLG'ON javob beradi:
+ *    8 kv.m ni 2 metr bo'yiga bo'lsa 4.00 m eni chiqadi, holbuki 4
+ *    metr enli lamel rulonini hech kim ishlab chiqarmaydi. Haqiqiy
+ *    javob — 0.40 × 20.00.
+ */
+describe("qat'iy kesim eni — «dikkey» lameli", () => {
+  it("egasining misoli: 1.00 × 2.00 m, lamel eni 0.40 → 0.40 × 20.00", () => {
+    /**
+     * Sarf formulasi: `CEIL(ENI / 0.10) * BO'YI * 0.40`
+     *   lamel soni  = CEIL(1.00 / 0.10) = 10 ta
+     *   rulon uzunligi = 10 × 2.00 = 20 m
+     *   maydon      = 20 × 0.40 = 8 kv.m
+     */
+    const kerak = kesimOlchami(8, 2.0, { kesimEniM: 0.4 });
+    expect(kerak).toEqual({ eniM: 0.4, boyiM: 20 });
+  });
+
+  it('eni QAT\'IY: buyurtma bo\'yi kesim shakliga ta\'sir qilmaydi', () => {
+    // Bir xil maydon, turli buyurtma bo'yi — natija bir xil
+    const a = kesimOlchami(8, 2.0, { kesimEniM: 0.4 });
+    const b = kesimOlchami(8, 3.5, { kesimEniM: 0.4 });
+    expect(a).toEqual(b);
+  });
+
+  it("yo'nalish ham ta'sir qilmaydi — rulon eni ularga bo'ysunmaydi", () => {
+    const eniga = kesimOlchami(8, 2.0, { kesimEniM: 0.4, yonalish: 'ENIGA' });
+    const boyiga = kesimOlchami(8, 2.0, { kesimEniM: 0.4, yonalish: "BO'YIGA" });
+    expect(eniga).toEqual(boyiga);
+  });
+
+  it('koeffitsient maydonni oshiradi, shakl esa baribir qat\'iy enda', () => {
+    const oddiy = kesimOlchami(8, 2.0, { kesimEniM: 0.4 });
+    const zaxira = kesimOlchami(8.8, 2.0, { kesimEniM: 0.4 });
+    expect(oddiy.boyiM).toBe(20);
+    expect(zaxira.eniM).toBe(0.4);
+    expect(zaxira.boyiM).toBe(22); // 8.8 ÷ 0.40
+  });
+
+  it("T-12 bilan birga ishlaydi: `soni` jami maydonni bo'ladi", () => {
+    const bitta = kesimOlchami(8, 2.0, { kesimEniM: 0.4 });
+    const uchta = kesimOlchami(24, 2.0, { kesimEniM: 0.4, soni: 3 });
+    expect(uchta).toEqual(bitta);
+  });
+
+  it("bo'yi yuqoriga yaxlitlanadi — kamomad bo'lishi mumkin emas", () => {
+    // 8.001 ÷ 0.40 = 20.0025 → 20.01
+    const kerak = kesimOlchami(8.001, 2.0, { kesimEniM: 0.4 });
+    expect(kerak.boyiM).toBe(20.01);
+    expect(kerak.eniM * kerak.boyiM).toBeGreaterThanOrEqual(8.001);
+  });
+
+  it("nol yoki manfiy kesim eni rad etiladi — nolga bo'linish oldi olinadi", () => {
+    expect(() => kesimOlchami(8, 2.0, { kesimEniM: 0 })).toThrow(BiznesXato);
+    expect(() => kesimOlchami(8, 2.0, { kesimEniM: -0.4 })).toThrow(BiznesXato);
+  });
+
+  it("berilmasa AVVALGI xulq — mavjud turlar o'zgarmaydi", () => {
+    expect(kesimOlchami(2.94, 1.4)).toEqual({ eniM: 2.1, boyiM: 1.4 });
+    expect(kesimOlchami(2.94, 1.4, { kesimEniM: null })).toEqual({ eniM: 2.1, boyiM: 1.4 });
   });
 });

@@ -67,7 +67,7 @@ export function BoshlangichFormasi({
   boshEni?: string;
   boshBoyi?: string;
   /**
-   * Q-01 — chiziqli mahsulot bazada SANTIMETRDA yuritiladi.
+   * Q-01 — chiziqli mahsulot bazada ham METRDA yuritiladi (2026-09-20).
    *
    * ⚠️ Egasi (2026-08-30): «boshlang'ich qoldiqda metri
    *    kiritilyaptimi yoki rulonimi — bu qayerdan biladi?»
@@ -199,7 +199,7 @@ export function BoshlangichFormasi({
           yorliq={`Miqdor (${smda ? 'metr' : birlikNomi})`}
           izoh={
             smda
-              ? "metrda kiriting — tizim o'zi santimetrga o'giradi (Q-01)"
+              ? 'metrda kiriting — baza ham metrda saqlaydi (Q-01)'
               : 'Omborda hozir turgan miqdor'
           }
           xato={holat.maydonlar.miqdor}
@@ -207,10 +207,10 @@ export function BoshlangichFormasi({
           {smda ? (
             <>
               {/*
-                ⚠️ Ekranda METR, bazaga SANTIMETR. Odam metr bilan
-                   ishlaydi; santimetr so'ralsa 50 metrni 5000 deb
-                   yozish kerak bo'lardi va bir kunmas-bir kun
-                   kimdir 50 deb yozib qo'yardi.
+                ⚠️ 2026-09-20 — ekranda ham, bazada ham METR. Ilgari
+                   baza smda edi va bu yerda ×100 turardi; omborchi
+                   50 metrni 5000 deb yozishi kerak bo'lardi va bir
+                   kunmas-bir kun kimdir 50 deb yozib qo'yardi.
               */}
               <input
                 id="miqdor"
@@ -221,18 +221,13 @@ export function BoshlangichFormasi({
                 inputMode="decimal"
                 className={kirishUslubi(holat.maydonlar.miqdor !== undefined)}
               />
-              <input
-                type="hidden"
-                name="miqdor"
-                value={
-                  Number(metr) > 0 ? String(Math.round(Number(metr) * 100)) : ''
-                }
-              />
-              {Number(metr) > 0 && (
-                <p className="mt-1 text-[12px] text-matn-kuchsiz">
-                  = {String(Math.round(Number(metr) * 100))} sm
-                </p>
-              )}
+              {/*
+                ⚠️ 2026-09-20 — baza ham METRDA. Ilgari bu yerda
+                   ×100 turardi va omborchiga «= 300 sm» deb
+                   ko'rsatilardi. Endi o'girish ham, tushuntirish
+                   ham kerak emas: yozgani — saqlangani.
+              */}
+              <input type="hidden" name="miqdor" value={metr} />
             </>
           ) : (
             <input

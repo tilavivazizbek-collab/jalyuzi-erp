@@ -42,8 +42,8 @@ export interface PozitsiyaQoralama {
   readonly mahsulotTurId: number;
   readonly turNomi: string;
   readonly slotlar: readonly SlotQoralama[];
-  readonly eniSm: number | null;
-  readonly boyiSm: number | null;
+  readonly eniM: number | null;
+  readonly boyiM: number | null;
   readonly aksessuarlar: readonly number[];
   readonly izoh: string | null;
 }
@@ -98,8 +98,8 @@ export function keyingiQadam(q: Qoralama): OqimQadami {
   // 13.4 — har SLOT uchun mato tanlanadi
   if (p.slotlar.some((s) => s.materialId === null)) return 'SLOT_MATO';
 
-  if (p.eniSm === null) return 'ENI';
-  if (p.boyiSm === null) return 'BOYI';
+  if (p.eniM === null) return 'ENI';
+  if (p.boyiM === null) return 'BOYI';
   if (p.izoh === null) return 'AKSESSUAR';
 
   return 'SAVAT';
@@ -128,8 +128,8 @@ export function turTanla(
         nom: s.nom,
         materialId: null,
       })),
-      eniSm: null,
-      boyiSm: null,
+      eniM: null,
+      boyiM: null,
       aksessuarlar: [],
       izoh: null,
     },
@@ -169,8 +169,8 @@ export function olchamQoy(q: Qoralama, matn: string, qaysi: 'ENI' | 'BOYI'): Qor
     ...q,
     joriy:
       qaysi === 'ENI'
-        ? { ...q.joriy, eniSm: qiymat }
-        : { ...q.joriy, boyiSm: qiymat },
+        ? { ...q.joriy, eniM: qiymat }
+        : { ...q.joriy, boyiM: qiymat },
   };
 }
 
@@ -214,8 +214,8 @@ export function savatgaQosh(q: Qoralama): Qoralama {
 
   if (
     p.slotlar.some((s) => s.materialId === null) ||
-    p.eniSm === null ||
-    p.boyiSm === null
+    p.eniM === null ||
+    p.boyiM === null
   ) {
     throw new BiznesXato('BOT_OQIM_TOLIQ_EMAS');
   }
@@ -235,8 +235,8 @@ export function orqaga(q: Qoralama): Qoralama {
   if (p === null) return q;
 
   if (p.izoh !== null) return { ...q, joriy: { ...p, izoh: null } };
-  if (p.boyiSm !== null) return { ...q, joriy: { ...p, boyiSm: null } };
-  if (p.eniSm !== null) return { ...q, joriy: { ...p, eniSm: null } };
+  if (p.boyiM !== null) return { ...q, joriy: { ...p, boyiM: null } };
+  if (p.eniM !== null) return { ...q, joriy: { ...p, eniM: null } };
 
   // Oxirgi to'ldirilgan slot tozalanadi
   const toldirilgan = [...p.slotlar].reverse().find((s) => s.materialId !== null);
@@ -310,8 +310,8 @@ function pozitsiyaOqi(xom: unknown): PozitsiyaQoralama | null {
         };
       })
       .filter((s): s is SlotQoralama => s !== null),
-    eniSm: typeof p.eniSm === 'number' ? p.eniSm : null,
-    boyiSm: typeof p.boyiSm === 'number' ? p.boyiSm : null,
+    eniM: typeof p.eniM === 'number' ? p.eniM : null,
+    boyiM: typeof p.boyiM === 'number' ? p.boyiM : null,
     aksessuarlar: Array.isArray(p.aksessuarlar)
       ? p.aksessuarlar.filter((a: unknown): a is number => typeof a === 'number')
       : [],

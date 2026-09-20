@@ -35,6 +35,8 @@ export interface SlotQatori {
   koeffitsient: number;
   /** AUDIT 1-topilma — kesish yo'nalishi */
   kesishTuri: 'ENIGA' | "BO'YIGA";
+  /** Qat'iy kesim eni, metrda — bo'sh bo'lsa maydondan hisoblanadi */
+  kesimEniM: string;
 }
 
 export interface ParametrQatori {
@@ -95,6 +97,8 @@ interface Qator {
   /** AUDIT 1-topilma — faqat GURUH (mato sloti) uchun ishlatiladi */
   koeffitsient: number;
   kesishTuri: 'ENIGA' | "BO'YIGA";
+  /** Qat'iy kesim eni, metrda — bo'sh bo'lsa maydondan hisoblanadi */
+  kesimEniM: string;
 }
 
 const kirish =
@@ -125,6 +129,7 @@ function boshQatorlar(q: MahsulotQiymatlari): Qator[] {
       majburiy: s.majburiy,
       koeffitsient: s.koeffitsient,
       kesishTuri: s.kesishTuri,
+      kesimEniM: s.kesimEniM,
     };
   });
 
@@ -139,6 +144,7 @@ function boshQatorlar(q: MahsulotQiymatlari): Qator[] {
       majburiy: a.majburiy,
       koeffitsient: 1,
       kesishTuri: 'ENIGA',
+      kesimEniM: '',
     };
   });
 
@@ -226,6 +232,7 @@ export function MahsulotFormasi({
       almashtirishGuruhId: q.id,
       koeffitsient: q.koeffitsient,
       kesishTuri: q.kesishTuri,
+      kesimEniM: q.kesimEniM.trim(),
     }));
 
   const aksessuarlar: AksessuarQatori[] = qatorlar
@@ -486,7 +493,7 @@ export function MahsulotFormasi({
                         Ishlatiladi: <code>ENI</code>, <code>BO&apos;YI</code>,{' '}
                         <code>MAYDON</code>, <code>SONI</code>. Amallar:{' '}
                         <code>+ − × /</code> va qavslar. O&apos;lchamlar{' '}
-                        <b>santimetrda</b>.
+                        <b>metrda</b>, maydon <b>kv.m</b> da.
                       </p>
                     )}
 
@@ -526,12 +533,45 @@ export function MahsulotFormasi({
                             <option value="BO'YIGA">Bo'yiga (bo'y × K)</option>
                           </select>
                         </label>
+                        {/*
+                          ⚠️ QAT'IY KESIM ENI — egasi holati 2026-09-20
+                             («dikkey»).
+
+                             Ba'zi materialning eni O'ZGARMAYDI: vertikal
+                             jalyuzi lameli rulonda 0.40 m enli keladi va
+                             usta uni ENIGA kesa OLMAYDI — faqat bo'yiga
+                             qirqadi.
+
+                             To'ldirilsa, hisob TESKARI ketadi: eni shu
+                             bo'ladi, bo'yi maydondan chiqadi. 8 kv.m
+                             «4.00 × 2.00» emas, «0.40 × 20.00» bo'ladi —
+                             chunki 4 metr enli lamel rulonini hech kim
+                             ishlab chiqarmaydi.
+                        */}
+                        <label className="flex items-center gap-1.5 text-xs text-matn-ikki">
+                          <span>Kesim eni</span>
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            placeholder="—"
+                            value={q.kesimEniM}
+                            onChange={(e) => {
+                              yangila(i, { kesimEniM: e.target.value });
+                            }}
+                            aria-label="Qat'iy kesim eni, metrda"
+                            className={`${kichik} w-20`}
+                          />
+                          <span className="text-[11px] text-matn-kuchsiz">m</span>
+                        </label>
                         <span className="text-[11px] text-matn-kuchsiz">
-                          {q.koeffitsient === 1
-                            ? '— oddiy sarf'
-                            : q.kesishTuri === "BO'YIGA"
-                              ? `bo'y × ${String(q.koeffitsient)} (masalan 1.8 × 4.4)`
-                              : `en × ${String(q.koeffitsient)} (masalan 3.6 × 2.2)`}
+                          {q.kesimEniM.trim() !== ''
+                            ? `eni doim ${q.kesimEniM} m, bo'yi maydondan chiqadi`
+                            : q.koeffitsient === 1
+                              ? '— oddiy sarf'
+                              : q.kesishTuri === "BO'YIGA"
+                                ? `bo'y × ${String(q.koeffitsient)} (masalan 1.8 × 4.4)`
+                                : `en × ${String(q.koeffitsient)} (masalan 3.6 × 2.2)`}
                         </span>
                       </div>
                     )}
@@ -591,6 +631,7 @@ export function MahsulotFormasi({
                   majburiy: true,
                   koeffitsient: 1,
                   kesishTuri: 'ENIGA',
+                  kesimEniM: '',
                 },
               ]);
             }}

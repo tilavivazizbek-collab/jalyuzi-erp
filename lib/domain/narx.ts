@@ -27,7 +27,7 @@ import {
   type Kurs,
   type Som,
 } from '@/lib/domain/pul';
-import { smToM, type Dona, type KvadratMetr, type Santimetr, type SarflashBirligi } from '@/lib/domain/birlik';
+import type { Dona, KvadratMetr, Metr, SarflashBirligi } from '@/lib/domain/birlik';
 import { BiznesXato } from '@/lib/xato';
 
 // ─── 20.9 · Filial narxi (Q-28) ───────────────────────────────────────────
@@ -148,7 +148,7 @@ export interface Qator {
   readonly nom: string;
   /** Materialning sarflash birligi — miqdorni qanday talqin qilishni belgilaydi */
   readonly sarflashBirligi: SarflashBirligi;
-  readonly miqdor: KvadratMetr | Santimetr | Dona;
+  readonly miqdor: KvadratMetr | Metr | Dona;
   /** 5.4 — mato uchun 1 kv.m, karniz uchun 1 METR, aksessuar uchun 1 dona */
   readonly narx: Som;
 }
@@ -156,17 +156,18 @@ export interface Qator {
 /**
  * Bitta qator summasi. Q-01 ning yagona joyi.
  *
- * ⚠️ Chiziqli material **smda** sarflanadi, narxi esa **1 metr uchun**.
- * Shuning uchun bu yerda ÷100 bajariladi. AUDIT Z-01 (100 barobar xato)
- * aynan shu o'girish tushib qolganidan chiqqan edi.
+ * ⚠️ 2026-09-20: chiziqli material endi **metrda** sarflanadi, narxi ham
+ *    **1 metr uchun** — ya'ni ikkalasi bir xil birlikda va ÷100 KERAK
+ *    EMAS. Ilgari bu yerda `smToM` turardi va AUDIT Z-01 (100 barobar
+ *    xato) aynan o'sha o'girish tushib qolganidan chiqqan edi. Endi
+ *    o'girishning o'zi yo'q, demak tushib qolishi ham mumkin emas.
  */
 export function qatorSummasi(q: Qator): Som {
   switch (q.sarflashBirligi) {
     case 'KV_M':
       return kopaytir(q.narx, q.miqdor);
-    case 'SM':
-      // narx 1 metr uchun → sm ni metrga o'giramiz (Q-01)
-      return kopaytir(q.narx, smToM(q.miqdor as Santimetr));
+    case 'M':
+      return kopaytir(q.narx, q.miqdor);
     case 'DONA':
       return kopaytir(q.narx, q.miqdor);
   }

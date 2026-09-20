@@ -48,7 +48,7 @@ Shuning uchun matoga yozilgan har qanday ko'paytma **eniga** tushadi:
 `ENIGA` faqat bitta holatda to'g'ri: mato haqiqatan ham **eniga**
 ikki marta kerak bo'lganda (juda kam uchraydi, masalan enlik ulanma).
 
-Chiziqli (`SM`) va dona (`DONA`) materiallarda koeffitsient
+Chiziqli (`M`) va dona (`DONA`) materiallarda koeffitsient
 **umuman ishlamaydi** (`lib/domain/formula.ts` → `slotSarfi`) — ularda
 hamma narsa formula matnida yoziladi.
 
@@ -60,12 +60,12 @@ hamma narsa formula matnida yoziladi.
 |---|---|
 | `+` `−` `*` `/` va qavslar | `IF` / shart |
 | `CEIL` `FLOOR` `ROUND` `MIN` `MAX` | `ABS`, qoldiq (`%`) |
-| `ENI` `BO'YI` (sm), `MAYDON` (kv.sm), `SONI` | — |
-| Mahsulot parametrlari (`QADAM`, `LAMEL_ENI`, …) | — |
+| `ENI` `BO'YI` (**metr**), `MAYDON` (**kv.m**), `SONI` | — |
+| Mahsulot parametrlari (`QADAM`, `LAMEL_ENI`, …) — **metrda** | — |
 
-⚠️ **Ayirish `MAX` bilan himoyalanadi.** `ENI - 2` formulasi kichik
+⚠️ **Ayirish `MAX` bilan himoyalanadi.** `ENI - 0.02` formulasi kichik
 enida manfiy chiqadi va tizim texnik xato beradi (`OLCHOV_NOTOGRI`),
-tushunarli xabar emas. To'g'risi: `MAX(40, ENI - 2)`.
+tushunarli xabar emas. To'g'risi: `MAX(0.40, ENI - 0.02)`.
 
 ---
 
@@ -76,13 +76,13 @@ tushunarli xabar emas. To'g'risi: `MAX(40, ENI - 2)`.
 | # | Slot | Birlik | Formula | Koeff | Kesish | Izoh |
 |---|---|---|---|---|---|---|
 | 1 | Mato | `KV_M` | `MAYDON` | **1.12** [Taxmin] | `BO'YIGA` | valga o'ralish + pastki buklama |
-| 2 | Val (turba) | `SM` | `MAX(40, ENI - 2)` | — | — | [Taxmin] 2 sm, min 40 sm |
-| 3 | Pastki planka | `SM` | `MAX(20, ENI - 2)` | — | — | |
-| 4 | Zanjir | `SM` | `BO'YI * 2 + 30` | — | — | [CORE] halqa yopiq |
+| 2 | Val (turba) | `M` | `MAX(0.40, ENI - 0.02)` | — | — | [Taxmin] 0.02 m kam, eng kami 0.40 m |
+| 3 | Pastki planka | `M` | `MAX(0.20, ENI - 0.02)` | — | — | |
+| 4 | Zanjir | `M` | `BO'YI * 2 + 0.30` | — | — | [CORE] halqa yopiq |
 | 5 | Kronshteyn | `DONA` | `2` | — | — | [CORE] |
 
-⚠️ Eni 250 sm dan oshsa uchinchi kronshteyn qo'yiladi:
-`MAX(2, CEIL(ENI / 125))` [Taxmin — oraliqni usta aytadi].
+⚠️ Eni 2.50 m dan oshsa uchinchi kronshteyn qo'yiladi:
+`MAX(2, CEIL(ENI / 1.25))` [Taxmin — oraliqni usta aytadi].
 
 ---
 
@@ -94,12 +94,12 @@ navbatlashadi.
 | # | Slot | Birlik | Formula | Koeff | Kesish | Izoh |
 |---|---|---|---|---|---|---|
 | 1 | Mato | `KV_M` | `MAYDON` | **2.10** [Taxmin] | **`BO'YIGA`** | ⚠️ ikki qavat + zaxira |
-| 2 | Val | `SM` | `MAX(40, ENI - 2)` | — | — | |
-| 3 | Pastki planka | `SM` | `MAX(20, ENI - 2)` | — | — | |
-| 4 | Zanjir | `SM` | `BO'YI * 2 + 30` | — | — | |
+| 2 | Val | `M` | `MAX(0.40, ENI - 0.02)` | — | — | |
+| 3 | Pastki planka | `M` | `MAX(0.20, ENI - 0.02)` | — | — | |
+| 4 | Zanjir | `M` | `BO'YI * 2 + 0.30` | — | — | |
 | 5 | Kronshteyn | `DONA` | `2` | — | — | |
 
-⚠️ **Aynan shu yerda `BO'YIGA` hal qiluvchi.** `ENIGA` bo'lsa 180 sm
+⚠️ **Aynan shu yerda `BO'YIGA` hal qiluvchi.** `ENIGA` bo'lsa 1.80 m
 pardaga **3.78 m keng** rulon izlanadi — bunday rulon bozorda yo'q va
 pozitsiya abadiy «Materialga kutmoqda»da qoladi.
 
@@ -107,19 +107,19 @@ pozitsiya abadiy «Materialga kutmoqda»da qoladi.
 
 ## 5. VERTIKAL (dikkey)
 
-**Parametrlar:** `LAMEL_ENI` = `8.9` yoki `12.7` [Taxmin]
+**Parametrlar:** `LAMEL_ENI` = `0.089` yoki `0.127` (metr) [Taxmin]
 
-⚠️ Barcha uzunlik **santimetrda** (TZ 5.3). 89 mm lamel → `LAMEL_ENI = 8.9`.
+⚠️ Barcha uzunlik **METRDA** (2026-09-20). 89 mm lamel → `LAMEL_ENI = 0.089`.
 
 | # | Slot | Birlik | Formula | Koeff | Kesish | Izoh |
 |---|---|---|---|---|---|---|
 | 1 | Lamel (mato) | `KV_M` | `MAYDON` | **1.05** [Taxmin] | `BO'YIGA` | pastki buklama |
-| 2 | Karniz-profil | `SM` | `ENI + 2` [Taxmin] | — | — | |
+| 2 | Karniz-profil | `M` | `ENI + 0.02` [Taxmin] | — | — | |
 | 3 | Begunok | `DONA` | `CEIL(ENI / LAMEL_ENI)` | — | — | [CORE] lamel soniga teng |
 | 4 | Ryzeg (gruzik) | `DONA` | `CEIL(ENI / LAMEL_ENI)` | — | — | [CORE] 1:1 |
-| 5 | Pastki zanjircha | `SM` | `ENI + 10` | — | — | |
-| 6 | Boshqaruv zanjiri | `SM` | `BO'YI * 2 + 25` | — | — | |
-| 7 | Kronshteyn | `DONA` | `MAX(2, CEIL(ENI / 150))` | — | — | [Taxmin] |
+| 5 | Pastki zanjircha | `M` | `ENI + 0.10` | — | — | |
+| 6 | Boshqaruv zanjiri | `M` | `BO'YI * 2 + 0.25` | — | — | |
+| 7 | Kronshteyn | `DONA` | `MAX(2, CEIL(ENI / 1.50))` | — | — | [Taxmin] |
 
 ⚠️ Lamel matosi rulondan **bo'y bo'ylab** kesiladi, har lamel alohida
 tasma. Tizim uni bitta to'rtburchak deb biladi — bu to'g'ri, chunki
@@ -135,7 +135,7 @@ rulondan ochiladigan tasmaning umumiy uzunligi bir xil.
 jalyuzida lamellar **bo'y bo'ylab taxlanadi**, eni bo'ylab emas:
 
 ```
-lamel soni = CEIL(BO'YI ÷ QADAM)        ← eni emas, BO'YI
+lamel soni = CEIL(BO'YI ÷ QADAM)        ← eni emas, BO'YI  (ikkalasi metrda)
 har lamel uzunligi = ENI
 ```
 
@@ -143,13 +143,13 @@ har lamel uzunligi = ENI
 
 | # | Slot | Birlik | Formula | Koeff | Kesish | Izoh |
 |---|---|---|---|---|---|---|
-| 1 | Lamel | `SM` | `CEIL(BO'YI / QADAM) * ENI` | — | — | [CORE] jami chiziqli uzunlik |
-| 2 | Karniz | `SM` | `ENI` | — | — | |
-| 3 | Pastki planka | `SM` | `ENI` | — | — | |
-| 4 | Ip-lesa (narvon) | `SM` | `CEIL(ENI / 60) * (BO'YI + 20)` | — | — | [Taxmin] har 60 sm ga 1 qator |
-| 5 | Ko'taruvchi ip | `SM` | `CEIL(ENI / 60) * (BO'YI * 2 + ENI)` | — | — | [CORE] |
-| 6 | Boshqaruv zanjiri | `SM` | `BO'YI * 2 + 25` | — | — | |
-| 7 | Kronshteyn | `DONA` | `MAX(2, CEIL(ENI / 100))` | — | — | [Taxmin] |
+| 1 | Lamel | `M` | `CEIL(BO'YI / QADAM) * ENI` | — | — | [CORE] jami chiziqli uzunlik |
+| 2 | Karniz | `M` | `ENI` | — | — | |
+| 3 | Pastki planka | `M` | `ENI` | — | — | |
+| 4 | Ip-lesa (narvon) | `M` | `CEIL(ENI / 0.60) * (BO'YI + 0.20)` | — | — | [Taxmin] har 0.60 m ga 1 qator |
+| 5 | Ko'taruvchi ip | `M` | `CEIL(ENI / 0.60) * (BO'YI * 2 + ENI)` | — | — | [CORE] |
+| 6 | Boshqaruv zanjiri | `M` | `BO'YI * 2 + 0.25` | — | — | |
+| 7 | Kronshteyn | `DONA` | `MAX(2, CEIL(ENI / 1.00))` | — | — | [Taxmin] |
 
 Agar lamel **dona** bo'lib sotib olinsa (tayyor kesilgan), 1-slot:
 birlik `DONA`, formula `CEIL(BO'YI / QADAM)`.
@@ -161,10 +161,10 @@ birlik `DONA`, formula `CEIL(BO'YI / QADAM)`.
 | # | Slot | Birlik | Formula | Koeff | Kesish | Izoh |
 |---|---|---|---|---|---|---|
 | 1 | Mato | `KV_M` | `MAYDON` | **1.06** [Taxmin] | `BO'YIGA` | plisse matosi oldindan burmalangan |
-| 2 | Yuqori profil | `SM` | `ENI` | — | — | |
-| 3 | Pastki profil | `SM` | `ENI` | — | — | |
-| 4 | Yon profil | `SM` | `(BO'YI + 2) * 2` | — | — | [CORE] ikki tomon |
-| 5 | Ip | `SM` | `CEIL(ENI / 50) * (BO'YI * 2 + 20)` | — | — | [Taxmin] har 50 sm ga 1 qator |
+| 2 | Yuqori profil | `M` | `ENI` | — | — | |
+| 3 | Pastki profil | `M` | `ENI` | — | — | |
+| 4 | Yon profil | `M` | `(BO'YI + 0.02) * 2` | — | — | [CORE] ikki tomon |
+| 5 | Ip | `M` | `CEIL(ENI / 0.50) * (BO'YI * 2 + 0.20)` | — | — | [Taxmin] har 0.50 m ga 1 qator |
 | 6 | Kronshteyn | `DONA` | `2` | — | — | |
 
 ⚠️ Plisse matosi **allaqachon burmalangan** holda keladi. Agar
@@ -180,26 +180,26 @@ Plisse bilan bir xil tuzilma, mato ikki qavat uyali.
 | # | Slot | Birlik | Formula | Koeff | Kesish | Izoh |
 |---|---|---|---|---|---|---|
 | 1 | Mato | `KV_M` | `MAYDON` | **1.10** [Taxmin] | `BO'YIGA` | |
-| 2 | Yuqori profil | `SM` | `ENI` | — | — | |
-| 3 | Pastki profil | `SM` | `ENI` | — | — | |
-| 4 | Yon profil | `SM` | `(BO'YI + 2) * 2` | — | — | |
-| 5 | Ip | `SM` | `CEIL(ENI / 50) * (BO'YI * 2 + 20)` | — | — | [Taxmin] |
+| 2 | Yuqori profil | `M` | `ENI` | — | — | |
+| 3 | Pastki profil | `M` | `ENI` | — | — | |
+| 4 | Yon profil | `M` | `(BO'YI + 0.02) * 2` | — | — | |
+| 5 | Ip | `M` | `CEIL(ENI / 0.50) * (BO'YI * 2 + 0.20)` | — | — | [Taxmin] |
 | 6 | Kronshteyn | `DONA` | `2` | — | — | |
 
 ---
 
 ## 9. RIM (rimskaya)
 
-**Parametrlar:** `BURMA` = `25` — burmalar orasidagi masofa, sm [Taxmin]
+**Parametrlar:** `BURMA` = `0.25` — burmalar orasidagi masofa, METR [Taxmin]
 
 | # | Slot | Birlik | Formula | Koeff | Kesish | Izoh |
 |---|---|---|---|---|---|---|
 | 1 | Mato | `KV_M` | `MAYDON` | **1.18** [Taxmin] | `BO'YIGA` | yon va pastki buklama |
-| 2 | Karniz | `SM` | `ENI` | — | — | |
-| 3 | Reyka | `SM` | `CEIL(BO'YI / BURMA) * ENI` | — | — | [CORE] har burmaga 1 reyka |
+| 2 | Karniz | `M` | `ENI` | — | — | |
+| 3 | Reyka | `M` | `CEIL(BO'YI / BURMA) * ENI` | — | — | [CORE] har burmaga 1 reyka |
 | 4 | Halqa | `DONA` | `CEIL(BO'YI / BURMA) * 3` | — | — | [Taxmin] 3 qator |
-| 5 | Ko'taruvchi ip | `SM` | `(BO'YI * 2 + ENI) * 3` | — | — | [CORE] |
-| 6 | Pastki og'irlik | `SM` | `ENI` | — | — | |
+| 5 | Ko'taruvchi ip | `M` | `(BO'YI * 2 + ENI) * 3` | — | — | [CORE] |
+| 6 | Pastki og'irlik | `M` | `ENI` | — | — | |
 | 7 | Kronshteyn | `DONA` | `2` | — | — | |
 
 ---
@@ -241,7 +241,7 @@ Plisse ramkasi, bir xil profil:
 ning o'zi bo'lardi — buning uchun «Maydondan» turi bor.
 
 ⚠️ §7 va §8 jadvallaridagi profil qatorlarida `+2` zaxira bor
-(`(BO'YI + 2) * 2`), shuning uchun ular `Murakkab` bo'lib qoladi.
+(`(BO'YI + 0.02) * 2`), shuning uchun ular `Murakkab` bo'lib qoladi.
 Zaxirasiz ishlasangiz ularni bitta «Ham eniga, ham bo'yiga» qatoriga
 yig'ish mumkin.
 
@@ -257,11 +257,11 @@ yig'ish mumkin.
 
 ### Tekshirish namunasi
 
-180 × 220 kun-tun, mato koeff 2.10, kesish `BO'YIGA`:
+1.80 × 2.20 m kun-tun, mato koeff 2.10, kesish `BO'YIGA`:
 
 ```
-MAYDON        = 180 × 220 = 39 600 kv.sm
-jami          = 39 600 × 2.10 = 83 160 kv.sm = 8.3160 kv.m
+MAYDON        = 1.80 × 2.20 = 3.96 kv.m        ← ÷10 000 YO'Q (2026-09-20)
+jami          = 3.96 × 2.10 = 8.3160 kv.m
 kesim bo'yi   = 2.20 × 2.10 = 4.62 m
 kesim eni     = 8.3160 ÷ 4.62 = 1.80 m          ← buyurtma enisiga teng ✅
 ```
@@ -277,8 +277,8 @@ kesim eni     = 8.3160 ÷ 4.62 = 1.80 m          ← buyurtma enisiga teng ✅
 | Rulon mato koeffitsienti | 1.12 | usta — valga necha marta o'raladi |
 | Kun-tun mato koeffitsienti | 2.10 | ta'minotchi — mato «ikki qavat» bo'lib sotiladimi |
 | Plisse mato koeffitsienti | 1.06 yoki 2.0+ | ta'minotchi — burmalangan yoki yoyilgan |
-| Val uzunligi ayirmasi | 2 sm | usta |
-| Lamel eni (vertikal) | 8.9 / 12.7 sm | ta'minotchi |
-| Lamel qadami (gorizontal) | 2.2 / 4.4 sm | ta'minotchi |
-| Rim burmasi | 25 sm | usta / mijoz didi |
-| Kronshteyn oralig'i | 100–150 sm | usta |
+| Val uzunligi ayirmasi | 0.02 m | usta |
+| Lamel eni (vertikal) | 0.089 / 0.127 m | ta'minotchi |
+| Lamel qadami (gorizontal) | 0.022 / 0.044 m | ta'minotchi |
+| Rim burmasi | 0.25 m | usta / mijoz didi |
+| Kronshteyn oralig'i | 1.00–1.50 m | usta |

@@ -233,7 +233,7 @@ export async function tanlanadiganBolaklar(
     turi: r.turi,
     olcham:
       r.turi === 'DONA'
-        ? `${r.miqdor ?? '0'} ${r.sarflash_birligi === 'SM' ? 'sm' : 'dona'}`
+        ? `${r.miqdor ?? '0'} ${r.sarflash_birligi === 'M' ? 'sm' : 'dona'}`
         : `${r.eni_m ?? '0'} × ${r.boyi_m ?? '0'} m`,
     tannarxSumma: r.tannarx_summa,
   }));

@@ -84,8 +84,8 @@ const raqam = (): string => {
 
 const pozitsiya = (o: Partial<PozitsiyaKirimi> = {}): PozitsiyaKirimi => ({
   mahsulotTurId: turId,
-  eniSm: 210,
-  boyiSm: 140,
+  eniM: 2.1,
+  boyiM: 1.4,
   soni: 1,
   narxSnapshot: '678400',
   chegirmaSumma: '0',
@@ -537,8 +537,8 @@ describe('TZ 2.4 — buyurtma audit jurnaliga tushadi', () => {
  *    2026-09-03 auditigacha bunday qator bazaga UMUMAN tusha olmasdi:
  *    ikkita cheklov bir-birini inkor qilardi —
  *
- *      buyurtma_pozitsiya_olcham      eni_sm > 0 AND boyi_sm > 0
- *      pozitsiya_qoshimcha_olchamsiz  eni_sm = 0 AND boyi_sm = 0
+ *      buyurtma_pozitsiya_olcham      eni_m > 0 AND boyi_m > 0
+ *      pozitsiya_qoshimcha_olchamsiz  eni_m = 0 AND boyi_m = 0
  *
  *    Birinchisi endi faqat tayyor mahsulotga tegadi (0032-migratsiya).
  */
@@ -559,8 +559,8 @@ describe("TZ 3.10 — qo'shimcha buyum", () => {
     mahsulotTurId: null,
     qoshimchaMaterialId: aksessuarId,
     // ⚠️ O'lcham YO'Q — u tayyorlanmaydi
-    eniSm: 0,
-    boyiSm: 0,
+    eniM: 0,
+    boyiM: 0,
     soni,
     narxSnapshot: '90000',
     chegirmaSumma: '0',
@@ -592,19 +592,19 @@ describe("TZ 3.10 — qo'shimcha buyum", () => {
       {
         mahsulot_tur_id: number | null;
         qoshimcha_material_id: number | null;
-        eni_sm: number;
-        boyi_sm: number;
+        eni_m: number;
+        boyi_m: number;
         soni: number;
         holat: string;
       }[]
     >`
-      SELECT mahsulot_tur_id, qoshimcha_material_id, eni_sm, boyi_sm, soni, holat
+      SELECT mahsulot_tur_id, qoshimcha_material_id, eni_m, boyi_m, soni, holat
       FROM buyurtma_pozitsiya WHERE buyurtma_id = ${n.buyurtmaId}`;
 
     expect(p[0]?.mahsulot_tur_id).toBeNull();
     expect(p[0]?.qoshimcha_material_id).toBe(aksessuarId);
-    expect(p[0]?.eni_sm).toBe(0);
-    expect(p[0]?.boyi_sm).toBe(0);
+    expect(p[0]?.eni_m).toBe(0);
+    expect(p[0]?.boyi_m).toBe(0);
     expect(p[0]?.soni).toBe(2);
     // Band qilinmaydi — darhol yechiladi, ish tayyor
     expect(p[0]?.holat).toBe('TASDIQLANGAN');
@@ -811,7 +811,7 @@ describe("T-13 — tanlangan qo'shimcha buyurtmaga yoziladi", () => {
               narxSnapshot: '168000',
               materialId: matoId,
               miqdor: '8400.0000',
-              birlik: 'SM' as const,
+              birlik: 'M' as const,
             }
           : {
               mahsulotQoshimchaId: id,
@@ -971,8 +971,8 @@ describe("Materialni o'zi sotish — mato metrlab", () => {
           {
             mahsulotTurId: null,
             qoshimchaMaterialId: matoId,
-            eniSm: 250,
-            boyiSm: 500,
+            eniM: 2.5,
+            boyiM: 5,
             soni: 1,
             narxSnapshot: '500000',
             chegirmaSumma: '0',
@@ -1000,12 +1000,12 @@ describe("Materialni o'zi sotish — mato metrlab", () => {
     const poz = n.pozitsiyalar[0]?.pozitsiyaId ?? 0;
 
     const p = await sql<
-      { eni_sm: number; boyi_sm: number; tur: number | null; material: number | null }[]
+      { eni_m: number; boyi_m: number; tur: number | null; material: number | null }[]
     >`
-      SELECT eni_sm, boyi_sm, mahsulot_tur_id AS tur, qoshimcha_material_id AS material
+      SELECT eni_m, boyi_m, mahsulot_tur_id AS tur, qoshimcha_material_id AS material
       FROM buyurtma_pozitsiya WHERE id = ${poz}`;
-    expect(p[0]?.eni_sm).toBe(250);
-    expect(p[0]?.boyi_sm).toBe(500);
+    expect(p[0]?.eni_m).toBe(250);
+    expect(p[0]?.boyi_m).toBe(500);
     expect(p[0]?.tur).toBeNull();
     expect(p[0]?.material).toBe(matoId);
 
@@ -1031,8 +1031,8 @@ describe("Materialni o'zi sotish — mato metrlab", () => {
           {
             mahsulotTurId: null,
             qoshimchaMaterialId: aksessuarId,
-            eniSm: 0,
-            boyiSm: 0,
+            eniM: 0,
+            boyiM: 0,
             soni: 2,
             narxSnapshot: '10000',
             chegirmaSumma: '0',
@@ -1047,10 +1047,10 @@ describe("Materialni o'zi sotish — mato metrlab", () => {
     );
 
     const poz = n.pozitsiyalar[0]?.pozitsiyaId ?? 0;
-    const p = await sql<{ eni_sm: number; boyi_sm: number }[]>`
-      SELECT eni_sm, boyi_sm FROM buyurtma_pozitsiya WHERE id = ${poz}`;
-    expect(p[0]?.eni_sm).toBe(0);
-    expect(p[0]?.boyi_sm).toBe(0);
+    const p = await sql<{ eni_m: number; boyi_m: number }[]>`
+      SELECT eni_m, boyi_m FROM buyurtma_pozitsiya WHERE id = ${poz}`;
+    expect(p[0]?.eni_m).toBe(0);
+    expect(p[0]?.boyi_m).toBe(0);
 
     const m = await sql<{ n: number }[]>`
       SELECT COUNT(*)::int AS n FROM pozitsiya_material

@@ -18,7 +18,7 @@
 import { enterYuborilmasin } from '../../forma-yordamchi';
 import { useActionState, useMemo, useState } from 'react';
 import { sarflashHisobla, slotSarfi, standartQiymatlar } from '@/lib/domain/formula';
-import { sm, type SarflashBirligi } from '@/lib/domain/birlik';
+import { m, type SarflashBirligi } from '@/lib/domain/birlik';
 import { dollar, kurs, nolSom, pulKorsat, pulMatn, qosh, som, type Som } from '@/lib/domain/pul';
 import { aksessuarNarxi, katalogNarxi, matoNarxi } from '@/lib/domain/narx';
 import { pozitsiyaNarxiniHisobla } from '@/lib/domain/pozitsiya-narxi';
@@ -42,7 +42,7 @@ import type { MaterialNarxQoidasi } from './malumot';
 
 const BIRLIK_MATNI: Record<SarflashBirligi, string> = {
   KV_M: 'kv.m',
-  SM: 'sm',
+  M: 'm',
   DONA: 'dona',
 };
 
@@ -64,8 +64,8 @@ interface SavatQatori {
   /** ⚠️ `null` — qo'shimcha mahsulot, tayyorlanmaydi */
   readonly turId: number | null;
   readonly turNomi: string;
-  readonly eniSm: number;
-  readonly boyiSm: number;
+  readonly eniM: number;
+  readonly boyiM: number;
   readonly narx: string;
   readonly yuk: unknown;
   /** Qo'shimcha mahsulotda — nechta dona */
@@ -259,9 +259,9 @@ export function SotuvFormasi({
   const hisob = useMemo(() => {
     if (tur === null) return null;
 
-    const eniSm = son(eni);
-    const boyiSm = son(boyi);
-    if (eniSm === null || boyiSm === null || eniSm <= 0 || boyiSm <= 0) return null;
+    const eniM = son(eni);
+    const boyiM = son(boyi);
+    if (eniM === null || boyiM === null || eniM <= 0 || boyiM <= 0) return null;
 
     const qiymatlar: Record<string, number> = {};
     for (const p of tur.parametrlar) {
@@ -269,7 +269,7 @@ export function SotuvFormasi({
       if (q !== null) qiymatlar[p.kod] = q;
     }
 
-    const asos = standartQiymatlar(sm(eniSm), sm(boyiSm), 1, qiymatlar);
+    const asos = standartQiymatlar(m(eniM), m(boyiM), 1, qiymatlar);
 
     const qatorlar = tur.slotlar.map((s) => {
       const tanlov = slotlar[s.id];
@@ -420,8 +420,8 @@ export function SotuvFormasi({
      *    oladi — mantiq baribir bitta joyda (§2.2).
      */
     const narx = pozitsiyaNarxiniHisobla({
-      eniSm,
-      boyiSm,
+      eniM,
+      boyiM,
       soni: 1,
       parametrlar: qiymatlar,
       slotlar: [],
@@ -495,11 +495,11 @@ export function SotuvFormasi({
           /** ⚠️ Miqdor chiqmasa material ham yozilmaydi — sxema shuni talab qiladi */
           materialId: miqdor === null ? null : tanlangan,
           miqdor,
-          birlik: miqdor === null ? null : (birlik as 'KV_M' | 'SM' | 'DONA'),
+          birlik: miqdor === null ? null : (birlik as 'KV_M' | 'M' | 'DONA'),
         };
       });
 
-    return { qatorlar, aksQatorlar, xizmat, narx, jami, qoshimchaYuki, eniSm, boyiSm };
+    return { qatorlar, aksQatorlar, xizmat, narx, jami, qoshimchaYuki, eniM, boyiM };
   }, [
     tur,
     eni,
@@ -551,8 +551,8 @@ export function SotuvFormasi({
     keyingiKalit += 1;
     const yuk = {
       mahsulotTurId: tur.id,
-      eniSm: hisob.eniSm,
-      boyiSm: hisob.boyiSm,
+      eniM: hisob.eniM,
+      boyiM: hisob.boyiM,
       soni: 1,
       /** ⚠️ Sotuvchi tuzatgan bo'lsa — o'sha raqam, aks holda hisoblangani */
       narxSnapshot: qoldaNarx ?? pulMatn(hisob.jami),
@@ -578,6 +578,8 @@ export function SotuvFormasi({
           birlik: q.birlik,
           koeffitsient: q.slot.koeffitsient,
           kesishTuri: q.slot.kesishTuri,
+          /** ⚠️ «DIKKEY» — rulon eni o'zgarmaydi (egasi, 2026-09-20) */
+          kesimEniM: q.slot.kesimEniM,
           narxSnapshot: q.narxMatn ?? '0',
         })),
       aksessuarlar: hisob.aksQatorlar.map((a) => ({
@@ -595,8 +597,8 @@ export function SotuvFormasi({
         kalit: keyingiKalit,
         turId: tur.id,
         turNomi: tur.nom,
-        eniSm: hisob.eniSm,
-        boyiSm: hisob.boyiSm,
+        eniM: hisob.eniM,
+        boyiM: hisob.boyiM,
         /** ⚠️ Savatdagi raqam ham TUZATILGANI — jami shundan chiqadi */
         narx: qoldaNarx ?? pulMatn(hisob.jami),
         yuk,
@@ -783,7 +785,7 @@ export function SotuvFormasi({
           <>
             {/* ── 3.4 · O'lcham ── */}
             <section className="flex flex-wrap items-end gap-4">
-              <Maydon nom="eni" yorliq="Eni (sm)">
+              <Maydon nom="eni" yorliq="Eni (m)">
                 <input
                   id="eni"
                   value={eni}
@@ -794,7 +796,7 @@ export function SotuvFormasi({
                   className={`${kirishUslubi(false)} w-28`}
                 />
               </Maydon>
-              <Maydon nom="boyi" yorliq="Bo'yi (sm)">
+              <Maydon nom="boyi" yorliq="Bo'yi (m)">
                 <input
                   id="boyi"
                   value={boyi}
@@ -807,7 +809,7 @@ export function SotuvFormasi({
               </Maydon>
 
               {tur.parametrlar.map((p) => (
-                <Maydon key={p.kod} nom={`p-${p.kod}`} yorliq={`${p.nom} (sm)`}>
+                <Maydon key={p.kod} nom={`p-${p.kod}`} yorliq={`${p.nom} (m)`}>
                   <input
                     id={`p-${p.kod}`}
                     value={parametrlar[p.kod] ?? p.standartQiymat ?? ''}
@@ -1288,15 +1290,15 @@ export function SotuvFormasi({
                     kalit: Date.now(),
                     turId: null,
                     turNomi: t.nom,
-                    eniSm: t.eniSm,
-                    boyiSm: t.boyiSm,
+                    eniM: t.eniM,
+                    boyiM: t.boyiM,
                     soni: t.soni,
                     narx: t.narx,
                     yuk: {
                       mahsulotTurId: null,
                       qoshimchaMaterialId: t.materialId,
-                      eniSm: t.eniSm,
-                      boyiSm: t.boyiSm,
+                      eniM: t.eniM,
+                      boyiM: t.boyiM,
                       soni: t.soni,
                       narxSnapshot: t.narx,
                       chegirmaSumma: '0',
@@ -1355,7 +1357,7 @@ export function SotuvFormasi({
                           */}
                           {q.turId === null
                             ? `${String(q.soni ?? 1)} dona`
-                            : `${String(q.eniSm)} × ${String(q.boyiSm)} sm`}
+                            : `${String(q.eniM)} × ${String(q.boyiM)} m`}
                         </span>
                       </td>
                       <td className="raqam px-3 py-2.5 font-medium">{pulKorsat(som(q.narx))}</td>

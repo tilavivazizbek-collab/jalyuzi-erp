@@ -194,7 +194,7 @@ export async function sinovPozitsiyasi(
 
     const p = await tx<{ id: number }[]>`
       INSERT INTO buyurtma_pozitsiya (buyurtma_id, tartib, mahsulot_tur_id,
-                                      eni_sm, boyi_sm, narx_snapshot,
+                                      eni_m, boyi_m, narx_snapshot,
                                       formula_snapshot, holat, yaratdi_id)
       VALUES (${buyurtmaId}, 1, ${turId}, 210, 140, 0,
               ${tx.json({ sinov: true })}, 'TASDIQLANGAN', ${xodimId})
@@ -262,7 +262,7 @@ export async function pozitsiyaTolqini(
 
     const p = await tx<{ id: number }[]>`
       INSERT INTO buyurtma_pozitsiya (buyurtma_id, tartib, mahsulot_tur_id,
-                                      eni_sm, boyi_sm, narx_snapshot,
+                                      eni_m, boyi_m, narx_snapshot,
                                       formula_snapshot, holat, yaratdi_id)
       SELECT ${buyurtmaId}, g, ${turId}, 210, 140, 0,
              ${tx.json({ sinov: true })}, 'TASDIQLANGAN', ${xodimId}

@@ -10,7 +10,7 @@
 
 import type { PozitsiyaHolati } from './buyurtma';
 import type { TizimliRol } from '@/lib/ruxsat/tekshir';
-import { sm, type Santimetr } from './birlik';
+import { m, type Metr } from './birlik';
 import { BiznesXato } from '@/lib/xato';
 
 // ─── 13.1 · Qaysi panel ochiladi ──────────────────────────────────────────
@@ -135,23 +135,32 @@ const QISQA_NOM: Record<MijozStatusi, string> = {
  * TZ 13.4 — «Validatsiya: 0, manfiy yoki harf → *"Noto'g'ri o'lcham,
  * qaytadan kiriting"*.»
  *
- * ⚠️ O'lcham SANTIMETRDA va **butun son** (3.4): mijoz «210» deb
- *    yozadi, «210.5» emas. Kasr kelsa rad etiladi — usta yarim
- *    santimetrni baribir kesa olmaydi.
+ * ⚠️ 2026-09-20 — O'LCHAM METRDA. Ilgari santimetrda va **butun son**
+ *    edi (`210`). Endi mijoz `2.1` yoki `2,1` deb yozadi, ya'ni KASR
+ *    RUXSAT ETILADI: metrda butun songa majburlash 1 metrdan kichik
+ *    buyurtmani umuman yozdirmasdi.
+ *
+ * ⚠️ Vergul nuqtaga o'giriladi — telefon klaviaturasida ko'pincha
+ *    vergul chiqadi va mijoz buni bilmaydi.
+ *
+ * ⚠️ Yuqori chegara ATAYLAB saqlandi: ilgari `\d{1,4}` sm ≤ 99.99 m
+ *    degani edi, hozir ham shunday. Bu yangi qoida emas — o'shaning
+ *    metrdagi ko'rinishi. 300 m li «o'lcham» — bu adashib rulon
+ *    uzunligini yozish, uni bot o'tkazmasligi kerak.
  *
  * ⚠️ Brauzerdan emas, Telegramdan kelgan matnga ham ishonilmaydi.
  */
-export function olchamTekshir(matn: string): Santimetr {
-  const tozalangan = matn.trim().replace(/\s+/g, '');
+export function olchamTekshir(matn: string): Metr {
+  const tozalangan = matn.trim().replace(/\s+/g, '').replace(',', '.');
 
-  if (!/^\d{1,4}$/.test(tozalangan)) {
+  if (!/^\d{1,2}(\.\d{1,2})?$/.test(tozalangan)) {
     throw new BiznesXato('OLCHOV_NOTOGRI', `o'lcham: ${matn}`);
   }
 
   const son = Number(tozalangan);
   if (son <= 0) throw new BiznesXato('OLCHOV_NOTOGRI', `o'lcham: ${matn}`);
 
-  return sm(son);
+  return m(son);
 }
 
 /** Tekshiruvni xatosiz shaklda — bot javobi uchun qulay. */

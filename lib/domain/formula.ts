@@ -3,11 +3,17 @@
  *
  * Konstruktorda yozilgan sarflash formulasini o'qiydi va hisoblaydi.
  *
- *   Ishlatiladigan nomlar:  ENI · BO'YI · MAYDON · SONI + mahsulot parametrlari
+ *   Ishlatiladigan nomlar:  ENI · BO'YI (metr) · MAYDON (kv.m) · SONI
  *   Amallar:                + − × /  va qavslar
  *
- * KIRISH BIRLIGI HAR DOIM SANTIMETR (TZ 5.3). `MAYDON` kvadrat santimetrda
- * beriladi. Natija materialning sarflash birligiga qarab talqin qilinadi —
+ * ⚠️ KIRISH BIRLIGI HAR DOIM METR (2026-09-20 dan). `MAYDON` kvadrat
+ *    metrda beriladi. Ilgari ikkalasi ham SANTIMETRDA edi va natija
+ *    `÷100`, `÷10 000` bilan o'girilardi — endi konversiya YO'Q.
+ *
+ *    Ya'ni `ENI - 2` endi «2 METR kam» degani, «2 sm» emas. Eski
+ *    formulalar shu sababli qayta yozilishi shart.
+ *
+ * Natija materialning sarflash birligiga qarab talqin qilinadi —
  * B-01 auditidagi noaniqlik shu yerda yopiladi.
  *
  * `eval` va `new Function` ISHLATILMAYDI: formula matnini admin kiritadi,
@@ -18,12 +24,12 @@ import Decimal from 'decimal.js';
 import { BiznesXato } from '@/lib/xato';
 import {
   dona,
-  kvSmToKvM,
-  maydonKvSm,
-  sm,
+  kvM,
+  m,
+  maydon,
   type Dona,
   type KvadratMetr,
-  type Santimetr,
+  type Metr,
   type SarflashBirligi,
 } from '@/lib/domain/birlik';
 
@@ -479,12 +485,13 @@ export function formulaHisobla(matn: string, qiymatlar: Qiymatlar): Decimal {
 }
 
 /**
- * Standart o'zgaruvchilar to'plami. `MAYDON` kvadrat santimetrda beriladi (§4.3),
- * shuning uchun uni chaqiruvchi joyda qayta hisoblash shart emas.
+ * Standart o'zgaruvchilar to'plami. `MAYDON` KVADRAT METRDA beriladi
+ * (2026-09-20), shuning uchun uni chaqiruvchi joyda qayta hisoblash
+ * shart emas.
  */
 export function standartQiymatlar(
-  eni: Santimetr,
-  boyi: Santimetr,
+  eni: Metr,
+  boyi: Metr,
   soni: number,
   parametrlar: Qiymatlar = {},
 ): Qiymatlar {
@@ -494,7 +501,7 @@ export function standartQiymatlar(
   }
   natija['ENI'] = eni;
   natija["BO'YI"] = boyi;
-  natija['MAYDON'] = maydonKvSm(eni, boyi);
+  natija['MAYDON'] = maydon(eni, boyi);
   natija['SONI'] = soni;
   return natija;
 }
@@ -502,19 +509,23 @@ export function standartQiymatlar(
 /**
  * Xom natijani materialning sarflash birligiga o'giradi — QISM 1 §4.3, AUDIT B-01.
  *
- *   KV_M  — formula kv.sm bergan, kv.m ga bo'linadi
- *   SM    — shundayligicha (Q-01: chiziqli material smda sarflanadi)
+ *   KV_M  — formula kv.m bergan, shundayligicha
+ *   M     — shundayligicha (Q-01: chiziqli material METRDA sarflanadi)
  *   DONA  — yuqoriga yaxlitlanadi (yarim kronshteyn bo'lmaydi)
+ *
+ * ⚠️ Ilgari `KV_M` da `÷10 000`, `SM` da xom son bo'lardi — formula
+ *    santimetrda ishlagani uchun. Endi formula ham metrda va
+ *    konversiya UMUMAN YO'Q (2026-09-20).
  */
 export function formulaNatijasi(
   xom: Decimal,
   sarflashBirligi: SarflashBirligi,
-): Santimetr | KvadratMetr | Dona {
+): Metr | KvadratMetr | Dona {
   switch (sarflashBirligi) {
     case 'KV_M':
-      return kvSmToKvM(xom.toNumber());
-    case 'SM':
-      return sm(xom.toNumber());
+      return kvM(xom.toNumber());
+    case 'M':
+      return m(xom.toNumber());
     case 'DONA':
       return dona(xom.ceil().toNumber());
   }
@@ -525,6 +536,6 @@ export function sarflashHisobla(
   formula: string,
   qiymatlar: Qiymatlar,
   sarflashBirligi: SarflashBirligi,
-): Santimetr | KvadratMetr | Dona {
+): Metr | KvadratMetr | Dona {
   return formulaNatijasi(formulaHisobla(formula, qiymatlar), sarflashBirligi);
 }

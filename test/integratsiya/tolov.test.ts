@@ -104,8 +104,8 @@ async function buyurtmaYaratSinov(
     pozitsiyalar: [
       {
         mahsulotTurId: turId,
-        eniSm: 120,
-        boyiSm: 200,
+        eniM: 1.2,
+        boyiM: 2,
         soni: 1,
         narxSnapshot: narx,
         chegirmaSumma: '0',

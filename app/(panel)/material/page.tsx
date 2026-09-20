@@ -32,7 +32,7 @@ interface Qator {
 
 /** Narx birligi — TZ 5.4: mato 1 kv.m, karniz 1 METR, aksessuar 1 dona. */
 function narxBirligi(sarflash: string): string {
-  return sarflash === 'SM' ? 'm' : SARFLASH_BIRLIGI_NOMI[sarflash as SarflashBirligi];
+  return sarflash === 'M' ? 'm' : SARFLASH_BIRLIGI_NOMI[sarflash as SarflashBirligi];
 }
 
 export default async function MaterialRoyxati({

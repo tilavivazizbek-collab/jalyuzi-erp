@@ -35,8 +35,8 @@ const QOIDA: Qoida = {
 
 /** Rollo 210 × 140 = 2.94 kv.m — kanonik o'lcham (K-03) */
 const ASOS: NarxKirishi = {
-  eniSm: 210,
-  boyiSm: 140,
+  eniM: 2.1,
+  boyiM: 1.4,
   soni: 1,
   parametrlar: {},
   slotlar: [
@@ -116,7 +116,7 @@ describe('narx — tur × mato darajasi jadvalidan', () => {
 
   it('kichik o‘lcham qimmatroq bosqichga tushadi', () => {
     // 60 × 80 = 0.48 kv.m → «1 gacha» → 150 000
-    const n = pozitsiyaNarxiniHisobla({ ...ASOS, eniSm: 60, boyiSm: 80 });
+    const n = pozitsiyaNarxiniHisobla({ ...ASOS, eniM: 0.6, boyiM: 0.8 });
     expect(n.bosqich?.narx).toBe('150000');
     expect(n.jami).toBe('72000.00');
   });

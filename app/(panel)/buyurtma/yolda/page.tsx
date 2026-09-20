@@ -89,7 +89,7 @@ export default async function YoldagilarSahifasi() {
                       </td>
                       <td className="px-4 py-2.5">{p.mahsulot}</td>
                       <td className="raqam px-4 py-2.5 text-matn-ikki">
-                        {p.eniSm}×{p.boyiSm}
+                        {p.eniM}×{p.boyiM}
                       </td>
                       <td className="px-4 py-2.5 text-matn-ikki">
                         {p.mijozIsmi ?? <span className="text-matn-kuchsiz">—</span>}

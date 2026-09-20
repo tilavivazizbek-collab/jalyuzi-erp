@@ -56,7 +56,7 @@ function olchovlar(b: {
       dona: null,
     };
   }
-  if (b.sarflash_birligi === 'SM') {
+  if (b.sarflash_birligi === 'M') {
     return { kvM: null, sm: new Decimal(b.miqdor ?? 0).toFixed(2), dona: null };
   }
   return { kvM: null, sm: null, dona: Math.round(Number(b.miqdor ?? 0)) };
@@ -210,7 +210,7 @@ export async function kochirishJonat(
 
       // 20.7.4 — beruvchi filial qoldig'idan CHIQDI
       await tx`
-        INSERT INTO ombor_harakat (filial_id, bolak_id, turi, miqdor_kv_m, miqdor_sm,
+        INSERT INTO ombor_harakat (filial_id, bolak_id, turi, miqdor_kv_m, miqdor_m,
                                    miqdor_dona, tannarx_summa, manba_turi, manba_id,
                                    izoh, xodim_id)
         VALUES (${b.filial_id}, ${b.id}, 'KOCHIRISH_CHIQDI',
@@ -375,7 +375,7 @@ export async function kochirishQabulQil(
         WHERE id = ${b.id}`;
 
       await tx`
-        INSERT INTO ombor_harakat (filial_id, bolak_id, turi, miqdor_kv_m, miqdor_sm,
+        INSERT INTO ombor_harakat (filial_id, bolak_id, turi, miqdor_kv_m, miqdor_m,
                                    miqdor_dona, tannarx_summa, manba_turi, manba_id,
                                    izoh, xodim_id)
         VALUES (${hujjat.kimga_filial_id}, ${b.id}, 'KOCHIRISH_KIRDI',
@@ -508,7 +508,7 @@ export async function kochirishBekorQil(
 
         // Beruvchi filial qoldig'iga QAYTDI — 2.1-invariant
         await tx`
-          INSERT INTO ombor_harakat (filial_id, bolak_id, turi, miqdor_kv_m, miqdor_sm,
+          INSERT INTO ombor_harakat (filial_id, bolak_id, turi, miqdor_kv_m, miqdor_m,
                                      miqdor_dona, tannarx_summa, manba_turi, manba_id,
                                      izoh, xodim_id)
           VALUES (${hujjat.kimdan_filial_id}, ${b.id}, 'KOCHIRISH_KIRDI',

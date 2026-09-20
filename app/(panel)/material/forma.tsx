@@ -364,10 +364,10 @@ export function MaterialFormasi({
         {/*
           ⚠️ «Koeffitsient» so'zi ekranda ISHLATILMAYDI. Omborchi uni
              tushunmaydi, «bitta shtanga necha metr material» degan
-             savolni esa darhol tushunadi. Bazada u smda saqlanadi (Q-01).
+             savolni esa darhol tushunadi.
 
-          ⚠️ METRda KO'RSATILMAYDI: 1 metr = 100 sm o'zgarmas, so'rash
-             bema'niga o'xshaydi — tizim o'zi 100 yuboradi.
+          ⚠️ 2026-09-20 — baza ham METRDA. Yozilgan son o'zgarishsiz
+             saqlanadi, ×100 YO'Q.
         */}
         {birlik !== null && ozgarishKiritiladimi(birlik) && (
           <Maydon
@@ -513,12 +513,13 @@ export function MaterialFormasi({
               ⚠️ Bu katak faqat ESKI, ro'yxatga tushmagan birlikli
                  materialda ko'rinadi. Birligi aytilmasa omborchi
                  metr deb yozib qo'yardi va sarf 100 barobar xato
-                 chiqardi (Q-01: koeffitsient SANTIMETRDA).
+                 chiqardi. 2026-09-20 dan koeffitsient METRDA — ya'ni
+                 endi «metr deb yozish» to'g'ri javob.
             */}
             <Maydon
               nom="koeffitsient"
-              yorliq="Koeffitsient — 1 kirim birligida necha SANTIMETR"
-              izoh="masalan 1 shtanga = 3 metr bo‘lsa, bu yerga 300 yoziladi"
+              yorliq="Koeffitsient — 1 kirim birligida necha METR"
+              izoh="masalan 1 shtanga = 3 metr bo‘lsa, bu yerga 3 yoziladi"
               xato={x('koeffitsient')}
             >
               <input
@@ -710,10 +711,10 @@ export function MaterialFormasi({
           </div>
         )}
 
-        {tavsif?.sarflashBirligi === 'SM' && (
+        {tavsif?.sarflashBirligi === 'M' && (
           <p className="mt-3 rounded-maydon bg-belgi-sariq-fon px-3 py-2 text-xs text-belgi-sariq ">
-            Bu mahsulot <b>santimetrda</b> sarflanadi, narxi esa <b>1 metr</b> uchun yoziladi.
-            Tizim o&apos;zi ÷100 qiladi (Q-01).
+            Bu mahsulot <b>metrda</b> sarflanadi, narxi ham <b>1 metr</b> uchun yoziladi
+            — ikkalasi bir xil birlikda (Q-01).
           </p>
         )}
       </section>

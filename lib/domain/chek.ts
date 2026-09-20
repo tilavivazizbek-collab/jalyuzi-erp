@@ -45,8 +45,8 @@ export interface ChekPozitsiyasi {
   /** Mahsulot turi nomi yoki qo'shimcha buyum materialining nomi */
   readonly nom: string;
   /** Qo'shimcha buyumda ikkalasi ham 0 — o'lchov umuman yo'q */
-  readonly eniSm: number;
-  readonly boyiSm: number;
+  readonly eniM: number;
+  readonly boyiM: number;
   readonly soni: number;
   /** `narx_snapshot` — chegirmasiz, kelishilgan narx (3.9) */
   readonly narx: string;
@@ -221,11 +221,12 @@ export function nolPul(valyuta: Valyuta): Pul {
 
 /**
  * Chekda o'lcham METRDA yoziladi — mijoz shunday gapiradi
- * («bir yarim metrlik parda»), buyurtma esa smda saqlanadi (3.4).
+ * («bir yarim metrlik parda»), buyurtma ham endi METRDA saqlanadi (2026-09-20), shuning
+ * uchun bu yerda ÷100 YO'Q.
  */
-export function olchamMatni(eniSm: number, boyiSm: number): string | null {
-  if (eniSm <= 0 || boyiSm <= 0) return null;
-  return `${(eniSm / 100).toFixed(2)}×${(boyiSm / 100).toFixed(2)} m`;
+export function olchamMatni(eniM: number, boyiM: number): string | null {
+  if (eniM <= 0 || boyiM <= 0) return null;
+  return `${eniM.toFixed(2)}×${boyiM.toFixed(2)} m`;
 }
 
 // ─── Pozitsiya qatori ─────────────────────────────────────────────────────
@@ -237,7 +238,7 @@ export function olchamMatni(eniSm: number, boyiSm: number): string | null {
  *    mato va mexanizm narxsiz chiqadi (vazifa talabi, 8.14).
  */
 export function qatorYasa(p: ChekPozitsiyasi, valyuta: Valyuta): ChekQatori {
-  const olcham = olchamMatni(p.eniSm, p.boyiSm);
+  const olcham = olchamMatni(p.eniM, p.boyiM);
   const jami = pulYasa(p.narx, valyuta);
 
   /**

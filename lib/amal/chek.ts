@@ -100,8 +100,8 @@ async function chekPozitsiyalari(
       id: number;
       tartib: number;
       nom: string;
-      eni_sm: number;
-      boyi_sm: number;
+      eni_m: number;
+      boyi_m: number;
       soni: number;
       narx_snapshot: string;
       chegirma_summa: string | null;
@@ -111,7 +111,7 @@ async function chekPozitsiyalari(
   >`
     SELECT p.id, p.tartib,
            COALESCE(t.nom, qm.nom) AS nom,
-           p.eni_sm, p.boyi_sm, p.soni,
+           p.eni_m, p.boyi_m, p.soni,
            p.narx_snapshot, p.chegirma_summa, p.holat,
            (p.mahsulot_tur_id IS NOT NULL) AS composite
     FROM buyurtma_pozitsiya p
@@ -167,8 +167,8 @@ async function chekPozitsiyalari(
   return q.map((p) => ({
     tartib: p.tartib,
     nom: p.nom,
-    eniSm: p.eni_sm,
-    boyiSm: p.boyi_sm,
+    eniM: p.eni_m,
+    boyiM: p.boyi_m,
     soni: p.soni,
     narx: p.narx_snapshot,
     chegirma: p.chegirma_summa ?? '0',

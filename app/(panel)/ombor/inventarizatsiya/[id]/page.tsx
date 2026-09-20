@@ -91,7 +91,7 @@ export default async function VaraqaSahifasi({ params }: { params: Promise<{ id:
               <tbody className="divide-y divide-chegara [&>tr:nth-child(even)]:bg-fon/50">
                 {v.satrlar.map((s) => {
                   const dona = s.turi === 'DONA';
-                  const birlik = dona ? (s.sarflashBirligi === 'SM' ? 'sm' : 'dona') : 'kv.m';
+                  const birlik = dona ? (s.sarflashBirligi === 'M' ? 'sm' : 'dona') : 'kv.m';
                   const sanaldi = dona
                     ? s.haqiqatdaMiqdor !== null
                     : s.haqiqatdaEniM !== null && s.haqiqatdaBoyiM !== null;

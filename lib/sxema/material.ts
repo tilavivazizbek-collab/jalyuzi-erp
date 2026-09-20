@@ -12,7 +12,7 @@ import { z } from 'zod';
 import { royxat } from './umumiy';
 
 export const HISOB_TURLARI = ['RULON', 'CHIZIQLI', 'DONA', 'KV_M'] as const;
-export const SARFLASH_BIRLIKLARI = ['SM', 'KV_M', 'DONA'] as const;
+export const SARFLASH_BIRLIKLARI = ['M', 'KV_M', 'DONA'] as const;
 export const VALYUTALAR = ['SOM', 'USD'] as const;
 
 export type HisobTuri = (typeof HISOB_TURLARI)[number];
@@ -26,7 +26,7 @@ export const HISOB_TURI_NOMI: Record<HisobTuri, string> = {
 };
 
 export const SARFLASH_BIRLIGI_NOMI: Record<SarflashBirligi, string> = {
-  SM: 'santimetr',
+  M: 'metr',
   KV_M: 'kv.m',
   DONA: 'dona',
 };

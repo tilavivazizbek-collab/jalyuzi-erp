@@ -11,7 +11,7 @@
 
 import Decimal from 'decimal.js';
 import { pulMatn, qosh, som, yaxlitlaNarx } from '@/lib/domain/pul';
-import { smToM, sm } from '@/lib/domain/birlik';
+import { m, maydon } from '@/lib/domain/birlik';
 
 export interface InvariantNatijasi {
   readonly nom: string;
@@ -41,11 +41,16 @@ export function invariantlarniTekshir(): InvariantNatijasi[] {
     izoh: `50 → ${yax} (100 qadamda)`,
   });
 
-  const karniz = smToM(sm(420));
+  /**
+   * ⚠️ 2026-09-20 — ilgari bu yerda `420 sm = 4.20 m` tekshiruvi turardi.
+   *    Endi sm yo'q, o'girish ham yo'q. O'rniga Q-05 tekshiriladi:
+   *    maydon HAR DOIM `eni × bo'yi` dan chiqadi va kv.m da bo'ladi.
+   */
+  const kvMaydon = maydon(m(2.1), m(1.5));
   natija.push({
-    nom: 'Q-01 · 420 sm = 4.20 m',
-    ozgan: karniz === 4.2,
-    izoh: `420 sm → ${String(karniz)} m`,
+    nom: "Q-05 · maydon = eni × bo'yi (kv.m)",
+    ozgan: kvMaydon === 3.15,
+    izoh: `2.10 × 1.50 = ${String(kvMaydon)} kv.m`,
   });
 
   const aniqlik = new Decimal(1).div(3).toSignificantDigits(20).toString();

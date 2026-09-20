@@ -34,21 +34,21 @@ describe("5.2 — to'rt hisob turi", () => {
 
 describe('Q-01 — koeffitsient SANTIMETRDA', () => {
   it('1 shtanga = 300 sm', () => {
-    expect(kirimdanSarflashga(1, 300, 'SM')).toBe(300);
-    expect(kirimdanSarflashga(5, 300, 'SM')).toBe(1500);
+    expect(kirimdanSarflashga(1, 300, 'M')).toBe(300);
+    expect(kirimdanSarflashga(5, 300, 'M')).toBe(1500);
   });
 
   it('1 metr = 100 sm', () => {
-    expect(kirimdanSarflashga(1, 100, 'SM')).toBe(100);
+    expect(kirimdanSarflashga(1, 100, 'M')).toBe(100);
   });
 
   it('1 quti = 3000 sm', () => {
-    expect(kirimdanSarflashga(2, 3000, 'SM')).toBe(6000);
+    expect(kirimdanSarflashga(2, 3000, 'M')).toBe(6000);
   });
 
   it("koeffitsient 3 EMAS 300 — Z-01 ning o'zagi", () => {
     // Eski TZ da «koeffitsient 3» deb yozilgan edi, natijada 100 barobar xato
-    expect(kirimdanSarflashga(1, 300, 'SM')).not.toBe(3);
+    expect(kirimdanSarflashga(1, 300, 'M')).not.toBe(3);
   });
 
   it('nol va manfiy koeffitsient bloklanadi (5.8)', () => {
@@ -60,7 +60,7 @@ describe('Q-01 — koeffitsient SANTIMETRDA', () => {
 
   it('dona → dona da koeffitsient kerak emas', () => {
     expect(koeffitsientKerakmi('dona', 'DONA')).toBe(false);
-    expect(koeffitsientKerakmi('shtanga', 'SM')).toBe(true);
+    expect(koeffitsientKerakmi('shtanga', 'M')).toBe(true);
     expect(koeffitsientKerakmi('rulon', 'KV_M')).toBe(true);
   });
 });

@@ -92,8 +92,8 @@ async function kesimQil(matoId: number, eniM: number, boyiM: number): Promise<vo
     pozitsiyalar: [
       {
         mahsulotTurId: turId,
-        eniSm: Math.round(eniM * 100),
-        boyiSm: Math.round(boyiM * 100),
+        eniM,
+        boyiM,
         soni: 1,
         narxSnapshot: '500000',
         chegirmaSumma: '0',

@@ -57,7 +57,7 @@ const slot = (nom: string, formula: string) => ({
   majburiy: true,
   almashtirishGuruhId: guruhId,
   koeffitsient: 1,
-  kesishTuri: 'ENIGA' as const,
+  kesishTuri: 'ENIGA' as const, kesimEniM: null,
 });
 
 describe('TZ 4.5 — nuqson bo\'lsa SAQLANMAYDI', () => {
@@ -88,7 +88,7 @@ describe('TZ 4.5 — nuqson bo\'lsa SAQLANMAYDI', () => {
       bilan({
         nom: 'Nuqson 3',
         slotlar: [{ nom: 'Mato', formula: 'MAYDON', majburiy: true, almashtirishGuruhId: null,
-        koeffitsient: 1, kesishTuri: 'ENIGA' }],
+        koeffitsient: 1, kesishTuri: 'ENIGA', kesimEniM: null }],
       }),
       1,
     );

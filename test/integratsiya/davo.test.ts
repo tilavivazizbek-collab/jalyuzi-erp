@@ -40,7 +40,7 @@ beforeAll(async () => {
   const m = await sql<{ id: number }[]>`
     INSERT INTO material (nom, hisob_turi, kirim_birligi, sarflash_birligi,
                           koeffitsient, yaratdi_id)
-    VALUES (${`${belgi} shtanga`}, 'CHIZIQLI', 'shtanga', 'SM', 300, ${XODIM})
+    VALUES (${`${belgi} shtanga`}, 'CHIZIQLI', 'shtanga', 'M', 3, ${XODIM})
     RETURNING id`;
   materialId = m[0]?.id ?? 0;
 }, 120_000);

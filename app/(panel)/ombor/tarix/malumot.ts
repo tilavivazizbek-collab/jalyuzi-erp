@@ -23,7 +23,7 @@ export interface TarixQatori {
   readonly materialNomi: string;
   readonly bolakKod: string;
   readonly miqdorKvM: number | null;
-  readonly miqdorSm: number | null;
+  readonly miqdorM: number | null;
   readonly miqdorDona: number | null;
   readonly tannarxSumma: string;
   readonly izoh: string | null;
@@ -97,7 +97,7 @@ export async function omborTarixi(
       material_nomi: string;
       bolak_kod: string;
       miqdor_kv_m: string | null;
-      miqdor_sm: string | null;
+      miqdor_m: string | null;
       miqdor_dona: number | null;
       tannarx_summa: string;
       izoh: string | null;
@@ -107,7 +107,7 @@ export async function omborTarixi(
     SELECT oh.id, oh.sana, oh.turi,
            m.id AS material_id, m.nom AS material_nomi,
            b.kod AS bolak_kod,
-           oh.miqdor_kv_m, oh.miqdor_sm, oh.miqdor_dona,
+           oh.miqdor_kv_m, oh.miqdor_m, oh.miqdor_dona,
            oh.tannarx_summa, oh.izoh, x.ism AS xodim_ismi
     FROM ombor_harakat oh
     JOIN bolak b ON b.id = oh.bolak_id
@@ -139,7 +139,7 @@ export async function omborTarixi(
       materialNomi: q.material_nomi,
       bolakKod: q.bolak_kod,
       miqdorKvM: q.miqdor_kv_m === null ? null : Number(q.miqdor_kv_m),
-      miqdorSm: q.miqdor_sm === null ? null : Number(q.miqdor_sm),
+      miqdorM: q.miqdor_m === null ? null : Number(q.miqdor_m),
       miqdorDona: q.miqdor_dona,
       tannarxSumma: q.tannarx_summa,
       izoh: q.izoh,

@@ -16,7 +16,7 @@ import {
   yonalish,
 } from '@/lib/domain/ombor-harakat';
 
-const BOSH = { miqdorKvM: null, miqdorSm: null, miqdorDona: null };
+const BOSH = { miqdorKvM: null, miqdorM: null, miqdorDona: null };
 
 describe('Harakat nomi', () => {
   it('har turning o‘zbekcha nomi bor', () => {
@@ -38,8 +38,8 @@ describe('Miqdor ko‘rinishi', () => {
     expect(miqdorMatni({ ...BOSH, miqdorKvM: 3.6 })).toBe('3.6000 kv.m');
   });
 
-  it('Q-01 — sm bazada, metr ekranda', () => {
-    expect(miqdorMatni({ ...BOSH, miqdorSm: 210 })).toBe('2.10 m');
+  it('Q-01 — bazada ham, ekranda ham metr', () => {
+    expect(miqdorMatni({ ...BOSH, miqdorM: 2.1 })).toBe('2.10 m');
   });
 
   it('dona — butun son', () => {
@@ -48,7 +48,7 @@ describe('Miqdor ko‘rinishi', () => {
 
   it('chiqim manfiy holicha ko‘rsatiladi', () => {
     expect(miqdorMatni({ ...BOSH, miqdorKvM: -1.2 })).toBe('-1.2000 kv.m');
-    expect(miqdorMatni({ ...BOSH, miqdorSm: -350 })).toBe('-3.50 m');
+    expect(miqdorMatni({ ...BOSH, miqdorM: -3.5 })).toBe('-3.50 m');
   });
 
   it("o'lchovsiz yozuv — chiziqcha", () => {
@@ -63,7 +63,7 @@ describe('Yo‘nalish', () => {
   });
 
   it('manfiy — ombordan chiqdi', () => {
-    expect(yonalish({ ...BOSH, miqdorSm: -100 })).toBe('CHIQDI');
+    expect(yonalish({ ...BOSH, miqdorM: -100 })).toBe('CHIQDI');
   });
 
   it('nol — sanoq farq chiqarmadi', () => {

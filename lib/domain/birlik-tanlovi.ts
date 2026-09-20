@@ -86,7 +86,7 @@ export const BIRLIK_TAVSIFI: Record<OlchovBirligi, BirlikTavsifi> = {
     nom: 'Metr',
     hisobTuri: 'CHIZIQLI',
     kirimBirligi: 'metr',
-    sarflashBirligi: 'SM',
+    sarflashBirligi: 'M',
     ozgarishKerak: true,
     olchamliMi: false,
     narxBirligi: 'metr',
@@ -95,7 +95,7 @@ export const BIRLIK_TAVSIFI: Record<OlchovBirligi, BirlikTavsifi> = {
     nom: 'Shtanga',
     hisobTuri: 'CHIZIQLI',
     kirimBirligi: 'shtanga',
-    sarflashBirligi: 'SM',
+    sarflashBirligi: 'M',
     ozgarishKerak: true,
     olchamliMi: false,
     narxBirligi: 'metr',
@@ -104,7 +104,7 @@ export const BIRLIK_TAVSIFI: Record<OlchovBirligi, BirlikTavsifi> = {
     nom: 'Quti',
     hisobTuri: 'CHIZIQLI',
     kirimBirligi: 'quti',
-    sarflashBirligi: 'SM',
+    sarflashBirligi: 'M',
     ozgarishKerak: true,
     olchamliMi: false,
     narxBirligi: 'metr',
@@ -171,20 +171,28 @@ export function ozgarishKiritiladimi(birlik: OlchovBirligi): boolean {
   return BIRLIK_TAVSIFI[birlik].ozgarishKerak;
 }
 
-/** Ekrandagi metrni bazadagi koeffitsientga (sm) o'giradi. */
+/**
+ * Ekrandagi metrni bazadagi koeffitsientga o'giradi.
+ *
+ * ⚠️ 2026-09-20 — koeffitsient ENDI METRDA saqlanadi, shuning
+ *    uchun bu ikki funksiya HECH NARSA O'ZGARTIRMAYDI. Ular
+ *    ataylab qoldirildi: chaqiruv joylari (material formasi)
+ *    o'zgarishsiz qoladi va agar kelajakda yana farq paydo
+ *    bo'lsa, o'girish yana SHU YERDA bo'ladi — boshqa joyda emas.
+ */
 export function metrniKoeffitsientga(metr: string): string {
   const n = Number(metr);
   if (!Number.isFinite(n) || n <= 0) {
     throw new BiznesXato('KOEFFITSIENT_NOTOGRI', metr);
   }
-  return String(n * 100);
+  return String(n);
 }
 
 /** Bazadagi koeffitsientni ekrandagi metrga qaytaradi. */
 export function koeffitsientniMetrga(koeffitsient: string): string {
   const n = Number(koeffitsient);
   if (!Number.isFinite(n) || n <= 0) return '';
-  return String(n / 100);
+  return String(n);
 }
 
 // ─── Q-10 · Kam qoldiq ogohlantirishi ─────────────────────────────────────
@@ -205,11 +213,9 @@ export function ostatkaChegarasiKerakmi(sarflashBirligi: string): boolean {
 /**
  * Q-10 — qoldiq chegaradan kam tushdimi.
  *
- * ⚠️ MIQDOR BAZADAGI KO'RINISHDA keladi: chiziqli mahsulot
- *    SANTIMETRDA (Q-01), qolganlari o'z birligida. Chegara esa
- *    doim ODAM YOZGAN birlikda: metrli mahsulotda metr, donada
- *    dona. Shuning uchun solishtirishdan oldin ikkisi bir
- *    birlikka keltiriladi.
+ * ⚠️ 2026-09-20 — chiziqli mahsulot ham METRDA saqlanadi, ya'ni
+ *    miqdor va chegara ALLAQACHON bir birlikda. Ilgari bu yerda
+ *    ÷100 turardi.
  *
  * ⚠️ Ustun nomi `kam_qoldiq_chegara_m` — «m» tarixiy nom. Dona
  *    mahsulotda u DONA saqlaydi. Ustunni qayta nomlash 40+ faylga
@@ -221,8 +227,7 @@ export function kamQoldiqmi(
   chegara: number | null,
 ): boolean {
   if (chegara === null) return false;
-  const oz = sarflashBirligi === 'SM' ? miqdor / 100 : miqdor;
-  return oz < chegara;
+  return miqdor < chegara;
 }
 
 /** Chegara qaysi birlikda yoziladi — ekrandagi yorliq uchun */

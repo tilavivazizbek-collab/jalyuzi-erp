@@ -347,7 +347,7 @@ function Xulosa({
   xulosa: MaterialXulosasi;
   birlik: string;
 }) {
-  const b = birlik === 'KV_M' ? 'kv.m' : birlik === 'SM' ? 'sm' : 'dona';
+  const b = birlik === 'KV_M' ? 'kv.m' : birlik === 'M' ? 'sm' : 'dona';
   const raqam = (n: number): string =>
     n.toLocaleString('uz-UZ', { maximumFractionDigits: 2 });
 

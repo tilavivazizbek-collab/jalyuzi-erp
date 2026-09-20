@@ -248,8 +248,8 @@ export function NarxFormasi({
     try {
       const hisob = pozitsiyaQoidaNarxi({
         qoida: { hisoblashUsuli: q.hisoblashUsuli, bosqichlar: domenBosqichlari(q.bosqichlar) },
-        eniSm: eni,
-        boyiSm: boyi,
+        eniM: eni,
+        boyiM: boyi,
         qoshimchalar: qoshimchalar
           .filter((_, i) => tanlangan.includes(i))
           .map((x) => ({
@@ -769,7 +769,7 @@ export function NarxFormasi({
                     <p className="mt-1.5 text-[11px] text-matn-kuchsiz">
                       Ombordan yechiladi. Ishlatiladi: <code>ENI</code>,{' '}
                       <code>BO&apos;YI</code>, <code>MAYDON</code>. O&apos;lchamlar{' '}
-                      <b>santimetrda</b>.
+                      <b>metrda</b>.
                     </p>
                   )}
                 </div>
@@ -830,7 +830,7 @@ export function NarxFormasi({
             aria-label="Sinov bo‘yi"
             className={`${kichik} w-[90px]`}
           />
-          <span className="text-sm text-matn-kuchsiz">sm</span>
+          <span className="text-sm text-matn-kuchsiz">m</span>
 
           <select
             value={sinovGuruh ?? ''}

@@ -153,7 +153,7 @@ export function VaraqaFormasi({
               const k = ol(s.qatorId);
               const dona = s.turi === 'DONA';
               const farq = farqlar[s.qatorId] ?? null;
-              const birlik = dona ? (s.sarflashBirligi === 'SM' ? 'sm' : 'dona') : 'kv.m';
+              const birlik = dona ? (s.sarflashBirligi === 'M' ? 'sm' : 'dona') : 'kv.m';
 
               return (
                 <tr key={s.qatorId} className={s.yolda ? 'bg-fon text-matn-kuchsiz' : ''}>

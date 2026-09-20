@@ -67,7 +67,7 @@ export async function materialTezligi(
             *    CHIQINDI alohida qo'shilmaydi — u shu farqda bor.
             */
            GREATEST((SELECT -SUM(COALESCE(oh.miqdor_kv_m, 0)
-                                 + COALESCE(oh.miqdor_sm, 0)
+                                 + COALESCE(oh.miqdor_m, 0)
                                  + COALESCE(oh.miqdor_dona, 0))
               FROM ombor_harakat oh
               JOIN bolak b2 ON b2.id = oh.bolak_id

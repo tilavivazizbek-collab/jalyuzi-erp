@@ -11,8 +11,8 @@ import type { ChekPozitsiyasi } from '@/lib/domain/chek';
 const poz = (o: Partial<ChekPozitsiyasi> = {}): ChekPozitsiyasi => ({
   tartib: 1,
   nom: 'Rollo parda',
-  eniSm: 140,
-  boyiSm: 160,
+  eniM: 140,
+  boyiM: 160,
   soni: 1,
   narx: '400000',
   chegirma: '0',

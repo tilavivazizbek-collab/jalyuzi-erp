@@ -18,8 +18,8 @@ export interface YoldagiPozitsiya {
   readonly buyurtmaRaqami: string;
   readonly tartib: number;
   readonly mahsulot: string;
-  readonly eniSm: string;
-  readonly boyiSm: string;
+  readonly eniM: string;
+  readonly boyiM: string;
   readonly mijozIsmi: string | null;
   readonly tikuvchiFilialId: number;
   readonly tikuvchiFilialNomi: string;
@@ -46,8 +46,8 @@ export async function yoldagilar(
       buyurtma_raqami: string;
       tartib: number;
       mahsulot: string;
-      eni_sm: string;
-      boyi_sm: string;
+      eni_m: string;
+      boyi_m: string;
       mijoz_ismi: string | null;
       tikuvchi_filial_id: number;
       tikuvchi_filial_nomi: string;
@@ -59,8 +59,8 @@ export async function yoldagilar(
            b.raqam         AS buyurtma_raqami,
            p.tartib,
            mt.nom          AS mahsulot,
-           p.eni_sm::text  AS eni_sm,
-           p.boyi_sm::text AS boyi_sm,
+           p.eni_m::text  AS eni_m,
+           p.boyi_m::text AS boyi_m,
            m.ism           AS mijoz_ismi,
            b.ishlab_chiqaruvchi_filial_id AS tikuvchi_filial_id,
            f.nom           AS tikuvchi_filial_nomi,
@@ -83,8 +83,8 @@ export async function yoldagilar(
     buyurtmaRaqami: r.buyurtma_raqami,
     tartib: r.tartib,
     mahsulot: r.mahsulot,
-    eniSm: r.eni_sm,
-    boyiSm: r.boyi_sm,
+    eniM: r.eni_m,
+    boyiM: r.boyi_m,
     mijozIsmi: r.mijoz_ismi,
     tikuvchiFilialId: r.tikuvchi_filial_id,
     tikuvchiFilialNomi: r.tikuvchi_filial_nomi,

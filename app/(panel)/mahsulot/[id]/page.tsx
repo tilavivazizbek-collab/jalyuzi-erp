@@ -50,8 +50,10 @@ export default async function MahsulotTahrirlash({ params }: { params: Promise<{
   const [slotlar, parametrlar, aksessuarlar, guruhlar, materiallar] = await Promise.all([
     ulanish<
       { nom: string; formula: string; majburiy: boolean; almashtirish_guruh_id: number | null;
-        koeffitsient: string; kesish_turi: string }[]
-    >`SELECT nom, formula, majburiy, almashtirish_guruh_id, koeffitsient::text, kesish_turi
+        koeffitsient: string; kesish_turi: string;
+        kesim_eni_m: string | null }[]
+    >`SELECT nom, formula, majburiy, almashtirish_guruh_id, koeffitsient::text,
+             kesish_turi, kesim_eni_m::text
       FROM mahsulot_slot WHERE mahsulot_tur_id = ${turId} AND faol = true
       ORDER BY tartib, id`,
     ulanish<
@@ -79,6 +81,8 @@ export default async function MahsulotTahrirlash({ params }: { params: Promise<{
       almashtirishGuruhId: s.almashtirish_guruh_id,
       koeffitsient: Number(s.koeffitsient),
       kesishTuri: s.kesish_turi === "BO'YIGA" ? ("BO'YIGA" as const) : ('ENIGA' as const),
+      /** ⚠️ `null` — qat'iy eni yo'q, formadagi katak BO'SH turadi */
+      kesimEniM: s.kesim_eni_m ?? '',
     })),
     parametrlar: parametrlar.map((p): ParametrQatori => ({
       kod: p.kod,

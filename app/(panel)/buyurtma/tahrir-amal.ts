@@ -62,8 +62,8 @@ export async function pozitsiyaTahrirAmali(
       ulanishOl(),
       {
         pozitsiyaId,
-        eniSm: p.eniSm,
-        boyiSm: p.boyiSm,
+        eniM: p.eniM,
+        boyiM: p.boyiM,
         soni: p.soni,
         narxSnapshot: p.narxSnapshot,
         chegirmaSumma: p.chegirmaSumma,
@@ -78,11 +78,13 @@ export async function pozitsiyaTahrirAmali(
           // TZ 3.6 · 7.6 — band HISOBLANGAN sarflash bo'yicha (P-24); AUDIT 1 — kesish yo'nalishi bilan
           kerak:
             s.birlik === 'KV_M'
-              ? kesimOlchami(s.hisoblanganMiqdor, p.boyiSm, {
+              ? kesimOlchami(s.hisoblanganMiqdor, p.boyiM, {
                   koeffitsient: s.koeffitsient ?? 1,
                   yonalish: s.kesishTuri === "BO'YIGA" ? ("BO'YIGA" as const) : ('ENIGA' as const),
-                    /** T-12 — kesim BITTA buyum uchun, jami emas */
-                    soni: p.soni,
+                  /** T-12 — kesim BITTA buyum uchun, jami emas */
+                  soni: p.soni,
+                  /** ⚠️ «DIKKEY» — rulon eni o'zgarmaydi (egasi, 2026-09-20) */
+                  kesimEniM: s.kesimEniM ?? null,
                 })
               : null,
           narxSnapshot: s.narxSnapshot,

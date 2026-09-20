@@ -23,8 +23,8 @@ import { dollar, som } from '@/lib/domain/pul';
 const poz = (o: Partial<ChekPozitsiyasi> = {}): ChekPozitsiyasi => ({
   tartib: 1,
   nom: 'Rollo parda',
-  eniSm: 140,
-  boyiSm: 160,
+  eniM: 1.4,
+  boyiM: 1.6,
   soni: 1,
   narx: '16.40',
   chegirma: '0',
@@ -92,7 +92,7 @@ describe('8.14 — pozitsiya qatori', () => {
 
   it("oddiy pozitsiya (qo'shimcha buyum) — o'lchovsiz bitta qator", () => {
     const q = qatorYasa(
-      poz({ nom: 'Karniz', eniSm: 0, boyiSm: 0, narx: '4.00', tarkib: [] }),
+      poz({ nom: 'Karniz', eniM: 0, boyiM: 0, narx: '4.00', tarkib: [] }),
       'USD',
     );
     expect(q.sarlavha).toBe('Karniz');
@@ -102,7 +102,7 @@ describe('8.14 — pozitsiya qatori', () => {
 
   it("soni 1 dan katta bo'lsa dona narxi ko'rsatiladi", () => {
     const q = qatorYasa(
-      poz({ nom: 'Jalyuzi', eniSm: 90, boyiSm: 120, soni: 2, narx: '17.00' }),
+      poz({ nom: 'Jalyuzi', eniM: 0.9, boyiM: 1.2, soni: 2, narx: '17.00' }),
       'USD',
     );
     expect(q.miqdor).toBe('2 × $8.50');
@@ -116,7 +116,7 @@ describe('8.14 — pozitsiya qatori', () => {
 
   it("qo'shimcha buyumda o'lcham matni yo'q", () => {
     expect(olchamMatni(0, 0)).toBeNull();
-    expect(olchamMatni(140, 160)).toBe('1.40×1.60 m');
+    expect(olchamMatni(1.4, 1.6)).toBe('1.40×1.60 m');
   });
 });
 

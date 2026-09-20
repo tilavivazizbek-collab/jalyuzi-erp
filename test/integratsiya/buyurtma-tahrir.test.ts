@@ -101,8 +101,8 @@ async function pozitsiyaYarat(
     pozitsiyalar: [
       {
         mahsulotTurId: turId,
-        eniSm: 120,
-        boyiSm: 200,
+        eniM: 1.2,
+        boyiM: 2,
         soni: 1,
         narxSnapshot: narx,
         chegirmaSumma: '0',
@@ -130,8 +130,8 @@ async function pozitsiyaYarat(
 
 const tahrir = (pozitsiyaId: number, o: Record<string, unknown> = {}) => ({
   pozitsiyaId,
-  eniSm: 120,
-  boyiSm: 200,
+  eniM: 1.2,
+  boyiM: 2,
   soni: 1,
   narxSnapshot: '500000',
   chegirmaSumma: '0',
@@ -159,8 +159,8 @@ describe('TZ 8.7 — pozitsiyani tahrirlash', () => {
     await pozitsiyaniTahrirla(
       sql,
       tahrir(pozitsiyaId, {
-        eniSm: 130,
-        boyiSm: 210,
+        eniM: 1.3,
+        boyiM: 2.1,
         slotlar: [
           {
             slotId,
@@ -176,10 +176,10 @@ describe('TZ 8.7 — pozitsiyani tahrirlash', () => {
       XODIM,
     );
 
-    const p = await sql<{ eni_sm: number; boyi_sm: number }[]>`
-      SELECT eni_sm, boyi_sm FROM buyurtma_pozitsiya WHERE id = ${pozitsiyaId}`;
-    expect(p[0]?.eni_sm).toBe(130);
-    expect(p[0]?.boyi_sm).toBe(210);
+    const p = await sql<{ eni_m: number; boyi_m: number }[]>`
+      SELECT eni_m, boyi_m FROM buyurtma_pozitsiya WHERE id = ${pozitsiyaId}`;
+    expect(p[0]?.eni_m).toBe(130);
+    expect(p[0]?.boyi_m).toBe(210);
 
     const m = await sql<{ hisoblangan_miqdor: string }[]>`
       SELECT hisoblangan_miqdor FROM pozitsiya_material
@@ -201,8 +201,8 @@ describe('TZ 8.7 — pozitsiyani tahrirlash', () => {
     const n = await pozitsiyaniTahrirla(
       sql,
       tahrir(pozitsiyaId, {
-        eniSm: 150,
-        boyiSm: 250,
+        eniM: 1.5,
+        boyiM: 2.5,
         slotlar: [
           {
             slotId,

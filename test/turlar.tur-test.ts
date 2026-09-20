@@ -12,7 +12,15 @@
  */
 
 import { dollar, ogir, qosh, som, teng, yaxlitlaKassa, type Som } from '@/lib/domain/pul';
-import { dona, kvM, m, mToSm, sm, smToM, type Metr, type Santimetr } from '@/lib/domain/birlik';
+import {
+  dona,
+  kvM,
+  m,
+  maydon,
+  metrKorsat,
+  type KvadratMetr,
+  type Metr,
+} from '@/lib/domain/birlik';
 
 // ─── 1.3-invariant: so'm va dollar qo'shilmaydi ───────────────────────────
 
@@ -45,29 +53,43 @@ somSumma.plus(dollarSumma);
 qosh(somSumma, som(30_000));
 qosh(dollarSumma, dollar(10));
 
-// ─── 5.3-invariant: uzunlik birliklari almashmaydi ───────────────────────
+// ─── 5.3-invariant: o'lchov turlari almashmaydi ─────────────────────
+//
+// ⚠️ 2026-09-20 — `Santimetr` turi O'CHIRILDI, tizim metrga o'tdi.
+//    Ilgari bu yerda `smToM(boyiMetr)` kabi ALMASHTIRISHLAR
+//    tekshirilardi. Endi almashadigan ikkinchi uzunlik birligi yo'q,
+//    shuning uchun himoya BOSHQA nuqtaga ko'chdi: metr, kvadrat metr
+//    va dona bir-birining o'rniga TUSHMASLIGI kerak.
+//
+//    Tekshiruvlar kamaymadi — aksincha, endi ular haqiqiy xavfni
+//    qo'riqlaydi: metrni kv.m deb olish eng qimmat xatolar turkumi.
 
-const enism = sm(210);
+const eniMetr = m(2.1);
 const boyiMetr = m(2.5);
 
-// @ts-expect-error 5.3-invariant: metrni santimetr kutayotgan joyga berib bo'lmaydi
-smToM(boyiMetr);
-
-// @ts-expect-error 5.3-invariant: santimetrni metr kutayotgan joyga berib bo'lmaydi
-mToSm(enism);
-
-// @ts-expect-error §4.1: oddiy son santimetr emas
-const notogriOlcham: Santimetr = 210;
+// @ts-expect-error §4.1: oddiy son metr emas
+const notogriOlcham: Metr = 2.1;
 void notogriOlcham;
 
 // @ts-expect-error §4.1: kvadrat metrni metr o'rniga ishlatib bo'lmaydi
 const notogriMetr: Metr = kvM(2.94);
 void notogriMetr;
 
-// @ts-expect-error §4.1: donani santimetr o'rniga ishlatib bo'lmaydi
-const notogriDona: Santimetr = dona(2);
+// @ts-expect-error §4.1: donani metr o'rniga ishlatib bo'lmaydi
+const notogriDona: Metr = dona(2);
 void notogriDona;
 
+// @ts-expect-error §4.3: maydon metr emas — kv.m ni metr deb olish taqiq
+const notogriMaydon: Metr = maydon(eniMetr, boyiMetr);
+void notogriMaydon;
+
+// @ts-expect-error §4.3: metrni kv.m kutayotgan joyga berib bo'lmaydi
+const notogriKvM: KvadratMetr = eniMetr;
+void notogriKvM;
+
+// @ts-expect-error §4.2: kv.m ni metr ko'rinishida chiqarib bo'lmaydi
+metrKorsat(kvM(2.94));
+
 // To'g'ri ishlatish — xato bermasligi kerak
-smToM(enism);
-mToSm(boyiMetr);
+metrKorsat(eniMetr);
+maydon(eniMetr, boyiMetr);

@@ -51,16 +51,16 @@ export function harakatNomi(turi: string): string {
 
 export interface HarakatMiqdori {
   readonly miqdorKvM: number | null;
-  readonly miqdorSm: number | null;
+  readonly miqdorM: number | null;
   readonly miqdorDona: number | null;
 }
 
 /**
  * Uchta o'lchovdan qaysi biri to'lgan bo'lsa — o'shanisi.
  *
- * ⚠️ Q-01 — chiziqli material bazada SANTIMETRDA saqlanadi,
- *    ekranda esa METRDA ko'rsatiladi. Omborchi metr bilan
- *    ishlaydi.
+ * ⚠️ Q-01 — chiziqli material bazada ham, ekranda ham METRDA
+ *    (2026-09-20). Ilgari baza smda edi va shu yerda ÷100
+ *    turardi — endi o'girish yo'q.
  *
  * ⚠️ Ishorasi O'ZGARTIRILMAYDI: chiqim yozuvlari bazaga manfiy
  *    yoziladi (`ish.ts`, `kochirish.ts`) va shu holicha
@@ -68,7 +68,7 @@ export interface HarakatMiqdori {
  */
 export function miqdorMatni(h: HarakatMiqdori): string {
   if (h.miqdorKvM !== null) return `${h.miqdorKvM.toFixed(4)} kv.m`;
-  if (h.miqdorSm !== null) return `${(h.miqdorSm / 100).toFixed(2)} m`;
+  if (h.miqdorM !== null) return `${h.miqdorM.toFixed(2)} m`;
   if (h.miqdorDona !== null) return `${String(h.miqdorDona)} dona`;
   return '—';
 }
@@ -83,7 +83,7 @@ export type Yonalish = 'KIRDI' | 'CHIQDI' | 'NOL';
  *    sanoq kamomad ham, ortiqcha ham chiqarishi mumkin.
  */
 export function yonalish(h: HarakatMiqdori): Yonalish {
-  const q = h.miqdorKvM ?? h.miqdorSm ?? h.miqdorDona ?? 0;
+  const q = h.miqdorKvM ?? h.miqdorM ?? h.miqdorDona ?? 0;
   if (q > 0) return 'KIRDI';
   if (q < 0) return 'CHIQDI';
   return 'NOL';

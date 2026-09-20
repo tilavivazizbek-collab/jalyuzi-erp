@@ -209,10 +209,10 @@ export default async function OmborQoldigi({
                   <tbody className="divide-y divide-chegara [&>tr:nth-child(even)]:bg-fon/50">
                     {donali.map((q) => {
                       const birlik = q.sarflashBirligi as SarflashBirligi;
-                      // Q-01 — chiziqli material smda saqlanadi, metrda ko'rsatiladi
+                      // Q-01 — chiziqli material ham, ekran ham METRDA (2026-09-20)
                       const korinish =
-                        birlik === 'SM'
-                          ? `${(q.miqdor / 100).toFixed(2)} m`
+                        birlik === 'M'
+                          ? `${q.miqdor.toFixed(2)} m`
                           : `${String(q.miqdor)} ${SARFLASH_BIRLIGI_NOMI[birlik]}`;
 
                       /** Q-10 — hisob bitta joyda: dona mahsulotda ham ishlaydi */
@@ -228,8 +228,8 @@ export default async function OmborQoldigi({
                             )}
                           </td>
                           <td className="px-4 py-2.5 text-matn-kuchsiz">
-                            {birlik === 'SM'
-                              ? 'smda saqlanadi (Q-01)'
+                            {birlik === 'M'
+                              ? 'metrda saqlanadi (Q-01)'
                               : SARFLASH_BIRLIGI_NOMI[birlik]}
                           </td>
                           <td className="px-4 py-2.5 text-right">

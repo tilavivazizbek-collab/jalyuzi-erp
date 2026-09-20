@@ -755,7 +755,7 @@ Bular birinchi haftada yoziladi:
 
 | Test | Kutilgan natija | Band |
 |---|---|---|
-| Kanonik buyurtma hisobi | `678 400` | 3.8 |
+| Kanonik buyurtma hisobi | `570 800` ← 2026-09-20 da o'zgardi (`test/kanonik.ts` K03) | 3.8 |
 | Slot formulalari | `0.66 + 0.66 + 2.64 = 3.96` | 3.5 |
 | Transport taqsimoti | `1 504 000 + 238 000 + 258 000 = 2 000 000` | 7.9 |
 | FIFO brak bilan | `660 000 / 10 = 66 000` | 7.9 |
@@ -1088,7 +1088,7 @@ Har mato yonida qoldiq ko'rinadi. "Katalog" tugmasi rasmli katalogni ochadi — 
 
 ### 3.4. O'lcham
 
-Eni va bo'yi **santimetrda** kiritiladi (210 × 140) — mijoz va usta shunday gapiradi. Tizim kvadrat metrga o'zi o'giradi.
+Eni va bo'yi **METRDA** kiritiladi (2.10 × 1.40) — ⚠️ 2026-09-20 da egasi butun tizimni metrga o'tkazdi (TZ dagi «santimetrda» eskirdi). Maydon `eni × bo'yi` dan chiqadi, o'girish yo'q.
 
 ### 3.5. Sarflash — har slot alohida
 
@@ -1307,7 +1307,7 @@ Ikkita alohida birlik:
 
 Ikkalasi har xil bo'lsa — **konversiya koeffitsienti** kiritiladi. Misol: karniz kirimda "shtanga", sarflashda "metr", koeffitsient 3.
 
-**Barcha uzunlik o'lchovi — santimetrda.** Sotuv ekranida ham, konstruktorda ham, sarflash formulasida ham.
+**Barcha uzunlik o'lchovi — METRDA** (⚠️ 2026-09-20; TZ da «santimetrda» yozilgan edi). Sotuv ekranida ham, konstruktorda ham, sarflash formulasida ham, omborda ham. `Santimetr` turi koddan o'chirilgan.
 
 Karniz kirimda "shtanga" bo'lib keladi, sarflashda **sm**. Koeffitsient: 1 shtanga = 300 sm.
 
@@ -3779,7 +3779,7 @@ Eski hujjat bo'yicha ish boshlagan bo'lsangiz, avval shu ro'yxatni ko'ring.
 - Bot matnlari o'zgaruvchilar bilan — 14.8
 - Spravochniklar bir joyda — 14.9
 - Tayyorlik sanasi ixtiyoriy — 3.13 (eski 5.4-band bekor qilindi)
-- Barcha uzunlik o'lchovi santimetrda — 5.3
+- Barcha uzunlik o'lchovi METRDA — 5.3 (⚠️ 2026-09-20 da sm dan o'tildi)
 - Kesimda uch qatorli yozuv — 7.6
 - **Band qilish joriy etildi** — avvalgi "band qilinmaydi" qoidasi bekor — 7.3
 - Bo'lak turlari: rulon va qoldiq kesma, rulon eni o'zgarmaydi — 7.4

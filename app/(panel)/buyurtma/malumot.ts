@@ -184,8 +184,8 @@ export interface PozitsiyaTafsili {
   /** Qo'shimcha buyumda `null` — u tayyorlanmaydi (3.10) */
   readonly mahsulotTurId: number | null;
   readonly qoshimchaMaterialId: number | null;
-  readonly eniSm: number;
-  readonly boyiSm: number;
+  readonly eniM: number;
+  readonly boyiM: number;
   readonly soni: number;
   readonly narx: string;
   readonly chegirma: string;
@@ -281,8 +281,8 @@ export async function buyurtmaTafsili(
       tur_nomi: string | null;
       mahsulot_tur_id: number | null;
       qoshimcha_material_id: number | null;
-      eni_sm: number;
-      boyi_sm: number;
+      eni_m: number;
+      boyi_m: number;
       soni: number;
       narx_snapshot: string;
       chegirma_summa: string | null;
@@ -300,7 +300,7 @@ export async function buyurtmaTafsili(
     SELECT p.id, p.tartib,
            COALESCE(t.nom, qm.nom) AS tur_nomi,
            p.mahsulot_tur_id, p.qoshimcha_material_id,
-           p.eni_sm, p.boyi_sm, p.soni,
+           p.eni_m, p.boyi_m, p.soni,
            p.narx_snapshot, p.chegirma_summa, p.holat, u.ism AS usta_ismi
     FROM buyurtma_pozitsiya p
     LEFT JOIN mahsulot_tur t ON t.id = p.mahsulot_tur_id
@@ -393,8 +393,8 @@ export async function buyurtmaTafsili(
       turNomi: p.tur_nomi ?? '',
       mahsulotTurId: p.mahsulot_tur_id,
       qoshimchaMaterialId: p.qoshimcha_material_id,
-      eniSm: p.eni_sm,
-      boyiSm: p.boyi_sm,
+      eniM: p.eni_m,
+      boyiM: p.boyi_m,
       soni: p.soni,
       narx: p.narx_snapshot,
       chegirma: p.chegirma_summa ?? '0',
@@ -431,8 +431,8 @@ export interface QaytaKesishQatori {
   readonly buyurtmaRaqam: string;
   readonly tartib: number;
   readonly turNomi: string;
-  readonly eniSm: number;
-  readonly boyiSm: number;
+  readonly eniM: number;
+  readonly boyiM: number;
   readonly ustaIsmi: string;
   readonly sabab: string;
   readonly izoh: string | null;
@@ -460,8 +460,8 @@ export async function ochiqQaytaKesishlar(filialId: number): Promise<QaytaKesish
       buyurtma_raqam: string;
       tartib: number;
       tur_nomi: string;
-      eni_sm: number;
-      boyi_sm: number;
+      eni_m: number;
+      boyi_m: number;
       usta_ismi: string;
       sabab: string;
       izoh: string | null;
@@ -473,7 +473,7 @@ export async function ochiqQaytaKesishlar(filialId: number): Promise<QaytaKesish
   >`
     SELECT qk.id, p.id AS pozitsiya_id, b.id AS buyurtma_id,
            b.raqam AS buyurtma_raqam, p.tartib, t.nom AS tur_nomi,
-           p.eni_sm, p.boyi_sm, x.ism AS usta_ismi, qk.sabab, qk.izoh,
+           p.eni_m, p.boyi_m, x.ism AS usta_ismi, qk.sabab, qk.izoh,
            qk.yaratildi AS sana, p.qayta_kesildi_soni AS oldingi_soni,
            (SELECT SUM(ABS(oh.miqdor_kv_m))
               FROM ombor_harakat oh
@@ -500,8 +500,8 @@ export async function ochiqQaytaKesishlar(filialId: number): Promise<QaytaKesish
     buyurtmaRaqam: r.buyurtma_raqam,
     tartib: r.tartib,
     turNomi: r.tur_nomi,
-    eniSm: r.eni_sm,
-    boyiSm: r.boyi_sm,
+    eniM: r.eni_m,
+    boyiM: r.boyi_m,
     ustaIsmi: r.usta_ismi,
     sabab: r.sabab,
     izoh: r.izoh,
@@ -720,8 +720,8 @@ export interface PozitsiyaTahriri {
   readonly mahsulotTurId: number;
   readonly turNomi: string;
   readonly holat: string;
-  readonly eniSm: number;
-  readonly boyiSm: number;
+  readonly eniM: number;
+  readonly boyiM: number;
   readonly soni: number;
   readonly narxSnapshot: string;
   readonly chegirmaSumma: string;
@@ -753,8 +753,8 @@ export async function pozitsiyaTahriri(
       mahsulot_tur_id: number | null;
       tur_nomi: string | null;
       holat: string;
-      eni_sm: number;
-      boyi_sm: number;
+      eni_m: number;
+      boyi_m: number;
       soni: number;
       narx_snapshot: string;
       chegirma_summa: string | null;
@@ -763,7 +763,7 @@ export async function pozitsiyaTahriri(
     }[]
   >`
     SELECT p.id, p.mahsulot_tur_id, t.nom AS tur_nomi, p.holat,
-           p.eni_sm, p.boyi_sm, p.soni,
+           p.eni_m, p.boyi_m, p.soni,
            p.narx_snapshot::text, p.chegirma_summa::text, p.xizmat_haqi::text,
            p.formula_snapshot
     FROM buyurtma_pozitsiya p
@@ -816,8 +816,8 @@ export async function pozitsiyaTahriri(
     mahsulotTurId: p.mahsulot_tur_id,
     turNomi: p.tur_nomi ?? '',
     holat: p.holat,
-    eniSm: p.eni_sm,
-    boyiSm: p.boyi_sm,
+    eniM: p.eni_m,
+    boyiM: p.boyi_m,
     soni: p.soni,
     narxSnapshot: p.narx_snapshot,
     chegirmaSumma: p.chegirma_summa ?? '0',

@@ -215,14 +215,14 @@ describe('TZ 13.4 — bot sessiyasi', () => {
       tg,
       {
         qadam: 'SAVAT',
-        holat: { savat: [{ turId: 1, eniSm: 210, boyiSm: 140 }] },
+        holat: { savat: [{ turId: 1, eniM: 2.1, boyiM: 1.4 }] },
       },
       XODIM,
     );
 
     const s = await sessiyaOl(sql, tg);
     expect(s.qadam).toBe('SAVAT');
-    expect(s.holat).toEqual({ savat: [{ turId: 1, eniSm: 210, boyiSm: 140 }] });
+    expect(s.holat).toEqual({ savat: [{ turId: 1, eniM: 2.1, boyiM: 1.4 }] });
   });
 
   it('bir Telegramga BITTA sessiya — ustidan yoziladi', async () => {

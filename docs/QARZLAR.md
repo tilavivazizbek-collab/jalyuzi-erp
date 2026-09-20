@@ -24,6 +24,64 @@ Shuning uchun bu ro'yxat qisqa bo'lishi va bo'shab borishi kerak.
 
 ---
 
+## T-14 · Chiziqli (`M`) slot materiali OMBORDAN YECHILMAYDI — ⚠️ OCHIQ, PUL TESHIGI
+
+**Topildi:** 2026-09-20, metrga o'tish ishi davomida.
+
+### Nima bo'lyapti
+
+Slot materialining birligi `M` bo'lsa (karniz, val, pastki planka,
+zanjir, ip) — u **hech qachon ombordan yechilmaydi**:
+
+| Qadam | Nima bo'ladi |
+|---|---|
+| Band qilish (`lib/amal/buyurtma.ts:660`) | `.filter((s) => s.birlik === 'KV_M')` — chiziqli slot **chetlab o'tiladi** |
+| «Tugatdim» (`lib/amal/ish.ts`) | faqat `band` qatorlari (mato) va `pozitsiya_aksessuar` (dona) yechiladi |
+| Natija | qoldiq kamaymaydi |
+
+Ya'ni mijozdan karniz puli olinadi, karniz esa omborda «turaveradi».
+Bu — 2026-08-28 da aksessuar bilan topilgan xatoning **aynan o'zi**,
+lekin chiziqli materialda. O'shanda aksessuar tuzatildi, chiziqli
+material esa e'tibordan chetda qolgan.
+
+### Nega hozirgacha bilinmagan
+
+Egasining bazasida hozircha faol chiziqli slot **bitta**
+(`dikkey · turba dikkey`, `ENI * 1`). Farq sekin to'planadi va
+faqat inventarizatsiyada ko'rinadi.
+
+### Nega o'z-o'zidan tuzalmaydi
+
+Chiziqli material `bolak` da **to'rtburchak emas**, `miqdor` ustunida
+yotadi (eni × bo'yi yo'q). Shuning uchun `bolakTanla` / `kesimRejasi`
+zanjiri unga UMUMAN to'g'ri kelmaydi — u to'rtburchak kesish uchun
+yozilgan. Dona material uchun alohida `donaYech` borligi kabi,
+chiziqli material uchun ham alohida yo'l kerak.
+
+### Taklif
+
+`lib/amal/chiziqli-yechish.ts` — `donaYech` ning ukasi:
+
+```
+chiziqliYech(tx, materialId, filialId, kerakMetr)
+  → FOR UPDATE SKIP LOCKED bilan bo'laklarni oladi
+  → eng kam qoldiqdan boshlab yechadi (Q-10: kam qoldiq birinchi ketsin)
+  → `ombor_harakat` ga `miqdor_m` bilan yozadi
+  → yetmasa YETMADI qaytaradi — ish TO'XTAMAYDI, auditga yoziladi
+    (aksessuar bilan bir xil qoida: usta mahsulotni yasab bo'lgan)
+```
+
+Ulanish joyi: `lib/amal/ish.ts` dagi aksessuar bloki yonida, mato
+kesimidan keyin.
+
+⚠️ **Band qilish qismi ALOHIDA savol.** Chiziqli materialni
+buyurtma tasdiqlanganda band qilish kerakmi yoki faqat «Tugatdim»
+da yechish kifoyami — buni **egasi hal qiladi**: band qilinsa
+«karniz yetmadi» xabari buyurtma berilayotganda chiqadi (TZ 8.3
+ruhida), band qilinmasa oqim soddaroq bo'ladi.
+
+---
+
 ## T-01 · Interfeys oqimlari avtomat sinalmagan
 
 **Bosqich:** 1 · **Tegadi:** QISM 1 §14.2
@@ -444,7 +502,7 @@ soni = kesish?.soni ?? 1;        // berilmasa 1 — avvalgi xulq
 birBuyum = hisoblanganKvM / soni;
 ```
 
-Band qilish esa `soni` MARTA takrorlanadi. Uchta 180 sm parda uchun
+Band qilish esa `soni` MARTA takrorlanadi. Uchta 1.80 m parda uchun
 uchta 1.80 m bo'lak izlanadi, bitta 5.40 m emas — bunday rulon
 dunyoda yo'q.
 

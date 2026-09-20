@@ -70,6 +70,22 @@ export interface KesishSozlamasi {
    * takrorlanadi.
    */
   readonly soni?: number | null;
+  /**
+   * QAT'IY KESIM ENI, metrda — egasi holati 2026-09-20 («dikkey»).
+   *
+   * ⚠️ Ba'zi materialning eni O'ZGARMAYDI. Vertikal jalyuzi lameli
+   *    rulonda 0.40 m enli keladi va usta uni ENIGA kesa OLMAYDI —
+   *    faqat bo'yiga qirqadi. Kerak 8 kv.m bo'lsa, bu «4.00 × 2.00»
+   *    emas, «0.40 × 20.00» degani.
+   *
+   *    Bu berilganda eni SHU bo'ladi va bo'yi maydondan chiqadi —
+   *    ya'ni hisob teskari yo'nalishda ketadi.
+   *
+   * ⚠️ `koeffitsient` bilan birga ishlaydi: koeffitsient maydonni
+   *    oshiradi, kesim eni esa o'sha maydonni qaysi shaklda olishni
+   *    belgilaydi. Ikkalasi bir-biriga xalaqit qilmaydi.
+   */
+  readonly kesimEniM?: number | null;
 }
 
 // ─── 7.5 · Uch daraja ─────────────────────────────────────────────────────
@@ -500,13 +516,18 @@ export function birlashtirishTavsiyasi(olchamlar: readonly Olcham[]): Olcham | n
  */
 export function kesimOlchami(
   hisoblanganKvM: string | number,
-  boyiSm: number,
+  boyiM: number,
   kesish?: KesishSozlamasi,
 ): Olcham {
-  if (boyiSm <= 0) {
+  if (boyiM <= 0) {
     throw new BiznesXato('KESIM_NOTOGRI', "bo'yi noldan katta bo'lsin");
   }
-  const boyiM0 = new Decimal(boyiSm).div(100);
+  /**
+   * ⚠️ 2026-09-20 — `boyiM` ENDI METRDA keladi. Ilgari `boyiSm` edi va
+   *    shu yerda `÷100` turardi. Endi o'girish YO'Q: nomi ham, qiymati
+   *    ham metr.
+   */
+  const boyiAsos = new Decimal(boyiM);
   const K = kesish?.koeffitsient ?? 1;
   const yo = kesish?.yonalish ?? 'ENIGA';
   if (!Number.isFinite(K) || K <= 0) {
@@ -536,8 +557,33 @@ export function kesimOlchami(
    * BO'YIGA: boy = buyurtma bo'yi × K, en = jami ÷ boy
    *          = (asos ÷ boy) — en O'ZGARMAYDI (K bo'yiga tushadi)
    */
-  const boyiM = yo === "BO'YIGA" ? boyiM0.times(K) : boyiM0;
-  const eniM = birBuyum.div(boyiM);
+  /**
+   * QAT'IY KESIM ENI — dikkey lameli (2026-09-20).
+   *
+   * ⚠️ Eni berilgan bo'lsa hisob TESKARI ketadi: eni qat'iy, bo'yi
+   *    maydondan chiqadi. `yonalish` va buyurtma bo'yi bu holatda
+   *    E'TIBORGA OLINMAYDI — rulon eni ularga bo'ysunmaydi.
+   *
+   *    Misol: 1.00 × 2.00 m dikkey, lamel eni 0.40, 10 sm joy
+   *    egallaydi → sarf 8 kv.m. Natija `0.40 × 20.00` — ya'ni
+   *    rulondan 20 metr tortiladi. `4.00 × 2.00` emas: 4 metr enli
+   *    lamel rulonini hech kim ishlab chiqarmaydi.
+   */
+  const qatiyEni = kesish?.kesimEniM ?? null;
+  if (qatiyEni !== null) {
+    if (!Number.isFinite(qatiyEni) || qatiyEni <= 0) {
+      throw new BiznesXato('KESIM_NOTOGRI', "kesim eni musbat bo'lsin");
+    }
+    const qEni = new Decimal(qatiyEni);
+    const qBoyi = birBuyum.div(qEni);
+    return {
+      eniM: qEni.toDecimalPlaces(2, Decimal.ROUND_CEIL).toNumber(),
+      boyiM: qBoyi.toDecimalPlaces(2, Decimal.ROUND_CEIL).toNumber(),
+    };
+  }
+
+  const kesimBoyi = yo === "BO'YIGA" ? boyiAsos.times(K) : boyiAsos;
+  const eniM = birBuyum.div(kesimBoyi);
   if (eniM.lessThanOrEqualTo(0)) {
     throw new BiznesXato('KESIM_NOTOGRI', "kesim eni noldan katta bo'lsin");
   }
@@ -550,6 +596,6 @@ export function kesimOlchami(
      * talabidan TOR emas — kamomad bo'lishi mumkin emas.
      */
     eniM: eniM.toDecimalPlaces(2, Decimal.ROUND_CEIL).toNumber(),
-    boyiM: boyiM.toDecimalPlaces(2, Decimal.ROUND_CEIL).toNumber(),
+    boyiM: kesimBoyi.toDecimalPlaces(2, Decimal.ROUND_CEIL).toNumber(),
   };
 }

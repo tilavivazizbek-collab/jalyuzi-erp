@@ -40,8 +40,8 @@ import { BiznesXato } from '@/lib/xato';
 export interface PozitsiyaTahriri {
   readonly pozitsiyaId: number;
   /** TZ 3.4 — o'lcham SANTIMETRDA */
-  readonly eniSm: number;
-  readonly boyiSm: number;
+  readonly eniM: number;
+  readonly boyiM: number;
   readonly soni: number;
   readonly narxSnapshot: string;
   readonly chegirmaSumma: string;
@@ -67,8 +67,8 @@ interface EskiQator {
   readonly buyurtma_id: number;
   readonly mahsulot_tur_id: number | null;
   readonly qoshimcha_material_id: number | null;
-  readonly eni_sm: number;
-  readonly boyi_sm: number;
+  readonly eni_m: number;
+  readonly boyi_m: number;
   readonly soni: number;
   readonly narx_snapshot: string;
   readonly chegirma_summa: string | null;
@@ -102,7 +102,7 @@ export async function pozitsiyaniTahrirla(
   return ulanish.begin(async (tx) => {
     const q = await tx<EskiQator[]>`
       SELECT p.id, p.holat, p.buyurtma_id, p.mahsulot_tur_id,
-             p.qoshimcha_material_id, p.eni_sm, p.boyi_sm, p.soni,
+             p.qoshimcha_material_id, p.eni_m, p.boyi_m, p.soni,
              p.narx_snapshot::text, p.chegirma_summa::text, p.xizmat_haqi::text,
              b.mijoz_id, b.sotgan_filial_id, b.ishlab_chiqaruvchi_filial_id,
              b.valyuta, b.kurs_snapshot::text, b.raqam
@@ -139,8 +139,8 @@ export async function pozitsiyaniTahrirla(
     if (eski.qoshimcha_material_id === null && eski.mahsulot_tur_id !== null) {
       await sarflashniTekshir(tx, {
         mahsulotTurId: eski.mahsulot_tur_id,
-        eniSm: kirim.eniSm,
-        boyiSm: kirim.boyiSm,
+        eniM: kirim.eniM,
+        boyiM: kirim.boyiM,
         soni: kirim.soni,
         formulaSnapshot: kirim.formulaSnapshot,
         /** ⚠️ Slotsiz qator tekshirilmaydi — formula yo'q */
@@ -176,7 +176,7 @@ export async function pozitsiyaniTahrirla(
      *    yo'q, ombordagi bo'lak o'sha-o'sha.
      */
     const olchamOzgardi =
-      eski.eni_sm !== kirim.eniSm || eski.boyi_sm !== kirim.boyiSm;
+      eski.eni_m !== kirim.eniM || eski.boyi_m !== kirim.boyiM;
 
     const eskiXarita = new Map(eskiSlotlar.map((s) => [s.slot_id, s]));
     const matoOzgardi = kirim.slotlar.some((s) => {
@@ -195,7 +195,7 @@ export async function pozitsiyaniTahrirla(
     // ── Pozitsiyaning o'zi ──
     await tx`
       UPDATE buyurtma_pozitsiya
-      SET eni_sm = ${kirim.eniSm}, boyi_sm = ${kirim.boyiSm},
+      SET eni_m = ${kirim.eniM}, boyi_m = ${kirim.boyiM},
           soni = ${kirim.soni}, narx_snapshot = ${kirim.narxSnapshot},
           chegirma_summa = ${kirim.chegirmaSumma},
           xizmat_haqi = ${kirim.xizmatHaqi},
@@ -354,8 +354,8 @@ export async function pozitsiyaniTahrirla(
       VALUES (${xodimId}, ${eski.sotgan_filial_id}, 'TAHRIRLASH',
               'buyurtma_pozitsiya', ${kirim.pozitsiyaId},
               ${tx.json({
-                eni_sm: eski.eni_sm,
-                boyi_sm: eski.boyi_sm,
+                eni_m: eski.eni_m,
+                boyi_m: eski.boyi_m,
                 soni: eski.soni,
                 narx: eski.narx_snapshot,
                 chegirma: eski.chegirma_summa,
@@ -367,8 +367,8 @@ export async function pozitsiyaniTahrirla(
                 })),
               })},
               ${tx.json({
-                eni_sm: kirim.eniSm,
-                boyi_sm: kirim.boyiSm,
+                eni_m: kirim.eniM,
+                boyi_m: kirim.boyiM,
                 soni: kirim.soni,
                 narx: kirim.narxSnapshot,
                 chegirma: kirim.chegirmaSumma,

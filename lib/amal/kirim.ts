@@ -436,7 +436,7 @@ export async function kirimYarat(
           // 9.6 — tannarx kirim kursida QOTDI, endi u so'mda
           valyuta: 'SOM',
           xodimId,
-          sm: material.sarflash_birligi === 'SM' ? sarflashMiqdori : null,
+          sm: material.sarflash_birligi === 'M' ? sarflashMiqdori : null,
           dona: material.sarflash_birligi === 'DONA' ? Math.round(sarflashMiqdori) : null,
         });
         bolakSoni += 1;
@@ -573,7 +573,7 @@ async function bolakYoz(tx: postgres.TransactionSql, b: BolakYozuvi): Promise<vo
   );
 
   await tx`
-    INSERT INTO ombor_harakat (filial_id, bolak_id, turi, miqdor_kv_m, miqdor_sm,
+    INSERT INTO ombor_harakat (filial_id, bolak_id, turi, miqdor_kv_m, miqdor_m,
                                miqdor_dona, tannarx_summa, manba_turi, manba_id,
                                xodim_id)
     VALUES (${b.filialId}, ${bolakId}, 'KIRIM', ${b.kvM ?? null}, ${b.sm ?? null},
@@ -669,14 +669,14 @@ export async function kirimniStorno(
       // Uning qoldig'i manfiyga tushadi va qizil bo'lib turadi (2.5).
       if (b.holat !== 'BOSH') manfiyQoldiq.add(b.material_nomi);
 
-      const sm = b.turi === 'DONA' && b.sarflash_birligi === 'SM' ? b.miqdor : null;
+      const sm = b.turi === 'DONA' && b.sarflash_birligi === 'M' ? b.miqdor : null;
       const dona =
         b.turi === 'DONA' && b.sarflash_birligi === 'DONA'
           ? Math.round(Number(b.miqdor ?? 0))
           : null;
 
       await tx`
-        INSERT INTO ombor_harakat (filial_id, bolak_id, turi, miqdor_kv_m, miqdor_sm,
+        INSERT INTO ombor_harakat (filial_id, bolak_id, turi, miqdor_kv_m, miqdor_m,
                                    miqdor_dona, tannarx_summa, manba_turi, manba_id,
                                    izoh, xodim_id)
         VALUES (${hujjat.filial_id}, ${b.id}, 'STORNO',

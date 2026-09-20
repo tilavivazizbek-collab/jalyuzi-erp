@@ -16,7 +16,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { sarflashHisobla, slotSarfi, soniUchun, standartQiymatlar } from '@/lib/domain/formula';
-import { sm } from '@/lib/domain/birlik';
+import { m } from '@/lib/domain/birlik';
 import {
   kesimOlchami,
   kesimQatorlari,
@@ -38,15 +38,15 @@ const bolak = (eniM: number, boyiM: number, turi: 'RULON' | 'OSTATKA' = 'RULON')
 });
 
 /** Sotuv zanjirining aynan o'zi: formula → kv.m → kesim to'rtburchagi */
-function zanjir(formula: string, eniSm: number, boyiSm: number, chet?: number) {
+function zanjir(formula: string, eniM: number, boyiM: number, chet?: number) {
   const qiymatlar = standartQiymatlar(
-    sm(eniSm),
-    sm(boyiSm),
+    m(eniM),
+    m(boyiM),
     1,
     chet === undefined ? {} : { CHET: chet },
   );
   const hisoblanganKvM = Number(sarflashHisobla(formula, qiymatlar, 'KV_M'));
-  const kerak = kesimOlchami(hisoblanganKvM, boyiSm);
+  const kerak = kesimOlchami(hisoblanganKvM, boyiM);
   return { hisoblanganKvM, kerak };
 }
 
@@ -54,7 +54,7 @@ function zanjir(formula: string, eniSm: number, boyiSm: number, chet?: number) {
 
 describe('ASOS — `<eni> × BO\'YI` ko\'rinishidagi formulalar aniq ishlaydi', () => {
   it('Rollo `MAYDON`, 180 × 220 → 3.96 kv.m, kesim 1.80 × 2.20', () => {
-    const { hisoblanganKvM, kerak } = zanjir('MAYDON', 180, 220);
+    const { hisoblanganKvM, kerak } = zanjir('MAYDON', 1.8, 2.2);
     expect(hisoblanganKvM).toBe(3.96);
     expect(kerak).toEqual({ eniM: 1.8, boyiM: 2.2 });
     // Sarf = eni × bo'yi, hisoblangan miqdorga AYNAN teng
@@ -62,8 +62,8 @@ describe('ASOS — `<eni> × BO\'YI` ko\'rinishidagi formulalar aniq ishlaydi', 
   });
 
   it('K-02 kanonik Dikke: uch slot, CHET = 30 → 0.66 + 0.66 + 2.64 = 3.96', () => {
-    const chet = zanjir("CHET × BO'YI", 180, 220, 30);
-    const orta = zanjir("(ENI − 2×CHET) × BO'YI", 180, 220, 30);
+    const chet = zanjir("CHET × BO'YI", 1.8, 2.2, 0.3);
+    const orta = zanjir("(ENI − 2×CHET) × BO'YI", 1.8, 2.2, 0.3);
 
     expect(chet.hisoblanganKvM).toBe(0.66);
     expect(orta.hisoblanganKvM).toBe(2.64);
@@ -80,20 +80,20 @@ describe('ASOS — `<eni> × BO\'YI` ko\'rinishidagi formulalar aniq ishlaydi', 
 describe('1-TOPILMA — `MAYDON * K` da ko\'paytiruvchi butunlay ENIGA tushadi', () => {
   it('eniM = (eni metrda) × K, boyiM esa O\'ZGARMAYDI', () => {
     for (const K of [1, 1.5, 2, 3]) {
-      const { kerak } = zanjir(`MAYDON * ${String(K)}`, 180, 220);
+      const { kerak } = zanjir(`MAYDON * ${String(K)}`, 1.8, 2.2);
       expect(kerak.eniM).toBeCloseTo(1.8 * K, 10);
       expect(kerak.boyiM).toBe(2.2); // K ning bo'yiga ta'siri YO'Q
     }
   });
 
   it('Zebra `MAYDON * 2`, 180 × 220 → 3.60 m KENG bo\'lak izlanadi', () => {
-    const { hisoblanganKvM, kerak } = zanjir('MAYDON * 2', 180, 220);
+    const { hisoblanganKvM, kerak } = zanjir('MAYDON * 2', 1.8, 2.2);
     expect(hisoblanganKvM).toBe(7.92);
     expect(kerak).toEqual({ eniM: 3.6, boyiM: 2.2 });
   });
 
   it('hech qanday real rulon (2.0–3.0 m) zebraga sig\'maydi', () => {
-    const { kerak } = zanjir('MAYDON * 2', 180, 220);
+    const { kerak } = zanjir('MAYDON * 2', 1.8, 2.2);
     for (const rulonEni of [2.0, 2.4, 2.8, 3.0]) {
       expect(sigadimi(bolak(rulonEni, 50), kerak)).toBe(false);
     }
@@ -102,7 +102,7 @@ describe('1-TOPILMA — `MAYDON * K` da ko\'paytiruvchi butunlay ENIGA tushadi',
   });
 
   it('Plisse `MAYDON * 1.5`: 2.70 m keng talab qilinadi, 1.80 × 3.30 emas', () => {
-    const { hisoblanganKvM, kerak } = zanjir('MAYDON * 1.5', 180, 220);
+    const { hisoblanganKvM, kerak } = zanjir('MAYDON * 1.5', 1.8, 2.2);
     expect(hisoblanganKvM).toBe(5.94);
     expect(kerak).toEqual({ eniM: 2.7, boyiM: 2.2 });
     // Ikki variant bir xil MAYDON beradi, lekin faqat biri fizik jihatdan bor
@@ -112,8 +112,8 @@ describe('1-TOPILMA — `MAYDON * K` da ko\'paytiruvchi butunlay ENIGA tushadi',
 
   it('boyiM formula natijasiga BOG\'LIQ EMAS — faqat buyurtma bo\'yidan keladi', () => {
     // Maydon 10 barobar oshsa ham boyiM qimirlamaydi (kesish.ts:474)
-    const a = kesimOlchami(3.96, 220);
-    const b = kesimOlchami(39.6, 220);
+    const a = kesimOlchami(3.96, 2.2);
+    const b = kesimOlchami(39.6, 2.2);
     expect(a.boyiM).toBe(2.2);
     expect(b.boyiM).toBe(2.2);
     expect(b.eniM).toBeCloseTo(a.eniM * 10, 10);
@@ -126,11 +126,11 @@ describe('1-TOPILMA — `MAYDON * K` da ko\'paytiruvchi butunlay ENIGA tushadi',
 
 describe("1-TOPILMA · TUZATISH — kesish yo'nalishi: BO'YIGA da koefitsient bo'yiga tushadi", () => {
   it("Zebra `MAYDON`, k=2, BO'YIGA → 7.92 kv.m → 1.8 × 4.4", () => {
-    const qiymatlar = standartQiymatlar(sm(180), sm(220), 1, {});
+    const qiymatlar = standartQiymatlar(m(1.8), m(2.2), 1, {});
     const jami = slotSarfi('MAYDON', qiymatlar, 'KV_M', 2);
     expect(jami).toBe(7.92); // hisoblangan_miqdor endi JAMI
 
-    const kerak = kesimOlchami(jami, 220, { koeffitsient: 2, yonalish: "BO'YIGA" });
+    const kerak = kesimOlchami(jami, 2.2, { koeffitsient: 2, yonalish: "BO'YIGA" });
     expect(kerak).toEqual({ eniM: 1.8, boyiM: 4.4 }); // BO'Y 2 barobar
 
     // Haqiqiy rulon (2.0 m) ENDI SIG'ADI
@@ -138,29 +138,29 @@ describe("1-TOPILMA · TUZATISH — kesish yo'nalishi: BO'YIGA da koefitsient bo
   });
 
   it("ENIGA — avvalgi xulq: koefitsient enga tushadi (3.6 × 2.2)", () => {
-    const qiymatlar = standartQiymatlar(sm(180), sm(220), 1, {});
+    const qiymatlar = standartQiymatlar(m(1.8), m(2.2), 1, {});
     const jami = slotSarfi('MAYDON', qiymatlar, 'KV_M', 2);
-    const kerak = kesimOlchami(jami, 220, { koeffitsient: 2, yonalish: 'ENIGA' });
+    const kerak = kesimOlchami(jami, 2.2, { koeffitsient: 2, yonalish: 'ENIGA' });
     expect(kerak).toEqual({ eniM: 3.6, boyiM: 2.2 });
   });
 
   it("k=1 yoki sozlama bo'lmasa — avvalgi xulq (1.8 × 2.2)", () => {
-    const q = standartQiymatlar(sm(180), sm(220), 1, {});
-    expect(kesimOlchami(slotSarfi('MAYDON', q, 'KV_M', 1), 220)).toEqual({
+    const q = standartQiymatlar(m(1.8), m(2.2), 1, {});
+    expect(kesimOlchami(slotSarfi('MAYDON', q, 'KV_M', 1), 2.2)).toEqual({
       eniM: 1.8,
       boyiM: 2.2,
     });
-    expect(kesimOlchami(3.96, 220, { koeffitsient: 1, yonalish: "BO'YIGA" })).toEqual({
+    expect(kesimOlchami(3.96, 2.2, { koeffitsient: 1, yonalish: "BO'YIGA" })).toEqual({
       eniM: 1.8,
       boyiM: 2.2,
     });
   });
 
   it("Dikke chet (CHET × BO'YI): BO'YIGA da chet en O'ZGARMAYDI (0.3 × 4.4)", () => {
-    const q = standartQiymatlar(sm(180), sm(220), 1, { CHET: 30 });
+    const q = standartQiymatlar(m(1.8), m(2.2), 1, { CHET: 0.3 });
     const jami = slotSarfi("CHET × BO'YI", q, 'KV_M', 2); // 0.66 × 2 = 1.32
     expect(jami).toBeCloseTo(1.32, 4);
-    const kerak = kesimOlchami(jami, 220, { koeffitsient: 2, yonalish: "BO'YIGA" });
+    const kerak = kesimOlchami(jami, 2.2, { koeffitsient: 2, yonalish: "BO'YIGA" });
     expect(kerak.eniM).toBe(0.3); // chet en o'zgarmaydi
     expect(kerak.boyiM).toBeCloseTo(4.4, 2); // bo'y ×2
   });
@@ -173,7 +173,7 @@ describe("1-TOPILMA · TUZATISH — kesish yo'nalishi: BO'YIGA da koefitsient bo
 
 describe("4-TOPILMA — ombordan yechiladigan miqdor endi hisoblangan_miqdordan KAM EMAS (tuzatildi)", () => {
   it("`MAYDON * 1.15`, 183 × 227 → eni 2.11 (yuqoriga), kamomad yo'q", () => {
-    const { hisoblanganKvM, kerak } = zanjir('MAYDON * 1.15', 183, 227);
+    const { hisoblanganKvM, kerak } = zanjir('MAYDON * 1.15', 1.83, 2.27);
 
     expect(hisoblanganKvM).toBe(4.7772); // mijozdan shu uchun pul olinadi
     expect(kerak).toEqual({ eniM: 2.11, boyiM: 2.27 }); // 2.104493… → 2.11 (ROUND_CEIL)
@@ -189,7 +189,7 @@ describe("4-TOPILMA — ombordan yechiladigan miqdor endi hisoblangan_miqdordan 
 
   it('yuqoriga yaxlitlash — ortiqcha (zaxira) yechiladigan holat normal', () => {
     // eniM endi DOIM yuqoriga yaxlitlanadi: ombordan hisobdan ko'p yechiladi
-    const { hisoblanganKvM, kerak } = zanjir('MAYDON * 1.07', 183, 227);
+    const { hisoblanganKvM, kerak } = zanjir('MAYDON * 1.07', 1.83, 2.27);
     const sarf = kerak.eniM * kerak.boyiM;
     expect(sarf).toBeGreaterThan(hisoblanganKvM);
   });
@@ -215,11 +215,11 @@ describe("4-TOPILMA — ombordan yechiladigan miqdor endi hisoblangan_miqdordan 
 describe("5-TOPILMA — bag'rikenglikdan ortiq sig'dirish yo'qoladi (tuzatildi)", () => {
   it("eniM = 2.0149 → 2.02 (yuqoriga); 2.00 m bo'lak endi SIG'MAYDI", () => {
     // hisoblangan eni 2.0149 m ga to'g'ri keladigan maydon
-    const boyiSm = 100;
+    const boyiM = 1.0;
     const haqiqiyEni = 2.0149;
-    const kvM = haqiqiyEni * (boyiSm / 100);
+    const kvM = haqiqiyEni * boyiM;
 
-    const kerak = kesimOlchami(kvM, boyiSm);
+    const kerak = kesimOlchami(kvM, boyiM);
     expect(kerak.eniM).toBe(2.02); // 2.0149 → 2.02 (yuqoriga, kesish.ts:490)
 
     // 2.00 m keng bo'lak endi tanlanMAYDI — kesimga sig'maydi
@@ -238,35 +238,35 @@ describe("5-TOPILMA — bag'rikenglikdan ortiq sig'dirish yo'qoladi (tuzatildi)"
 
 describe("2-TOPILMA — yaxlitlash funksiyalari qo'shildi (tuzatildi): CEIL / FLOOR / ROUND / MIN / MAX", () => {
   it('CEIL / FLOOR / ROUND ishlaydi', () => {
-    const q = standartQiymatlar(sm(180), sm(220), 1, {});
-    expect(sarflashHisobla('CEIL(2.1)', q, 'SM')).toBe(3);
-    expect(sarflashHisobla('CEIL(2)', q, 'SM')).toBe(2);
-    expect(sarflashHisobla('FLOOR(2.9)', q, 'SM')).toBe(2);
-    expect(sarflashHisobla('ROUND(2.5)', q, 'SM')).toBe(3); // HALF_UP
-    expect(sarflashHisobla('ROUND(2.4)', q, 'SM')).toBe(2);
-    expect(sarflashHisobla('ROUND(2.444, 2)', q, 'SM')).toBe(2.44);
+    const q = standartQiymatlar(m(1.8), m(2.2), 1, {});
+    expect(sarflashHisobla('CEIL(2.1)', q, 'M')).toBe(3);
+    expect(sarflashHisobla('CEIL(2)', q, 'M')).toBe(2);
+    expect(sarflashHisobla('FLOOR(2.9)', q, 'M')).toBe(2);
+    expect(sarflashHisobla('ROUND(2.5)', q, 'M')).toBe(3); // HALF_UP
+    expect(sarflashHisobla('ROUND(2.4)', q, 'M')).toBe(2);
+    expect(sarflashHisobla('ROUND(2.444, 2)', q, 'M')).toBe(2.44);
   });
 
   it('MIN / MAX argumentlari bilan ishlaydi', () => {
-    const q = standartQiymatlar(sm(180), sm(220), 1, {});
-    expect(sarflashHisobla("MIN(ENI, BO'YI)", q, 'SM')).toBe(180);
-    expect(sarflashHisobla("MAX(ENI, BO'YI)", q, 'SM')).toBe(220);
-    expect(sarflashHisobla('MAX(MIN(ENI, 200), 100)', q, 'SM')).toBe(180);
+    const q = standartQiymatlar(m(1.8), m(2.2), 1, {});
+    expect(sarflashHisobla("MIN(ENI, BO'YI)", q, 'M')).toBe(1.8);
+    expect(sarflashHisobla("MAX(ENI, BO'YI)", q, 'M')).toBe(2.2);
+    expect(sarflashHisobla('MAX(MIN(ENI, 2), 1)', q, 'M')).toBe(1.8);
   });
 
   it("rapportni yaxlitlash ifodalanadi: CEIL(BO'YI / RAPPORT) * RAPPORT", () => {
-    const q = standartQiymatlar(sm(180), sm(220), 1, { RAPPORT: 32 });
-    // 220 / 32 = 6.875 → CEIL → 7 → 7 × 32 = 224 sm (to'liq 7 rapport)
-    expect(sarflashHisobla("CEIL(BO'YI / RAPPORT) * RAPPORT", q, 'SM')).toBe(224);
+    const q = standartQiymatlar(m(1.8), m(2.2), 1, { RAPPORT: 0.32 });
+    // 2.20 / 0.32 = 6.875 → CEIL → 7 → 7 × 0.32 = 2.24 m (to'liq 7 rapport)
+    expect(sarflashHisobla("CEIL(BO'YI / RAPPORT) * RAPPORT", q, 'M')).toBe(2.24);
   });
 
   it("noma'lum funksiya va noto'g'ri argument soni RAD etiladi", () => {
-    const q = standartQiymatlar(sm(180), sm(220), 1, {});
-    expect(() => sarflashHisobla('NOMALUM(1)', q, 'SM')).toThrow();
-    expect(() => sarflashHisobla('CEIL()', q, 'SM')).toThrow();
-    expect(() => sarflashHisobla('MIN(1)', q, 'SM')).toThrow();
-    expect(() => sarflashHisobla('CEIL(1', q, 'SM')).toThrow();
-    expect(() => sarflashHisobla('CEIL(1, 2)', q, 'SM')).toThrow();
+    const q = standartQiymatlar(m(1.8), m(2.2), 1, {});
+    expect(() => sarflashHisobla('NOMALUM(1)', q, 'M')).toThrow();
+    expect(() => sarflashHisobla('CEIL()', q, 'M')).toThrow();
+    expect(() => sarflashHisobla('MIN(1)', q, 'M')).toThrow();
+    expect(() => sarflashHisobla('CEIL(1', q, 'M')).toThrow();
+    expect(() => sarflashHisobla('CEIL(1, 2)', q, 'M')).toThrow();
   });
 });
 // ─── 3-TOPILMA ────────────────────────────────────────────────────────────
@@ -307,15 +307,15 @@ describe("3-TOPILMA — tekshiruv bag'rikengligi kesim yaxlitlash qadamidan anch
 
 describe("6-TOPILMA — «SONI» ombor sarfiga faqat formula uni ishlatsagina ta'sir qiladi", () => {
   it('MAYDON formulasi soni=3 da ham 2.94 kv.m — bitta buyum sarfi', () => {
-    const bitta = Number(sarflashHisobla('MAYDON', standartQiymatlar(sm(210), sm(140), 1, {}), 'KV_M'));
-    const uchta = Number(sarflashHisobla('MAYDON', standartQiymatlar(sm(210), sm(140), 3, {}), 'KV_M'));
+    const bitta = Number(sarflashHisobla('MAYDON', standartQiymatlar(m(2.1), m(1.4), 1, {}), 'KV_M'));
+    const uchta = Number(sarflashHisobla('MAYDON', standartQiymatlar(m(2.1), m(1.4), 3, {}), 'KV_M'));
     expect(bitta).toBe(2.94);
     expect(uchta).toBe(2.94); // SONI o'qilmadi — bir xil!
   });
 
   it("faqat «MAYDON * SONI» deb yozilsa sarf soni bilan o'sadi (8.82)", () => {
     const uchta = Number(
-      sarflashHisobla('MAYDON * SONI', standartQiymatlar(sm(210), sm(140), 3, {}), 'KV_M'),
+      sarflashHisobla('MAYDON * SONI', standartQiymatlar(m(2.1), m(1.4), 3, {}), 'KV_M'),
     );
     expect(uchta).toBe(8.82);
   });
@@ -344,15 +344,15 @@ describe("6-TOPILMA — «SONI» ombor sarfiga faqat formula uni ishlatsagina ta
 //        geometriya bo'yicha ishlaydi.
 describe("7-TOPILMA — band/tugatdim kesimi deterministik; yuqoriga yaxlitlash chegaraga chidamsizlikni olib tashladi (tuzatildi)", () => {
   it("kesimOlchami deterministik — bir xil kiritish bir xil kesim (band = tugatdim)", () => {
-    const band = kesimOlchami('4.7772', 227); // buyurtma.ts:548 ishlatadigan qiymat
-    const tugatdimQayta = kesimOlchami('4.7772', 227); // ish.ts:453 ishlatadigan qiymat
+    const band = kesimOlchami('4.7772', 2.27); // buyurtma.ts:548 ishlatadigan qiymat
+    const tugatdimQayta = kesimOlchami('4.7772', 2.27); // ish.ts:453 ishlatadigan qiymat
     expect(band).toEqual(tugatdimQayta);
     expect(band).toEqual({ eniM: 2.11, boyiM: 2.27 }); // 2.10449… → 2.11 (ROUND_CEIL)
   });
 
   it("tekshiruv chegarasidagi farq (4.6309 ↔ 4.6311) endi BIR XIL kesim beradi — 2.11", () => {
-    const past = kesimOlchami(4.6309, 220); // 2.10495… → 2.11
-    const yuqori = kesimOlchami(4.6311, 220); // 2.10505… → 2.11
+    const past = kesimOlchami(4.6309, 2.2); // 2.10495… → 2.11
+    const yuqori = kesimOlchami(4.6311, 2.2); // 2.10505… → 2.11
     expect(past).toEqual({ eniM: 2.11, boyiM: 2.2 });
     expect(yuqori).toEqual({ eniM: 2.11, boyiM: 2.2 });
     // Ikkalasi tekshiruv bag'rikengligi ICHIDA (sarflash.ts:39 — farq ≤ 0.0002)

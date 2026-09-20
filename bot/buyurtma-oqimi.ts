@@ -220,8 +220,8 @@ function pozitsiyaHisobi(
   }
 
   return pozitsiyaNarxiniHisobla({
-    eniSm: p.eniSm ?? 0,
-    boyiSm: p.boyiSm ?? 0,
+    eniM: p.eniM ?? 0,
+    boyiM: p.boyiM ?? 0,
     soni: 1,
     parametrlar,
     slotlar,
@@ -439,7 +439,7 @@ async function savatniKorsat(
     jami += Number(narx);
 
     qatorlar.push(
-      `${String(i + 1)}. ${p.turNomi} · ${String(p.eniSm)}×${String(p.boyiSm)} sm`,
+      `${String(i + 1)}. ${p.turNomi} · ${String(p.eniM)}×${String(p.boyiM)} m`,
       `   ${pulKorsat(som(narx))}`,
     );
   });
@@ -519,15 +519,18 @@ export async function savatniYubor(
           koeffitsient: slotTarifi?.koeffitsient ?? 1,
           kesishTuri:
             slotTarifi?.kesishTuri === "BO'YIGA" ? ("BO'YIGA" as const) : ('ENIGA' as const),
+          /** ⚠️ «DIKKEY» — rulon eni o'zgarmaydi (egasi, 2026-09-20) */
+          kesimEniM: slotTarifi?.kesimEniM ?? null,
           birlik,
           // TZ 3.6 · 7.6 — band qilish HISOBLANGAN sarflash bo'yicha (P-24)
           kerak:
             birlik === 'KV_M'
-              ? kesimOlchami(miqdor, p.boyiSm ?? 0, {
+              ? kesimOlchami(miqdor, p.boyiM ?? 0, {
                   koeffitsient: slotTarifi?.koeffitsient ?? 1,
                   yonalish: (slotTarifi?.kesishTuri ?? 'ENIGA') === "BO'YIGA"
                     ? ("BO'YIGA" as const)
                     : ('ENIGA' as const),
+                  kesimEniM: slotTarifi?.kesimEniM ?? null,
                 })
               : null,
           /**
@@ -559,8 +562,8 @@ export async function savatniYubor(
 
     return {
       mahsulotTurId: p.mahsulotTurId,
-      eniSm: p.eniSm ?? 0,
-      boyiSm: p.boyiSm ?? 0,
+      eniM: p.eniM ?? 0,
+      boyiM: p.boyiM ?? 0,
       soni: 1,
       narxSnapshot: hisob?.jami ?? '0',
       chegirmaSumma: '0',

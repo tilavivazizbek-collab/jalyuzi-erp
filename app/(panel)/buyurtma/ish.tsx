@@ -92,8 +92,8 @@ export function IshniBoshlashTugmasi({
 export function TugatdimTugmasi({
   pozitsiyaId,
   bandlar,
-  mahsulotEniSm,
-  mahsulotBoyiSm,
+  mahsulotEniM,
+  mahsulotBoyiM,
 }: {
   pozitsiyaId: number;
   /** Band qilingan bo'laklar — usta shulardan kesadi (7.3) */
@@ -106,8 +106,8 @@ export function TugatdimTugmasi({
     eniM: number | null;
     boyiM: number | null;
   }[];
-  mahsulotEniSm: number;
-  mahsulotBoyiSm: number;
+  mahsulotEniM: number;
+  mahsulotBoyiM: number;
 }) {
   const [ochiq, ochiqniOzgartir] = useState(false);
   const [holat, yubor, kutilmoqda] = useActionState(
@@ -163,7 +163,7 @@ export function TugatdimTugmasi({
         boyiM: b.boyiM,
         qismanOchilgan: false,
       },
-      { eniM: mahsulotEniSm / 100, boyiM: mahsulotBoyiSm / 100 },
+      { eniM: mahsulotEniM, boyiM: mahsulotBoyiM },
     );
 
     return {
@@ -254,8 +254,8 @@ export function TugatdimTugmasi({
 
             <div className="rounded-maydon bg-fon px-3 py-2.5 text-[13px] text-matn-ikki">
               <p>
-                Mahsulot: <b className="raqam">{mahsulotEniSm}</b> ×{' '}
-                <b className="raqam">{mahsulotBoyiSm}</b> sm
+                Mahsulot: <b className="raqam">{mahsulotEniM}</b> ×{' '}
+                <b className="raqam">{mahsulotBoyiM}</b> m
               </p>
             </div>
 

@@ -20,8 +20,8 @@ import { sotuvPozitsiyaSxema } from '@/lib/sxema/sotuv';
 /** Tayyor mahsulot qatori — Rollo 120 × 150. */
 const tayyor = {
   mahsulotTurId: 7,
-  eniSm: 120,
-  boyiSm: 150,
+  eniM: 120,
+  boyiM: 150,
   soni: 1,
   narxSnapshot: '678400',
   chegirmaSumma: '0',
@@ -44,8 +44,8 @@ const tayyor = {
 const qoshimcha = {
   mahsulotTurId: null,
   qoshimchaMaterialId: 55,
-  eniSm: 0,
-  boyiSm: 0,
+  eniM: 0,
+  boyiM: 0,
   soni: 2,
   narxSnapshot: '90000',
   chegirmaSumma: '0',
@@ -85,8 +85,8 @@ describe('TZ 3.10 — sotuv pozitsiyasi ikki xil bo\'ladi', () => {
   });
 
   it('tayyor mahsulotda o\'lcham majburiy', () => {
-    expect(sotuvPozitsiyaSxema.safeParse({ ...tayyor, eniSm: 0 }).success).toBe(false);
-    expect(sotuvPozitsiyaSxema.safeParse({ ...tayyor, boyiSm: 0 }).success).toBe(false);
+    expect(sotuvPozitsiyaSxema.safeParse({ ...tayyor, eniM: 0 }).success).toBe(false);
+    expect(sotuvPozitsiyaSxema.safeParse({ ...tayyor, boyiM: 0 }).success).toBe(false);
   });
 
   it('tayyor mahsulotda kamida bitta slot', () => {
@@ -95,7 +95,7 @@ describe('TZ 3.10 — sotuv pozitsiyasi ikki xil bo\'ladi', () => {
   });
 
   it('qo\'shimcha buyumda o\'lcham bo\'lmaydi (3.10)', () => {
-    const n = sotuvPozitsiyaSxema.safeParse({ ...qoshimcha, eniSm: 120, boyiSm: 150 });
+    const n = sotuvPozitsiyaSxema.safeParse({ ...qoshimcha, eniM: 120, boyiM: 150 });
     expect(n.success).toBe(false);
   });
 
@@ -108,7 +108,7 @@ describe('TZ 3.10 — sotuv pozitsiyasi ikki xil bo\'ladi', () => {
   });
 
   it('manfiy o\'lcham hech qachon o\'tmaydi', () => {
-    expect(sotuvPozitsiyaSxema.safeParse({ ...tayyor, eniSm: -1 }).success).toBe(false);
-    expect(sotuvPozitsiyaSxema.safeParse({ ...qoshimcha, boyiSm: -1 }).success).toBe(false);
+    expect(sotuvPozitsiyaSxema.safeParse({ ...tayyor, eniM: -1 }).success).toBe(false);
+    expect(sotuvPozitsiyaSxema.safeParse({ ...qoshimcha, boyiM: -1 }).success).toBe(false);
   });
 });

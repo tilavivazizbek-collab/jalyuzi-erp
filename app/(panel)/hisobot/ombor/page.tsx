@@ -385,7 +385,7 @@ export default async function OmborHisoboti({
                   <tr key={k.materialId}>
                     <td className="px-4 py-2.5 font-medium">{k.nom}</td>
                     <td className="raqam px-4 py-2.5 text-right">
-                      {son(birlikda(k.qoldiq, k.sarflashBirligi))}{' '}
+                      {son(birlikda(k.qoldiq))}{' '}
                       <span className="text-xs text-matn-kuchsiz">
                         {birlikNomi(k.sarflashBirligi)}
                       </span>
@@ -435,7 +435,7 @@ export default async function OmborHisoboti({
                   <tr key={q.materialId}>
                     <td className="px-4 py-2.5 font-medium">{q.nom}</td>
                     <td className="raqam px-4 py-2.5 text-right">
-                      {son(birlikda(q.miqdor, q.sarflashBirligi))}{' '}
+                      {son(birlikda(q.miqdor))}{' '}
                       <span className="text-xs text-matn-kuchsiz">
                         {birlikNomi(q.sarflashBirligi)}
                       </span>
@@ -488,18 +488,18 @@ export default async function OmborHisoboti({
                       </span>
                     </td>
                     <td className="raqam px-4 py-2.5 text-right text-belgi-yashil">
-                      {h.kirim === 0 ? '-' : son(birlikda(h.kirim, h.sarflashBirligi))}
+                      {h.kirim === 0 ? '-' : son(birlikda(h.kirim))}
                     </td>
                     <td className="raqam px-4 py-2.5 text-right">
-                      {h.sarf === 0 ? '-' : son(birlikda(h.sarf, h.sarflashBirligi))}
+                      {h.sarf === 0 ? '-' : son(birlikda(h.sarf))}
                     </td>
                     <td className="raqam px-4 py-2.5 text-right text-belgi-sariq">
                       {h.chiqindi === 0
                         ? '-'
-                        : son(birlikda(h.chiqindi, h.sarflashBirligi))}
+                        : son(birlikda(h.chiqindi))}
                     </td>
                     <td className="raqam px-4 py-2.5 text-right text-belgi-qizil">
-                      {h.brak === 0 ? '-' : son(birlikda(h.brak, h.sarflashBirligi))}
+                      {h.brak === 0 ? '-' : son(birlikda(h.brak))}
                     </td>
                   </tr>
                 ))}
@@ -629,15 +629,16 @@ export default async function OmborHisoboti({
 }
 
 /**
- * Q-01 - chiziqli mahsulot bazada SANTIMETRDA yotadi, ekranda METRDA
+ * Q-01 - chiziqli mahsulot bazada ham, ekranda ham METRDA (2026-09-20)
  * ko'rsatiladi. Omborchi metr bilan ishlaydi.
  */
-function birlikda(miqdor: number, sarflashBirligi: string): number {
-  return sarflashBirligi === 'SM' ? miqdor / 100 : miqdor;
+function birlikda(miqdor: number): number {
+  // ⚠️ 2026-09-20 — chiziqli mahsulot bazada ham METRDA, ÷100 kerak emas
+  return miqdor;
 }
 
 function birlikNomi(sarflashBirligi: string): string {
-  if (sarflashBirligi === 'SM') return 'm';
+  if (sarflashBirligi === 'M') return 'm';
   if (sarflashBirligi === 'DONA') return 'dona';
   return 'kv.m';
 }

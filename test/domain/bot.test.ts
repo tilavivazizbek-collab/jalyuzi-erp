@@ -144,8 +144,10 @@ describe('TZ 13.6 — pozitsiyalar xulosasi (8.2)', () => {
 
 describe("TZ 13.4 — o'lcham validatsiyasi", () => {
   it("to'g'ri o'lcham qabul qilinadi", () => {
-    expect(olchamTekshir('210')).toBe(210);
-    expect(olchamTekshir(' 140 ')).toBe(140);
+    expect(olchamTekshir('2.1')).toBe(2.1);
+    expect(olchamTekshir(' 1.4 ')).toBe(1.4);
+    // Telefon klaviaturasi ko'pincha vergul chiqaradi (2026-09-20)
+    expect(olchamTekshir('2,1')).toBe(2.1);
   });
 
   it('nol rad etiladi', () => {
@@ -158,12 +160,14 @@ describe("TZ 13.4 — o'lcham validatsiyasi", () => {
 
   it('harf rad etiladi', () => {
     expect(() => olchamTekshir('ikki yuz')).toThrow(BiznesXato);
-    expect(() => olchamTekshir('210sm')).toThrow(BiznesXato);
+    expect(() => olchamTekshir('2.1m')).toThrow(BiznesXato);
   });
 
   it("kasr rad etiladi — usta yarim santimetrni kesa olmaydi", () => {
-    expect(() => olchamTekshir('210.5')).toThrow(BiznesXato);
-    expect(() => olchamTekshir('210,5')).toThrow(BiznesXato);
+    // ⚠️ Metrda KASR RUXSAT: 2.10 m — oddiy o'lcham, 210.5 sm emas
+    expect(olchamTekshir('2.15')).toBe(2.15);
+    // Santimetrdan mayda rad etiladi — baza NUMERIC(8,2)
+    expect(() => olchamTekshir('2.155')).toThrow(BiznesXato);
   });
 
   it("bo'sh matn rad etiladi", () => {
@@ -172,11 +176,11 @@ describe("TZ 13.4 — o'lcham validatsiyasi", () => {
   });
 
   it("haddan tashqari katta son rad etiladi", () => {
-    expect(() => olchamTekshir('99999')).toThrow(BiznesXato);
+    expect(() => olchamTekshir('999.99')).toThrow(BiznesXato);
   });
 
   it('yaroqlimi — xatosiz shakl', () => {
-    expect(olchamYaroqlimi('210')).toBe(true);
+    expect(olchamYaroqlimi('2.1')).toBe(true);
     expect(olchamYaroqlimi('0')).toBe(false);
     expect(olchamYaroqlimi('salom')).toBe(false);
   });

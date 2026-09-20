@@ -51,8 +51,8 @@ interface PozitsiyaQatori {
   readonly holat: string;
   readonly usta_id: number | null;
   readonly buyurtma_id: number;
-  readonly eni_sm: number;
-  readonly boyi_sm: number;
+  readonly eni_m: number;
+  readonly boyi_m: number;
   /** 3.4 — bir pozitsiyada bir nechta bir xil buyum bo'lishi mumkin */
   readonly soni: number;
   readonly stavka_snapshot: string | null;
@@ -66,7 +66,7 @@ async function pozitsiyaniQulfla(
   pozitsiyaId: number,
 ): Promise<PozitsiyaQatori> {
   const q = await tx<PozitsiyaQatori[]>`
-    SELECT p.id, p.holat, p.usta_id, p.buyurtma_id, p.eni_sm, p.boyi_sm,
+    SELECT p.id, p.holat, p.usta_id, p.buyurtma_id, p.eni_m, p.boyi_m,
            p.soni, p.stavka_snapshot, p.stavka_birlik_snapshot,
            b.sotgan_filial_id, b.ishlab_chiqaruvchi_filial_id
     FROM buyurtma_pozitsiya p
@@ -374,6 +374,7 @@ export async function tugatdim(
         kam_ishlatiladigan_m: string | null;
         koeffitsient: string;
         kesish_turi: string;
+        kesim_eni_m: string | null;
       }[]
     >`
       SELECT bd.id AS band_id, bo.id AS bolak_id, bo.kod, bo.turi, bo.ochilgan,
@@ -383,7 +384,7 @@ export async function tugatdim(
              pm.hisoblangan_miqdor::text,
              m.yaroqsiz_chegara_m::text, m.kam_ishlatiladigan_m::text,
              -- AUDIT 1 — kesim yo'nalishi bilan hisoblanadi
-             ms.koeffitsient::text, ms.kesish_turi
+             ms.koeffitsient::text, ms.kesish_turi, ms.kesim_eni_m::text
       FROM band bd
       JOIN bolak bo    ON bo.id = bd.bolak_id
       JOIN material m  ON m.id = bo.material_id
@@ -456,10 +457,18 @@ export async function tugatdim(
         *    yo'li ham, bot yo'li ham aynan shuni chaqiradi.
         */
        /** T-12 — jami sarfdan BIR BUYUM ulushi; usta har bandni alohida kesadi */
-       const kerak = kesimOlchami(band.hisoblangan_miqdor, p.boyi_sm, {
+       const kerak = kesimOlchami(band.hisoblangan_miqdor, p.boyi_m, {
          koeffitsient: Number(band.koeffitsient),
          yonalish: band.kesish_turi === "BO'YIGA" ? ("BO'YIGA" as const) : ('ENIGA' as const),
          soni: p.soni,
+         /**
+          * ⚠️ «DIKKEY» — rulon eni o'zgarmaydi (egasi, 2026-09-20).
+          *
+          *    BAND QILISHDAGI bilan AYNAN bir xil bo'lishi SHART:
+          *    usta kesgan to'rtburchak band qilinganidan farq qilsa,
+          *    ombor uch qatori nolga kelmaydi va kamomad chiqadi.
+          */
+         kesimEniM: band.kesim_eni_m === null ? null : Number(band.kesim_eni_m),
        });
        const reja = kesimRejasi(manbaBolak, kerak);
        const qoldiqlar: Qoldiqlar = k.qoldiqlar ?? {
@@ -766,7 +775,8 @@ export async function tugatdim(
      * ⚠️ TZ 10.12 — stavkasi belgilanmagan tur ishlab chiqarishni
      *    to'xtatmaydi: haq 0 bo'ladi va adminga bildirishnoma ketadi.
      */
-    const maydonKvM = new Decimal(p.eni_sm).times(p.boyi_sm).div(10_000).toNumber();
+    // ⚠️ 2026-09-20 — o'lchamlar METRDA, ko'paytmaning o'zi kv.m
+    const maydonKvM = new Decimal(p.eni_m).times(p.boyi_m).toNumber();
     const haq =
       p.stavka_snapshot === null
         ? null

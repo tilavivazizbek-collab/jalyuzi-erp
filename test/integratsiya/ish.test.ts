@@ -124,8 +124,8 @@ async function pozitsiyaTayyorla(
     pozitsiyalar: [
       {
         mahsulotTurId: turId,
-        eniSm: Math.round(eniM * 100),
-        boyiSm: Math.round(boyiM * 100),
+        eniM,
+        boyiM,
         soni: 1,
         narxSnapshot: '500000',
         chegirmaSumma: '0',
@@ -345,8 +345,8 @@ describe('TZ 8.5 — usta navbatdan ishni oladi', () => {
         pozitsiyalar: [
           {
             mahsulotTurId: turId,
-            eniSm: 120,
-            boyiSm: 200,
+            eniM: 1.2,
+            boyiM: 2,
             soni: 1,
             narxSnapshot: '500000',
             chegirmaSumma: '0',
@@ -949,8 +949,8 @@ describe("7.6 — ko'p matoli mahsulot", () => {
         pozitsiyalar: [
           {
             mahsulotTurId: ikkiTurId,
-            eniSm: 120,
-            boyiSm: 200,
+            eniM: 1.2,
+            boyiM: 2,
             soni: 1,
             narxSnapshot: '900000',
             chegirmaSumma: '0',

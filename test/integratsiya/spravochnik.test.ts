@@ -75,7 +75,7 @@ describe('TZ 5.8 — bloklaydigan tekshiruvlar', () => {
       () => sql`
         INSERT INTO material (nom, hisob_turi, kirim_birligi, sarflash_birligi,
                               koeffitsient, yaratdi_id)
-        VALUES ('Nol koef', 'CHIZIQLI', 'shtanga', 'SM', 0, 1)`,
+        VALUES ('Nol koef', 'CHIZIQLI', 'shtanga', 'M', 0, 1)`,
     );
   });
 
@@ -84,7 +84,7 @@ describe('TZ 5.8 — bloklaydigan tekshiruvlar', () => {
       () => sql`
         INSERT INTO material (nom, hisob_turi, kirim_birligi, sarflash_birligi,
                               koeffitsient, yaratdi_id)
-        VALUES ('Manfiy koef', 'CHIZIQLI', 'shtanga', 'SM', -3, 1)`,
+        VALUES ('Manfiy koef', 'CHIZIQLI', 'shtanga', 'M', -3, 1)`,
     );
   });
 

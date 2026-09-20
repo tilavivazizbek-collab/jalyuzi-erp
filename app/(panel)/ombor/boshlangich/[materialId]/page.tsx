@@ -73,7 +73,7 @@ export default async function BoshlangichSahifasi({
           yangiMahsulot={yangi}
           boshEni={m.odatdagiEniM ?? ''}
           boshBoyi={m.odatdagiBoyiM ?? ''}
-          smda={m.sarflashBirligi === 'SM'}
+          smda={m.sarflashBirligi === 'M'}
         />
       )}
     </div>

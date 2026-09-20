@@ -44,7 +44,7 @@ beforeAll(async () => {
   };
 
   matoId = await yarat('Kirim sinov matosi', 'RULON', 'rulon', 'KV_M', '1', '120000');
-  shtangaId = await yarat('Kirim sinov karnizi', 'CHIZIQLI', 'shtanga', 'SM', '300', '35000');
+  shtangaId = await yarat('Kirim sinov karnizi', 'CHIZIQLI', 'shtanga', 'M', '3', '35000');
   kronshteynId = await yarat('Kirim sinov kronshteyni', 'DONA', 'quti', 'DONA', '50', '5000');
 }, 60_000);
 
@@ -450,8 +450,8 @@ describe('har bo\'lak uchun ombor jurnaliga yozuv tushadi', () => {
 
 // ─── Q-01 · Chiziqli material koeffitsienti ───────────────────────────────
 
-describe('Q-01 — chiziqli material koeffitsient bilan smga o\'giriladi', () => {
-  it('10 shtanga × 300 = 3000 sm', async () => {
+describe('Q-01 — chiziqli material koeffitsient bilan metrga o\'giriladi', () => {
+  it('10 shtanga × 3 = 30 m', async () => {
     const n = await kirimYarat(
       sql,
       asos([
@@ -471,7 +471,7 @@ describe('Q-01 — chiziqli material koeffitsient bilan smga o\'giriladi', () =>
       SELECT bo.miqdor FROM bolak bo
       JOIN kirim_qator kq ON kq.id = bo.kirim_qator_id
       WHERE kq.kirim_id = ${n.kirimId}`;
-    expect(Number(q[0]?.miqdor)).toBe(3000);
+    expect(Number(q[0]?.miqdor)).toBe(30);
   });
 });
 

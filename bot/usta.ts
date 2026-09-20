@@ -40,8 +40,8 @@ interface NavbatQatori {
   readonly raqam: string;
   readonly tartib: number;
   readonly tur: string;
-  readonly eni_sm: number;
-  readonly boyi_sm: number;
+  readonly eni_m: number;
+  readonly boyi_m: number;
   readonly muddat: string | null;
   readonly matolar: string | null;
   readonly aksessuarlar: string | null;
@@ -82,7 +82,7 @@ export async function navbat(filialId: number): Promise<readonly NavbatQatori[]>
      * xato faqat botni ochgan usta oldida chiqardi.
      */
     SELECT p.id AS pozitsiya_id, b.raqam, p.tartib,
-           mt.nom AS tur, p.eni_sm, p.boyi_sm,
+           mt.nom AS tur, p.eni_m, p.boyi_m,
            b.tayyorlik_sana::text AS muddat,
            (SELECT string_agg(ms.nom || ': ' || m.nom, ' · ' ORDER BY ms.tartib)
               FROM pozitsiya_material pm
@@ -106,7 +106,7 @@ export async function navbat(filialId: number): Promise<readonly NavbatQatori[]>
 function navbatMatni(q: NavbatQatori): string {
   const qatorlar = [
     `*${q.raqam}* · poz. ${String(q.tartib)} — ${q.tur}`,
-    `📐 ${String(q.eni_sm)} × ${String(q.boyi_sm)} sm`,
+    `📐 ${String(q.eni_m)} × ${String(q.boyi_m)} sm`,
   ];
   if (q.matolar !== null) qatorlar.push(`🧵 ${q.matolar}`);
   if (q.aksessuarlar !== null) qatorlar.push(`🎀 ${q.aksessuarlar}`);
@@ -193,12 +193,12 @@ export async function ishlarimniKorsat(
       raqam: string;
       tartib: number;
       tur: string;
-      eni_sm: number;
-      boyi_sm: number;
+      eni_m: number;
+      boyi_m: number;
     }[]
   >`
     SELECT p.id AS pozitsiya_id, b.raqam, p.tartib, mt.nom AS tur,
-           p.eni_sm, p.boyi_sm
+           p.eni_m, p.boyi_m
     FROM buyurtma_pozitsiya p
     JOIN buyurtma b      ON b.id = p.buyurtma_id
     JOIN mahsulot_tur mt ON mt.id = p.mahsulot_tur_id
@@ -215,7 +215,7 @@ export async function ishlarimniKorsat(
   for (const i of q) {
     await ctx.reply(
       `*${i.raqam}* · poz. ${String(i.tartib)} — ${i.tur}\n` +
-        `📐 ${String(i.eni_sm)} × ${String(i.boyi_sm)} sm`,
+        `📐 ${String(i.eni_m)} × ${String(i.boyi_m)} sm`,
       {
         parse_mode: 'Markdown',
         reply_markup: Markup.inlineKeyboard([

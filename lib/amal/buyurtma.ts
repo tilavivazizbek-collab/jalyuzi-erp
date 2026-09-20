@@ -42,7 +42,7 @@ export interface SlotKirimi {
   readonly hisoblanganMiqdor: string;
   /** Sotuvchi tuzatgani — faqat narxga tegadi (3.5) */
   readonly tuzatilganMiqdor: string | null;
-  readonly birlik: 'KV_M' | 'SM' | 'DONA';
+  readonly birlik: 'KV_M' | 'M' | 'DONA';
   /**
    * AUDIT 1-topilma — kesish sozlamalari (formadan, katalogdan keladi).
    * `kerak` to'rtburchagi shulardan qarab hisoblanadi.
@@ -71,13 +71,13 @@ export interface QoshimchaKirimi {
   readonly narxSnapshot: string;
   readonly materialId: number | null;
   readonly miqdor: string | null;
-  readonly birlik: 'KV_M' | 'SM' | 'DONA' | null;
+  readonly birlik: 'KV_M' | 'M' | 'DONA' | null;
 }
 
 export interface AksessuarKirimi {
   readonly materialId: number;
   readonly soni: string;
-  readonly birlik: 'KV_M' | 'SM' | 'DONA';
+  readonly birlik: 'KV_M' | 'M' | 'DONA';
   readonly narxSnapshot: string;
   /** TZ 3.7 — qo'lda kiritilgan sonni formula ustidan yozmaydi */
   readonly qoldaKiritildi: boolean;
@@ -110,8 +110,8 @@ export interface PozitsiyaKirimi {
   readonly mahsulotTurId: number | null;
   /** Qo'shimcha mahsulotda — qaysi material sotilmoqda */
   readonly qoshimchaMaterialId?: number | null;
-  readonly eniSm: number;
-  readonly boyiSm: number;
+  readonly eniM: number;
+  readonly boyiM: number;
   readonly soni: number;
   readonly narxSnapshot: string;
   readonly chegirmaSumma: string;
@@ -213,8 +213,8 @@ export async function pozitsiyaYozTx(
   if (!qoshimchami && p.mahsulotTurId !== null) {
     await sarflashniTekshir(tx, {
       mahsulotTurId: p.mahsulotTurId,
-      eniSm: p.eniSm,
-      boyiSm: p.boyiSm,
+      eniM: p.eniM,
+      boyiM: p.boyiM,
       soni: p.soni,
       formulaSnapshot: p.formulaSnapshot,
       /**
@@ -232,11 +232,11 @@ export async function pozitsiyaYozTx(
   const q = await tx<{ id: number }[]>`
     INSERT INTO buyurtma_pozitsiya (buyurtma_id, tartib, mahsulot_tur_id,
                                     qoshimcha_material_id,
-                                    eni_sm, boyi_sm, soni, narx_snapshot,
+                                    eni_m, boyi_m, soni, narx_snapshot,
                                     chegirma_summa, xizmat_haqi,
                                     formula_snapshot, holat, yaratdi_id)
     VALUES (${k.buyurtmaId}, ${k.tartib}, ${p.mahsulotTurId},
-            ${p.qoshimchaMaterialId ?? null}, ${p.eniSm}, ${p.boyiSm},
+            ${p.qoshimchaMaterialId ?? null}, ${p.eniM}, ${p.boyiM},
             ${p.soni}, ${p.narxSnapshot}, ${p.chegirmaSumma}, ${p.xizmatHaqi},
             ${tx.json(p.formulaSnapshot as never)},
             ${k.tasdiqlangan ? k.tasdiqHolati : k.boshHolati}, ${xodimId})
@@ -613,19 +613,20 @@ export async function pozitsiyaniTasdiqla(
         birlik: string;
         koeffitsient: string;
         kesish_turi: string;
+        kesim_eni_m: string | null;
       }[]
     >`
       SELECT pm.id, pm.material_id, pm.hisoblangan_miqdor, pm.birlik,
-             s.koeffitsient::text, s.kesish_turi
+             s.koeffitsient::text, s.kesish_turi, s.kesim_eni_m::text
       FROM pozitsiya_material pm
       JOIN mahsulot_slot s ON s.id = pm.slot_id
       WHERE pm.buyurtma_pozitsiya_id = ${pozitsiyaId}`;
 
     // O'lchamni pozitsiyadan olamiz — band qilish METRDA ishlaydi (Q-05)
-    const olcham = await tx<{ eni_sm: number; boyi_sm: number; soni: number }[]>`
-      SELECT eni_sm, boyi_sm, soni FROM buyurtma_pozitsiya WHERE id = ${pozitsiyaId}`;
+    const olcham = await tx<{ eni_m: number; boyi_m: number; soni: number }[]>`
+      SELECT eni_m, boyi_m, soni FROM buyurtma_pozitsiya WHERE id = ${pozitsiyaId}`;
 
-    const boyiSm = olcham[0]?.boyi_sm ?? 0;
+    const boyiM = olcham[0]?.boyi_m ?? 0;
     /** T-12 — pozitsiyadagi buyum soni; kesim BITTA buyum uchun */
     const soni = olcham[0]?.soni ?? 1;
 
@@ -658,10 +659,15 @@ export async function pozitsiyaniTasdiqla(
     const sorovlar: SlotSorovi[] = slotlar
       .filter((s) => s.birlik === 'KV_M')
       .flatMap((s) => {
-        const kerak = kesimOlchami(s.hisoblangan_miqdor, boyiSm, {
+        const kerak = kesimOlchami(s.hisoblangan_miqdor, boyiM, {
           koeffitsient: Number(s.koeffitsient),
           yonalish: s.kesish_turi === "BO'YIGA" ? ("BO'YIGA" as const) : ('ENIGA' as const),
           soni,
+          /**
+           * ⚠️ «DIKKEY» — rulon eni o'zgarmaydi (egasi, 2026-09-20).
+           *    Berilgan bo'lsa eni SHU bo'ladi, bo'yi maydondan chiqadi.
+           */
+          kesimEniM: s.kesim_eni_m === null ? null : Number(s.kesim_eni_m),
         });
         return Array.from({ length: soni }, () => ({
           pozitsiyaMaterialId: s.id,

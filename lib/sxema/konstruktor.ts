@@ -28,6 +28,18 @@ export const slotSxema = z.object({
    * AUDIT 1-topilma tuzatish — kesish yo'nalishi.
    */
   kesishTuri: z.enum(['ENIGA', "BO'YIGA"]).default('ENIGA'),
+  /**
+   * QAT'IY KESIM ENI, metrda — egasi holati 2026-09-20 («dikkey»).
+   *
+   * ⚠️ Bo'sh qator `null` ga aylanadi, `0` ga EMAS: nol «eni nol»
+   *    degani bo'lardi va kesim hisobini nolga bo'lishga olib
+   *    borardi. Bu yerda bo'sh — «qat'iy eni YO'Q».
+   */
+  kesimEniM: z
+    .union([z.literal(''), z.coerce.number().positive("Kesim eni musbat bo'lsin")])
+    .transform((v) => (v === '' ? null : v))
+    .nullable()
+    .default(null),
 });
 
 export const parametrSxema = z.object({

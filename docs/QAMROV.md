@@ -8,7 +8,8 @@ majbur bo'ldi («dropdownlarda qo'shish bo'lsin»). Har safar bitta
 joy tuzatilib «bo'ldi» deyilardi. Teshik ko'rinmagani uchun shunday
 bo'ldi. Endi ko'rinadi.
 
-Oxirgi yangilanish: **2026-09-20** — narx modeli butunlay almashtirildi:
+Oxirgi yangilanish: **2026-09-20** — **BUTUN TIZIM METRGA O'TDI**
+(§0a) + narx modeli butunlay almashtirildi:
 «Narxlar va turlar» sahifasi, bosqichli narx, mato darajasi,
 qo'shimchalar; sotuv ekrani, bot va chek yangi modelga o'tdi — kvitansiya, hisob-kitob va kunlik
 yopish varaqalari (TZ 8.9 · 15.4); sotuv cheki (TZ 8.9) va korxona
@@ -66,6 +67,77 @@ tayyor parda) uchun qoldirildi.
 ⚠️ **K-03 kanonik raqami 678 400 → 570 800** ga o'zgardi: eski raqam
 aynan rad etilgan modeldan chiqardi. Egasining tasdig'i bilan
 (2026-09-20), `test/kanonik.ts` da sabab to'liq yozilgan.
+
+---
+
+## 0a. METR TIZIMI — egasi topshirig'i 2026-09-20
+
+«butun tizim metr tizimiga o'tsin, smni to'liq olib tashla,
+o'lchamlarni to'liq m ga o'tkaz, hech qayerni shuncha emas,
+bog'langan joylari bilan hisoblashlari bilan to'liq o'zgartirib chiq,
+ba'zi joylarda 100 ga o'tgansan»
+
+Egasi haq edi. Har `÷100` **beshta ayri joyda** turardi va bittasi
+unutilsa raqam 100 (yoki 10 000) barobar adashardi. Endi o'girishning
+**O'ZI yo'q**.
+
+| Nima | Holat |
+|---|---|
+| `Santimetr` turi koddan **o'chirildi** | ✅ |
+| `SarflashBirligi`: `SM` → `M` | ✅ |
+| Formula dvigateli metrda (`MAYDON` — kv.m) | ✅ |
+| Kesim hisobi (`kesimOlchami`) metrda | ✅ |
+| Narx qoidasi (`olchovi`) metrda — `÷10 000` olib tashlandi | ✅ |
+| Qator summasi (`qatorSummasi`) — `÷100` olib tashlandi | ✅ |
+| Kam qoldiq (`kamQoldiqmi`) — `÷100` olib tashlandi | ✅ |
+| Ombor jurnali matni (`miqdorMatni`) — `÷100` olib tashlandi | ✅ |
+| Chek o'lchami (`olchamMatni`) — `÷100` olib tashlandi | ✅ |
+| Usta stavkasi maydoni — `÷10 000` olib tashlandi | ✅ |
+| Baza: `eni_sm`/`boyi_sm` → `eni_m`/`boyi_m` (`numeric(8,2)`) | ✅ |
+| Baza: `miqdor_sm` → `miqdor_m` | ✅ |
+| Baza: `material.koeffitsient` metrda (shtanga 300 → 3) | ✅ |
+| Baza: `bolak.miqdor` metrda, `tannarx_birlik_snapshot` ×100 | ✅ |
+| Ekran yorliqlari: «Eni (sm)» → «Eni (m)» | ✅ |
+| Telegram bot metrda so'raydi (`2.1`, vergul ham qabul) | ✅ |
+| Kanonik raqamlar qayta hisoblandi (K-01 · K-02 · K-03) | ✅ |
+| `docs/JALYUZI-TURLARI.md` 28 formula metrda qayta yozildi | ✅ |
+| Bazadagi formulalarni tekshirish asbobi (`db:formula-tekshir`) | ✅ |
+
+⚠️ **Kanonik raqamlar O'ZGARMADI** — K-01 baribir `147 000`,
+K-02 baribir `3.96 kv.m`, K-03 baribir `570 800`. Pul javobi birlik
+tizimiga bog'liq emas; raqam o'zgarmagani — o'tish to'g'ri
+bo'lganining isboti.
+
+### Formula matnlari — EGASI KO'ZDAN KECHIRADI
+
+Migratsiya formula MATNINI o'girmaydi va o'girmasligi **kerak**:
+sondan uning ma'nosini bilib bo'lmaydi.
+
+```
+MAYDON * 1.12      →  1.12 zaxira koeffitsienti  →  TEGILMAYDI
+ENI - 2            →  2 santimetr edi           →  0.02 bo'lishi kerak
+MAX(2, CEIL(...))  →  2 dona kronshteyn         →  TEGILMAYDI
+```
+
+Uchalasi ham «2». Farqni faqat odam biladi.
+
+`npm run db:formula-tekshir` bazadagi formulalarni o'qib, shubhali
+joyni ko'rsatadi. **2026-09-20 holati: uchta faol formula tekshirildi,
+shubhalisi yo'q.**
+
+### Qat'iy kesim eni («dikkey») — shu topshiriq bilan birga
+
+| Nima | Holat |
+|---|---|
+| `mahsulot_slot.kesim_eni_m` ustuni | ✅ |
+| `kesimOlchami` qat'iy enini qo'llaydi | ✅ |
+| Konstruktor ekranida «Kesim eni» katagi | ✅ |
+| Sotuv/band/tugatdim zanjiriga ulanishi | ⏳ |
+
+⚠️ Vertikal jalyuzi lameli rulonda **0.40 m** enli keladi va uni
+ENIGA kesib bo'lmaydi. 8 kv.m sarf — bu «4.00 × 2.00» emas,
+«0.40 × 20.00»: 4 metr enli lamel rulonini hech kim ishlab
+chiqarmaydi.
 
 ---
 

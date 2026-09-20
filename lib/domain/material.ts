@@ -5,7 +5,7 @@
  */
 
 import { BiznesXato } from '@/lib/xato';
-import { kvM, m, sm, type KvadratMetr, type Metr, type Santimetr, type SarflashBirligi } from '@/lib/domain/birlik';
+import { kvM, m, type KvadratMetr, type Metr, type SarflashBirligi } from '@/lib/domain/birlik';
 
 // ─── 5.1, 5.2 · Kategoriya va hisob turi ──────────────────────────────────
 
@@ -27,7 +27,7 @@ export interface Material {
   readonly hisobTuri: HisobTuri;
   readonly kirimBirligi: KirimBirligi;
   readonly sarflashBirligi: SarflashBirligi;
-  /** Q-01 — 1 kirim birligida nechta sarflash birligi (shtanga → 300 sm) */
+  /** Q-01 — 1 kirim birligida nechta sarflash birligi (shtanga → 3 m) */
   readonly koeffitsient: number;
   /** Q-14 — kam qoldiq chegarasini kv.m ga o'girish uchun */
   readonly standartRulonEni: Metr | null;
@@ -50,12 +50,16 @@ export const STANDART_KAM_ISHLATILADIGAN = 1.0;
  * Kirim birligidan sarflash birligiga.
  *
  * Q-01: koeffitsient = 1 kirim birligida nechta SARFLASH birligi bor.
- *   metr    → 100 sm
- *   shtanga → 300 sm
- *   quti    → 3000 sm
+ *   metr    → 1 m
+ *   shtanga → 3 m
+ *   quti    → 30 m
  *
  * ⚠️ 5.3-band o'z ichida ziddiyatli edi (koeffitsient 3 ham, 300 ham).
- * AUDIT Z-01 buni ushlagan, Q-01 hal qilgan: koeffitsient SANTIMETRDA.
+ *    AUDIT Z-01 buni ushlagan, Q-01 hal qilgan: koeffitsient SANTIMETRDA.
+ *
+ * ⚠️ 2026-09-20 — endi koeffitsient METRDA. Ya'ni 5.3-band o'zining
+ *    dastlabki «shtanga → 3» ko'rinishiga qaytdi. Bazadagi eski
+ *    qiymatlar migratsiyada ÷100 qilinadi (0043).
  */
 export function koeffitsientTekshir(koeffitsient: number): number {
   if (!Number.isFinite(koeffitsient) || koeffitsient <= 0) {
@@ -70,10 +74,10 @@ export function kirimdanSarflashga(
   miqdor: number,
   koeffitsient: number,
   sarflashBirligi: SarflashBirligi,
-): Santimetr | KvadratMetr | number {
+): Metr | KvadratMetr | number {
   koeffitsientTekshir(koeffitsient);
   const natija = miqdor * koeffitsient;
-  return sarflashBirligi === 'SM' ? sm(natija) : natija;
+  return sarflashBirligi === 'M' ? m(natija) : natija;
 }
 
 /** Kirim va sarflash birligi bir xilmi — koeffitsient kerak emasmi (5.3). */

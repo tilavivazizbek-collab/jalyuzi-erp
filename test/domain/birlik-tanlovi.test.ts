@@ -47,8 +47,8 @@ describe('birlikniTop — bazadagi uchlikdan ekran tanlovi', () => {
     expect(birlikniTop('RULON', 'rulon', 'KV_M')).toBe('RULON');
   });
 
-  it('shtanga → SHTANGA (Q-01: chiziqli material smda sarflanadi)', () => {
-    expect(birlikniTop('CHIZIQLI', 'shtanga', 'SM')).toBe('SHTANGA');
+  it('shtanga → SHTANGA (Q-01: chiziqli material metrda sarflanadi)', () => {
+    expect(birlikniTop('CHIZIQLI', 'shtanga', 'M')).toBe('SHTANGA');
   });
 
   it('dona → DONA', () => {
@@ -60,7 +60,7 @@ describe('birlikniTop — bazadagi uchlikdan ekran tanlovi', () => {
   });
 
   it("eski, ro'yxatda yo'q birlik — null (ma'lumot o'zgartirilmaydi)", () => {
-    expect(birlikniTop('CHIZIQLI', 'palka', 'SM')).toBeNull();
+    expect(birlikniTop('CHIZIQLI', 'palka', 'M')).toBeNull();
   });
 
   it('uchlik yarim mos kelsa ham null — jimgina taxmin qilinmaydi', () => {
@@ -82,17 +82,27 @@ describe('birlikTavsifi', () => {
   });
 });
 
-describe("Q-01 — ekranda metr, bazada santimetr", () => {
-  it('1 shtanga = 3 metr → koeffitsient 300', () => {
-    expect(metrniKoeffitsientga('3')).toBe('300');
+/**
+ * ⚠️ 2026-09-20 — baza ham METRDA. Ilgari bu yerda «ekranda 3,
+ *    bazada 300» tekshirilardi; endi o'girish YO'Q va funksiyalar
+ *    qiymatni o'zgartirmasdan qaytaradi.
+ *
+ *    Funksiyalar O'CHIRILMADI: ular — birlik farqi paydo bo'lsa
+ *    o'girish tushadigan YAGONA joy. Testlar shuni qo'riqlaydi:
+ *    bugun ular ayniyat, ertaga kimdir ×100 qo'shsa, shu yerda
+ *    yiqiladi va boshqa hech qayerda yashirinmaydi.
+ */
+describe("Q-01 — ekranda ham, bazada ham metr", () => {
+  it("1 shtanga = 3 metr → koeffitsient 3 (o'girish yo'q)", () => {
+    expect(metrniKoeffitsientga('3')).toBe('3');
   });
 
   it('kasrli uzunlik ham to\'g\'ri o\'giriladi', () => {
-    expect(metrniKoeffitsientga('2.5')).toBe('250');
+    expect(metrniKoeffitsientga('2.5')).toBe('2.5');
   });
 
-  it('koeffitsient 300 → ekranda 3 metr', () => {
-    expect(koeffitsientniMetrga('300')).toBe('3');
+  it('koeffitsient 3 → ekranda 3 metr', () => {
+    expect(koeffitsientniMetrga('3')).toBe('3');
   });
 
   it("borib-kelish qiymatni buzmaydi", () => {
@@ -152,7 +162,7 @@ describe("O'girish qachon so'raladi", () => {
   it('chiziqli materiallarda — so\'raladi (kirim va sarflash har xil)', () => {
     for (const b of ['METR', 'SHTANGA', 'QUTI'] as const) {
       expect(BIRLIK_TAVSIFI[b].ozgarishKerak).toBe(true);
-      expect(BIRLIK_TAVSIFI[b].sarflashBirligi).toBe('SM');
+      expect(BIRLIK_TAVSIFI[b].sarflashBirligi).toBe('M');
     }
   });
 

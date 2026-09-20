@@ -104,8 +104,8 @@ async function ishlaTugat(
     pozitsiyalar: [
       {
         mahsulotTurId: turId,
-        eniSm: 140,
-        boyiSm: 200,
+        eniM: 1.4,
+        boyiM: 2,
         soni: 1,
         narxSnapshot: '500000',
         chegirmaSumma: '0',

@@ -183,7 +183,6 @@ export const XATO_MATNI: Record<XatoKod, string> = {
 };
 
 export const BIRLIK_MATNI = {
-  SM: 'sm',
   M: 'm',
   KV_M: 'kv.m',
   DONA: 'dona',

@@ -45,29 +45,30 @@ export type QoshimchaUsuli = 'QATIY' | 'MAYDON' | 'ENI' | "BO'YI";
 /**
  * Bosqich qaysi songa qarab tanlanadi va narx nimaga ko'paytiriladi.
  *
- *   MAYDON  → kv.m    (eni × bo'yi ÷ 10 000)
- *   ENI     → metr    (eni ÷ 100)
- *   BO'YI   → metr    (bo'yi ÷ 100)
+ *   MAYDON  → kv.m    (eni × bo'yi)
+ *   ENI     → metr    (eni o'zi)
+ *   BO'YI   → metr    (bo'yi o'zi)
  *   DONA    → 1       — o'lchamdan mutlaqo bog'liq emas
  *
- * ⚠️ Kirish SANTIMETRDA (TZ 5.3), chiqish esa METR yoki KV.M da:
- *    narx jadvali odam tushunadigan birlikda to'ldiriladi
- *    («0.5 kv.m gacha»), santimetrda emas.
+ * ⚠️ 2026-09-20 — kirish ham METRDA. Ilgari sm kelardi va bu yerda
+ *    ÷100, ÷10 000 turardi. Narx jadvali doim odam tushunadigan
+ *    birlikda edi — endi kirish ham o'sha birlikda, demak
+ *    o'girishning o'zi kerak emas.
  */
-export function olchovi(usuli: HisoblashUsuli, eniSm: number, boyiSm: number): number {
+export function olchovi(usuli: HisoblashUsuli, eniM: number, boyiM: number): number {
   if (usuli === 'DONA') return 1;
 
-  if (!Number.isFinite(eniSm) || !Number.isFinite(boyiSm) || eniSm <= 0 || boyiSm <= 0) {
+  if (!Number.isFinite(eniM) || !Number.isFinite(boyiM) || eniM <= 0 || boyiM <= 0) {
     throw new BiznesXato('NARX_NOTOGRI', "o'lcham noldan katta bo'lsin");
   }
 
   switch (usuli) {
     case 'MAYDON':
-      return new D(eniSm).times(boyiSm).div(10_000).toNumber();
+      return new D(eniM).times(boyiM).toNumber();
     case 'ENI':
-      return new D(eniSm).div(100).toNumber();
+      return new D(eniM).toNumber();
     case "BO'YI":
-      return new D(boyiSm).div(100).toNumber();
+      return new D(boyiM).toNumber();
   }
 }
 
@@ -118,11 +119,11 @@ export interface Qoida {
  */
 export function qoidaNarxi(
   qoida: Qoida,
-  eniSm: number,
-  boyiSm: number,
+  eniM: number,
+  boyiM: number,
   kurs: Kurs | null,
 ): Som {
-  const olchov = olchovi(qoida.hisoblashUsuli, eniSm, boyiSm);
+  const olchov = olchovi(qoida.hisoblashUsuli, eniM, boyiM);
   const bosqich = bosqichniTop(qoida.bosqichlar, olchov);
 
   if (bosqich === null) {
@@ -157,22 +158,22 @@ export interface Qoshimcha {
  */
 export function qoshimchaNarxi(
   q: Qoshimcha,
-  eniSm: number,
-  boyiSm: number,
+  eniM: number,
+  boyiM: number,
   kurs: Kurs | null,
 ): Som {
   const asos = katalogNarxi(q.narx, q.valyuta, kurs);
   if (asos === null) return nolSom();
   if (q.hisoblashUsuli === 'QATIY') return asos;
-  return kopaytir(asos, olchovi(q.hisoblashUsuli, eniSm, boyiSm));
+  return kopaytir(asos, olchovi(q.hisoblashUsuli, eniM, boyiM));
 }
 
 // ─── Pozitsiya narxi ──────────────────────────────────────────────────────
 
 export interface PozitsiyaKirishi {
   readonly qoida: Qoida;
-  readonly eniSm: number;
-  readonly boyiSm: number;
+  readonly eniM: number;
+  readonly boyiM: number;
   readonly qoshimchalar: readonly Qoshimcha[];
   /** TZ 6.3 — mijoz guruhi chegirmasi/ustamasi */
   readonly offset: Offset | null;
@@ -202,15 +203,15 @@ export interface PozitsiyaNatijasi {
  *    uni mijoz guruhi avtomatik hal qilmasligi kerak.
  */
 export function pozitsiyaQoidaNarxi(k: PozitsiyaKirishi): PozitsiyaNatijasi {
-  const olchov = olchovi(k.qoida.hisoblashUsuli, k.eniSm, k.boyiSm);
+  const olchov = olchovi(k.qoida.hisoblashUsuli, k.eniM, k.boyiM);
   const bosqich = bosqichniTop(k.qoida.bosqichlar, olchov);
 
-  const xom = qoidaNarxi(k.qoida, k.eniSm, k.boyiSm, k.kurs);
+  const xom = qoidaNarxi(k.qoida, k.eniM, k.boyiM, k.kurs);
   const asosiy = offsetQolla(xom, k.offset, k.kurs);
 
   const qatorlar: NarxQatori[] = k.qoshimchalar.map((q) => ({
     nom: q.nom,
-    summa: pulMatn(qoshimchaNarxi(q, k.eniSm, k.boyiSm, k.kurs)),
+    summa: pulMatn(qoshimchaNarxi(q, k.eniM, k.boyiM, k.kurs)),
   }));
 
   const jami = yigindi(

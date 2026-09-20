@@ -28,8 +28,8 @@ const FILIAL = 1;
 const XODIM = 1;
 
 /** Formula: `ENI * BO'YI` → 140 × 200 sm = 28 000 kv.sm = 2.80 kv.m */
-const ENI_SM = 140;
-const BOYI_SM = 200;
+const ENI_M = 1.4;
+const BOYI_M = 2.0;
 const TOGRI = '2.8000';
 
 beforeAll(async () => {
@@ -75,8 +75,8 @@ function kirimYasa(
     pozitsiyalar: [
       {
         mahsulotTurId: turId,
-        eniSm: ENI_SM,
-        boyiSm: BOYI_SM,
+        eniM: ENI_M,
+        boyiM: BOYI_M,
         soni: 1,
         narxSnapshot: '500000',
         chegirmaSumma: '0',
@@ -88,7 +88,7 @@ function kirimYasa(
             materialId: ozgarish.materialId ?? matoId,
             hisoblanganMiqdor: miqdor,
             tuzatilganMiqdor: null,
-            birlik: (ozgarish.birlik ?? 'KV_M') as 'KV_M' | 'SM' | 'DONA',
+            birlik: (ozgarish.birlik ?? 'KV_M') as 'KV_M' | 'M' | 'DONA',
             narxSnapshot: '120000',
             kerak: { eniM: 1.4, boyiM: 2.0 },
           },

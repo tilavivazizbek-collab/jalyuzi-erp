@@ -20,7 +20,7 @@ import {
   type Qator,
 } from '@/lib/domain/narx';
 import { dollar, kurs, pulMatn, som } from '@/lib/domain/pul';
-import { dona, kvM, sm } from '@/lib/domain/birlik';
+import { dona, kvM, m } from '@/lib/domain/birlik';
 import { BiznesXato } from '@/lib/xato';
 
 /** 6.3 — offset uchun sozlamadagi JORIY kurs ishlatiladi */
@@ -118,8 +118,8 @@ describe('Q-01 — chiziqli material: sm sarflanadi, narx 1 metr uchun', () => {
   it('420 sm karniz × 35 000 so\'m/m = 147 000', () => {
     const q: Qator = {
       nom: 'Karniz',
-      sarflashBirligi: 'SM',
-      miqdor: sm(420),
+      sarflashBirligi: 'M',
+      miqdor: m(4.2),
       narx: som(35_000),
     };
     expect(pulMatn(qatorSummasi(q))).toBe('147000.00');

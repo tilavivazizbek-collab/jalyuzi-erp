@@ -23,7 +23,7 @@ import { Modal } from '../modal';
 import { kirishUslubi } from '../maydon';
 import { pulKorsat, som } from '@/lib/domain/pul';
 import { slotSarfi, standartQiymatlar } from '@/lib/domain/formula';
-import { sm, type SarflashBirligi } from '@/lib/domain/birlik';
+import { m, type SarflashBirligi } from '@/lib/domain/birlik';
 import { turTafsiliAmali } from './yangi/amal';
 import { pozitsiyaTahrirAmali } from './tahrir-amal';
 import { BOSH_TAHRIR } from './tahrir-holat';
@@ -60,8 +60,8 @@ export function TahrirTugmasi({ pozitsiya }: { pozitsiya: PozitsiyaTahriri }) {
     BOSH_TAHRIR,
   );
 
-  const [eni, eniniOzgartir] = useState(String(pozitsiya.eniSm));
-  const [boyi, boyiniOzgartir] = useState(String(pozitsiya.boyiSm));
+  const [eni, eniniOzgartir] = useState(String(pozitsiya.eniM));
+  const [boyi, boyiniOzgartir] = useState(String(pozitsiya.boyiM));
   const [narx, narxniOzgartir] = useState(pozitsiya.narxSnapshot);
   const [chegirma, chegirmaniOzgartir] = useState(pozitsiya.chegirmaSumma);
   const [matolar, matolarniOzgartir] = useState<Record<number, number>>(() =>
@@ -81,10 +81,10 @@ export function TahrirTugmasi({ pozitsiya }: { pozitsiya: PozitsiyaTahriri }) {
       });
   }, [ochiq, tur, yuklanmoqda, pozitsiya.mahsulotTurId]);
 
-  const eniSm = Number(eni);
-  const boyiSm = Number(boyi);
+  const eniM = Number(eni);
+  const boyiM = Number(boyi);
   const olchamYaroqli =
-    Number.isInteger(eniSm) && Number.isInteger(boyiSm) && eniSm > 0 && boyiSm > 0;
+    Number.isInteger(eniM) && Number.isInteger(boyiM) && eniM > 0 && boyiM > 0;
 
   const qotgan = qotganFormulalar(pozitsiya.formulaSnapshot);
 
@@ -102,7 +102,7 @@ export function TahrirTugmasi({ pozitsiya }: { pozitsiya: PozitsiyaTahriri }) {
     let miqdor: number | null = null;
     if (olchamYaroqli && formula !== undefined) {
       try {
-        const asos = standartQiymatlar(sm(eniSm), sm(boyiSm), pozitsiya.soni, {});
+        const asos = standartQiymatlar(m(eniM), m(boyiM), pozitsiya.soni, {});
         // AUDIT 1-topilma — jami sarf = formula × slot koeffitsienti
         miqdor = slotSarfi(formula, asos, s.birlik as SarflashBirligi, slot?.koeffitsient);
       } catch {
@@ -121,8 +121,8 @@ export function TahrirTugmasi({ pozitsiya }: { pozitsiya: PozitsiyaTahriri }) {
   const yuborilajak = {
     mahsulotTurId: pozitsiya.mahsulotTurId,
     qoshimchaMaterialId: null,
-    eniSm: olchamYaroqli ? eniSm : 0,
-    boyiSm: olchamYaroqli ? boyiSm : 0,
+    eniM: olchamYaroqli ? eniM : 0,
+    boyiM: olchamYaroqli ? boyiM : 0,
     soni: pozitsiya.soni,
     narxSnapshot: narx.trim(),
     chegirmaSumma: chegirma.trim() === '' ? '0' : chegirma.trim(),
@@ -141,6 +141,8 @@ export function TahrirTugmasi({ pozitsiya }: { pozitsiya: PozitsiyaTahriri }) {
         koeffitsient: turSlot?.koeffitsient,
         kesishTuri:
           turSlot?.kesishTuri === "BO'YIGA" ? ("BO'YIGA" as const) : ('ENIGA' as const),
+        /** ⚠️ «DIKKEY» — rulon eni o'zgarmaydi (egasi, 2026-09-20) */
+        kesimEniM: turSlot?.kesimEniM ?? null,
         narxSnapshot: q.slot.narxSnapshot,
       };
     }),
@@ -210,7 +212,7 @@ export function TahrirTugmasi({ pozitsiya }: { pozitsiya: PozitsiyaTahriri }) {
 
             <div className="grid grid-cols-2 gap-3">
               <label className="flex flex-col gap-1">
-                <span className="text-sm font-medium text-matn-ikki">Eni (sm)</span>
+                <span className="text-sm font-medium text-matn-ikki">Eni (m)</span>
                 <input
                   value={eni}
                   onChange={(e) => {
@@ -222,7 +224,7 @@ export function TahrirTugmasi({ pozitsiya }: { pozitsiya: PozitsiyaTahriri }) {
               </label>
               <label className="flex flex-col gap-1">
                 <span className="text-sm font-medium text-matn-ikki">
-                  Bo&apos;yi (sm)
+                  Bo&apos;yi (m)
                 </span>
                 <input
                   value={boyi}

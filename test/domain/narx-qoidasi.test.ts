@@ -33,25 +33,25 @@ const KURS = kurs(12_500, new Date('2026-09-20'), 'JORIY');
 
 describe("o'lchov — bosqich qaysi songa qarab tanlanadi", () => {
   it('MAYDON — kv.m da (santimetrdan)', () => {
-    expect(olchovi('MAYDON', 180, 220)).toBeCloseTo(3.96, 4);
-    expect(olchovi('MAYDON', 100, 100)).toBeCloseTo(1, 4);
-    expect(olchovi('MAYDON', 40, 50)).toBeCloseTo(0.2, 4);
+    expect(olchovi('MAYDON', 1.8, 2.2)).toBeCloseTo(3.96, 4);
+    expect(olchovi('MAYDON', 1, 1)).toBeCloseTo(1, 4);
+    expect(olchovi('MAYDON', 0.4, 0.5)).toBeCloseTo(0.2, 4);
   });
 
   it('ENI va BO‘YI — metrda, ikkinchi o‘lchamga qaramaydi', () => {
-    expect(olchovi('ENI', 180, 220)).toBeCloseTo(1.8, 4);
-    expect(olchovi('ENI', 180, 500)).toBeCloseTo(1.8, 4);
-    expect(olchovi("BO'YI", 180, 220)).toBeCloseTo(2.2, 4);
-    expect(olchovi("BO'YI", 900, 220)).toBeCloseTo(2.2, 4);
+    expect(olchovi('ENI', 1.8, 2.2)).toBeCloseTo(1.8, 4);
+    expect(olchovi('ENI', 1.8, 5)).toBeCloseTo(1.8, 4);
+    expect(olchovi("BO'YI", 1.8, 2.2)).toBeCloseTo(2.2, 4);
+    expect(olchovi("BO'YI", 9, 2.2)).toBeCloseTo(2.2, 4);
   });
 
   it('DONA — o‘lchamdan mutlaqo bog‘liq emas', () => {
-    expect(olchovi('DONA', 180, 220)).toBe(1);
+    expect(olchovi('DONA', 1.8, 2.2)).toBe(1);
     expect(olchovi('DONA', 0, 0)).toBe(1);
   });
 
   it('nol yoki manfiy o‘lcham rad etiladi', () => {
-    expect(() => olchovi('MAYDON', 0, 220)).toThrow(BiznesXato);
+    expect(() => olchovi('MAYDON', 0, 2.2)).toThrow(BiznesXato);
     expect(() => olchovi('MAYDON', 180, -1)).toThrow(BiznesXato);
     expect(() => olchovi('ENI', Number.NaN, 220)).toThrow(BiznesXato);
   });
@@ -90,11 +90,11 @@ describe('bosqich tanlash — chegara [dan, gacha)', () => {
 
 describe('asosiy narx — stavka × o‘lchov', () => {
   it('180 × 220 = 3.96 kv.m → 3 $ × 3.96 = 11.88 $ = 148 500 so‘m', () => {
-    expect(qoidaNarxi(QOIDA, 180, 220, KURS)).toEqual(som('148500.00'));
+    expect(qoidaNarxi(QOIDA, 1.8, 2.2, KURS)).toEqual(som('148500.00'));
   });
 
   it('40 × 50 = 0.2 kv.m → eng qimmat bosqich, 8 $ × 0.2 = 1.6 $', () => {
-    expect(qoidaNarxi(QOIDA, 40, 50, KURS)).toEqual(som('20000.00'));
+    expect(qoidaNarxi(QOIDA, 0.4, 0.5, KURS)).toEqual(som('20000.00'));
   });
 
   it('so‘mdagi bosqich kurssiz ham ishlaydi', () => {
@@ -102,11 +102,11 @@ describe('asosiy narx — stavka × o‘lchov', () => {
       hisoblashUsuli: 'MAYDON',
       bosqichlar: [{ dan: 0, gacha: null, narx: '120000', valyuta: 'SOM' }],
     };
-    expect(qoidaNarxi(somda, 180, 220, null)).toEqual(som('475200.00'));
+    expect(qoidaNarxi(somda, 1.8, 2.2, null)).toEqual(som('475200.00'));
   });
 
   it('dollardagi bosqichga kurs bo‘lmasa XATO — jim so‘m deb olinmaydi', () => {
-    expect(() => qoidaNarxi(QOIDA, 180, 220, null)).toThrow(BiznesXato);
+    expect(() => qoidaNarxi(QOIDA, 1.8, 2.2, null)).toThrow(BiznesXato);
   });
 
   it('bosqich topilmasa XATO — bepulga sotilmaydi', () => {
@@ -114,7 +114,7 @@ describe('asosiy narx — stavka × o‘lchov', () => {
       hisoblashUsuli: 'MAYDON',
       bosqichlar: [{ dan: 5, gacha: null, narx: '3', valyuta: 'SOM' }],
     };
-    expect(() => qoidaNarxi(teshik, 180, 220, null)).toThrow(BiznesXato);
+    expect(() => qoidaNarxi(teshik, 1.8, 2.2, null)).toThrow(BiznesXato);
   });
 
   it('ENI usuli — bo‘yi narxga ta’sir qilmaydi', () => {
@@ -122,8 +122,8 @@ describe('asosiy narx — stavka × o‘lchov', () => {
       hisoblashUsuli: 'ENI',
       bosqichlar: [{ dan: 0, gacha: null, narx: '250000', valyuta: 'SOM' }],
     };
-    expect(qoidaNarxi(eniga, 180, 220, null)).toEqual(som('450000.00'));
-    expect(qoidaNarxi(eniga, 180, 400, null)).toEqual(som('450000.00'));
+    expect(qoidaNarxi(eniga, 1.8, 2.2, null)).toEqual(som('450000.00'));
+    expect(qoidaNarxi(eniga, 1.8, 4, null)).toEqual(som('450000.00'));
   });
 
   it('DONA usuli — o‘lcham umuman ta’sir qilmaydi', () => {
@@ -131,31 +131,31 @@ describe('asosiy narx — stavka × o‘lchov', () => {
       hisoblashUsuli: 'DONA',
       bosqichlar: [{ dan: 0, gacha: null, narx: '300000', valyuta: 'SOM' }],
     };
-    expect(qoidaNarxi(donaga, 180, 220, null)).toEqual(som('300000.00'));
-    expect(qoidaNarxi(donaga, 300, 400, null)).toEqual(som('300000.00'));
+    expect(qoidaNarxi(donaga, 1.8, 2.2, null)).toEqual(som('300000.00'));
+    expect(qoidaNarxi(donaga, 3, 4, null)).toEqual(som('300000.00'));
   });
 });
 
 describe('qo‘shimchalar', () => {
   it('QATIY — o‘lchamga qaramaydi («o‘rnatish 150 000»)', () => {
     const q = { nom: "O'rnatish", hisoblashUsuli: 'QATIY' as const, narx: '150000', valyuta: 'SOM' };
-    expect(qoshimchaNarxi(q, 180, 220, null)).toEqual(som('150000.00'));
-    expect(qoshimchaNarxi(q, 300, 400, null)).toEqual(som('150000.00'));
+    expect(qoshimchaNarxi(q, 1.8, 2.2, null)).toEqual(som('150000.00'));
+    expect(qoshimchaNarxi(q, 3, 4, null)).toEqual(som('150000.00'));
   });
 
   it('ENI — «usti shabalik» eni bo‘yicha: 1.8 × 80 000 = 144 000', () => {
     const q = { nom: 'Usti shabalik', hisoblashUsuli: 'ENI' as const, narx: '80000', valyuta: 'SOM' };
-    expect(qoshimchaNarxi(q, 180, 220, null)).toEqual(som('144000.00'));
+    expect(qoshimchaNarxi(q, 1.8, 2.2, null)).toEqual(som('144000.00'));
   });
 
   it('MAYDON — maydon bo‘yicha', () => {
     const q = { nom: 'Qoplama', hisoblashUsuli: 'MAYDON' as const, narx: '10000', valyuta: 'SOM' };
-    expect(qoshimchaNarxi(q, 180, 220, null)).toEqual(som('39600.00'));
+    expect(qoshimchaNarxi(q, 1.8, 2.2, null)).toEqual(som('39600.00'));
   });
 
   it('dollardagi qo‘shimcha kurs bilan o‘giriladi', () => {
     const q = { nom: 'Pult', hisoblashUsuli: 'QATIY' as const, narx: '12', valyuta: 'USD' };
-    expect(qoshimchaNarxi(q, 180, 220, KURS)).toEqual(som('150000.00'));
+    expect(qoshimchaNarxi(q, 1.8, 2.2, KURS)).toEqual(som('150000.00'));
   });
 });
 
@@ -168,8 +168,8 @@ describe('pozitsiya jami', () => {
   it('asosiy + qo‘shimchalar = jami', () => {
     const n = pozitsiyaQoidaNarxi({
       qoida: QOIDA,
-      eniSm: 180,
-      boyiSm: 220,
+      eniM: 1.8,
+      boyiM: 2.2,
       qoshimchalar: QOSHIMCHALAR,
       offset: null,
       kurs: KURS,
@@ -185,8 +185,8 @@ describe('pozitsiya jami', () => {
   it('qo‘shimchasiz — jami asosiyga teng', () => {
     const n = pozitsiyaQoidaNarxi({
       qoida: QOIDA,
-      eniSm: 180,
-      boyiSm: 220,
+      eniM: 1.8,
+      boyiM: 2.2,
       qoshimchalar: [],
       offset: null,
       kurs: KURS,
@@ -201,8 +201,8 @@ describe('pozitsiya jami', () => {
   it('offset FAQAT asosiy narxga tushadi, qo‘shimchaga tegmaydi', () => {
     const n = pozitsiyaQoidaNarxi({
       qoida: QOIDA,
-      eniSm: 180,
-      boyiSm: 220,
+      eniM: 1.8,
+      boyiM: 2.2,
       qoshimchalar: QOSHIMCHALAR,
       offset: { turi: 'FOIZ', foiz: -10 },
       kurs: KURS,
@@ -216,8 +216,8 @@ describe('pozitsiya jami', () => {
   it('so‘mdagi offset ham asosiyga qo‘shiladi', () => {
     const n = pozitsiyaQoidaNarxi({
       qoida: QOIDA,
-      eniSm: 180,
-      boyiSm: 220,
+      eniM: 1.8,
+      boyiM: 2.2,
       qoshimchalar: [],
       offset: { turi: 'SOM', summa: som('20000') },
       kurs: KURS,
@@ -228,8 +228,8 @@ describe('pozitsiya jami', () => {
   it('dollardagi offset kurs bilan o‘giriladi', () => {
     const n = pozitsiyaQoidaNarxi({
       qoida: QOIDA,
-      eniSm: 180,
-      boyiSm: 220,
+      eniM: 1.8,
+      boyiM: 2.2,
       qoshimchalar: [],
       offset: { turi: 'USD', summa: dollar('4') },
       kurs: KURS,

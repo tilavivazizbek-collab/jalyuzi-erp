@@ -104,7 +104,7 @@ describe('lib/amal/material.ts', () => {
     const n = await materialTahrirla(
       sql,
       materialId,
-      { ...MATERIAL, sotuvNarx: '130000', sarflashBirligi: 'SM', koeffitsient: '100' },
+      { ...MATERIAL, sotuvNarx: '130000', sarflashBirligi: 'M', koeffitsient: '1' },
       XODIM,
       FILIAL,
     );

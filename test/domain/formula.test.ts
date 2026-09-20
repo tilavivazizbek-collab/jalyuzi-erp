@@ -10,7 +10,7 @@ import {
   sarflashHisobla,
   standartQiymatlar,
 } from '@/lib/domain/formula';
-import { sm } from '@/lib/domain/birlik';
+import { m } from '@/lib/domain/birlik';
 import { BiznesXato } from '@/lib/xato';
 
 const q = (o: Record<string, number>): Record<string, number> => o;
@@ -100,12 +100,14 @@ describe('o\'zgaruvchilar ro\'yxati — TZ 4.3', () => {
 });
 
 describe('natija birligi — AUDIT B-01, §4.3', () => {
-  it('KV_M: kvadrat santimetr kvadrat metrga o\'giriladi', () => {
-    expect(formulaNatijasi(formulaHisobla('6600', {}), 'KV_M')).toBe(0.66);
+  it('KV_M: kv.m shundayligicha qoladi (ilgari ÷10 000 edi)', () => {
+    expect(formulaNatijasi(formulaHisobla('0.66', {}), 'KV_M')).toBe(0.66);
+    // ⚠️ 2026-09-20 — formula metrda ishlaydi: ÷10 000 YO'Q
+    expect(formulaNatijasi(formulaHisobla('3.96', {}), 'KV_M')).toBe(3.96);
   });
 
-  it('SM: shundayligicha qoladi — Q-01', () => {
-    expect(formulaNatijasi(formulaHisobla('420', {}), 'SM')).toBe(420);
+  it('M: shundayligicha qoladi — Q-01', () => {
+    expect(formulaNatijasi(formulaHisobla('4.2', {}), 'M')).toBe(4.2);
   });
 
   it('DONA: yuqoriga yaxlitlanadi', () => {
@@ -113,26 +115,29 @@ describe('natija birligi — AUDIT B-01, §4.3', () => {
     expect(formulaNatijasi(formulaHisobla('2', {}), 'DONA')).toBe(2);
   });
 
-  it('bir xil formula uch birlikda uch xil natija beradi (B-01 ning mohiyati)', () => {
-    const qiymatlar = standartQiymatlar(sm(210), sm(140), 1);
-    expect(sarflashHisobla('ENI × 2', qiymatlar, 'SM')).toBe(420);
-    expect(sarflashHisobla('ENI × 2', qiymatlar, 'KV_M')).toBe(0.042);
-    expect(sarflashHisobla('ENI × 2', qiymatlar, 'DONA')).toBe(420);
+  it('bir xil formula birlikka qarab turlicha TALQIN qilinadi (B-01)', () => {
+    const qiymatlar = standartQiymatlar(m(2.1), m(1.4), 1);
+
+    // Xom natija 4.2 — uchalasida ham bir xil son, MA'NOSI boshqa:
+    expect(sarflashHisobla('ENI × 2', qiymatlar, 'M')).toBe(4.2); // 4.20 metr
+    expect(sarflashHisobla('ENI × 2', qiymatlar, 'KV_M')).toBe(4.2); // 4.20 kv.m
+    // DONA — yagona farq: yarim dona bo'lmaydi, yuqoriga yaxlitlanadi
+    expect(sarflashHisobla('ENI × 2', qiymatlar, 'DONA')).toBe(5);
   });
 });
 
 describe('standart o\'zgaruvchilar', () => {
-  it('MAYDON eni × bo\'yi dan kv.smda hisoblanadi (§4.3)', () => {
-    const qiymatlar = standartQiymatlar(sm(210), sm(140), 2, { CHET: 30 });
-    expect(qiymatlar['ENI']).toBe(210);
-    expect(qiymatlar["BO'YI"]).toBe(140);
-    expect(qiymatlar['MAYDON']).toBe(29_400);
+  it("MAYDON eni × bo'yi dan KV.M da hisoblanadi (§4.3)", () => {
+    const qiymatlar = standartQiymatlar(m(2.1), m(1.4), 2, { CHET: 0.3 });
+    expect(qiymatlar['ENI']).toBe(2.1);
+    expect(qiymatlar["BO'YI"]).toBe(1.4);
+    expect(qiymatlar['MAYDON']).toBe(2.94);
     expect(qiymatlar['SONI']).toBe(2);
-    expect(qiymatlar['CHET']).toBe(30);
+    expect(qiymatlar['CHET']).toBe(0.3);
   });
 
   it('parametr nomi katta harfga keltiriladi', () => {
-    const qiymatlar = standartQiymatlar(sm(100), sm(100), 1, { chet: 25 });
+    const qiymatlar = standartQiymatlar(m(1), m(1), 1, { chet: 25 });
     expect(qiymatlar['CHET']).toBe(25);
   });
 });

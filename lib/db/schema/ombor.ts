@@ -381,7 +381,7 @@ export const omborHarakat = pgTable(
 
     // Uchta o'lchov — materialning turiga qarab biri to'ladi
     miqdorKvM: numeric('miqdor_kv_m', { precision: 10, scale: 4 }),
-    miqdorSm: numeric('miqdor_sm', { precision: 12, scale: 2 }),
+    miqdorM: numeric('miqdor_m', { precision: 12, scale: 2 }),
     miqdorDona: integer('miqdor_dona'),
 
     tannarxSumma: numeric('tannarx_summa', { precision: 14, scale: 2 }).notNull(),
@@ -402,7 +402,7 @@ export const omborHarakat = pgTable(
     // Kamida bitta o'lchov to'lishi shart — bo'sh yozuv ma'nosiz
     check(
       'ombor_harakat_olchov',
-      sql`${t.miqdorKvM} IS NOT NULL OR ${t.miqdorSm} IS NOT NULL OR ${t.miqdorDona} IS NOT NULL`,
+      sql`${t.miqdorKvM} IS NOT NULL OR ${t.miqdorM} IS NOT NULL OR ${t.miqdorDona} IS NOT NULL`,
     ),
     index('ombor_harakat_filial_sana').on(t.filialId, t.sana),
     index('ombor_harakat_bolak').on(t.bolakId),

@@ -32,7 +32,7 @@ import { buyurtmaYarat } from '@/lib/amal/buyurtma';
 import { sarfFormulasi } from '@/lib/domain/sarf-turi';
 import { BIRLIK_TAVSIFI } from '@/lib/domain/birlik-tanlovi';
 import { sarflashHisobla, standartQiymatlar } from '@/lib/domain/formula';
-import { sm } from '@/lib/domain/birlik';
+import { m } from '@/lib/domain/birlik';
 import { katalogNarxi } from '@/lib/domain/narx';
 import { kurs, pulMatn, type Som } from '@/lib/domain/pul';
 import { filialNarxiBelgila } from '@/lib/amal/filial-narx';
@@ -235,7 +235,7 @@ describe('4. Konstruktordagi «sarfi» tanlovi formulaga aylanadi', () => {
             majburiy: true,
             almashtirishGuruhId: guruhId,
             koeffitsient: 1,
-            kesishTuri: 'ENIGA' as const,
+            kesishTuri: 'ENIGA' as const, kesimEniM: null,
           },
         ],
         parametrlar: [],
@@ -281,7 +281,7 @@ describe('5. Sotuv ekrani turni va uning matolarini ko‘radi', () => {
   });
 
   it('formula 210 × 140 uchun to‘g‘ri miqdor beradi', () => {
-    const asos = standartQiymatlar(sm(210), sm(140), 1, {});
+    const asos = standartQiymatlar(m(2.1), m(1.4), 1, {});
     /** 2.10 × 1.40 = 2.94 kv.m, ikki qavat → 5.88 kv.m */
     const miqdor = sarflashHisobla('MAYDON * 2', asos, 'KV_M');
     expect(Number(miqdor)).toBeCloseTo(5.88, 4);
@@ -319,8 +319,8 @@ describe('6. Buyurtma ombordan haqiqatan band qiladi', () => {
         pozitsiyalar: [
           {
             mahsulotTurId: turId,
-            eniSm: 210,
-            boyiSm: 140,
+            eniM: 2.1,
+            boyiM: 1.4,
             soni: 1,
             narxSnapshot: '755600',
             chegirmaSumma: '0',

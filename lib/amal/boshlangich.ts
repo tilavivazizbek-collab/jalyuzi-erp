@@ -91,8 +91,8 @@ export async function boshlangichQoldiq(
     }
 
     const rulon = material.hisob_turi === 'RULON';
-    // Q-01 — chiziqli material SMDA saqlanadi, jurnalda `miqdor_sm` ustuni
-    const smda = material.sarflash_birligi === 'SM';
+    // Q-01 — chiziqli material SMDA saqlanadi, jurnalda `miqdor_m` ustuni
+    const smda = material.sarflash_birligi === 'M';
     const tannarx = som(kirim.tannarxBirlik);
 
     // Bo'lak turi — RULON bo'lsa har o'lcham alohida, aks holda bitta dona
@@ -155,7 +155,7 @@ export async function boshlangichQoldiq(
 
       await tx`
         INSERT INTO ombor_harakat (filial_id, bolak_id, turi, miqdor_kv_m,
-                                   miqdor_sm, miqdor_dona, tannarx_summa,
+                                   miqdor_m, miqdor_dona, tannarx_summa,
                                    manba_turi, izoh, xodim_id)
         VALUES (${kirim.filialId}, ${bolakId}, 'BOSHLANGICH',
                 ${

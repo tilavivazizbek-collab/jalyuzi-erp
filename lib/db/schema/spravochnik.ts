@@ -85,7 +85,7 @@ export const narxGuruh = pgTable(
 // ─── 2.1 · material — TZ 5 · Q-01, Q-05, Q-10, Q-14 ───────────────────────
 
 export const HISOB_TURLARI = ['RULON', 'CHIZIQLI', 'DONA', 'KV_M'] as const;
-export const SARFLASH_BIRLIKLARI = ['SM', 'KV_M', 'DONA'] as const;
+export const SARFLASH_BIRLIKLARI = ['M', 'KV_M', 'DONA'] as const;
 
 export const material = pgTable(
   'material',
@@ -224,7 +224,7 @@ export const material = pgTable(
   },
   (t) => [
     check('material_hisob_turi', sql`${t.hisobTuri} IN ('RULON','CHIZIQLI','DONA','KV_M')`),
-    check('material_sarflash_birligi', sql`${t.sarflashBirligi} IN ('SM','KV_M','DONA')`),
+    check('material_sarflash_birligi', sql`${t.sarflashBirligi} IN ('M','KV_M','DONA')`),
     check('material_valyuta', sql`${t.sotuvValyuta} IN ('SOM','USD')`),
     check(
       'material_kelish_valyuta',
@@ -373,6 +373,17 @@ export const mahsulotSlot = pgTable(
      *              yetadi, mato bo'y bo'ylab ko'p marta kesiladi.
      */
     kesishTuri: text('kesish_turi').notNull().default('ENIGA'),
+    /**
+     * QAT'IY KESIM ENI, metrda — egasi holati 2026-09-20 («dikkey»).
+     *
+     * ⚠️ Vertikal jalyuzi lameli rulonda 0.40 m enli keladi va uni
+     *    ENIGA kesib bo'lmaydi. Bu to'lsa, kesim to'rtburchagining
+     *    eni SHU bo'ladi, bo'yi esa maydondan chiqadi.
+     *
+     * ⚠️ `null` — odatdagi xulq: eni maydondan hisoblanadi.
+     *    Ko'pchilik mato uchun aynan shu to'g'ri.
+     */
+    kesimEniM: numeric('kesim_eni_m', { precision: 6, scale: 2 }),
     ...ochirilmaydi,
     ...izlar,
   },
@@ -391,7 +402,7 @@ export const mahsulotParametr = pgTable(
     /** Formulada ishlatiladigan nom: `CHET` */
     kod: text('kod').notNull(),
     nom: text('nom').notNull(),
-    /** TZ 5.3 — barcha uzunlik smda */
+    /** TZ 5.3 — barcha uzunlik METRDA (2026-09-20) */
     standartQiymat: numeric('standart_qiymat', { precision: 10, scale: 2 }),
     ...ochirilmaydi,
     ...izlar,

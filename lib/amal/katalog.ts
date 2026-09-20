@@ -115,6 +115,11 @@ export interface SotuvSlot {
   readonly koeffitsient: number;
   /** AUDIT 1-topilma — kesish yo'nalishi: `ENIGA` | `BO'YIGA` */
   readonly kesishTuri: string;
+  /**
+   * Qat'iy kesim eni, metrda — «dikkey» (egasi, 2026-09-20).
+   * `null` — eni maydondan hisoblanadi (odatdagi holat).
+   */
+  readonly kesimEniM: number | null;
   readonly materiallar: readonly SotuvMaterial[];
 }
 
@@ -219,10 +224,11 @@ export async function sotuvTurlari(
       almashtirish_guruh_id: number | null;
       koeffitsient: string;
       kesish_turi: string;
+      kesim_eni_m: string | null;
     }[]
   >`
     SELECT id, mahsulot_tur_id, nom, tartib, majburiy, formula, almashtirish_guruh_id,
-           koeffitsient::text, kesish_turi
+           koeffitsient::text, kesish_turi, kesim_eni_m::text
     FROM mahsulot_slot
     WHERE mahsulot_tur_id = ANY(${turIdlar}) AND faol = true
     ORDER BY mahsulot_tur_id, tartib`;
@@ -463,6 +469,7 @@ export async function sotuvTurlari(
         // AUDIT 1-topilma — kesish sozlamalari sotuv ekraniga ham, botga ham yetib boradi
         koeffitsient: Number(s.koeffitsient),
         kesishTuri: s.kesish_turi,
+        kesimEniM: s.kesim_eni_m === null ? null : Number(s.kesim_eni_m),
         // 3.3 — guruh belgilangan bo'lsa faqat o'sha guruh matolari
         materiallar: materiallar
           .filter((m) =>

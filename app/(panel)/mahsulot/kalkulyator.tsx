@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { slotSarfi, standartQiymatlar } from '@/lib/domain/formula';
-import { sm, type SarflashBirligi } from '@/lib/domain/birlik';
+import { m, type SarflashBirligi } from '@/lib/domain/birlik';
 import { pulKorsat, som, kopaytir, qosh, nolSom } from '@/lib/domain/pul';
 import { biznesXatosimi } from '@/lib/xato';
 
@@ -42,7 +42,7 @@ export interface ParametrHolati {
 
 const BIRLIK_MATNI: Record<SarflashBirligi, string> = {
   KV_M: 'kv.m',
-  SM: 'sm',
+  M: 'm',
   DONA: 'dona',
 };
 
@@ -88,7 +88,7 @@ export function TestKalkulyatori({
 
     let qiymatlar;
     try {
-      qiymatlar = standartQiymatlar(sm(e), sm(b), Number.isFinite(s) ? s : 1, qoshimcha);
+      qiymatlar = standartQiymatlar(m(e), m(b), Number.isFinite(s) ? s : 1, qoshimcha);
     } catch {
       return { qatorlar: [], jami: null, umumiy: null };
     }
@@ -110,7 +110,8 @@ export function TestKalkulyatori({
           guruh.namunaNarx !== null &&
           guruh.namunaNarx !== ''
         ) {
-          const koeff = birlik === 'SM' ? miqdor / 100 : miqdor;
+          // ⚠️ 2026-09-20 — sarf ham, narx ham 1 METR uchun: ÷100 kerak emas
+          const koeff = miqdor;
           const qiymat = kopaytir(som(guruh.namunaNarx), koeff);
           jami = qosh(jami, qiymat);
           narxBor = true;
@@ -152,12 +153,12 @@ export function TestKalkulyatori({
       <h2 className="text-sm font-semibold text-matn">Test kalkulyatori</h2>
       <p className="mt-1 text-xs text-matn-kuchsiz">
         TZ 4.8 — formuladagi xato <b>shu yerda</b> ko&apos;rinadi, mijozga sotgandan keyin emas.
-        Barcha o&apos;lcham santimetrda (5.3).
+        Barcha o&apos;lcham METRDA (2026-09-20).
       </p>
 
       <div className="mt-4 grid gap-3 sm:grid-cols-3">
         <label className="flex flex-col gap-1">
-          <span className="text-xs font-medium text-matn-ikki">Eni (sm)</span>
+          <span className="text-xs font-medium text-matn-ikki">Eni (m)</span>
           <input
             value={eni}
             onChange={(e) => {
@@ -168,7 +169,7 @@ export function TestKalkulyatori({
           />
         </label>
         <label className="flex flex-col gap-1">
-          <span className="text-xs font-medium text-matn-ikki">Bo&apos;yi (sm)</span>
+          <span className="text-xs font-medium text-matn-ikki">Bo&apos;yi (m)</span>
           <input
             value={boyi}
             onChange={(e) => {

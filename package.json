@@ -27,7 +27,9 @@
     "db:ruxsat": "tsx --env-file=.env lib/db/ruxsat-buyruq.ts",
     "db:sinov-tozala": "tsx --env-file=.env lib/db/sinov-tozala.ts",
     "db:xato": "tsx --env-file=.env lib/db/xato-buyruq.ts",
-    "db:ochirish-tekshir": "tsx --env-file=.env lib/db/ochirish-tekshir.ts"
+    "db:ochirish-tekshir": "tsx --env-file=.env lib/db/ochirish-tekshir.ts",
+    "db:formula-tekshir": "tsx --env-file=.env lib/db/formula-metr-tekshir.ts",
+    "db:metr-zaxira": "tsx --env-file=.env lib/db/metr-zaxira.ts"
   },
   "dependencies": {
     "@node-rs/argon2": "^2.1.0",

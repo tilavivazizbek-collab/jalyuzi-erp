@@ -7,15 +7,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { K01, K02, K03, K04, K05, K06, K07, K09, K10, KANONIK } from './kanonik';
-import {
-  kvM,
-  kvMYigindi,
-  kvSmToKvM,
-  maydonKvSm,
-  sm,
-  smToM,
-  type KvadratMetr,
-} from '@/lib/domain/birlik';
+import { kvM, kvMYigindi, m, maydon, type KvadratMetr } from '@/lib/domain/birlik';
 import { sarflashHisobla, standartQiymatlar } from '@/lib/domain/formula';
 import { pozitsiyaNarxiniHisobla } from '@/lib/domain/pozitsiya-narxi';
 import { dollar, kopaytir, kurs, kursFarqi, nolSom, pulKorsat, pulMatn, som } from '@/lib/domain/pul';
@@ -24,16 +16,16 @@ import { bolakTanla, kesimBalansi, kesimQatorlari } from '@/lib/domain/kesish';
 import { kunHisobi, xodimBalansi } from '@/lib/domain/balans';
 
 describe('K-01: karniz narxi — Q-01', () => {
-  it("210 sm eni → 420 sm sarf → 4.20 m → 147 000 so'm", () => {
-    const eni = sm(K01.eni);
-    const qiymatlar = standartQiymatlar(eni, sm(140), 1);
+  it("2.10 m eni → 4.20 m sarf → 147 000 so'm", () => {
+    const eni = m(K01.eni);
+    const qiymatlar = standartQiymatlar(eni, m(1.4), 1);
 
-    // Karniz — chiziqli material: smda sarflanadi (Q-01)
-    const sarfSm = sarflashHisobla(K01.formula, qiymatlar, 'SM');
-    expect(sarfSm).toBe(K01.sarflashSm);
-
-    // Narx esa 1 METR uchun belgilangan — tizim ÷100 qiladi
-    const sarfMetr = smToM(sarfSm as ReturnType<typeof sm>);
+    /**
+     * ⚠️ 2026-09-20 — karniz endi METRDA sarflanadi va narxi ham
+     *    1 METR uchun. Ilgari sarf smda chiqib, `smToM` bilan
+     *    o'girilardi — endi o'girish YO'Q.
+     */
+    const sarfMetr = sarflashHisobla(K01.formula, qiymatlar, 'M');
     expect(sarfMetr).toBe(K01.sarflashMetr);
 
     const jami = kopaytir(som(K01.narxMetrUchun), sarfMetr);
@@ -41,16 +33,27 @@ describe('K-01: karniz narxi — Q-01', () => {
     expect(pulKorsat(jami)).toBe('147 000');
   });
 
-  it('Z-01 takrorlanmaydi: smni metr deb olsak 100 barobar xato chiqadi', () => {
-    const notogri = kopaytir(som(K01.narxMetrUchun), K01.sarflashSm);
-    expect(pulMatn(notogri)).toBe('14700000.00');
-    // ya'ni 147 000 emas, 14 700 000. Shuning uchun birlik alohida tur.
+  /**
+   * ⚠️ Z-01 (100 barobar xato) endi TUZILISH JIHATIDAN mumkin emas:
+   *    sarf ham, narx ham bir xil birlikda va o'girish qoldirilmagan.
+   *    Test buni tasdiqlaydi — agar kimdir kelajakda «ehtiyot uchun»
+   *    ÷100 yoki ×100 qo'shsa, shu yerda yiqiladi.
+   */
+  it("Z-01 qaytmaydi: sarf va narx bir birlikda, o'girish yo'q", () => {
+    const qiymatlar = standartQiymatlar(m(K01.eni), m(1.4), 1);
+    const sarf = sarflashHisobla(K01.formula, qiymatlar, 'M');
+
+    expect(pulMatn(kopaytir(som(K01.narxMetrUchun), (sarf as number) * 100))).toBe(
+      '14700000.00',
+    );
+    expect(pulMatn(kopaytir(som(K01.narxMetrUchun), (sarf as number) / 100))).toBe('1470.00');
+    expect(pulMatn(kopaytir(som(K01.narxMetrUchun), sarf))).toBe(K01.jami);
   });
 });
 
 describe('K-02: slot formulalari — TZ 3.5', () => {
-  it('Dikke 180 × 220, CHET = 30 → 0.66 + 0.66 + 2.64 = 3.96 kv.m', () => {
-    const qiymatlar = standartQiymatlar(sm(K02.eni), sm(K02.boyi), 1, { CHET: K02.chet });
+  it('Dikke 1.80 × 2.20, CHET = 0.30 → 0.66 + 0.66 + 2.64 = 3.96 kv.m', () => {
+    const qiymatlar = standartQiymatlar(m(K02.eni), m(K02.boyi), 1, { CHET: K02.chet });
 
     const natijalar = K02.slotlar.map((slot) =>
       sarflashHisobla(slot.formula, qiymatlar, 'KV_M'),
@@ -75,14 +78,14 @@ describe('K-02: slot formulalari — TZ 3.5', () => {
  *    dagi K03 izohida to'liq yozilgan.
  */
 describe('K-03: kanonik buyurtma — TZ 3.8', () => {
-  it("Rollo 210 × 140 → 570 800 so'm", () => {
+  it("Rollo 2.10 × 1.40 m → 570 800 so'm", () => {
     // Maydon Q-05 bo'yicha eni × bo'yi dan hisoblanadi, kiritilmaydi
-    const maydon = kvSmToKvM(maydonKvSm(sm(K03.eni), sm(K03.boyi)));
-    expect(maydon).toBe(K03.maydonKvM);
+    const maydonKvM = maydon(m(K03.eni), m(K03.boyi));
+    expect(maydonKvM).toBe(K03.maydonKvM);
 
     const natija = pozitsiyaNarxiniHisobla({
-      eniSm: K03.eni,
-      boyiSm: K03.boyi,
+      eniM: K03.eni,
+      boyiM: K03.boyi,
       soni: 1,
       parametrlar: {},
       slotlar: [],
@@ -115,8 +118,8 @@ describe('K-03: kanonik buyurtma — TZ 3.8', () => {
 
   it('narx qo‘yilmagan bo‘lsa jami NULL — bepulga sotilmaydi', () => {
     const natija = pozitsiyaNarxiniHisobla({
-      eniSm: K03.eni,
-      boyiSm: K03.boyi,
+      eniM: K03.eni,
+      boyiM: K03.boyi,
       soni: 1,
       parametrlar: {},
       slotlar: [],

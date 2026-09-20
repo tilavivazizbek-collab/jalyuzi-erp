@@ -390,7 +390,7 @@ export async function sarflanishTezligi(
             *    uchun bir materialda faqat bittasi to'ladi.
             */
            GREATEST((SELECT -SUM(COALESCE(oh.miqdor_kv_m, 0)
-                                 + COALESCE(oh.miqdor_sm, 0)
+                                 + COALESCE(oh.miqdor_m, 0)
                                  + COALESCE(oh.miqdor_dona, 0))
               FROM ombor_harakat oh
               JOIN bolak b2 ON b2.id = oh.bolak_id
@@ -577,17 +577,17 @@ export async function materialHarakati(
   >`
     SELECT m.id AS material_id, m.nom, m.sarflash_birligi,
            SUM((COALESCE(oh.miqdor_kv_m, 0)
-                + COALESCE(oh.miqdor_sm, 0)
+                + COALESCE(oh.miqdor_m, 0)
                 + COALESCE(oh.miqdor_dona, 0))) FILTER (WHERE oh.turi IN ('KIRIM','BOSHLANGICH'))::text
              AS kirim,
            ABS(SUM((COALESCE(oh.miqdor_kv_m, 0)
-                + COALESCE(oh.miqdor_sm, 0)
+                + COALESCE(oh.miqdor_m, 0)
                 + COALESCE(oh.miqdor_dona, 0))) FILTER (WHERE oh.turi = 'KESIM'))::text AS sarf,
            ABS(SUM((COALESCE(oh.miqdor_kv_m, 0)
-                + COALESCE(oh.miqdor_sm, 0)
+                + COALESCE(oh.miqdor_m, 0)
                 + COALESCE(oh.miqdor_dona, 0))) FILTER (WHERE oh.turi = 'CHIQINDI'))::text AS chiqindi,
            ABS(SUM((COALESCE(oh.miqdor_kv_m, 0)
-                + COALESCE(oh.miqdor_sm, 0)
+                + COALESCE(oh.miqdor_m, 0)
                 + COALESCE(oh.miqdor_dona, 0))) FILTER (WHERE oh.turi = 'BRAK'))::text AS brak
     FROM ombor_harakat oh
     JOIN bolak b ON b.id = oh.bolak_id
@@ -640,7 +640,7 @@ export async function chiqindiVaBrak(
   >`
     SELECT m.nom, oh.turi,
            ABS(SUM((COALESCE(oh.miqdor_kv_m, 0)
-                + COALESCE(oh.miqdor_sm, 0)
+                + COALESCE(oh.miqdor_m, 0)
                 + COALESCE(oh.miqdor_dona, 0))))::text AS miqdor,
            ABS(SUM(oh.tannarx_summa))::numeric(14,2)::text AS qiymat,
            COUNT(*)::int AS hodisa_soni
@@ -764,10 +764,10 @@ export interface KamQoldiqQatori {
  * TZ 11.7.3 — «Kam qolgan va tugagan materiallar».
  *
  * ⚠️ QAROR: chegara solishtiruvi SQL da EMAS, domainda
- *    (`kamQoldiqmi`). Sabab — Q-01: chiziqli material bazada
- *    SANTIMETRDA yotadi, chegara esa METRDA yozilgan. SQL da
- *    `qoldiq < chegara` deb yozilsa, 350 sm 5 m dan katta bo'lib
- *    chiqardi va ogohlantirish hech qachon ishlamasdi.
+ *    (`kamQoldiqmi`). 2026-09-20 dan ikkalasi ham METRDA, lekin
+ *    solishtiruv baribir DOMAINDA qoladi: dona mahsulotda chegara
+ *    donada, metrlida metrda va bu farqni SQL bilmaydi. Bir
+ *    mantiq — bir joyda (CLAUDE.md §3).
  *
  * ⚠️ Chegarasi yo'q material ham qaytadi: qoldiq nol bo'lsa u
  *    baribir «tugagan» ro'yxatiga tushishi kerak.

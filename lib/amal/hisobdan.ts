@@ -128,7 +128,7 @@ export async function hisobdanChiqar(
       tannarxBirlik: som(bolak.tannarx_birlik_snapshot),
     });
     const kvM = bolak.turi === 'DONA' ? null : new Decimal(bolak.eni_m ?? 0).times(bolak.boyi_m ?? 0);
-    const sm = bolak.turi === 'DONA' && bolak.sarflash_birligi === 'SM' ? bolak.miqdor : null;
+    const sm = bolak.turi === 'DONA' && bolak.sarflash_birligi === 'M' ? bolak.miqdor : null;
     const dona =
       bolak.turi === 'DONA' && bolak.sarflash_birligi === 'DONA'
         ? Math.round(Number(bolak.miqdor ?? 0))
@@ -140,7 +140,7 @@ export async function hisobdanChiqar(
         : `${SABAB_NOMI[kirim.sabab]} — ${kirim.izoh.trim()}`;
 
     const harakat = await tx<{ id: number }[]>`
-      INSERT INTO ombor_harakat (filial_id, bolak_id, turi, miqdor_kv_m, miqdor_sm,
+      INSERT INTO ombor_harakat (filial_id, bolak_id, turi, miqdor_kv_m, miqdor_m,
                                  miqdor_dona, tannarx_summa, manba_turi, manba_id,
                                  izoh, xodim_id)
       VALUES (${bolak.filial_id}, ${bolak.id}, 'BRAK',
@@ -239,14 +239,14 @@ export async function chiqarishniBekorQil(
         filial_id: number;
         turi: string;
         miqdor_kv_m: string | null;
-        miqdor_sm: string | null;
+        miqdor_m: string | null;
         miqdor_dona: number | null;
         tannarx_summa: string;
         bolak_kod: string;
         bolak_holat: string;
       }[]
     >`
-      SELECT oh.id, oh.bolak_id, oh.filial_id, oh.turi, oh.miqdor_kv_m, oh.miqdor_sm,
+      SELECT oh.id, oh.bolak_id, oh.filial_id, oh.turi, oh.miqdor_kv_m, oh.miqdor_m,
              oh.miqdor_dona, oh.tannarx_summa, b.kod AS bolak_kod, b.holat AS bolak_holat
       FROM ombor_harakat oh
       JOIN bolak b ON b.id = oh.bolak_id
@@ -280,11 +280,11 @@ export async function chiqarishniBekorQil(
       x === null ? null : new Decimal(x).negated().toFixed(4);
 
     await tx`
-      INSERT INTO ombor_harakat (filial_id, bolak_id, turi, miqdor_kv_m, miqdor_sm,
+      INSERT INTO ombor_harakat (filial_id, bolak_id, turi, miqdor_kv_m, miqdor_m,
                                  miqdor_dona, tannarx_summa, manba_turi, manba_id,
                                  izoh, xodim_id)
       VALUES (${harakat.filial_id}, ${harakat.bolak_id}, 'STORNO',
-              ${teskari(harakat.miqdor_kv_m)}, ${teskari(harakat.miqdor_sm)},
+              ${teskari(harakat.miqdor_kv_m)}, ${teskari(harakat.miqdor_m)},
               ${harakat.miqdor_dona === null ? null : -harakat.miqdor_dona},
               ${new Decimal(harakat.tannarx_summa).negated().toFixed(2)},
               'ombor_harakat', ${harakatId},

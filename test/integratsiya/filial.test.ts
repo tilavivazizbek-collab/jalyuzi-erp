@@ -433,7 +433,7 @@ async function pozitsiyaYarat(
 
   const p = await sql<{ id: number }[]>`
     INSERT INTO buyurtma_pozitsiya (buyurtma_id, tartib, mahsulot_tur_id,
-                                    eni_sm, boyi_sm, narx_snapshot,
+                                    eni_m, boyi_m, narx_snapshot,
                                     formula_snapshot, holat, yaratdi_id)
     VALUES (${buy[0]?.id ?? 0}, 1, ${tur[0]?.id ?? 0}, 210, 140, ${narx},
             ${sql.json({ sinov: true })}, ${holat}, ${XODIM})

@@ -46,7 +46,7 @@ export default async function QaytaKesishSahifasi() {
                     {s.tartib}. {s.turNomi}
                   </span>
                   <span className="raqam ml-2 text-sm text-matn-ikki">
-                    {s.eniSm} × {s.boyiSm} sm
+                    {s.eniM} × {s.boyiM} m
                   </span>
                   <div className="mt-1 text-xs text-matn-kuchsiz">
                     {s.ustaIsmi} · {QK_SABAB_NOMI[s.sabab as QaytaKesishSababi] ?? s.sabab}

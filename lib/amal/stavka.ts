@@ -136,14 +136,14 @@ export async function pozitsiyaStavkasi(
       mahsulot_tur_id: number;
       filial_id: number;
       sana: string;
-      eni_sm: number;
-      boyi_sm: number;
+      eni_m: number;
+      boyi_m: number;
     }[]
   >`
     SELECT p.mahsulot_tur_id,
            b.ishlab_chiqaruvchi_filial_id AS filial_id,
            b.sana::date::text            AS sana,
-           p.eni_sm, p.boyi_sm
+           p.eni_m, p.boyi_m
     FROM buyurtma_pozitsiya p
     JOIN buyurtma b ON b.id = p.buyurtma_id
     WHERE p.id = ${pozitsiyaId}`;
@@ -164,8 +164,9 @@ export async function pozitsiyaStavkasi(
      *    ko'tarilmaydi — soni haq hisoblanayotganda ko'paytiriladi
      *    (`haqHisobla`).
      *
-     * ⚠️ TZ 5.3 — o'lchamlar SANTIMETRDA. 10 000 ga bo'linadi.
+     * ⚠️ 2026-09-20 — o'lchamlar METRDA, ya'ni ko'paytmaning o'zi
+     *    kv.m. Ilgari sm edi va ÷10 000 turardi.
      */
-    maydonKvM: (p.eni_sm * p.boyi_sm) / 10_000,
+    maydonKvM: p.eni_m * p.boyi_m,
   });
 }

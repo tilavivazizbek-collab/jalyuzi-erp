@@ -35,7 +35,7 @@ import { HolatTuzatishTugmasi } from '../holat-tuzat';
 
 export const dynamic = 'force-dynamic';
 
-const BIRLIK: Record<string, string> = { KV_M: 'kv.m', SM: 'sm', DONA: 'dona' };
+const BIRLIK: Record<string, string> = { KV_M: 'kv.m', M: 'm', DONA: 'dona' };
 
 export default async function BuyurtmaKartochkasi({ params }: { params: Promise<{ id: string }> }) {
   const f = await sahifaRuxsati('buyurtma.kor');
@@ -281,7 +281,7 @@ export default async function BuyurtmaKartochkasi({ params }: { params: Promise<
                     {p.tartib}. {p.turNomi}
                   </span>
                   <span className="raqam ml-3 text-sm text-matn-ikki">
-                    {p.eniSm} × {p.boyiSm} sm
+                    {p.eniM} × {p.boyiM} m
                   </span>
                   {p.soni > 1 && (
                     <span className="raqam ml-2 text-sm text-matn-kuchsiz">× {p.soni}</span>
@@ -371,8 +371,8 @@ export default async function BuyurtmaKartochkasi({ params }: { params: Promise<
                 ustalar={ustalar}
                 bandlar={bandlar.filter((x) => x.pozitsiyaId === p.id)}
                 tahrir={tahrirlar.find((t) => t !== null && t.pozitsiyaId === p.id) ?? null}
-                eniSm={p.eniSm}
-                boyiSm={p.boyiSm}
+                eniM={p.eniM}
+                boyiM={p.boyiM}
               />
             </div>
           ))}
@@ -437,8 +437,8 @@ function PozitsiyaAmallari({
   ustalar,
   bandlar,
   tahrir,
-  eniSm,
-  boyiSm,
+  eniM,
+  boyiM,
 }: {
   holat: PozitsiyaHolati;
   pozitsiyaId: number;
@@ -463,8 +463,8 @@ function PozitsiyaAmallari({
   bandlar: readonly BandBolak[];
   /** TZ 8.7 — tahrir mumkin bo'lsa pozitsiyaning joriy tarkibi */
   tahrir: PozitsiyaTahriri | null;
-  eniSm: number;
-  boyiSm: number;
+  eniM: number;
+  boyiM: number;
 }) {
   const bekor = bekorQilaOladi && bekorQilinadimi(holat);
   // 20.5.1 — yo'ldagi tayyor mahsulotni sotgan filial qabul qiladi
@@ -535,8 +535,8 @@ function PozitsiyaAmallari({
         <TugatdimTugmasi
           pozitsiyaId={pozitsiyaId}
           bandlar={bandlar}
-          mahsulotEniSm={eniSm}
-          mahsulotBoyiSm={boyiSm}
+          mahsulotEniM={eniM}
+          mahsulotBoyiM={boyiM}
         />
       )}
       {yetibKeldi && <YetibKeldiTugmasi pozitsiyaId={pozitsiyaId} />}

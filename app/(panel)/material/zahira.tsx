@@ -42,7 +42,7 @@ export function ZahiraBolimi({
 }: {
   /** Rulon bo'lsa har rulonning eni × bo'yi so'raladi */
   rulonmi: boolean;
-  /** Sarflash birligi nomi — «dona», «santimetr» */
+  /** Sarflash birligi nomi — «dona», «metr» */
   birlikNomi: string;
   /** Kartochkada tanlangan usul — narx shu bo'yicha hisoblanadi */
   narxAsosi: string;
@@ -258,7 +258,8 @@ export function ZahiraBolimi({
               {/*
                 ⚠️ Birlik SARLAVHADA yoziladi, placeholderda emas:
                    placeholder yozishni boshlagan zahoti yo'qoladi va
-                   omborchi «eni 250» deb santimetr yozib qo'yardi.
+                   omborchi «eni 250» deb santimetr yozib qo'yardi
+                   (endi baza ham metrda, lekin sarlavha baribir kerak).
               */}
               <p className="mb-1 text-[13px] font-medium text-matn">
                 Har rulonning o&apos;lchami — <b>metrda</b>

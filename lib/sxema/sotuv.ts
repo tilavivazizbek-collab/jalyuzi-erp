@@ -19,13 +19,24 @@ const pulMatni = (xabar: string) =>
 /**
  * ⚠️ NOL ham o'tadi: qo'shimcha buyumda o'lcham bo'lmaydi (3.10).
  *    Tayyor mahsulotda musbatligi quyida, `refine` da tekshiriladi.
+ *
+ * ⚠️ 2026-09-20 — O'LCHAM METRDA. Ilgari `.int()` edi, chunki sm da
+ *    kasr ma'nosiz edi. Metrda esa kasr ASOSIY holat: `2.1` m.
+ *    `.int()` qoldirilganda 2 metrdan kichik har qanday buyurtma
+ *    rad etilardi.
+ *
+ * ⚠️ `multipleOf(0.01)` — santimetrdan mayda o'lcham qabul
+ *    qilinmaydi: baza NUMERIC(8,2) va `2.005` jimgina `2.01` ga
+ *    aylanib, brauzerdagi narx bilan serverdagisi ajralardi.
+ *
+ * ⚠️ Yuqori chegara 1000 m — avvalgi 100 000 sm ning aynan o'zi.
  */
 const olcham = (xabar: string) =>
   z
     .number()
-    .int(xabar)
     .min(0, xabar)
-    .max(100_000, xabar);
+    .max(1000, xabar)
+    .multipleOf(0.01, xabar);
 
 export const sotuvSlotSxema = z.object({
   /**
@@ -47,10 +58,19 @@ export const sotuvSlotSxema = z.object({
     .regex(/^\d+(\.\d{1,4})?$/, "Tuzatilgan miqdor noto'g'ri")
     .nullable()
     .default(null),
-  birlik: z.enum(['KV_M', 'SM', 'DONA']),
+  birlik: z.enum(['KV_M', 'M', 'DONA']),
   /** AUDIT 1-topilma — kesish sozlamalari (server bandga ishlatadi) */
   koeffitsient: z.coerce.number().optional(),
   kesishTuri: z.enum(['ENIGA', "BO'YIGA"]).optional(),
+  /**
+   * Qat'iy kesim eni, metrda — «dikkey» (egasi, 2026-09-20).
+   *
+   * ⚠️ Brauzerdan keladi, LEKIN unga ishonilmaydi: server band
+   *    qilishdan oldin `mahsulot_slot` dan qayta o'qiydi
+   *    (`lib/amal/buyurtma.ts`). Bu yerdagisi faqat SHU so'rovdagi
+   *    kesim to'rtburchagini ekrandagisi bilan bir xil qilish uchun.
+   */
+  kesimEniM: z.coerce.number().positive().nullable().optional(),
   narxSnapshot: pulMatni("Narx noto'g'ri"),
 });
 
@@ -60,7 +80,7 @@ export const sotuvAksessuarSxema = z.object({
     .string()
     .trim()
     .regex(/^\d+(\.\d{1,2})?$/, "Aksessuar soni noto'g'ri"),
-  birlik: z.enum(['KV_M', 'SM', 'DONA']),
+  birlik: z.enum(['KV_M', 'M', 'DONA']),
   narxSnapshot: pulMatni("Aksessuar narxi noto'g'ri"),
   qoldaKiritildi: z.boolean().default(false),
 });
@@ -87,7 +107,7 @@ export const sotuvQoshimchaSxema = z
       .regex(/^\d+(\.\d{1,4})?$/, "Qo'shimcha miqdori noto'g'ri")
       .nullable()
       .default(null),
-    birlik: z.enum(['KV_M', 'SM', 'DONA']).nullable().default(null),
+    birlik: z.enum(['KV_M', 'M', 'DONA']).nullable().default(null),
   })
   .refine(
     (q) =>
@@ -120,9 +140,9 @@ export const sotuvPozitsiyaSxema = z
     mahsulotTurId: z.number().int().positive().nullable().default(null),
     /** Tayyor mahsulotda `null` */
     qoshimchaMaterialId: z.number().int().positive().nullable().default(null),
-    /** TZ 3.4 — o'lcham SANTIMETRDA. Qo'shimcha buyumda nol */
-    eniSm: olcham('Enini smda kiriting'),
-    boyiSm: olcham("Bo'yini smda kiriting"),
+    /** TZ 3.4 — o'lcham METRDA (2026-09-20). Qo'shimcha buyumda nol */
+    eniM: olcham('Enini metrda kiriting'),
+    boyiM: olcham("Bo'yini metrda kiriting"),
     soni: z.number().int().positive().default(1),
   narxSnapshot: pulMatni("Pozitsiya narxi noto'g'ri"),
   chegirmaSumma: pulMatni("Chegirma noto'g'ri").default('0'),
@@ -140,8 +160,8 @@ export const sotuvPozitsiyaSxema = z
     { path: ['mahsulotTurId'], message: 'Mahsulot turini tanlang' },
   )
   // Tayyor mahsulotda o'lcham va kamida bitta slot MAJBURIY
-  .refine((p) => p.qoshimchaMaterialId !== null || (p.eniSm > 0 && p.boyiSm > 0), {
-    path: ['eniSm'],
+  .refine((p) => p.qoshimchaMaterialId !== null || (p.eniM > 0 && p.boyiM > 0), {
+    path: ['eniM'],
     message: "O'lchamni smda kiriting",
   })
   .refine((p) => p.qoshimchaMaterialId !== null || p.slotlar.length > 0, {
@@ -149,8 +169,8 @@ export const sotuvPozitsiyaSxema = z
     message: "Kamida bitta slot to'ldirilsin",
   })
   // Qo'shimcha buyumda o'lcham ham, slot ham YO'Q (3.10)
-  .refine((p) => p.qoshimchaMaterialId === null || (p.eniSm === 0 && p.boyiSm === 0), {
-    path: ['eniSm'],
+  .refine((p) => p.qoshimchaMaterialId === null || (p.eniM === 0 && p.boyiM === 0), {
+    path: ['eniM'],
     message: "Qo'shimcha buyumda o'lcham bo'lmaydi",
   })
   .refine((p) => p.qoshimchaMaterialId === null || p.slotlar.length === 0, {

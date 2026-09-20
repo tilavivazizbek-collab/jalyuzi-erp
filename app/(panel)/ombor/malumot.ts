@@ -223,7 +223,7 @@ export interface HarakatQatori {
   readonly turi: string;
   readonly bolakKod: string;
   readonly miqdorKvM: number | null;
-  readonly miqdorSm: number | null;
+  readonly miqdorM: number | null;
   readonly miqdorDona: number | null;
   readonly tannarxSumma: string;
   readonly izoh: string | null;
@@ -291,7 +291,7 @@ export async function materialXulosasi(
       WITH h AS (
         SELECT oh.turi,
                ABS(COALESCE(oh.miqdor_kv_m, 0)
-                   + COALESCE(oh.miqdor_sm, 0)
+                   + COALESCE(oh.miqdor_m, 0)
                    + COALESCE(oh.miqdor_dona, 0)) AS miqdor,
                ABS(oh.tannarx_summa) AS summa
         FROM ombor_harakat oh
@@ -322,7 +322,7 @@ export async function materialXulosasi(
     sql<{ nom: string; miqdor: string }[]>`
       SELECT COALESCE(mt.nom, 'Boshqa') AS nom,
              SUM(ABS(COALESCE(oh.miqdor_kv_m, 0)
-                     + COALESCE(oh.miqdor_sm, 0)
+                     + COALESCE(oh.miqdor_m, 0)
                      + COALESCE(oh.miqdor_dona, 0)))::text AS miqdor
       FROM ombor_harakat oh
       JOIN bolak b ON b.id = oh.bolak_id
@@ -397,7 +397,7 @@ export async function materialHarakatlari(
       turi: string;
       bolak_kod: string;
       miqdor_kv_m: string | null;
-      miqdor_sm: string | null;
+      miqdor_m: string | null;
       miqdor_dona: number | null;
       tannarx_summa: string;
       izoh: string | null;
@@ -406,7 +406,7 @@ export async function materialHarakatlari(
     }[]
   >`
     SELECT oh.id, oh.sana, oh.turi, b.kod AS bolak_kod,
-           oh.miqdor_kv_m, oh.miqdor_sm, oh.miqdor_dona,
+           oh.miqdor_kv_m, oh.miqdor_m, oh.miqdor_dona,
            oh.tannarx_summa, oh.izoh, x.ism AS xodim_ismi,
            EXISTS (
              SELECT 1 FROM ombor_harakat t
@@ -426,7 +426,7 @@ export async function materialHarakatlari(
     turi: q.turi,
     bolakKod: q.bolak_kod,
     miqdorKvM: q.miqdor_kv_m === null ? null : Number(q.miqdor_kv_m),
-    miqdorSm: q.miqdor_sm === null ? null : Number(q.miqdor_sm),
+    miqdorM: q.miqdor_m === null ? null : Number(q.miqdor_m),
     miqdorDona: q.miqdor_dona,
     tannarxSumma: q.tannarx_summa,
     izoh: q.izoh,

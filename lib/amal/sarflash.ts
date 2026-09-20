@@ -30,14 +30,24 @@
  */
 
 import type postgres from 'postgres';
-import { sm, type SarflashBirligi } from '@/lib/domain/birlik';
+import { m, type SarflashBirligi } from '@/lib/domain/birlik';
 import { slotSarfi, soniUchun, standartQiymatlar } from '@/lib/domain/formula';
 import { BiznesXato } from '@/lib/xato';
 
-/** Har birlik uchun ruxsat etilgan farq — o'nlik yaxlitlash uchun */
+/**
+ * Har birlik uchun ruxsat etilgan farq — o'nlik yaxlitlash uchun.
+ *
+ * ⚠️ 2026-09-20 — ilgari `SM: 0.02` edi, ya'ni «ikki saqlash qadami»
+ *    (sm ham 2 kasr bilan saqlanardi). Metrda ham saqlash qadami
+ *    0.01, lekin ikki qadam endi 2 SANTIMETR degani va bu haqiqiy
+ *    kamomadni yashira oladi. Shuning uchun BIR qadam qoldirildi:
+ *    brauzer va server bir xil formulani hisoblab, ikkalasi ham 2
+ *    kasrga yaxlitlaydi — farq faqat ikkilik kasr shovqinidan
+ *    chiqishi mumkin, u esa 0.01 dan ancha kichik.
+ */
 const BAGRIKENGLIK: Record<SarflashBirligi, number> = {
   KV_M: 0.0002,
-  SM: 0.02,
+  M: 0.01,
   DONA: 0,
 };
 
@@ -50,8 +60,8 @@ export interface TekshirilayotganSlot {
 
 export interface TekshirilayotganPozitsiya {
   readonly mahsulotTurId: number;
-  readonly eniSm: number;
-  readonly boyiSm: number;
+  readonly eniM: number;
+  readonly boyiM: number;
   readonly soni: number;
   /** Sotuvchi kiritgan parametr qiymatlari shu yerda (4.10) */
   readonly formulaSnapshot: unknown;
@@ -115,8 +125,8 @@ export async function sarflashniTekshir(
   }
 
   const asos = standartQiymatlar(
-    sm(p.eniSm),
-    sm(p.boyiSm),
+    m(p.eniM),
+    m(p.boyiM),
     p.soni,
     qiymatlar,
   );

@@ -179,9 +179,19 @@ export const buyurtmaPozitsiya = pgTable(
       () => material.id,
     ),
 
-    /** TZ 3.4 — o'lcham SANTIMETRDA: mijoz va usta shunday gapiradi */
-    eniSm: integer('eni_sm').notNull(),
-    boyiSm: integer('boyi_sm').notNull(),
+    /**
+     * TZ 3.4 — o'lcham METRDA (2026-09-20).
+     *
+     * ⚠️ Ilgari `integer` va SANTIMETRDA edi (`eni_sm`). Egasi butun
+     *    tizimni metrga o'tkazdi: «ba'zi joylarda 100 ga o'tgansan».
+     *    Endi o'girish hech qayerda yo'q.
+     *
+     * ⚠️ `numeric(8,2)` — santimetrgacha aniqlik saqlanadi
+     *    (2.10 m = ilgarigi 210 sm). `integer` qoldirilganda metrga
+     *    o'tish butun o'lchamlarni yo'q qilardi.
+     */
+    eniM: numeric('eni_m', { precision: 8, scale: 2 }).notNull(),
+    boyiM: numeric('boyi_m', { precision: 8, scale: 2 }).notNull(),
     soni: integer('soni').notNull().default(1),
 
     /** TZ 3.9 — kelishilgan narx qotadi (2.3-invariant) */
@@ -246,8 +256,8 @@ export const buyurtmaPozitsiya = pgTable(
      */
     check(
       'pozitsiya_olcham_juft',
-      sql`(${t.eniSm} = 0 AND ${t.boyiSm} = 0)
-           OR (${t.eniSm} > 0 AND ${t.boyiSm} > 0)`,
+      sql`(${t.eniM} = 0 AND ${t.boyiM} = 0)
+           OR (${t.eniM} > 0 AND ${t.boyiM} > 0)`,
     ),
 
     check(
@@ -268,7 +278,7 @@ export const buyurtmaPozitsiya = pgTable(
      */
     check(
       'buyurtma_pozitsiya_olcham',
-      sql`${t.qoshimchaMaterialId} IS NOT NULL OR (${t.eniSm} > 0 AND ${t.boyiSm} > 0)`,
+      sql`${t.qoshimchaMaterialId} IS NOT NULL OR (${t.eniM} > 0 AND ${t.boyiM} > 0)`,
     ),
     check('buyurtma_pozitsiya_soni', sql`${t.soni} > 0`),
     uniqueIndex('buyurtma_pozitsiya_tartib').on(t.buyurtmaId, t.tartib),
@@ -324,7 +334,7 @@ export const pozitsiyaMaterial = pgTable(
     narxSnapshot: numeric('narx_snapshot', { precision: 14, scale: 2 }).notNull(),
   },
   (t) => [
-    check('pozitsiya_material_birlik', sql`${t.birlik} IN ('KV_M','SM','DONA')`),
+    check('pozitsiya_material_birlik', sql`${t.birlik} IN ('KV_M','M','DONA')`),
     check('pozitsiya_material_miqdor', sql`${t.hisoblanganMiqdor} > 0`),
     check(
       'pozitsiya_material_tuzatilgan',
@@ -380,7 +390,7 @@ export const pozitsiyaAksessuar = pgTable(
     qoldaKiritildi: boolean('qolda_kiritildi').notNull().default(false),
   },
   (t) => [
-    check('pozitsiya_aksessuar_birlik', sql`${t.birlik} IN ('KV_M','SM','DONA')`),
+    check('pozitsiya_aksessuar_birlik', sql`${t.birlik} IN ('KV_M','M','DONA')`),
     check('pozitsiya_aksessuar_soni', sql`${t.soni} > 0`),
     index('pozitsiya_aksessuar_pozitsiya').on(t.buyurtmaPozitsiyaId),
   ],

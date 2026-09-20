@@ -32,7 +32,7 @@
  *    parametr bo'lib keladi.
  */
 
-import { sm, type SarflashBirligi } from './birlik';
+import { m, type SarflashBirligi } from './birlik';
 import {
   kopaytir,
   nolmi,
@@ -76,8 +76,8 @@ export interface AksessuarKirishi {
 }
 
 export interface NarxKirishi {
-  readonly eniSm: number;
-  readonly boyiSm: number;
+  readonly eniM: number;
+  readonly boyiM: number;
   readonly soni: number;
   readonly parametrlar: Readonly<Record<string, number>>;
   readonly slotlar: readonly SlotKirishi[];
@@ -136,7 +136,7 @@ export interface NarxNatijasi {
  *    lekin qaysi materialdan qancha ketishini baribir biladi.
  */
 function sarfQatorlari(k: NarxKirishi): SarfQatori[] {
-  const asos = standartQiymatlar(sm(k.eniSm), sm(k.boyiSm), k.soni, k.parametrlar);
+  const asos = standartQiymatlar(m(k.eniM), m(k.boyiM), k.soni, k.parametrlar);
 
   const slotlar: SarfQatori[] = k.slotlar.map((s) => {
     const bir = slotSarfi(s.formula, asos, s.sarflashBirligi, s.koeffitsient);
@@ -201,7 +201,7 @@ export function pozitsiyaNarxiniHisobla(k: NarxKirishi): NarxNatijasi {
 
   let olchov: number;
   try {
-    olchov = olchovi(k.qoida.hisoblashUsuli, k.eniSm, k.boyiSm);
+    olchov = olchovi(k.qoida.hisoblashUsuli, k.eniM, k.boyiM);
   } catch (x) {
     return {
       sarf,
@@ -218,7 +218,7 @@ export function pozitsiyaNarxiniHisobla(k: NarxKirishi): NarxNatijasi {
   let asosiy: Som;
   try {
     asosiy = offsetQolla(
-      qoidaNarxi(k.qoida, k.eniSm, k.boyiSm, k.kurs ?? null),
+      qoidaNarxi(k.qoida, k.eniM, k.boyiM, k.kurs ?? null),
       k.offset,
       k.kurs ?? null,
     );
@@ -238,7 +238,7 @@ export function pozitsiyaNarxiniHisobla(k: NarxKirishi): NarxNatijasi {
   for (const q of k.qoshimchalar) {
     qatorlar.push({
       nom: q.nom,
-      summa: pulMatn(qoshimchaNarxi(q, k.eniSm, k.boyiSm, k.kurs ?? null)),
+      summa: pulMatn(qoshimchaNarxi(q, k.eniM, k.boyiM, k.kurs ?? null)),
     });
   }
 

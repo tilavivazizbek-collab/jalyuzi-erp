@@ -232,7 +232,7 @@ export async function varaqaYakunla(
         sabab: k?.sabab ?? null,
         izoh: k?.izoh ?? null,
       };
-      return { qator, natija, qatorId: q.id, smda: q.sarflash_birligi === 'SM' };
+      return { qator, natija, qatorId: q.id, smda: q.sarflash_birligi === 'M' };
     });
 
     // §2.2 — farq va sabab tekshiruvi DOMAIN da, SQL da takrorlanmaydi
@@ -265,7 +265,7 @@ export async function varaqaYakunla(
       // bo'lgani uchun kasrli sm u yerga umuman sig'maydi.
       await tx`
         INSERT INTO ombor_harakat (filial_id, bolak_id, turi, miqdor_kv_m,
-                                   miqdor_sm, miqdor_dona, tannarx_summa,
+                                   miqdor_m, miqdor_dona, tannarx_summa,
                                    manba_turi, manba_id, izoh, xodim_id)
         VALUES (${hujjat.filial_id}, ${j.qator.bolakId}, 'INVENTARIZATSIYA',
                 ${dona ? null : f.farqKvM.toFixed(4)},

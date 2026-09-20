@@ -41,10 +41,11 @@ qoida olishdan oldin qarorlar ro'yxatini tekshir.
 
 | TZ da (eski) | To'g'risi |
 |---|---|
-| Karniz metrda sarflanadi (3.7) | **smda**, narx 1 metr uchun |
+| Karniz smda sarflanadi (Q-01) | **metrda**, narx ham 1 metr uchun |
 | Aniq bo'lak kuzatilmaydi (7.6) | **kuzatiladi**, usta tasdiqlaydi |
 | Material yetmagani usta olganda bilinadi (8.3) | **buyurtma berilayotganda** |
 | Ombor qoldig'i kv.m (15.1) | **eni × bo'yi, metrda** |
+| Buyurtma o'lchami smda (3.4) | **metrda** (2026-09-20) |
 | 7-bo'limga havolalar | **bir raqamga surilgan** |
 
 ---
@@ -59,10 +60,18 @@ qoida olishdan oldin qarorlar ro'yxatini tekshir.
 - `Som` va `Dollar` alohida turlar — qo'shilmaydi
 - Konversiya faqat `ogir(summa, kurs)`, kurs **parametr** sifatida
 
-### O'lchov
-- `Santimetr`, `Metr`, `KvadratMetr` — alohida turlar
-- Buyurtma sm · bo'lak metr · mato kv.m
+### O'lchov — TIZIM BUTUNLAY METRDA (2026-09-20)
+- `Metr`, `KvadratMetr`, `Dona` — alohida turlar
+- **Buyurtma ham, bo'lak ham, sarf ham METRDA.** Maydon — kv.m
+- `Santimetr` turi **O'CHIRILDI**. Qayta qo'shilmaydi
+- Kodning hech bir joyida `×100` yoki `÷100` **bo'lmaydi**.
+  Ko'rsangiz — bu xato, tuzatiladi
 - Kv.m **kiritilmaydi** — `eni × bo'yi` dan hisoblanadi
+
+⚠️ NEGA: har `÷100` ayri joyda turardi (`kesimOlchami`, `olchovi`,
+`qatorSummasi`, `birlikda`, `miqdorMatni`) va bittasi unutilsa raqam
+100 yoki 10 000 barobar adashardi. Egasi: «ba'zi joylarda 100 ga
+o'tgansan». U haq edi — endi o'girishning O'ZI yo'q.
 
 ### Baza
 - **Migratsiya yaratilgach DARHOL qo'llanadi va tekshiriladi.**
@@ -160,7 +169,7 @@ Kanonik raqamlar — **birinchi haftada**:
 
 | Test | Natija | Band |
 |---|---|---|
-| Kanonik buyurtma | `678 400` | 3.8 |
+| Kanonik buyurtma | `570 800` | 3.8 ⚠️ |
 | Slot formulalari | `0.66+0.66+2.64 = 3.96` | 3.5 |
 | Transport taqsimoti | `1 504 000+238 000+258 000 = 2 000 000` | 7.9 |
 | FIFO brak bilan | `660 000 / 10 = 66 000` | 7.9 |
@@ -169,7 +178,7 @@ Kanonik raqamlar — **birinchi haftada**:
 | Ustama eroziyasi | `37.4%` | 11.7.5 |
 | Kun yopish | `3 200 000` | 12.17 |
 | Usta balansi | `1 140 000` | 13.8 |
-| Karniz narxi | `210 sm → 147 000` | Q-01 |
+| Karniz narxi | `2.10 m → 4.20 m × 35 000 = 147 000` | Q-01 |
 | Filiallararo qarz | `312 000+57 600+154 400 = 524 000` | 22.3.1 ✅ |
 
 **Qamrov:** `lib/domain/` 90%+ · `lib/amal/` har tranzaksiya 1 test ·
@@ -178,6 +187,14 @@ KRITIK va JIDDIY edge case'lar.
 Test nomida kod: `test('EC-OMB-18: ...', ...)`.
 
 **Test yozilmagan modul tayyor emas.**
+
+⚠️ **Kanonik buyurtma `678 400` → `570 800`** (2026-09-20, egasining
+yozma tasdig'i bilan). Eski raqam «qatnashgan har materialning narxi
+qo'shiladi» modelidan chiqardi; egasi uni RAD ETDI: «men belgilab
+qo'yaman mijozga narx qanday hisoblanishini». Narx endi
+tur × mato darajasi jadvalidan keladi. Batafsil: `test/kanonik.ts`
+dagi K03 izohi. TZ 3.8 matni (`docs/LOYIHA.md`) eski holicha qoldi —
+u tarix.
 
 ---
 

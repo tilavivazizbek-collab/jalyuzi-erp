@@ -102,8 +102,8 @@ async function ishdagiPozitsiya(stavka = '45000'): Promise<number> {
     pozitsiyalar: [
       {
         mahsulotTurId: turId,
-        eniSm: 120,
-        boyiSm: 200,
+        eniM: 1.2,
+        boyiM: 2,
         soni: 1,
         narxSnapshot: '500000',
         chegirmaSumma: '0',
@@ -189,8 +189,8 @@ describe('TZ 8.17.2 — usta so\'rov yuboradi', () => {
         pozitsiyalar: [
           {
             mahsulotTurId: turId,
-            eniSm: 120,
-            boyiSm: 200,
+            eniM: 1.2,
+            boyiM: 2,
             soni: 1,
             narxSnapshot: '500000',
             chegirmaSumma: '0',
@@ -367,8 +367,8 @@ describe('TZ 8.17.4 — tasdiqlansa material IKKINCHI MARTA yechiladi', () => {
         pozitsiyalar: [
           {
             mahsulotTurId: turId,
-            eniSm: 120,
-            boyiSm: 200,
+            eniM: 1.2,
+            boyiM: 2,
             soni: 1,
             narxSnapshot: '500000',
             chegirmaSumma: '0',

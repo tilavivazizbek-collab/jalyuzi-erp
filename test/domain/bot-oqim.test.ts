@@ -42,8 +42,8 @@ function toliqRollo(): Qoralama {
   let q = turTanla(BOSH_QORALAMA, ROLLO, ROLLO_SLOTLARI);
   q = matoTanla(q, 10, 100);
   q = matoTanla(q, 11, 101);
-  q = olchamQoy(q, '210', 'ENI');
-  q = olchamQoy(q, '140', 'BOYI');
+  q = olchamQoy(q, '2.1', 'ENI');
+  q = olchamQoy(q, '1.4', 'BOYI');
   return izohQoy(q, 'Yotoqxona');
 }
 
@@ -81,10 +81,10 @@ describe('TZ 13.4 — qadam qoralamadan chiqadi', () => {
     q = matoTanla(q, 11, 101);
 
     expect(keyingiQadam(q)).toBe('ENI');
-    q = olchamQoy(q, '210', 'ENI');
+    q = olchamQoy(q, '2.1', 'ENI');
 
     expect(keyingiQadam(q)).toBe('BOYI');
-    q = olchamQoy(q, '140', 'BOYI');
+    q = olchamQoy(q, '1.4', 'BOYI');
 
     expect(keyingiQadam(q)).toBe('AKSESSUAR');
     q = izohQoy(q, '');
@@ -109,8 +109,8 @@ describe('TZ 13.4 · 3.9 — savat', () => {
 
     expect(q.savat).toHaveLength(1);
     expect(q.joriy).toBeNull();
-    expect(q.savat[0]?.eniSm).toBe(210);
-    expect(q.savat[0]?.boyiSm).toBe(140);
+    expect(q.savat[0]?.eniM).toBe(2.1);
+    expect(q.savat[0]?.boyiM).toBe(1.4);
   });
 
   it('«Yana qo‘shish» — ikkinchi pozitsiya', () => {
@@ -121,8 +121,8 @@ describe('TZ 13.4 · 3.9 — savat', () => {
     q = matoTanla(q, 20, 200);
     q = matoTanla(q, 21, 201);
     q = matoTanla(q, 22, 202);
-    q = olchamQoy(q, '180', 'ENI');
-    q = olchamQoy(q, '220', 'BOYI');
+    q = olchamQoy(q, '1.8', 'ENI');
+    q = olchamQoy(q, '2.2', 'BOYI');
     q = izohQoy(q, '');
     q = savatgaQosh(q);
 
@@ -196,8 +196,8 @@ describe('TZ 13.4 — «Orqaga» bir bosqich qaytaradi', () => {
     let q = turTanla(BOSH_QORALAMA, ROLLO, ROLLO_SLOTLARI);
     q = matoTanla(q, 10, 100);
     q = matoTanla(q, 11, 101);
-    q = olchamQoy(q, '210', 'ENI');
-    q = olchamQoy(q, '140', 'BOYI');
+    q = olchamQoy(q, '2.1', 'ENI');
+    q = olchamQoy(q, '1.4', 'BOYI');
 
     q = orqaga(q);
     expect(keyingiQadam(q)).toBe('BOYI');
@@ -281,8 +281,8 @@ describe('13.10 — qoralama kaliti', () => {
     q = matoTanla(q, 11, 101);
     expect(q.kalit).toBe('K-1');
 
-    q = olchamQoy(q, '120', 'ENI');
-    q = olchamQoy(q, '150', 'BOYI');
+    q = olchamQoy(q, '1.2', 'ENI');
+    q = olchamQoy(q, '1.5', 'BOYI');
     expect(q.kalit).toBe('K-1');
 
     q = izohQoy(q, 'tez kerak');

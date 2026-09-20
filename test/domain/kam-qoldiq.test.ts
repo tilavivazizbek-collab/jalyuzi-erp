@@ -19,7 +19,7 @@ import {
 
 describe('Ostatka chegarasi kimga kerak', () => {
   it('mato va chiziqli mahsulotda kerak', () => {
-    expect(ostatkaChegarasiKerakmi('SM')).toBe(true);
+    expect(ostatkaChegarasiKerakmi('M')).toBe(true);
     expect(ostatkaChegarasiKerakmi('KV_M')).toBe(true);
   });
 
@@ -33,11 +33,13 @@ describe('Kam qoldiq ogohlantirishi', () => {
     expect(kamQoldiqmi('DONA', 0, null)).toBe(false);
   });
 
-  it('Q-01 — chiziqli mahsulot smda saqlanadi, chegara metrda', () => {
-    // 350 sm = 3.5 m, chegara 5 m → kam
-    expect(kamQoldiqmi('SM', 350, 5)).toBe(true);
-    // 800 sm = 8 m, chegara 5 m → yetarli
-    expect(kamQoldiqmi('SM', 800, 5)).toBe(false);
+  /**
+   * ⚠️ 2026-09-20 — qoldiq ham, chegara ham METRDA. Ilgari qoldiq
+   *    smda edi va bu yerda ÷100 bo'lardi (350 sm → 3.5 m).
+   */
+  it('Q-01 — qoldiq ham, chegara ham metrda', () => {
+    expect(kamQoldiqmi('M', 3.5, 5)).toBe(true);
+    expect(kamQoldiqmi('M', 8, 5)).toBe(false);
   });
 
   it('DONA — chegara ham donada', () => {
@@ -51,14 +53,14 @@ describe('Kam qoldiq ogohlantirishi', () => {
 
   it('nol qoldiq — albatta ogohlantiradi', () => {
     expect(kamQoldiqmi('DONA', 0, 1)).toBe(true);
-    expect(kamQoldiqmi('SM', 0, 1)).toBe(true);
+    expect(kamQoldiqmi('M', 0, 1)).toBe(true);
   });
 });
 
 describe('Chegara birligi — ekrandagi yorliq', () => {
   it('donada «dona», qolganida «m»', () => {
     expect(chegaraBirligi('DONA')).toBe('dona');
-    expect(chegaraBirligi('SM')).toBe('m');
+    expect(chegaraBirligi('M')).toBe('m');
     expect(chegaraBirligi('KV_M')).toBe('m');
   });
 });

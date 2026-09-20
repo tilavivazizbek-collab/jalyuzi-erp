@@ -55,8 +55,8 @@ export interface QoshimchaTanlovi {
   readonly soni: number;
   readonly narx: string;
   /** ⚠️ Metrlab kesib sotishda — santimetrda (TZ 5.3) */
-  readonly eniSm: number;
-  readonly boyiSm: number;
+  readonly eniM: number;
+  readonly boyiM: number;
   /** Kesib sotishda ombordan yechiladigan maydon, kv.m */
   readonly miqdorKvM: string | null;
 }
@@ -135,8 +135,8 @@ export function QoshimchaQoshish({
             valyuta: x.valyuta,
           })),
         },
-        eniSm: Math.round(eniM * 100),
-        boyiSm: Math.round(boyiM * 100),
+        eniM,
+        boyiM,
         qoshimchalar: [],
         offset: null,
         kurs,
@@ -205,8 +205,8 @@ export function QoshimchaQoshish({
       nom: tanlangan.nom,
       soni: kesiladimi ? 1 : son,
       narx: pulMatn(jami),
-      eniSm: kesiladimi ? Math.round(eniM * 100) : 0,
-      boyiSm: kesiladimi ? Math.round(boyiM * 100) : 0,
+      eniM: kesiladimi ? eniM : 0,
+      boyiM: kesiladimi ? boyiM : 0,
       /** ⚠️ Ombordan yechiladigan maydon — kesim to'rtburchagi (Q-05) */
       miqdorKvM: kesiladimi ? (eniM * boyiM).toFixed(4) : null,
     });
