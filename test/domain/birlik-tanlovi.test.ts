@@ -14,6 +14,7 @@ import {
   birlikniTop,
   koeffitsientniMetrga,
   metrniKoeffitsientga,
+  ozgarishKiritiladimi,
   ozgarishSavoli,
 } from '@/lib/domain/birlik-tanlovi';
 import { HISOB_TURLARI, SARFLASH_BIRLIKLARI } from '@/lib/sxema/material';
@@ -120,7 +121,24 @@ describe('ozgarishSavoli — ekrandagi savol', () => {
   });
 
   it('savol kirim birligi nomi bilan tuziladi', () => {
-    expect(ozgarishSavoli('SHTANGA')).toBe('1 shtanga necha metr');
+    expect(ozgarishSavoli('SHTANGA')).toBe('Bitta shtanga necha metr material?');
+  });
+});
+
+describe('ozgarishKiritiladimi — maydon qayerda ko\'rsatiladi', () => {
+  it('metrdan farq qiladigan kirim birligida — so\'raladi (SHTANGA, QUTI)', () => {
+    expect(ozgarishKiritiladimi('SHTANGA')).toBe(true);
+    expect(ozgarishKiritiladimi('QUTI')).toBe(true);
+  });
+
+  it('METR da so\'ralmaydi — 1 metr = 100 sm o\'zgarmas, bema\'ni savol', () => {
+    expect(ozgarishKiritiladimi('METR')).toBe(false);
+  });
+
+  it('rulon, kv.m va dona — so\'ralmaydi (birliklar mos)', () => {
+    expect(ozgarishKiritiladimi('RULON')).toBe(false);
+    expect(ozgarishKiritiladimi('KV_M')).toBe(false);
+    expect(ozgarishKiritiladimi('DONA')).toBe(false);
   });
 });
 

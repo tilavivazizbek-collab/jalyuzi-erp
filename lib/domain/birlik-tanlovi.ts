@@ -146,7 +146,7 @@ export function birlikTavsifi(birlik: string): BirlikTavsifi {
 }
 
 /**
- * «1 shtanga = ___ metr» qatorining savoli.
+ * «Bitta shtanga necha metr material?» qatorining savoli.
  *
  * ⚠️ Ekranda METRDA so'raladi, bazada esa SANTIMETRDA saqlanadi
  *    (Q-01: koeffitsient = 1 kirim birligida nechta sm). Omborchi
@@ -154,7 +154,21 @@ export function birlikTavsifi(birlik: string): BirlikTavsifi {
  */
 export function ozgarishSavoli(birlik: OlchovBirligi): string {
   const t = BIRLIK_TAVSIFI[birlik];
-  return `1 ${t.kirimBirligi} necha metr`;
+  return `Bitta ${t.kirimBirligi} necha metr material?`;
+}
+
+/**
+ * «Bitta shtanga necha metr material?» degan kirish maydoni QAYSI
+ * birlikda ko'rsatiladi.
+ *
+ * ⚠️ METRda KO'RSATILMAYDI: 1 metr = 100 sm — o'zgarmas, u yerda
+ *    so'rashning ma'nosi yo'q (egasi: «1 metr necha metr» degan
+ *    savol bema'niga o'xshaydi). Faqat SHTANGA va QUTI da kirim
+ *    birligi metrdan farq qilishi mumkin — u yerda so'raladi.
+ */
+export function ozgarishKiritiladimi(birlik: OlchovBirligi): boolean {
+  if (birlik === 'METR') return false;
+  return BIRLIK_TAVSIFI[birlik].ozgarishKerak;
 }
 
 /** Ekrandagi metrni bazadagi koeffitsientga (sm) o'giradi. */

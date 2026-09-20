@@ -23,6 +23,7 @@ import {
   ostatkaChegarasiKerakmi,
   koeffitsientniMetrga,
   metrniKoeffitsientga,
+  ozgarishKiritiladimi,
   ozgarishSavoli,
   type OlchovBirligi,
 } from '@/lib/domain/birlik-tanlovi';
@@ -218,7 +219,7 @@ export function MaterialFormasi({
            va u shu uchtasini o'zi to'ldiradi. Noto'g'ri uchlik
            (rulon + dona + SM) endi yaratib bo'lmaydi.
       */}
-      {tavsif !== null && (
+      {tavsif !== null && birlik !== null && (
         <>
           <input type="hidden" name="hisobTuri" value={tavsif.hisobTuri} />
           <input type="hidden" name="kirimBirligi" value={tavsif.kirimBirligi} />
@@ -226,7 +227,7 @@ export function MaterialFormasi({
           <input
             type="hidden"
             name="koeffitsient"
-            value={birlikKoeffitsienti(tavsif.ozgarishKerak, ozgarishMetr)}
+            value={birlikKoeffitsienti(birlik, ozgarishMetr)}
           />
         </>
       )}
@@ -303,14 +304,17 @@ export function MaterialFormasi({
 
         {/*
           ⚠️ «Koeffitsient» so'zi ekranda ISHLATILMAYDI. Omborchi uni
-             tushunmaydi, «1 shtanga necha metr» degan savolni esa
-             darhol tushunadi. Bazada u smda saqlanadi (Q-01).
+             tushunmaydi, «bitta shtanga necha metr material» degan
+             savolni esa darhol tushunadi. Bazada u smda saqlanadi (Q-01).
+
+          ⚠️ METRda KO'RSATILMAYDI: 1 metr = 100 sm o'zgarmas, so'rash
+             bema'niga o'xshaydi — tizim o'zi 100 yuboradi.
         */}
-        {birlik !== null && tavsif?.ozgarishKerak === true && (
+        {birlik !== null && ozgarishKiritiladimi(birlik) && (
           <Maydon
             nom="ozgarishMetr"
             yorliq={ozgarishSavoli(birlik)}
-            izoh="masalan: 1 shtanga = 3 metr"
+            izoh="masalan: bitta shtanga = 5 metr material"
             xato={x('koeffitsient')}
           >
             <input
@@ -743,8 +747,15 @@ export function MaterialFormasi({
  *    Zod sxemasi uni ushlaydi va odam tushunarli xato ko'radi.
  *    Bu yerda «1» deb to'ldirib qo'yish jimgina noto'g'ri
  *    konversiya yaratardi.
+ *
+ * ⚠️ METRda har doim 100 (1 metr = 100 sm) — o'zgarmas, so'ralmaydi.
  */
-function birlikKoeffitsienti(ozgarishKerak: boolean, ozgarishMetr: string): string {
+function birlikKoeffitsienti(birlik: OlchovBirligi, ozgarishMetr: string): string {
+  // 1 metr = 100 sm — o'zgarmas. Egasi savolni bema'niga o'xshardi,
+  // shuning uchun METR so'ralmaydi va o'zi 100 yuboradi.
+  if (birlik === 'METR') return '100';
+
+  const ozgarishKerak = BIRLIK_TAVSIFI[birlik].ozgarishKerak;
   if (!ozgarishKerak) return '1';
   if (ozgarishMetr.trim() === '') return '';
 
