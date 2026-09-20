@@ -359,7 +359,23 @@ export async function pozitsiyaYozTx(
    *    mato yetmagandagi kabi (8.12). Sotuv to'xtatilmaydi:
    *    qolgan pozitsiyalar baribir tayyorlanadi.
    */
-  if (k.tasdiqlangan && p.qoshimchaMaterialId !== null && p.qoshimchaMaterialId !== undefined) {
+  /**
+   * ⚠️ FAQAT DONALAB SOTISHDA. Metrlab kesib sotilganda (mato)
+   *    pozitsiyada SLOT QATORI bor va u BAND qilinadi — kesim
+   *    «Tugatdim» da bo'ladi.
+   *
+   *    `donaYech` esa faqat `turi = 'DONA'` bo'laklarni qidiradi:
+   *    rulonni topolmay «YETMADI» derdi va pozitsiya band
+   *    qilingan bo'lsa ham «materialga kutmoqda» ga tushardi.
+   */
+  const donalabSotiladi = p.slotlar.length === 0;
+
+  if (
+    k.tasdiqlangan &&
+    donalabSotiladi &&
+    p.qoshimchaMaterialId !== null &&
+    p.qoshimchaMaterialId !== undefined
+  ) {
     const yechim = await donaYech(
       tx,
       p.qoshimchaMaterialId,
