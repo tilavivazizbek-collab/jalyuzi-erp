@@ -565,6 +565,16 @@ export function NarxFormasi({
             + yangi mato darajasi
           </button>
         )}
+        {/*
+          ⚠️ Darajani TAHRIRLASH va O'CHIRISH shu yerda emas, alohida
+             sahifada: bu ekran narx jadvaliga bag'ishlangan.
+        */}
+        <a
+          href="/daraja"
+          className="mt-3 ml-4 text-[12px] text-matn-kuchsiz hover:text-matn hover:underline"
+        >
+          darajalarni boshqarish →
+        </a>
       </section>
 
       {/* ─── Qo'shimchalar ────────────────────────────────────────────── */}

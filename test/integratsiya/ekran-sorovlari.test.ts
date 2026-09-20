@@ -34,6 +34,7 @@ import * as boshqaruvEkrani from '@/app/(panel)/boshqaruv/malumot';
 import * as katalog from '@/lib/amal/katalog';
 import * as mahsulotEkrani from '@/app/(panel)/mahsulot/malumot';
 import * as narxEkrani from '@/app/(panel)/narx/malumot';
+import * as darajaEkrani from '@/app/(panel)/daraja/malumot';
 import * as materialKartochka from '@/app/(panel)/ombor/[id]/malumot';
 import * as mijozKartochka from '@/app/(panel)/mijoz/[id]/malumot';
 import * as yetkazibKartochka from '@/app/(panel)/yetkazib/[id]/malumot';
@@ -326,6 +327,12 @@ describe('Spravochnik ekranlari', () => {
       await expect(narxEkrani.turQoidalariniOl(birinchi.id)).resolves.toBeDefined();
       await expect(narxEkrani.turQoshimchalariniOl(birinchi.id)).resolves.toBeDefined();
     }
+  });
+
+  it('mato darajalari — egasi qarori 2026-09-20', async () => {
+    await expect(darajaEkrani.darajaRoyxati(false)).resolves.toBeDefined();
+    await expect(darajaEkrani.darajaRoyxati(true)).resolves.toBeDefined();
+    await expect(darajaEkrani.darajaOchirilganSoni()).resolves.toBeTypeOf('number');
   });
 
   it('mijoz guruhlari — TZ 6.3', async () => {

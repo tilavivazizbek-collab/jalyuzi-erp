@@ -30,7 +30,7 @@ hisoblanishini».
 | «Narxlar va turlar» sahifasi (`/narx`) | ✅ |
 | Bosqichli narx jadvali (dan / gacha / narx / valyuta) | ✅ |
 | Hisoblash usuli: maydon · eni · bo'yi · dona | ✅ |
-| Mato darajasi (narx guruhi) va materialga biriktirish | ✅ |
+| Mato darajasi: ro'yxat, qo'shish, tahrirlash, o'chirish (`/daraja`) | ✅ |
 | Mijoz turiga narx (TZ 6.2) · filialga narx (TZ 20.9) | ✅ |
 | Qo'shimchalar («usti shabalik», «o'rnatish») | ✅ |
 | Qo'shimcha ombordan yechilishi | ✅ |
@@ -61,7 +61,7 @@ aynan rad etilgan modeldan chiqardi. Egasining tasdig'i bilan
 | Yetkazib beruvchi | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Mahsulot turi | ✅ | ✅ | ✅ | ✅ | — |
 | Almashtirish guruhi | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Narx guruhi (mato darajasi) | ✅ | ✅ | — | — | ✅ |
+| Mato darajasi | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Filial | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Kassa | ✅ | ✅ | — | ✅ | ✅ |
 | Xodim | ✅ | ✅ | ✅ | ✅ | ✅ |

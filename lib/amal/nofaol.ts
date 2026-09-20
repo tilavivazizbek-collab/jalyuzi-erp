@@ -40,6 +40,8 @@ export const OCHIRILADIGAN_TURLAR = [
   'kassa',
   'filial',
   'xodim',
+  /** Mato darajasi — mijoz narxi shundan (egasi qarori 2026-09-20) */
+  'narxGuruh',
 ] as const;
 
 export type OchiriladiganTur = (typeof OCHIRILADIGAN_TURLAR)[number];
@@ -175,6 +177,33 @@ export const TUR_TAVSIFI: Record<OchiriladiganTur, TurTavsifi> = {
            WHERE almashtirish_guruh_id = ${id} AND faol = true`);
       if (slot > 0) {
         return `${String(slot)} ta mahsulot turida ishlatilmoqda`;
+      }
+
+      return null;
+    },
+  },
+
+  narxGuruh: {
+    jadval: 'narx_guruh',
+    nom: 'Mato darajasi',
+    ruxsat: 'narx.standart.ozgartir',
+    bandmi: async (tx, id) => {
+      /**
+       * ⚠️ Daraja o'chirilsa NARX YO'QOLADI: shu darajaga bog'langan
+       *    material sotilganda «narx qo'yilmagan» chiqadi va sotuv
+       *    to'xtaydi. Shuning uchun avval material boshqa darajaga
+       *    o'tkaziladi.
+       */
+      const material = await son(tx`SELECT COUNT(*)::int AS n FROM material
+           WHERE narx_guruh_id = ${id} AND faol = true`);
+      if (material > 0) {
+        return `${String(material)} ta materialga shu daraja qo'yilgan — avval ularni boshqa darajaga o'tkazing`;
+      }
+
+      const qoida = await son(tx`SELECT COUNT(*)::int AS n FROM mahsulot_narx
+           WHERE narx_guruh_id = ${id} AND faol = true`);
+      if (qoida > 0) {
+        return `${String(qoida)} ta mahsulot turida narx qo'yilgan — avval o'sha qatorlarni olib tashlang`;
       }
 
       return null;

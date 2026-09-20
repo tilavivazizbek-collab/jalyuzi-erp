@@ -39,6 +39,7 @@ export interface OchirishNatijasi {
 const YOLLAR: Record<OchiriladiganTur, string> = {
   material: '/material',
   guruh: '/guruh',
+  narxGuruh: '/daraja',
   mijoz: '/mijoz',
   mijozTuri: '/mijoz/turi',
   mijozGuruh: '/mijoz/guruh',
