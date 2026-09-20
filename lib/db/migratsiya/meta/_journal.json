@@ -281,6 +281,13 @@
       "when": 1789000000000,
       "tag": "0039_kesish_yonalish",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1789884547259,
+      "tag": "0040_narx_qoidasi",
+      "breakpoints": true
     }
   ]
 }
