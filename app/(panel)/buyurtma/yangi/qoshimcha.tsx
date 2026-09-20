@@ -149,6 +149,20 @@ export function QoshimchaQoshish({
                   </option>
                 ))}
               </select>
+              {/*
+                ⚠️ RO'YXAT BO'SH BO'LSA SABABI AYTILADI. Ilgari
+                   sotuvchi bo'sh dropdownni ko'rib «tizim buzilibdi»
+                   deb o'ylardi — aslida hech bir materialga
+                   «to'g'ridan-to'g'ri sotiladi» belgisi qo'yilmagan
+                   bo'lardi (egasi qarori 2026-09-20).
+              */}
+              {materiallar.length === 0 && (
+                <span className="text-[12px] text-belgi-sariq">
+                  Alohida sotiladigan buyum yo&apos;q. Material kartochkasida
+                  «To&apos;g&apos;ridan-to&apos;g&apos;ri sotiladi» belgisini
+                  qo&apos;ying va sotuv narxini yozing.
+                </span>
+              )}
             </label>
 
             <label className="flex max-w-32 flex-col gap-1">

@@ -162,6 +162,13 @@ export interface QoshimchaMaterial {
  * ⚠️ Faqat DONA hisobidagi material: mato metrlab kesiladi va
  *    alohida sotilmaydi.
  *
+ * ⚠️ «TO'G'RIDAN-TO'G'RI SOTILADI» BELGISI BOR materiallar (egasi
+ *    qarori 2026-09-20). Ilgari hamma dona material ro'yxatda
+ *    chiqardi va ularning ko'pchiligida sotuv narxi yo'q edi —
+ *    sotuvchi narxsiz qatorni tanlab, keyin qo'lda summa yozardi.
+ *
+ *    Endi ro'yxat qisqa va har qatorda narx bor.
+ *
  * ⚠️ Qoldiq shu FILIALDA hisoblanadi (Q-25) va narx filial
  *    narxidan keladi (20.9).
  */
@@ -182,5 +189,6 @@ export async function qoshimchaMateriallar(
     LEFT JOIN material_filial_narx fn
            ON fn.material_id = m.id AND fn.filial_id = ${filialId}
     WHERE m.faol = true AND m.hisob_turi = 'DONA'
+      AND m.togridan_sotiladi = true
     ORDER BY m.nom`;
 }
