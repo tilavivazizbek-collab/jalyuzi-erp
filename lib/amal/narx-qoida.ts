@@ -96,6 +96,30 @@ export async function turNarxiniSaqla(
     xabarlar.push(...nuqsonMatni(guruhNomi, bosqichlar, q.hisoblashUsuli));
   }
 
+  /**
+   * ⚠️ TAKROR QAMROV — 2026-09-21.
+   *
+   *    Bazada `(tur, guruh, mijoz, filial)` noyob va saqlash
+   *    `ON CONFLICT ... DO UPDATE` bilan ketadi. Ya'ni bir xil
+   *    to'rtlik ikki marta kelsa ikkinchisi birinchisi ustiga
+   *    JIMGINA yozilardi: egasi ikki xil narx kiritib, bittasi
+   *    saqlanmaganini bilmay qolardi.
+   *
+   *    Ekranda ham shu tekshiruv bor, lekin brauzerga ishonilmaydi
+   *    (§16) — bu yerda takrorlanadi.
+   */
+  const qamrovlar = new Map<string, number>();
+  for (const q of kirim.qoidalar) {
+    const kalit = `${String(q.narxGuruhId)}|${String(q.mijozTuriId ?? 0)}|${String(q.filialId ?? 0)}`;
+    qamrovlar.set(kalit, (qamrovlar.get(kalit) ?? 0) + 1);
+    if (qamrovlar.get(kalit) === 2) {
+      const guruhNomi = nomi.get(q.narxGuruhId) ?? `#${String(q.narxGuruhId)}`;
+      xabarlar.push(
+        `«${guruhNomi}» uchun bir xil qamrov (mijoz turi va filial) ikki marta yozilgan`,
+      );
+    }
+  }
+
   for (const q of kirim.qoshimchalar) {
     const x = formulaNuqsoni(q.nom, q.formula);
     if (x !== null) xabarlar.push(x);

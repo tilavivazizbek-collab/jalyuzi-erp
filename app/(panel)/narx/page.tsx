@@ -151,6 +151,14 @@ export default async function NarxSahifasi({
                        «narx qo'yilmagan» xabarini oladi. Shuning
                        uchun belgi ro'yxatda turadi.
                   */}
+                  {/*
+                    ⚠️ QO'SHIMCHA SONI HAM KO'RSATILADI — 2026-09-21.
+                       `qoshimchaSoni` so'rovda sanalar, lekin hech
+                       qayerda chizilmasdi: har sahifa ochilganda
+                       bekorga hisoblanardi. Endi u ish qiladi —
+                       egasi qaysi turga qo'shimcha qo'yganini
+                       ro'yxatdan ko'radi.
+                  */}
                   <span
                     className={`ml-2 shrink-0 text-[11px] ${
                       t.qoidaSoni === 0 ? 'text-belgi-qizil' : 'text-matn-kuchsiz'
@@ -158,10 +166,13 @@ export default async function NarxSahifasi({
                     title={
                       t.qoidaSoni === 0
                         ? "Narx qo'yilmagan — bu tur sotilmaydi"
-                        : `${String(t.qoidaSoni)} daraja`
+                        : `${String(t.qoidaSoni)} narx qatori·${String(t.qoshimchaSoni)} qo'shimcha`
                     }
                   >
                     {t.qoidaSoni === 0 ? '⚠' : t.qoidaSoni}
+                    {t.qoshimchaSoni > 0 && (
+                      <span className="text-matn-kuchsiz"> +{t.qoshimchaSoni}</span>
+                    )}
                   </span>
                 </Link>
               );
@@ -174,6 +185,10 @@ export default async function NarxSahifasi({
               key={materialTanlandi ? 'material' : String(tanlangan?.id ?? 0)}
               turId={materialTanlandi ? null : (tanlangan?.id ?? 0)}
               turNomi={materialTanlandi ? "Materialni o'zi sotish" : (tanlangan?.nom ?? '')}
+              /* ⚠️ Narxi BOR turlar; o'zi chiqariladi — o'zidan nusxa ma'nosiz */
+              nusxaTurlari={turlar.filter(
+                (t) => t.qoidaSoni > 0 && t.id !== (tanlangan?.id ?? 0),
+              )}
               guruhlar={guruhlar}
               qoidalar={qoidalar}
               qoshimchalar={qoshimchalar}

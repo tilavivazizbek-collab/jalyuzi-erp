@@ -226,6 +226,31 @@ belgiladim, sotuvda baribir narx qo'yilmagan deydi».
 
 ⚠️ Endi butun tizimda `'sm'` yorlig'i **QOLMADI**.
 
+### «Narxlar va turlar» sahifasi auditi — 2026-09-21
+
+| Nima | Holat |
+|---|---|
+| **Bir darajaga bir necha qoida** (mijoz turi · filial) | ✅ TUZATILDI |
+| Takror qamrov — ekranda qizil, saqlash bloklanadi | ✅ |
+| Takror qamrov — serverda ham rad etiladi | ✅ |
+| Kalkulyator standarti `2.10 × 1.40` | ✅ tuzatildi |
+| Kalkulyatorda mijoz turi va filial | ✅ sotuv tartibini aynan takrorlaydi |
+| Kalkulyatorda soni | ✅ «bitta buyum» + «jami × N» |
+| Daraja yonida mato soni | ✅ ro'yxatda va qator sarlavhasida |
+| Boshqa turdan nusxalash | ✅ |
+| `qoshimchaSoni` — o'lik ma'lumot edi | ✅ chap ustunda ko'rsatiladi |
+
+⚠️ **ENG JIDDIYSI:** «+ daraja qo'shish» ro'yxati allaqachon
+ishlatilgan darajani ko'rsatmasdi. Ya'ni mijoz turi va filial
+dropdownlari ekranda BOR edi, lekin ulardan foydalanib bo'lmasdi —
+**TZ 6.2 va 20.9 yarim qurilgan** holda qolgan edi. Egasi «Oddiy» ga
+umumiy narx qo'ysa, optomchiga alohida narx qo'ya olmasdi; optomchiga
+qo'ysa esa oddiy mijozga narx umuman qolmas va sotuv bloklanardi.
+
+⚠️ Eski test (`narx-qoida.test.ts`) takror qoida jimgina ustiga
+yozilishini «to'g'ri» deb tasdiqlardi. U qayta yozildi: jimgina
+yo'qotish xato edi, endi rad etiladi.
+
 ### Dikkey formulalari — egasi tasdig'i 2026-09-21
 
 Metrga o'tish formula MATNINI o'girmagani uchun ikki formula

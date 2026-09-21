@@ -14,6 +14,7 @@ import { ulanishOl } from '@/lib/db';
 import { ruxsatTalab } from '@/lib/kirish/joriy';
 import { narxGuruhTezYarat, turNarxiniSaqla } from '@/lib/amal/narx-qoida';
 import { turNarxiSxema } from '@/lib/sxema/narx-qoida';
+import { turQoidalariniOl, type QoidaQatori } from './malumot';
 import type { GuruhHolati } from '../guruh-holat';
 import type { NarxHolati } from './holat';
 
@@ -108,6 +109,40 @@ export async function narxGuruhYaratAmali(
     return {
       xato: await xatoXabari(x, 'narx/amal', "Daraja qo'shilmadi"),
       yaratildi: null,
+    };
+  }
+}
+
+/**
+ * Boshqa turning narx jadvalini O'QIYDI — nusxalash uchun.
+ *
+ * ⚠️ NEGA KERAK: to'qqiz xil jalyuzi × bir necha daraja × bir necha
+ *    bosqich = bir xil jadvalni o'nlab marta qo'lda to'ldirish.
+ *    Egasi buni qo'lda qilsa, bir joyda raqam adashadi va bu faqat
+ *    mijoz oldida chiqadi.
+ *
+ * ⚠️ HECH NARSA SAQLAMAYDI. Qatorlar ekranga qo'yiladi, egasi
+ *    ko'radi, kerakli joyini tuzatadi va O'ZI «Saqlash» bosadi.
+ *    Jimgina yozib qo'yish eng yomon yo'l bo'lardi: nusxa noto'g'ri
+ *    turga tushsa, buni hech kim sezmasdi.
+ *
+ * ⚠️ Qo'shimchalar NUSXALANMAYDI. Ular materialga va formulaga
+ *    bog'langan («usti shabalik» — falon mato, `ENI * 40`); boshqa
+ *    turga ko'r-ko'rona ko'chirilsa, ombordan noto'g'ri material
+ *    yechila boshlardi.
+ */
+export async function turNarxlariniNusxalaAmali(
+  manbaTurId: number,
+): Promise<{ readonly xato: string | null; readonly qoidalar: readonly QoidaQatori[] }> {
+  await ruxsatTalab('narx.standart.ozgartir');
+
+  try {
+    const qoidalar = await turQoidalariniOl(manbaTurId);
+    return { xato: null, qoidalar };
+  } catch (x) {
+    return {
+      xato: await xatoXabari(x, 'narx/nusxa', "Narx jadvalini o'qib bo'lmadi"),
+      qoidalar: [],
     };
   }
 }

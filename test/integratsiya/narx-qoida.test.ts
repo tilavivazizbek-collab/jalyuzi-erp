@@ -172,8 +172,41 @@ describe('tur narxini saqlash', () => {
     expect(eski[0]?.n).toBe(1);
   });
 
-  it('mijoz turi va filial bo‘sh bo‘lgan ikkita qoida TO‘QNASHADI', async () => {
-    // Bir xil (tur, guruh, null, null) — noyob indeks buni to'sadi
+  /**
+   * ⚠️ BU TEST 2026-09-21 DA QAYTA YOZILDI.
+   *
+   *    Ilgari u shuni tasdiqlardi: bir xil qamrovli ikki qoida
+   *    kelsa, ikkinchisi birinchisi ustiga yoziladi va amal
+   *    `SAQLANDI` qaytaradi. «Dublikat yasalmaydi» deb.
+   *
+   *    Bu XULQ NOTO'G'RI edi. Egasi bir darajaga ikki xil narx
+   *    kiritsa — masalan optomchiga boshqa summa — bittasi
+   *    JIMGINA yo'qolardi. Hech qanday xabar yo'q, hech qanday iz
+   *    yo'q: u ikki narx qo'yganiga ishonib turaverardi.
+   *
+   *    Endi amal buni NUQSON deb rad etadi va sababini aytadi.
+   *    Ekran ham shu tekshiruvni takrorlaydi (`forma.tsx`) —
+   *    lekin brauzerga ishonilmaydi (§16), shuning uchun haqiqiy
+   *    to'siq shu yerda.
+   *
+   *    Bir darajaga bir necha qoida qo'yish endi MUMKIN — lekin
+   *    ular mijoz turi yoki filiali bilan FARQ QILISHI shart.
+   *    Buni keyingi test tekshiradi.
+   */
+  it('bir xil qamrovli ikkita qoida RAD ETILADI', async () => {
+    /**
+     * ⚠️ OLDINGI HOLAT OLINADI, «nol qator» deb tekshirilmaydi:
+     *    bu fayldagi testlar bitta `turId` ni baham ko'radi va
+     *    oldingi test qoldirgan qator bu yerda ham turadi.
+     *    Tekshirilayotgani — rad etilgan saqlash HECH NARSANI
+     *    o'zgartirmagani (2.1-invariant), ya'ni yarim saqlash yo'q.
+     */
+    const oldin = await sql<{ n: number; usullar: string }[]>`
+      SELECT COUNT(*)::int AS n,
+             COALESCE(string_agg(hisoblash_usuli, ',' ORDER BY id), '') AS usullar
+        FROM mahsulot_narx
+       WHERE mahsulot_tur_id = ${turId} AND narx_guruh_id = ${oddiyId} AND faol = true`;
+
     const n = await saqla({
       mahsulotTurId: turId,
       qoidalar: [
@@ -182,13 +215,56 @@ describe('tur narxini saqlash', () => {
       ],
       qoshimchalar: [],
     });
-    // Ikkinchisi birinchisini yangilaydi — dublikat yasalmaydi
+
+    expect(n.holat).toBe('NUQSON');
+    expect(xabarlari(n).join(' ')).toContain('ikki marta');
+
+    /** ⚠️ Yarim saqlash YO'Q — baza rad etishdan OLDINGIDEK qoldi */
+    const keyin = await sql<{ n: number; usullar: string }[]>`
+      SELECT COUNT(*)::int AS n,
+             COALESCE(string_agg(hisoblash_usuli, ',' ORDER BY id), '') AS usullar
+        FROM mahsulot_narx
+       WHERE mahsulot_tur_id = ${turId} AND narx_guruh_id = ${oddiyId} AND faol = true`;
+
+    expect(keyin[0]?.n).toBe(oldin[0]?.n);
+    expect(keyin[0]?.usullar).toBe(oldin[0]?.usullar);
+  });
+
+  /**
+   * TZ 6.2 · 20.9 — bir daraja, TURLI QAMROV.
+   *
+   * ⚠️ Bu 2026-09-21 gacha EKRANDAN qilib bo'lmasdi: «+ daraja
+   *    qo'shish» ro'yxati allaqachon ishlatilgan darajani
+   *    ko'rsatmasdi. Ya'ni mijoz turi va filial dropdownlari bor
+   *    edi, lekin ulardan foydalanib bo'lmasdi — TZ ning ikki
+   *    bandi yarim qurilgan holda qolgan edi.
+   */
+  it('bir darajaga TURLI mijoz turi bilan ikki qoida saqlanadi', async () => {
+    const mijozTuri = await sql<{ id: number }[]>`
+      INSERT INTO mijoz_turi (nom, yaratdi_id)
+      VALUES (${`Optom ${belgi}`}, 1)
+      RETURNING id`;
+    const optomId = mijozTuri[0]?.id ?? 0;
+
+    const n = await saqla({
+      mahsulotTurId: turId,
+      qoidalar: [
+        { narxGuruhId: oddiyId, mijozTuriId: null, filialId: null, hisoblashUsuli: 'MAYDON', bosqichlar: EGASI },
+        { narxGuruhId: oddiyId, mijozTuriId: optomId, filialId: null, hisoblashUsuli: 'MAYDON', bosqichlar: EGASI },
+      ],
+      qoshimchalar: [],
+    });
+
     expect(n.holat).toBe('SAQLANDI');
-    const q = await sql<{ usuli: string }[]>`
-      SELECT hisoblash_usuli AS usuli FROM mahsulot_narx
-      WHERE mahsulot_tur_id = ${turId} AND narx_guruh_id = ${oddiyId} AND faol = true`;
-    expect(q).toHaveLength(1);
-    expect(q[0]?.usuli).toBe('ENI');
+
+    const q = await sql<{ mijoz_turi_id: number | null }[]>`
+      SELECT mijoz_turi_id FROM mahsulot_narx
+      WHERE mahsulot_tur_id = ${turId} AND narx_guruh_id = ${oddiyId} AND faol = true
+      ORDER BY mijoz_turi_id NULLS FIRST`;
+
+    expect(q).toHaveLength(2);
+    expect(q[0]?.mijoz_turi_id).toBeNull();
+    expect(q[1]?.mijoz_turi_id).toBe(optomId);
   });
 });
 

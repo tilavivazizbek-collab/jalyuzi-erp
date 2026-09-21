@@ -26,12 +26,13 @@ import {
   type HisoblashUsuli,
   type QoshimchaUsuli,
 } from '@/lib/domain/narx-qoidasi';
-import { kurs as kursYasa, pulKorsat, som } from '@/lib/domain/pul';
+import { kopaytir, kurs as kursYasa, pulKorsat, som } from '@/lib/domain/pul';
 import { biznesXatosimi } from '@/lib/xato';
 import { Modal } from '../modal';
 import { NarxGuruhFormasi } from './guruh-forma';
 import { BOSH_HOLAT, type NarxHolati } from './holat';
 import { narxSaqlaAmali } from './amal';
+import { turNarxlariniNusxalaAmali } from './amal';
 import type {
   NarxGuruhQatori,
   QoidaQatori,
@@ -72,6 +73,16 @@ interface BosqichHolati {
 }
 
 interface QoidaHolati {
+  /**
+   * Barqaror React kaliti — 2026-09-21.
+   *
+   * ⚠️ Ilgari kalit `narxGuruhId` edi va shu sababli BIR DARAJAGA
+   *    BIR QATOR cheklovi tug'ilgan edi: ikki qator bir xil kalit
+   *    olsa React ro'yxatni buzadi. Natijada mijoz turi va filial
+   *    dropdownlari EKRANDA BOR, lekin ulardan foydalanib bo'lmasdi
+   *    — TZ 6.2 va 20.9 yarim qurilgan holda qolgan edi.
+   */
+  kalit: number;
   narxGuruhId: number;
   narxGuruhNomi: string;
   mijozTuriId: number | null;
@@ -119,6 +130,7 @@ export function NarxFormasi({
   filiallar,
   kursQiymati,
   ozgartiraOladi,
+  nusxaTurlari,
 }: {
   /** ⚠️ `null` — «materialni o'zi sotish», mahsulot turi yo'q */
   turId: number | null;
@@ -132,6 +144,8 @@ export function NarxFormasi({
   filiallar: readonly TanlovQatori[];
   kursQiymati: string | null;
   ozgartiraOladi: boolean;
+  /** Narxi bor boshqa turlar — jadvalni nusxalash uchun */
+  nusxaTurlari: readonly { readonly id: number; readonly nom: string }[];
 }) {
   const [holat, yubor, kutilmoqda] = useActionState<NarxHolati, FormData>(
     narxSaqlaAmali,
@@ -139,10 +153,15 @@ export function NarxFormasi({
   );
 
   const [guruhlar, setGuruhlar] = useState<readonly NarxGuruhQatori[]>(boshGuruhlar);
+  /** Yangi qatorga beriladigan kalit — hech qachon takrorlanmaydi */
+  const [keyingiKalit, setKeyingiKalit] = useState(boshQoidalar.length + 1);
   const [guruhModali, setGuruhModali] = useState(false);
+  const [nusxaXatosi, setNusxaXatosi] = useState<string | null>(null);
+  const [nusxaKutilmoqda, setNusxaKutilmoqda] = useState(false);
 
   const [qoidalar, setQoidalar] = useState<QoidaHolati[]>(() =>
-    boshQoidalar.map((q) => ({
+    boshQoidalar.map((q, i) => ({
+      kalit: i + 1,
       narxGuruhId: q.narxGuruhId,
       narxGuruhNomi: q.narxGuruhNomi,
       mijozTuriId: q.mijozTuriId,
@@ -170,12 +189,43 @@ export function NarxFormasi({
   );
 
   // ─── Tekshirish kalkulyatori ────────────────────────────────────────────
-  const [sinovEni, setSinovEni] = useState('180');
-  const [sinovBoyi, setSinovBoyi] = useState('220');
+  /**
+   * ⚠️ METRDA — 2026-09-21 da tuzatildi. Bu yerda `'180'` va `'220'`
+   *    turardi: metrga o'tishda (2026-09-20) tushib qolgan SANTIMETR
+   *    qiymatlari, yonida esa «m» yozilgan edi.
+   *
+   *    Ya'ni xatoni USHLASH uchun qo'yilgan bo'limning o'zi
+   *    180 m × 220 m = 39 600 kv.m hisoblab, eng yuqori bosqichdagi
+   *    ulkan summani ko'rsatardi.
+   */
+  const [sinovEni, setSinovEni] = useState('2.10');
+  const [sinovBoyi, setSinovBoyi] = useState('1.40');
   const [sinovGuruh, setSinovGuruh] = useState<number | null>(
     boshQoidalar[0]?.narxGuruhId ?? null,
   );
+  /**
+   * Kalkulyator MIJOZ TURI va FILIALNI ham hisobga oladi — 2026-09-21.
+   *
+   * ⚠️ Bir darajaga bir necha qator qo'shish mumkin bo'lgach,
+   *    «optomchiga qancha chiqadi» degan savol paydo bo'ldi.
+   *    Kalkulyator sotuv ekranidagi TANLASH TARTIBINI aynan
+   *    takrorlaydi — aks holda tekshiruv yolg'on tinchlik berardi.
+   */
+  const [sinovMijoz, setSinovMijoz] = useState<number | null>(null);
+  const [sinovFilial, setSinovFilial] = useState<number | null>(null);
+  /** Soni — sotuvda bor va narx unga ko'payadi (T-12) */
+  const [sinovSoni, setSinovSoni] = useState('1');
   const [tanlangan, setTanlangan] = useState<readonly number[]>([]);
+
+  /**
+   * ⚠️ Butun va musbat bo'lmasa 1 deb olinadi — sotuv ekranidagi
+   *    bilan bir xil qoida. Tekshiruv to'xtamaydi, egasi raqamni
+   *    tuzatgach o'zi yangilanadi.
+   */
+  const sinovSoniAdadi = (() => {
+    const n = son(sinovSoni);
+    return n !== null && Number.isInteger(n) && n > 0 ? n : 1;
+  })();
 
   const kursObyekti = useMemo(
     () => (kursQiymati === null ? null : kursYasa(kursQiymati, new Date(), 'JORIY')),
@@ -196,10 +246,40 @@ export function NarxFormasi({
     );
   };
 
-  /** Hali narx qo'yilmagan darajalar — «qo'shish» ro'yxatida chiqadi */
-  const bandsizGuruhlar = guruhlar.filter(
-    (g) => !qoidalar.some((q) => q.narxGuruhId === g.id),
-  );
+  /**
+   * ⚠️ HAMMA DARAJA ro'yxatda turadi — 2026-09-21.
+   *
+   *    Ilgari bu yerda «hali ishlatilmagan darajalar» filtri turardi
+   *    va shu sababli bir darajaga IKKINCHI qator qo'shib bo'lmasdi.
+   *    Egasi «Oddiy» ga umumiy narx qo'ysa, optomchiga alohida narx
+   *    qo'ya olmasdi; optomchiga qo'ysa esa oddiy mijozga narx
+   *    UMUMAN qolmas va sotuv bloklanardi.
+   *
+   *    Endi bir daraja bir necha marta qo'shiladi, har biri o'z
+   *    mijoz turi va filiali bilan. Aynan takrorlanishni quyidagi
+   *    `takrorlar` ushlaydi.
+   */
+  const darajaQoshishRoyxati = guruhlar;
+
+  /**
+   * AYNAN BIR XIL qamrov ikki marta yozilganmi.
+   *
+   * ⚠️ Bazada `(tur, guruh, mijoz, filial)` noyob. Takror
+   *    yuborilsa `ON CONFLICT ... DO UPDATE` ikkinchisini birinchisi
+   *    ustiga yozib, JIMGINA bittasini yo'qotardi — egasi ikki xil
+   *    narx kiritib, bittasi saqlanmaganini bilmay qolardi.
+   */
+  const takrorKaliti = (q: QoidaHolati): string =>
+    `${String(q.narxGuruhId)}|${String(q.mijozTuriId ?? 0)}|${String(q.filialId ?? 0)}`;
+
+  const takrorlar = useMemo(() => {
+    const sanoq = new Map<string, number>();
+    for (const q of qoidalar) {
+      const k = takrorKaliti(q);
+      sanoq.set(k, (sanoq.get(k) ?? 0) + 1);
+    }
+    return new Set([...sanoq].filter(([, n]) => n > 1).map(([k]) => k));
+  }, [qoidalar]);
 
   // ─── Yuborishga tayyorlash ──────────────────────────────────────────────
   const yuk = {
@@ -228,13 +308,34 @@ export function NarxFormasi({
 
   // ─── Hisob natijasi ─────────────────────────────────────────────────────
   const natija = useMemo(() => {
-    const q = qoidalar.find((x) => x.narxGuruhId === sinovGuruh);
+    /**
+     * ⚠️ SOTUV EKRANIDAGI TARTIB AYNAN TAKRORLANADI:
+     *
+     *      1. mijoz turi + filial        (eng aniq)
+     *      2. mijoz turi + hamma filial
+     *      3. hamma mijoz + filial
+     *      4. hamma mijoz + hamma filial
+     *
+     *    TZ 6.2 — mijoz turi filialdan USTUN (egasi bilan kelishilgan
+     *    2026-08-30). Agar bu yerda boshqa tartib bo'lsa, tekshiruv
+     *    bir narxni ko'rsatib, sotuv boshqasini chiqarardi — bu
+     *    tekshiruvning o'zidan ham yomonroq.
+     */
+    const mos = qoidalar.filter((x) => x.narxGuruhId === sinovGuruh);
+    const q =
+      mos.find((x) => x.mijozTuriId === sinovMijoz && x.filialId === sinovFilial) ??
+      mos.find((x) => x.mijozTuriId === sinovMijoz && x.filialId === null) ??
+      mos.find((x) => x.mijozTuriId === null && x.filialId === sinovFilial) ??
+      mos.find((x) => x.mijozTuriId === null && x.filialId === null);
+
     if (q === undefined) {
       return {
         xato:
           qoidalar.length === 0
             ? "Avval yuqorida narx jadvalini to'ldiring"
-            : 'Yuqoridagi ro‘yxatdan darajani tanlang',
+            : mos.length === 0
+              ? 'Yuqoridagi ro‘yxatdan darajani tanlang'
+              : 'Bu daraja shu mijoz turi va filialga ochilmagan — sotuvda ham narx topilmaydi',
         hisob: null,
       };
     }
@@ -265,7 +366,17 @@ export function NarxFormasi({
     } catch (x) {
       return { xato: biznesXatosimi(x) ? x.message : 'Hisoblab bo‘lmadi', hisob: null };
     }
-  }, [qoidalar, qoshimchalar, sinovEni, sinovBoyi, sinovGuruh, tanlangan, kursObyekti]);
+  }, [
+    qoidalar,
+    qoshimchalar,
+    sinovEni,
+    sinovBoyi,
+    sinovGuruh,
+    sinovMijoz,
+    sinovFilial,
+    tanlangan,
+    kursObyekti,
+  ]);
 
   return (
     <form action={yubor} className="flex flex-col gap-5">
@@ -304,7 +415,7 @@ export function NarxFormasi({
               {turNomi} — har mato darajasi uchun alohida
             </p>
           </div>
-          {ozgartiraOladi && bandsizGuruhlar.length > 0 && (
+          {ozgartiraOladi && darajaQoshishRoyxati.length > 0 && (
             <select
               value=""
               onChange={(e) => {
@@ -313,6 +424,7 @@ export function NarxFormasi({
                 setQoidalar((eski) => [
                   ...eski,
                   {
+                    kalit: keyingiKalit,
                     narxGuruhId: g.id,
                     narxGuruhNomi: g.nom,
                     mijozTuriId: null,
@@ -321,14 +433,24 @@ export function NarxFormasi({
                     bosqichlar: [{ dan: '0', gacha: '', narx: '', valyuta: 'SOM' }],
                   },
                 ]);
+                setKeyingiKalit((k) => k + 1);
               }}
               aria-label="Daraja qo‘shish"
-              className={`${kichik} w-[200px]`}
+              className={`${kichik} w-[210px]`}
             >
               <option value="">+ daraja qo‘shish</option>
-              {bandsizGuruhlar.map((g) => (
+              {/*
+                ⚠️ MATO SONI YONIDA — 2026-09-21. Egasi «Oddiy» ga
+                   narx qo'yib, matosi «Qimmat» darajada ekanini
+                   bilmay qoldi. Endi ro'yxatning o'zi aytadi: bo'sh
+                   darajaga narx qo'yish foydasiz.
+              */}
+              {darajaQoshishRoyxati.map((g) => (
                 <option key={g.id} value={g.id}>
                   {g.nom}
+                  {g.materialSoni === 0
+                    ? ' — mato yo‘q'
+                    : ` — ${String(g.materialSoni)} mato`}
                 </option>
               ))}
             </select>
@@ -388,10 +510,45 @@ export function NarxFormasi({
               );
               const birlik = birlikNomi(q.hisoblashUsuli);
 
+              const takrormi = takrorlar.has(takrorKaliti(q));
+              const matoSoni =
+                guruhlar.find((g) => g.id === q.narxGuruhId)?.materialSoni ?? 0;
+
+              /**
+               * Qamrov SO'Z BILAN — 2026-09-21. Bir daraja endi bir
+               * necha qatorga ega bo'lishi mumkin va ular faqat mijoz
+               * turi / filial bilan farq qiladi. Dropdownlarga qarab
+               * o'tirmasdan, sarlavhaning o'zi aytib tursin.
+               */
+              const kimga =
+                q.mijozTuriId === null
+                  ? 'hamma mijoz'
+                  : (mijozTurlari.find((m) => m.id === q.mijozTuriId)?.nom ?? 'mijoz turi');
+              const qayerda =
+                q.filialId === null
+                  ? 'hamma filial'
+                  : (filiallar.find((f) => f.id === q.filialId)?.nom ?? 'filial');
+
               return (
-                <div key={q.narxGuruhId} className="rounded-maydon border border-chegara p-3">
+                <div
+                  key={q.kalit}
+                  className={`rounded-maydon border p-3 ${
+                    takrormi ? 'border-belgi-qizil bg-belgi-qizil-fon/30' : 'border-chegara'
+                  }`}
+                >
                   <div className="mb-2 flex flex-wrap items-center gap-2">
                     <span className="text-[14px] font-medium text-matn">{q.narxGuruhNomi}</span>
+                    <span className="text-[11px] text-matn-kuchsiz">
+                      {kimga} · {qayerda}
+                    </span>
+                    {matoSoni === 0 && (
+                      <span
+                        className="text-[11px] text-belgi-sariq"
+                        title="Bu darajaga birorta mato biriktirilmagan — narx hech qachon ishlamaydi"
+                      >
+                        ⚠ mato yo‘q
+                      </span>
+                    )}
 
                     <select
                       value={q.hisoblashUsuli}
@@ -560,6 +717,19 @@ export function NarxFormasi({
                     </button>
                   )}
 
+                  {/*
+                    ⚠️ TAKROR — bazada `(tur, guruh, mijoz, filial)`
+                       noyob. Takror yuborilsa ikkinchisi birinchisi
+                       ustiga JIMGINA yozilardi va egasi ikki xil narx
+                       kiritib, bittasi yo'qolganini bilmay qolardi.
+                  */}
+                  {takrormi && (
+                    <p className="mt-2 text-[11px] font-medium text-belgi-qizil">
+                      Bu qamrov ({kimga} · {qayerda}) ikki marta yozilgan — bittasini
+                      o‘chiring yoki mijoz turi / filialini o‘zgartiring.
+                    </p>
+                  )}
+
                   {/* Saqlashdan OLDIN ko'rinadigan nuqsonlar */}
                   {nuqsonlar.length > 0 && (
                     <ul className="mt-2 list-disc pl-5 text-[11px] text-belgi-qizil">
@@ -601,6 +771,81 @@ export function NarxFormasi({
         )}
 
         <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-chegara pt-3">
+          {/*
+            ⚠️ BOSHQA TURDAN NUSXALASH — 2026-09-21.
+
+               To'qqiz xil jalyuzi × bir necha daraja × bir necha
+               bosqich: bir xil jadvalni qo'lda o'nlab marta
+               to'ldirish kerak edi va bir joyda raqam adashsa, bu
+               faqat mijoz oldida chiqardi.
+
+            ⚠️ Nusxa MAVJUD QATORLAR USTIGA yozmaydi — ular
+               yoniga qo'shiladi. Bir xil qamrov chiqsa `takrorlar`
+               qizil bilan ko'rsatadi va saqlashni bloklaydi. Ya'ni
+               nusxa hech qachon jimgina ma'lumot yo'qotmaydi.
+          */}
+          {ozgartiraOladi && nusxaTurlari.length > 0 && (
+            <select
+              value=""
+              disabled={nusxaKutilmoqda}
+              onChange={(e) => {
+                const manba = Number(e.target.value);
+                if (!Number.isFinite(manba) || manba <= 0) return;
+                setNusxaXatosi(null);
+                setNusxaKutilmoqda(true);
+                void turNarxlariniNusxalaAmali(manba)
+                  .then((j) => {
+                    if (j.xato !== null) {
+                      setNusxaXatosi(j.xato);
+                      return;
+                    }
+                    if (j.qoidalar.length === 0) {
+                      setNusxaXatosi('Bu turda narx qatori yo‘q');
+                      return;
+                    }
+                    let k = keyingiKalit;
+                    const yangilar = j.qoidalar.map((q) => {
+                      k += 1;
+                      return {
+                        kalit: k,
+                        narxGuruhId: q.narxGuruhId,
+                        narxGuruhNomi: q.narxGuruhNomi,
+                        mijozTuriId: q.mijozTuriId,
+                        filialId: q.filialId,
+                        hisoblashUsuli: q.hisoblashUsuli as HisoblashUsuli,
+                        bosqichlar: q.bosqichlar.map((b) => ({
+                          dan: b.dan,
+                          gacha: b.gacha ?? '',
+                          narx: b.narx,
+                          valyuta: b.valyuta === 'USD' ? ('USD' as const) : ('SOM' as const),
+                        })),
+                      };
+                    });
+                    setQoidalar((eski) => [...eski, ...yangilar]);
+                    setKeyingiKalit(k + 1);
+                  })
+                  .finally(() => {
+                    setNusxaKutilmoqda(false);
+                  });
+              }}
+              aria-label="Boshqa turdan nusxalash"
+              className={`${kichik} w-[230px]`}
+            >
+              <option value="">
+                {nusxaKutilmoqda ? 'nusxalanmoqda…' : '⤓ boshqa turdan nusxalash'}
+              </option>
+              {nusxaTurlari.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.nom}
+                </option>
+              ))}
+            </select>
+          )}
+
+          {nusxaXatosi !== null && (
+            <span className="text-[12px] text-belgi-qizil">{nusxaXatosi}</span>
+          )}
+
           {ozgartiraOladi && (
             <button
               type="button"
@@ -832,18 +1077,70 @@ export function NarxFormasi({
           />
           <span className="text-sm text-matn-kuchsiz">m</span>
 
+          <span className="text-sm text-matn-kuchsiz">×</span>
+          <input
+            value={sinovSoni}
+            onChange={(e) => {
+              setSinovSoni(e.target.value);
+            }}
+            inputMode="numeric"
+            aria-label="Sinov soni"
+            className={`${kichik} w-[70px]`}
+          />
+          <span className="text-sm text-matn-kuchsiz">dona</span>
+
+          {/*
+            ⚠️ Daraja ro'yxati QOIDALARDAN emas, GURUHLARDAN
+               tuziladi: bir daraja endi bir necha qatorga ega
+               bo'lishi mumkin va `qoidalar` dan tuzilsa ro'yxatda
+               takrorlanib chiqardi.
+          */}
           <select
             value={sinovGuruh ?? ''}
             onChange={(e) => {
               setSinovGuruh(son(e.target.value));
             }}
             aria-label="Sinov darajasi"
-            className={`${kichik} w-[180px]`}
+            className={`${kichik} w-[170px]`}
           >
             <option value="">— daraja —</option>
-            {qoidalar.map((q) => (
-              <option key={q.narxGuruhId} value={q.narxGuruhId}>
-                {q.narxGuruhNomi}
+            {guruhlar
+              .filter((g) => qoidalar.some((q) => q.narxGuruhId === g.id))
+              .map((g) => (
+                <option key={g.id} value={g.id}>
+                  {g.nom}
+                </option>
+              ))}
+          </select>
+
+          <select
+            value={sinovMijoz ?? ''}
+            onChange={(e) => {
+              setSinovMijoz(son(e.target.value));
+            }}
+            aria-label="Sinov mijoz turi"
+            className={`${kichik} w-[160px]`}
+          >
+            <option value="">oddiy mijoz</option>
+            {mijozTurlari.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.nom}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={sinovFilial ?? ''}
+            onChange={(e) => {
+              setSinovFilial(son(e.target.value));
+            }}
+            aria-label="Sinov filiali"
+            className={`${kichik} w-[150px]`}
+          >
+            <option value="">hamma filial</option>
+            {filiallar.map((f) => (
+              <option key={f.id} value={f.id}>
+                {f.nom}
               </option>
             ))}
           </select>
@@ -895,10 +1192,25 @@ export function NarxFormasi({
                   <dd className="tabular-nums">{pulKorsat(som(q.summa))} so‘m</dd>
                 </div>
               ))}
-              <div className="mt-1 flex justify-between border-t border-chegara pt-1 font-semibold">
-                <dt>Jami</dt>
+              <div className="mt-1 flex justify-between border-t border-chegara pt-1">
+                <dt className="text-matn-ikki">Bitta buyum</dt>
                 <dd className="tabular-nums">{pulKorsat(som(natija.hisob.jami))} so‘m</dd>
               </div>
+              {/*
+                ⚠️ SONI OXIRIDA KO'PAYTIRILADI — `pozitsiyaNarxiniHisobla`
+                   da ham aynan shunday (T-12). Bu yerda alohida qator
+                   bo'lib turgani muhim: egasi «uchtasiga qancha» degan
+                   savolga javobni ko'radi va bitta buyum narxi ham
+                   ko'rinib turadi.
+              */}
+              {sinovSoniAdadi > 1 && (
+                <div className="flex justify-between border-t border-chegara pt-1 font-semibold">
+                  <dt>Jami × {sinovSoniAdadi}</dt>
+                  <dd className="tabular-nums">
+                    {pulKorsat(kopaytir(som(natija.hisob.jami), sinovSoniAdadi))} so‘m
+                  </dd>
+                </div>
+              )}
             </dl>
           )}
 
@@ -911,14 +1223,24 @@ export function NarxFormasi({
       </section>
 
       {ozgartiraOladi && (
-        <div>
+        <div className="flex flex-wrap items-center gap-3">
+          {/*
+            ⚠️ TAKROR BO'LSA SAQLANMAYDI. Server ham shu tekshiruvni
+               takrorlaydi (`narx-qoida.ts`) — brauzerga ishonilmaydi.
+               Bu yerdagisi sababni DARHOL ko'rsatish uchun.
+          */}
           <button
             type="submit"
-            disabled={kutilmoqda}
+            disabled={kutilmoqda || takrorlar.size > 0}
             className="rounded-maydon bg-brend px-4 py-2.5 text-sm font-medium text-white transition-all hover:bg-brend-quyuq active:scale-[0.98] disabled:opacity-60"
           >
             {kutilmoqda ? 'Saqlanmoqda…' : 'Saqlash'}
           </button>
+          {takrorlar.size > 0 && (
+            <span className="text-[12px] text-belgi-qizil">
+              Bir xil qamrov ikki marta yozilgan — yuqorida qizil bilan belgilandi.
+            </span>
+          )}
         </div>
       )}
 
