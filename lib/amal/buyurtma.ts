@@ -376,6 +376,23 @@ export async function pozitsiyaYozTx(
     p.qoshimchaMaterialId !== null &&
     p.qoshimchaMaterialId !== undefined
   ) {
+    /**
+     * ⚠️ BIRLIK MATERIALDAN o'qiladi (2026-09-21 auditi).
+     *
+     *    Ilgari bu yerda birlik `'DONA'` deb QOTIRILGAN edi va
+     *    ombor jurnaliga ham doim `miqdor_dona` yozilardi. Chiziqli
+     *    material (karniz) to'g'ridan-to'g'ri sotilganda esa
+     *    `bolak.miqdor` ustunida METR turadi — jurnalda «5 dona
+     *    karniz» deb ko'rinar, aslida 5 METR bo'lardi.
+     *
+     *    Qoldiq to'g'ri kamayardi, faqat TARIX yolg'on edi. Omborchi
+     *    «5 dona karniz qayoqqa ketdi?» degan savolga javob topa
+     *    olmasdi.
+     */
+    const qm = await tx<{ sarflash_birligi: string }[]>`
+      SELECT sarflash_birligi FROM material WHERE id = ${p.qoshimchaMaterialId}`;
+    const qmDonami = (qm[0]?.sarflash_birligi ?? 'DONA') !== 'M';
+
     const yechim = await donaYech(
       tx,
       p.qoshimchaMaterialId,
@@ -410,7 +427,8 @@ export async function pozitsiyaYozTx(
                                            soni, birlik, narx_snapshot,
                                            tannarx_snapshot, qolda_kiritildi)
           VALUES (${pozitsiyaId}, ${p.qoshimchaMaterialId},
-                  ${partiya.miqdor}, 'DONA', 0, ${partiya.tannarx}, true)`;
+                  ${partiya.miqdor}, ${qmDonami ? 'DONA' : 'M'},
+                  0, ${partiya.tannarx}, true)`;
 
         /**
          * ⚠️ OMBOR JURNALIGA HAM YOZILADI.
@@ -426,14 +444,19 @@ export async function pozitsiyaYozTx(
          */
         const olindi = Number(partiya.miqdor);
         await tx`
-          INSERT INTO ombor_harakat (filial_id, bolak_id, turi, miqdor_dona,
+          INSERT INTO ombor_harakat (filial_id, bolak_id, turi,
+                                     miqdor_m, miqdor_dona,
                                      tannarx_summa, manba_turi, manba_id,
                                      izoh, xodim_id)
-          VALUES (${k.ishlabChiqaruvchiFilialId}, ${partiya.bolakId},
-                  'KESIM', ${-olindi},
+          VALUES (${k.ishlabChiqaruvchiFilialId}, ${partiya.bolakId}, 'KESIM',
+                  ${qmDonami ? null : (-olindi).toFixed(2)},
+                  ${qmDonami ? -olindi : null},
                   ${(-olindi * Number(partiya.tannarx)).toFixed(2)},
                   'buyurtma_pozitsiya', ${pozitsiyaId},
-                  ${"Qo'shimcha buyum sotildi (3.10)"}, ${xodimId})`;
+                  ${qmDonami
+                    ? "Qo'shimcha buyum sotildi (3.10)"
+                    : "Qo'shimcha buyum sotildi — metrda (3.10)"},
+                  ${xodimId})`;
       }
     }
   }

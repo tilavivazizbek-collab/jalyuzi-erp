@@ -251,7 +251,7 @@ describe('T-14 — chiziqli slot materiali «Tugatdim» da yechiladi', () => {
 
     const a = await sql<{ n: number }[]>`
       SELECT count(*)::int AS n FROM audit_jurnal
-       WHERE amal = 'CHIZIQLI_YETMADI' AND obyekt_id = ${poz}`;
+       WHERE amal = 'SLOT_MATERIALI_YETMADI' AND obyekt_id = ${poz}`;
     expect(a[0]?.n).toBe(1);
 
     const h = await sql<{ n: number }[]>`
@@ -295,5 +295,317 @@ describe('T-14 — chiziqli slot materiali «Tugatdim» da yechiladi', () => {
     expect(mato[0]?.miqdor_kv_m).not.toBeNull();
     expect(karniz[0]?.miqdor_m).toBe('-1.20');
     expect(await qoldiq(karnizId)).toBe(28.8);
+  }, 120_000);
+});
+
+/**
+ * T-14 (2-qism) — DONA SLOT MATERIALI
+ *
+ * ⚠️ Birinchi tuzatish faqat `birlik = 'M'` ni qamragan edi va DONA
+ *    SLOT uchidan chetda qolgan: u na `band` ga (u faqat `KV_M`),
+ *    na aksessuar blokiga (u `pozitsiya_aksessuar` ni o'qiydi)
+ *    tushardi.
+ *
+ * ⚠️ Egasining «dikkey» turida aynan shunday slot bor —
+ *    `dikkey bigunok`, formulasi `CEIL(ENI / 0.10)`. Ya'ni 1 metrli
+ *    mahsulotga O'NTA begunok, va ularning hammasi jimgina
+ *    yo'qolardi.
+ *
+ * ⚠️ AKSESSUAR EMAS. Bitta material ikkalasi ham bo'lishi mumkin:
+ *    qo'lda qo'shilsa aksessuar, mahsulot turida turgan bo'lsa slot.
+ *    2026-08-28 da faqat birinchisi tuzatilgan edi.
+ */
+describe('T-14 (2-qism) — DONA slot materiali ham yechiladi', () => {
+  let begunokSlotId = 0;
+
+  beforeAll(async () => {
+    const s = await sql<{ id: number }[]>`
+      INSERT INTO mahsulot_slot (mahsulot_tur_id, nom, tartib, formula, yaratdi_id)
+      VALUES (${turId}, 'Begunok', 3, ${'CEIL(ENI / 0.10)'}, ${XODIM})
+      RETURNING id`;
+    begunokSlotId = s[0]?.id ?? 0;
+  }, 60_000);
+
+  async function begunokYarat(dona: number): Promise<number> {
+    hisoblagich += 1;
+    const belgi = `${String(Date.now())}-${String(hisoblagich)}`;
+
+    const m = await sql<{ id: number }[]>`
+      INSERT INTO material (nom, hisob_turi, kirim_birligi, sarflash_birligi, yaratdi_id)
+      VALUES (${`T14 begunok ${belgi}`}, 'DONA', 'dona', 'DONA', ${XODIM})
+      RETURNING id`;
+    const materialId = m[0]?.id ?? 0;
+
+    await sql`
+      INSERT INTO bolak (material_id, filial_id, kod, turi, miqdor,
+                         tannarx_birlik_snapshot, yaratdi_id)
+      VALUES (${materialId}, ${FILIAL}, ${`T14-BG-${belgi}`},
+              'DONA', ${dona}, 5000, ${XODIM})`;
+
+    return materialId;
+  }
+
+  /** Mato + karniz + begunok slotli pozitsiya */
+  async function uchSlotli(karnizId: number, begunokId: number): Promise<number> {
+    hisoblagich += 1;
+    await rulonYarat();
+    const eniM = 1.2;
+    const boyiM = 2.0;
+
+    const n = await buyurtmaYarat(
+      sql,
+      {
+        raqam: `B-T14D-${String(Date.now())}-${String(hisoblagich)}`,
+        mijozId: null,
+        sotganFilialId: FILIAL,
+        ishlabChiqaruvchiFilialId: FILIAL,
+        manba: 'SAYT',
+        valyuta: 'SOM',
+        kursSnapshot: null,
+        tayyorlikSana: null,
+        qarzgaKetadimi: false,
+        pozitsiyalar: [
+          {
+            mahsulotTurId: turId,
+            eniM,
+            boyiM,
+            soni: 1,
+            narxSnapshot: '500000',
+            chegirmaSumma: '0',
+            xizmatHaqi: '0',
+            formulaSnapshot: { sinov: 'T14-DONA' },
+            slotlar: [
+              {
+                slotId: matoSlotId,
+                materialId: matoId,
+                hisoblanganMiqdor: (eniM * boyiM).toFixed(4),
+                tuzatilganMiqdor: null,
+                birlik: 'KV_M',
+                narxSnapshot: '120000',
+                kerak: { eniM, boyiM },
+              },
+              {
+                slotId: karnizSlotId,
+                materialId: karnizId,
+                hisoblanganMiqdor: eniM.toFixed(4),
+                tuzatilganMiqdor: null,
+                birlik: 'M',
+                narxSnapshot: '35000',
+                kerak: null,
+              },
+              {
+                /** `CEIL(1.2 / 0.10)` = 12 ta */
+                slotId: begunokSlotId,
+                materialId: begunokId,
+                hisoblanganMiqdor: '12',
+                tuzatilganMiqdor: null,
+                birlik: 'DONA',
+                narxSnapshot: '5000',
+                kerak: null,
+              },
+            ],
+            aksessuarlar: [],
+          },
+        ],
+      },
+      XODIM,
+    );
+
+    const pozitsiyaId = n.pozitsiyalar[0]?.pozitsiyaId ?? 0;
+    await ishniOl(sql, pozitsiyaId, USTA, '0');
+    return pozitsiyaId;
+  }
+
+  it('DONA slot qoldig\'i kamayadi — 50 → 38', async () => {
+    const karnizId = await karnizYarat(30);
+    const begunokId = await begunokYarat(50);
+    const poz = await uchSlotli(karnizId, begunokId);
+
+    await tugatdim(
+      sql,
+      { pozitsiyaId: poz, kesimlar: await kesimlar(poz), ogohTasdiqlandi: true, izoh: null },
+      USTA,
+    );
+
+    expect(await qoldiq(begunokId)).toBe(38);
+  }, 120_000);
+
+  it('jurnalga `miqdor_dona` bilan tushadi, `miqdor_m` ga EMAS', async () => {
+    const karnizId = await karnizYarat(30);
+    const begunokId = await begunokYarat(50);
+    const poz = await uchSlotli(karnizId, begunokId);
+
+    await tugatdim(
+      sql,
+      { pozitsiyaId: poz, kesimlar: await kesimlar(poz), ogohTasdiqlandi: true, izoh: null },
+      USTA,
+    );
+
+    const h = await sql<{ miqdor_dona: number | null; miqdor_m: string | null }[]>`
+      SELECT oh.miqdor_dona, oh.miqdor_m::text
+        FROM ombor_harakat oh
+        JOIN bolak b ON b.id = oh.bolak_id
+       WHERE b.material_id = ${begunokId} AND oh.turi = 'KESIM'`;
+
+    expect(h.length).toBe(1);
+    expect(h[0]?.miqdor_dona).toBe(-12);
+    /** ⚠️ Birlik aralashmaydi: dona ustuni to'ladi, metr ustuni bo'sh */
+    expect(h[0]?.miqdor_m).toBeNull();
+  }, 120_000);
+
+  it('uchala slot HAM yechiladi — mato, chiziqli, dona', async () => {
+    const karnizId = await karnizYarat(30);
+    const begunokId = await begunokYarat(50);
+    const poz = await uchSlotli(karnizId, begunokId);
+
+    await tugatdim(
+      sql,
+      { pozitsiyaId: poz, kesimlar: await kesimlar(poz), ogohTasdiqlandi: true, izoh: null },
+      USTA,
+    );
+
+    const h = await sql<{ material_id: number }[]>`
+      SELECT b.material_id
+        FROM ombor_harakat oh
+        JOIN bolak b ON b.id = oh.bolak_id
+       WHERE oh.manba_turi = 'buyurtma_pozitsiya' AND oh.manba_id = ${poz}
+         AND oh.turi = 'KESIM'`;
+
+    const materiallar = new Set(h.map((x) => x.material_id));
+    expect(materiallar.has(matoId)).toBe(true);
+    expect(materiallar.has(karnizId)).toBe(true);
+    expect(materiallar.has(begunokId)).toBe(true);
+  }, 120_000);
+});
+
+/**
+ * T-14 (3-qism) — TO'G'RIDAN-TO'G'RI SOTISHDA BIRLIK
+ *
+ * ⚠️ 2026-09-21 auditida topildi. Chiziqli material alohida
+ *    sotilganda (`qoshimchaMaterialId`, slotsiz) ombor jurnaliga
+ *    DOIM `miqdor_dona` yozilardi — birlik `'DONA'` deb qotirilgan
+ *    edi.
+ *
+ *    Qoldiq to'g'ri kamayardi, faqat TARIX yolg'on edi: jurnalda
+ *    «5 dona karniz» deb ko'rinar, aslida 5 METR bo'lardi. Omborchi
+ *    «5 dona karniz qayoqqa ketdi?» degan savolga javob topa
+ *    olmasdi.
+ */
+describe("T-14 (3-qism) — chiziqli materialni alohida sotish", () => {
+  it('jurnalga metr yoziladi, dona EMAS', async () => {
+    const karnizId = await karnizYarat(30);
+    hisoblagich += 1;
+
+    const n = await buyurtmaYarat(
+      sql,
+      {
+        raqam: `B-T14S-${String(Date.now())}-${String(hisoblagich)}`,
+        mijozId: null,
+        sotganFilialId: FILIAL,
+        ishlabChiqaruvchiFilialId: FILIAL,
+        manba: 'SAYT',
+        valyuta: 'SOM',
+        kursSnapshot: null,
+        tayyorlikSana: null,
+        qarzgaKetadimi: false,
+        pozitsiyalar: [
+          {
+            /** ⚠️ Slotsiz — «materialni o'zi sotish» yo'li */
+            mahsulotTurId: null,
+            qoshimchaMaterialId: karnizId,
+            eniM: 0,
+            boyiM: 0,
+            soni: 5,
+            narxSnapshot: '175000',
+            chegirmaSumma: '0',
+            xizmatHaqi: '0',
+            formulaSnapshot: { qoshimcha: true },
+            slotlar: [],
+            aksessuarlar: [],
+          },
+        ],
+      },
+      XODIM,
+    );
+
+    const poz = n.pozitsiyalar[0]?.pozitsiyaId ?? 0;
+    expect(n.pozitsiyalar[0]?.holat).not.toBe('MATERIALGA_KUTMOQDA');
+
+    /** 30 − 5 = 25 metr */
+    expect(await qoldiq(karnizId)).toBe(25);
+
+    const h = await sql<{ miqdor_m: string | null; miqdor_dona: number | null }[]>`
+      SELECT oh.miqdor_m::text, oh.miqdor_dona
+        FROM ombor_harakat oh
+        JOIN bolak b ON b.id = oh.bolak_id
+       WHERE b.material_id = ${karnizId} AND oh.manba_id = ${poz}`;
+
+    expect(h.length).toBe(1);
+    expect(h[0]?.miqdor_m).toBe('-5.00');
+    expect(h[0]?.miqdor_dona).toBeNull();
+
+    /** Aksessuar qatorida ham birlik to'g'ri bo'lsin */
+    const a = await sql<{ birlik: string }[]>`
+      SELECT birlik FROM pozitsiya_aksessuar WHERE buyurtma_pozitsiya_id = ${poz}`;
+    expect(a[0]?.birlik).toBe('M');
+  }, 120_000);
+
+  it('DONA material sotilganda jurnal dona ustuniga yozadi', async () => {
+    hisoblagich += 1;
+    const belgi = `${String(Date.now())}-${String(hisoblagich)}`;
+
+    const m = await sql<{ id: number }[]>`
+      INSERT INTO material (nom, hisob_turi, kirim_birligi, sarflash_birligi, yaratdi_id)
+      VALUES (${`T14 mexanizm ${belgi}`}, 'DONA', 'dona', 'DONA', ${XODIM})
+      RETURNING id`;
+    const mexanizmId = m[0]?.id ?? 0;
+
+    await sql`
+      INSERT INTO bolak (material_id, filial_id, kod, turi, miqdor,
+                         tannarx_birlik_snapshot, yaratdi_id)
+      VALUES (${mexanizmId}, ${FILIAL}, ${`T14-MX-${belgi}`},
+              'DONA', 20, 15000, ${XODIM})`;
+
+    const n = await buyurtmaYarat(
+      sql,
+      {
+        raqam: `B-T14D2-${belgi}`,
+        mijozId: null,
+        sotganFilialId: FILIAL,
+        ishlabChiqaruvchiFilialId: FILIAL,
+        manba: 'SAYT',
+        valyuta: 'SOM',
+        kursSnapshot: null,
+        tayyorlikSana: null,
+        qarzgaKetadimi: false,
+        pozitsiyalar: [
+          {
+            mahsulotTurId: null,
+            qoshimchaMaterialId: mexanizmId,
+            eniM: 0,
+            boyiM: 0,
+            soni: 3,
+            narxSnapshot: '90000',
+            chegirmaSumma: '0',
+            xizmatHaqi: '0',
+            formulaSnapshot: { qoshimcha: true },
+            slotlar: [],
+            aksessuarlar: [],
+          },
+        ],
+      },
+      XODIM,
+    );
+
+    const poz = n.pozitsiyalar[0]?.pozitsiyaId ?? 0;
+
+    const h = await sql<{ miqdor_m: string | null; miqdor_dona: number | null }[]>`
+      SELECT oh.miqdor_m::text, oh.miqdor_dona
+        FROM ombor_harakat oh
+        JOIN bolak b ON b.id = oh.bolak_id
+       WHERE b.material_id = ${mexanizmId} AND oh.manba_id = ${poz}`;
+
+    expect(h[0]?.miqdor_dona).toBe(-3);
+    expect(h[0]?.miqdor_m).toBeNull();
   }, 120_000);
 });

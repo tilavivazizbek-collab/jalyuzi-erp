@@ -155,7 +155,7 @@ export const materialSxema = z
 export type MaterialKirimi = z.infer<typeof materialSxema>;
 
 /**
- * TZ 5.3 — chiziqli material smda sarflanadi (Q-01).
+ * TZ 5.3 — chiziqli material METRDA sarflanadi (Q-01, 2026-09-20).
  * Ekranda koeffitsient yonida shu izoh chiqadi.
  */
 export function koeffitsientIzohi(

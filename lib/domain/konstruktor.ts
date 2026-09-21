@@ -16,7 +16,7 @@ import { BiznesXato } from '@/lib/xato';
 
 export interface Parametr {
   readonly nom: string;
-  /** Qiymat santimetrda (5.3 — barcha uzunlik smda) */
+  /** Qiymat METRDA (5.3 — barcha uzunlik metrda, 2026-09-20) */
   readonly qiymat: number;
 }
 

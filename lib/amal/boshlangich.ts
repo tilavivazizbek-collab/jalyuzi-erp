@@ -91,8 +91,9 @@ export async function boshlangichQoldiq(
     }
 
     const rulon = material.hisob_turi === 'RULON';
-    // Q-01 — chiziqli material SMDA saqlanadi, jurnalda `miqdor_m` ustuni
-    const smda = material.sarflash_birligi === 'M';
+    // Q-01 — chiziqli material METRDA saqlanadi (2026-09-20),
+    //        jurnalda `miqdor_m` ustuniga tushadi
+    const metrda = material.sarflash_birligi === 'M';
     const tannarx = som(kirim.tannarxBirlik);
 
     // Bo'lak turi — RULON bo'lsa har o'lcham alohida, aks holda bitta dona
@@ -163,8 +164,8 @@ export async function boshlangichQoldiq(
                     ? null
                     : new Decimal(b.eniM).times(b.boyiM).toFixed(4)
                 },
-                ${smda ? b.miqdor : null},
-                ${smda ? null : b.miqdor},
+                ${metrda ? b.miqdor : null},
+                ${metrda ? null : b.miqdor},
                 ${pulMatn(summa)},
                 'boshlangich',
                 ${kirim.izoh ?? "Tizimga o'tish qoldig'i"},

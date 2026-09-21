@@ -9,6 +9,8 @@
  *    «Eslatmalar» tabi). Ikki joyda yozilsa ikki xil gap chiqardi.
  */
 
+import Decimal from 'decimal.js';
+
 // ─── 13.9 · Admin bildirishnomalari ───────────────────────────────────────
 
 export const ADMIN_HODISALARI = [
@@ -229,13 +231,22 @@ export function tasdiqlandiMatni(k: {
     return `✅ Buyurtmangiz tasdiqlandi: *${k.raqam}*\nNarx: ${k.yangiNarx}`;
   }
 
-  const farq = (Number(k.eskiNarx) - Number(k.yangiNarx)).toFixed(2);
-  const belgi = Number(farq) > 0 ? 'Chegirma' : 'Qo‘shimcha';
+  /**
+   * ⚠️ PUL `Decimal` BILAN (QISM 1 §3.1). Ilgari bu yerda
+   *    `Number(eski) - Number(yangi)` turardi — domen qatlamida
+   *    ikkilik kasr bilan pul hisoblash, qat'iy qoidaning
+   *    buzilishi. `.toFixed(2)` xatoni ko'p hollarda yashirardi,
+   *    lekin mijozga ketadigan matnda tiyin adashishi mumkin edi.
+   */
+  const eski = new Decimal(k.eskiNarx);
+  const yangi = new Decimal(k.yangiNarx);
+  const farq = eski.minus(yangi);
+  const belgi = farq.greaterThan(0) ? 'Chegirma' : 'Qo‘shimcha';
 
   return (
     `✅ Buyurtmangiz tasdiqlandi: *${k.raqam}*\n` +
     `Yakuniy narx: *${k.yangiNarx}* (avval ${k.eskiNarx}).\n` +
-    `${belgi}: ${Math.abs(Number(farq)).toFixed(2)}.`
+    `${belgi}: ${farq.abs().toFixed(2)}.`
   );
 }
 

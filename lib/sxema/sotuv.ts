@@ -162,7 +162,7 @@ export const sotuvPozitsiyaSxema = z
   // Tayyor mahsulotda o'lcham va kamida bitta slot MAJBURIY
   .refine((p) => p.qoshimchaMaterialId !== null || (p.eniM > 0 && p.boyiM > 0), {
     path: ['eniM'],
-    message: "O'lchamni smda kiriting",
+    message: "O'lchamni METRDA kiriting",
   })
   .refine((p) => p.qoshimchaMaterialId !== null || p.slotlar.length > 0, {
     path: ['slotlar'],

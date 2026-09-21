@@ -232,7 +232,7 @@ export async function varaqaYakunla(
         sabab: k?.sabab ?? null,
         izoh: k?.izoh ?? null,
       };
-      return { qator, natija, qatorId: q.id, smda: q.sarflash_birligi === 'M' };
+      return { qator, natija, qatorId: q.id, metrda: q.sarflash_birligi === 'M' };
     });
 
     // §2.2 — farq va sabab tekshiruvi DOMAIN da, SQL da takrorlanmaydi
@@ -261,16 +261,17 @@ export async function varaqaYakunla(
 
       // 2.2-invariant — qoldiq jurnalning yig'indisi, shuning uchun
       // farq JURNALGA tushadi, bo'lakka emas.
-      // Q-01 — chiziqli material SMDA yuritiladi, `miqdor_dona` INTEGER
-      // bo'lgani uchun kasrli sm u yerga umuman sig'maydi.
+      // Q-01 — chiziqli material METRDA yuritiladi (2026-09-20),
+      // `miqdor_dona` esa INTEGER: kasrli metr u yerga sig'maydi.
+      // Shuning uchun birlik shu yerda AJRATILADI.
       await tx`
         INSERT INTO ombor_harakat (filial_id, bolak_id, turi, miqdor_kv_m,
                                    miqdor_m, miqdor_dona, tannarx_summa,
                                    manba_turi, manba_id, izoh, xodim_id)
         VALUES (${hujjat.filial_id}, ${j.qator.bolakId}, 'INVENTARIZATSIYA',
                 ${dona ? null : f.farqKvM.toFixed(4)},
-                ${dona && j.smda ? f.farqKvM.toFixed(2) : null},
-                ${dona && !j.smda ? f.farqKvM.toNumber() : null},
+                ${dona && j.metrda ? f.farqKvM.toFixed(2) : null},
+                ${dona && !j.metrda ? f.farqKvM.toNumber() : null},
                 ${pulMatn(f.farqSumma)},
                 'inventarizatsiya', ${varaqaId},
                 ${j.natija.izoh === null ? j.natija.sabab : `${String(j.natija.sabab)} — ${j.natija.izoh}`},

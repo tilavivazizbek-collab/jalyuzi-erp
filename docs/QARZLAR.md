@@ -114,6 +114,65 @@ ruhida), band qilinmasa oqim soddaroq bo'ladi.
 
 ---
 
+## T-15 · QAYTA KESISHDA MATERIAL IKKI MARTA YECHILADI — ⚠️ OCHIQ
+
+**Topildi:** 2026-09-21 tizim auditida.
+
+Qayta kesish tasdiqlangach pozitsiya `TAYYOR` dan
+`ISHLAB_CHIQARILMOQDA` ga QAYTADI (`qayta-kesish.ts`). Ya'ni usta
+«Tugatdim» ni IKKINCHI marta bosadi va `tugatdim()` butunlay qaytadan
+ishlaydi:
+
+| Nima | Ikki marta yechiladimi |
+|---|---|
+| Mato | ✅ TO'G'RI — eskisi BRAK qilinadi, yangi bo'lak band qilinadi |
+| Chiziqli slot (karniz, ip) | ❌ ikki marta |
+| Dona slot (begunok) | ❌ ikki marta |
+| Aksessuar (kronshteyn) | ❌ ikki marta — **2026-08-28 dan beri shunday** |
+
+Usta faqat MATONI qayta kesgan bo'lsa, karniz va begunok uning
+qo'lida turibdi — lekin ombordan ikkinchi marta yechiladi.
+
+⚠️ Bot xabari buni ochiq aytadi: «Tasdiqlansa material IKKINCHI marta
+yechiladi» (`bildirishnoma.ts`). Ya'ni bu **bilib qilingan** bo'lishi
+ham mumkin. Lekin xabar MATO haqida yozilgan va aksessuar/slot uchun
+to'g'ri ekani hech qayerda yozilmagan.
+
+### Bu texnik emas, BIZNES savoli — egasi hal qiladi
+
+1. **Hozirgidek qolsin** — qayta kesishda hamma narsa yangidan
+   yechiladi. Mantiq: usta odatda butun mahsulotni qaytadan yasaydi.
+2. **Faqat mato qayta yechilsin** — karniz, begunok, aksessuar bir
+   marta. Mantiq: ular buzilmagan, usta ularni saqlab qolgan.
+3. **Usta o'zi belgilasin** — qayta kesish so'rovida «nima buzildi»
+   ro'yxati.
+
+Men o'zim hal qilmadim: har uch variant ham to'g'ri bo'lishi mumkin
+va tanlov ustaxonadagi haqiqiy tartibga bog'liq.
+
+---
+
+## T-16 · CHIZIQLI MATERIALNI KASR METRLAB SOTIB BO'LMAYDI — ⚠️ OCHIQ
+
+**Topildi:** 2026-09-21 tizim auditida.
+
+Karnizni «2.5 metr» qilib to'g'ridan-to'g'ri sotib bo'lmaydi. Sabab
+tuzilishda: miqdor `buyurtma_pozitsiya.soni` ustunida saqlanadi va u
+`integer`. Matoda bunday muammo yo'q — u o'lchamda (`eni_m` × `boyi_m`)
+yuradi.
+
+Hozircha ekranda butun son talab qilinadi va SABABI aytiladi
+(`qoshimcha.tsx`) — ilgari server tushunarsiz xato berardi.
+
+### Yechim variantlari — egasi hal qiladi
+
+1. **Shunday qolsin** — karniz butun metrlab sotiladi.
+2. `buyurtma_pozitsiya` ga `miqdor numeric(10,2)` ustuni qo'shilsin —
+   `soni` dona uchun, `miqdor` o'lchov uchun. Migratsiya va sotuv
+   ekrani o'zgaradi.
+
+---
+
 ## T-01 · Interfeys oqimlari avtomat sinalmagan
 
 **Bosqich:** 1 · **Tegadi:** QISM 1 §14.2

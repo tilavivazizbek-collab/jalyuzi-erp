@@ -57,7 +57,7 @@ export function BoshlangichFormasi({
   yangiMahsulot = false,
   boshEni = '',
   boshBoyi = '',
-  smda = false,
+  metrda = false,
 }: {
   materialId: number;
   materialNomi: string;
@@ -74,7 +74,7 @@ export function BoshlangichFormasi({
    *    Odam metr bilan ishlaydi, shuning uchun ekranda METR
    *    so'raladi va ×100 tizim o'zi qiladi.
    */
-  smda?: boolean;
+  metrda?: boolean;
   /** Mahsulot endi qo'shildi — «bekor» ro'yxatga qaytaradi */
   yangiMahsulot?: boolean;
 }) {
@@ -196,19 +196,19 @@ export function BoshlangichFormasi({
       ) : (
         <Maydon
           nom="miqdor"
-          yorliq={`Miqdor (${smda ? 'metr' : birlikNomi})`}
+          yorliq={`Miqdor (${metrda ? 'metr' : birlikNomi})`}
           izoh={
-            smda
+            metrda
               ? 'metrda kiriting — baza ham metrda saqlaydi (Q-01)'
               : 'Omborda hozir turgan miqdor'
           }
           xato={holat.maydonlar.miqdor}
         >
-          {smda ? (
+          {metrda ? (
             <>
               {/*
                 ⚠️ 2026-09-20 — ekranda ham, bazada ham METR. Ilgari
-                   baza smda edi va bu yerda ×100 turardi; omborchi
+                   baza metrda edi va bu yerda ×100 turardi; omborchi
                    50 metrni 5000 deb yozishi kerak bo'lardi va bir
                    kunmas-bir kun kimdir 50 deb yozib qo'yardi.
               */}

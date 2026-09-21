@@ -161,6 +161,38 @@ shubhalisi yo'q.**
 | **T-14** — chiziqli material ombordan yechiladi | ✅ |
 | T-14 — band qilish (buyurtma paytida ogohlantirish) | ❓ egasi hal qiladi |
 
+### Tizim auditi — 2026-09-21
+
+Egasi so'radi: «shunaqangi nozik xato deb bilgan narsalaringni butun
+tizimdan top». Skanerlar yozilib, har topilma KOD BILAN tasdiqlandi.
+
+**Tuzatildi:**
+
+| Nima | Qayerda |
+|---|---|
+| `DONA` slot materiali ombordan yechilmasdi | `ish.ts` — T-14 ning ikkinchi yarmi |
+| Aksessuar jurnaliga doim `miqdor_dona` yozilardi | `ish.ts` — chiziqli aksessuar «2 dona kabel» bo'lib ko'rinardi |
+| To'g'ridan-to'g'ri sotishda birlik `'DONA'` deb qotirilgan edi | `buyurtma.ts` — «5 dona karniz», aslida 5 metr |
+| Ekran chiziqli materialni «dona» deb ko'rsatardi | `qoshimcha.tsx` — «omborda 8 dona» aslida 8 metr edi |
+| Foydalanuvchiga ko'rinadigan «O'lchamni smda kiriting» | `sxema/sotuv.ts` |
+| Domen qatlamida pul `number` bilan hisoblanardi | `bildirishnoma.ts` — endi `Decimal` |
+| Eskirgan `smda` nomlari va izohlari | `boshlangich.ts`, `inventarizatsiya.ts`, `hisobdan.ts`, `konstruktor.ts` |
+
+**Tekshirildi, XATO TOPILMADI:**
+
+| Sinf | Natija |
+|---|---|
+| P-13 (`numeric` → matn) butun tizimda | toza — qolgan topilmalar `COUNT(...)::int` |
+| `_snapshot` ustuniga `UPDATE` | bitta istisno, TZ 9.11 uchun hujjatlangan va to'g'ri |
+| Harakat jadvallariga `UPDATE` | yo'q |
+| Pul arifmetikasi `number` bilan | qolganlari faqat ekran yoki foiz |
+| Ombor birligi: ko'chirish, hisobdan chiqarish, inventarizatsiya | uchalasi birlikni to'g'ri ajratadi |
+| Server sarfni qayta hisoblaydimi | ha — barcha slot uchun, birlik bazadan |
+| «Tugatdim» ikki marta ishlashi | holat tekshiruvi to'xtatadi |
+
+**Ochiq qoldi — egasining qarori kerak:** T-15 (qayta kesishda ikki
+marta yechish), T-16 (kasr metrlab sotish).
+
 ### Dikkey formulalari — egasi tasdig'i 2026-09-21
 
 Metrga o'tish formula MATNINI o'girmagani uchun ikki formula

@@ -128,7 +128,8 @@ export async function hisobdanChiqar(
       tannarxBirlik: som(bolak.tannarx_birlik_snapshot),
     });
     const kvM = bolak.turi === 'DONA' ? null : new Decimal(bolak.eni_m ?? 0).times(bolak.boyi_m ?? 0);
-    const sm = bolak.turi === 'DONA' && bolak.sarflash_birligi === 'M' ? bolak.miqdor : null;
+    /** ⚠️ Chiziqli material — miqdor METRDA (2026-09-20) */
+    const metr = bolak.turi === 'DONA' && bolak.sarflash_birligi === 'M' ? bolak.miqdor : null;
     const dona =
       bolak.turi === 'DONA' && bolak.sarflash_birligi === 'DONA'
         ? Math.round(Number(bolak.miqdor ?? 0))
@@ -145,7 +146,7 @@ export async function hisobdanChiqar(
                                  izoh, xodim_id)
       VALUES (${bolak.filial_id}, ${bolak.id}, 'BRAK',
               ${kvM === null ? null : kvM.negated().toFixed(4)},
-              ${sm === null ? null : new Decimal(sm).negated().toFixed(2)},
+              ${metr === null ? null : new Decimal(metr).negated().toFixed(2)},
               ${dona === null ? null : -dona},
               ${pulMatn(manfiy(zarar))},
               ${kirim.kirimId === null ? null : 'kirim'}, ${kirim.kirimId},

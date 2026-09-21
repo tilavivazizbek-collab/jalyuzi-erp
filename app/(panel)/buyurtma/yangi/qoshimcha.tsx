@@ -54,7 +54,7 @@ export interface QoshimchaTanlovi {
   readonly nom: string;
   readonly soni: number;
   readonly narx: string;
-  /** ⚠️ Metrlab kesib sotishda — santimetrda (TZ 5.3) */
+  /** ⚠️ Metrlab kesib sotishda — METRDA (2026-09-20) */
   readonly eniM: number;
   readonly boyiM: number;
   /** Kesib sotishda ombordan yechiladigan maydon, kv.m */
@@ -98,6 +98,22 @@ export function QoshimchaQoshish({
 
   /** Rulon — metrlab kesib sotiladi, dona — shunchaki olinadi */
   const kesiladimi = tanlangan?.hisobTuri === 'RULON';
+
+  /**
+   * ⚠️ BIRLIK — 2026-09-21 auditida topilgan nuqson.
+   *
+   *    Ekran har qanday kesilmaydigan materialni «dona» deb
+   *    ko'rsatardi va katakni «Soni» deb atardi. Chiziqli
+   *    materialda (`M`) esa `bolak.miqdor` ustunida METR turadi:
+   *    «omborda 8 dona» aslida 8 METR degani edi, kiritilgan
+   *    «5» esa 5 metrni yechardi.
+   *
+   *    Hisob-kitob to'g'ri ishlar edi (narx ham 1 metr uchun),
+   *    lekin YORLIQ YOLG'ON edi — sotuvchi nechta yozayotganini
+   *    bilmasdi. Egasi bu sinf xatoni allaqachon bir marta
+   *    aytgan: «u metrmi santimetrmi aniq emas».
+   */
+  const metrlik = tanlangan?.sarflashBirligi === 'M';
 
   const son = Number(soni);
   const eniM = Number(eni);
@@ -185,8 +201,26 @@ export function QoshimchaQoshish({
         return;
       }
     } else {
+      /**
+       * ⚠️ KASR QABUL QILINMAYDI — metrda ham.
+       *
+       *    Chiziqli materialni 2.5 metrlab to'g'ridan-to'g'ri
+       *    sotish HOZIR MUMKIN EMAS: miqdor `buyurtma_pozitsiya.soni`
+       *    ustunida saqlanadi va u `integer`. Matoda bunday muammo
+       *    yo'q — u o'lchamda (`eni_m` × `boyi_m`) yuradi.
+       *
+       *    Bu yerda kasr qabul qilinsa, server uni RAD ETARDI
+       *    (`sotuv.ts`: `z.number().int()`) va sotuvchi tushunarsiz
+       *    xato olardi. Shuning uchun cheklov ekranda, sabab bilan
+       *    aytiladi. Yechim sxema o'zgarishini talab qiladi —
+       *    egasining qarori (QARZLAR.md T-16).
+       */
       if (!Number.isInteger(son) || son <= 0) {
-        xatoniOzgartir("Soni butun va noldan katta bo'lishi kerak");
+        xatoniOzgartir(
+          metrlik
+            ? "Butun metr kiriting — kasr metrni hozircha sotib bo'lmaydi"
+            : "Soni butun va noldan katta bo'lishi kerak",
+        );
         return;
       }
       if (jami === null) {
@@ -262,7 +296,9 @@ export function QoshimchaQoshish({
                     {m.nom} ·{' '}
                     {m.hisobTuri === 'RULON'
                       ? `omborda ${m.boshKvM.toFixed(1)} kv.m`
-                      : `omborda ${String(m.boshDona)} dona`}
+                      : m.sarflashBirligi === 'M'
+                        ? `omborda ${m.boshDona.toFixed(2)} metr`
+                        : `omborda ${String(m.boshDona)} dona`}
                   </option>
                 ))}
               </select>
@@ -331,8 +367,10 @@ export function QoshimchaQoshish({
                 )}
               </div>
             ) : (
-              <label className="flex max-w-32 flex-col gap-1">
-                <span className="text-sm font-medium text-matn-ikki">Soni</span>
+              <label className="flex max-w-40 flex-col gap-1">
+                <span className="text-sm font-medium text-matn-ikki">
+                  {metrlik ? 'Necha metr' : 'Soni (dona)'}
+                </span>
                 <input
                   value={soni}
                   onChange={(e) => {
