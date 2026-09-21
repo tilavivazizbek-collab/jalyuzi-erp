@@ -2,6 +2,10 @@
 
 Har sessiya boshida to'liq o'qiladi. Batafsil misollar: `docs/QOIDALAR.md`.
 
+**Bulutda (claude.ai) ishlayotgan bo'lsang** — `docs/BULUT-KONTEKST.md` ni
+ham o'qi: egasining kompyuteridagi loqal xotira git'ga tushmaydi, eng muhim
+qarorlar o'sha faylga ko'chirilgan.
+
 ---
 
 ## 1. ROLING
