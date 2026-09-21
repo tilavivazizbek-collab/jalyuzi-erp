@@ -24,7 +24,7 @@ Shuning uchun bu ro'yxat qisqa bo'lishi va bo'shab borishi kerak.
 
 ---
 
-## T-14 · Chiziqli (`M`) slot materiali OMBORDAN YECHILMAYDI — ⚠️ OCHIQ, PUL TESHIGI
+## T-14 · Chiziqli (`M`) slot materiali ombordan yechilmasdi — ✅ YOPILDI (2026-09-21)
 
 **Topildi:** 2026-09-20, metrga o'tish ishi davomida.
 
@@ -58,7 +58,39 @@ zanjiri unga UMUMAN to'g'ri kelmaydi — u to'rtburchak kesish uchun
 yozilgan. Dona material uchun alohida `donaYech` borligi kabi,
 chiziqli material uchun ham alohida yo'l kerak.
 
-### Taklif
+### YECHIM (2026-09-21)
+
+⚠️ **Yangi modul KERAK BO'LMADI.** Quyidagi taklif noto'g'ri
+taxmindan chiqqan edi: go'yo chiziqli material `bolak` da
+to'rtburchak bo'lib yotadi. Aslida u `turi = 'DONA'` bo'lak bo'lib
+yotadi va `miqdor` ustunida METR turadi — ya'ni mavjud `donaYech`
+unga BEMALOL to'g'ri keladi. Uni shunchaki HECH KIM CHAQIRMAGAN edi.
+
+`lib/amal/ish.ts` ga aksessuar bloki YONIDA ikkinchi blok qo'shildi:
+`pozitsiya_material` dan `birlik = 'M'` qatorlari o'qiladi va
+`donaYech` chaqiriladi. Farq faqat ombor jurnalidagi ustunda —
+dona `miqdor_dona` ga, chiziqli `miqdor_m` ga yoziladi (aks holda
+jurnalda «2.5 dona karniz» deb ko'rinardi, aslida 2.5 METR).
+
+Qoidalar aksessuar bilan bir xil:
+- `hisoblangan_miqdor`, `tuzatilgan_miqdor` emas (3.6)
+- yetmasa ish TO'XTAMAYDI, auditga `CHIZIQLI_YETMADI` yoziladi
+- qoldiq manfiyga tushmaydi
+
+Testlar: `test/integratsiya/chiziqli-yechish.test.ts` — 5 ta.
+
+### Hali OCHIQ qolgani — band qilish
+
+Chiziqli material buyurtma tasdiqlanganda BAND QILINMAYDI, faqat
+«Tugatdim» da yechiladi. Ya'ni «karniz yetmadi» xabari usta ishni
+tugatgandan KEYIN chiqadi, buyurtma berilayotganda emas.
+
+Bu — EGASINING QARORI, texnik savol emas:
+- band qilinsa: yetishmovchilik buyurtma paytida bilinadi (TZ 8.3
+  ruhida), lekin oqim murakkablashadi
+- band qilinmasa: hozirgidek soddaroq, lekin kech bilinadi
+
+Eskirgan taklif (tarix uchun qoldirildi):
 
 `lib/amal/chiziqli-yechish.ts` — `donaYech` ning ukasi:
 

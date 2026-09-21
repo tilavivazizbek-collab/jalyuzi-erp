@@ -671,6 +671,83 @@ export async function tugatdim(
      *    yasagan. Qoldiq manfiyga tushmaydi — shunchaki yechilmaydi
      *    va jurnalga izoh yoziladi. Buni inventarizatsiya ko'rsatadi.
      */
+    /**
+     * ── CHIZIQLI SLOT MATERIALI OMBORDAN YECHILADI (T-14) ──
+     *
+     * ⚠️ 2026-09-21 da topilgan PUL TESHIGI. Birligi `M` bo'lgan
+     *    slot materiali — karniz, val, pastki planka, zanjir, ip —
+     *    HECH QAYERDA ombordan yechilmasdi:
+     *
+     *      band qilish   `birlik === 'KV_M'` bilan filtrlanadi
+     *      «Tugatdim»    faqat `band` (mato) va `pozitsiya_aksessuar`
+     *                    (dona) qatorlarini yechardi
+     *
+     *    Ya'ni mijozdan karniz puli olinardi, karniz esa omborda
+     *    «turaverardi». Bu 2026-08-28 da AKSESSUARDA topilgan
+     *    xatoning aynan o'zi: o'shanda aksessuar tuzatilgan, slot
+     *    esa e'tibordan chetda qolgan.
+     *
+     * ⚠️ `donaYech` SHU YERDA ham ishlaydi, yangi modul kerak emas:
+     *    chiziqli material bazada `turi = 'DONA'` bo'lak bo'lib
+     *    yotadi va `miqdor` ustunida METR turadi. Farq faqat ombor
+     *    jurnalidagi ustunda: dona `miqdor_dona` ga, chiziqli
+     *    `miqdor_m` ga yoziladi.
+     *
+     * ⚠️ `hisoblangan_miqdor`, `tuzatilgan_miqdor` EMAS: narx
+     *    tuzatilgan songa, ombor esa hisoblanganiga bog'lanadi (3.6).
+     *
+     * ⚠️ Yetmasa ISH TO'XTATILMAYDI — aksessuar bilan bir xil qoida:
+     *    usta mahsulotni allaqachon yasagan, qoldiq manfiyga
+     *    tushmaydi, auditga yoziladi.
+     */
+    const chiziqlilar = await tx<
+      { material_id: number; miqdor: string }[]
+    >`
+      SELECT material_id, hisoblangan_miqdor::text AS miqdor
+      FROM pozitsiya_material
+      WHERE buyurtma_pozitsiya_id = ${kirim.pozitsiyaId} AND birlik = 'M'`;
+
+    for (const c of chiziqlilar) {
+      const kerak = Number(c.miqdor);
+      if (!Number.isFinite(kerak) || kerak <= 0) continue;
+
+      const yechim = await donaYech(tx, c.material_id, filialId, kerak);
+
+      if (yechim.holat === 'YETMADI') {
+        await tx`
+          INSERT INTO audit_jurnal (xodim_id, filial_id, amal, obyekt_turi,
+                                    obyekt_id, yangi_qiymat, izoh)
+          VALUES (${xodimId}, ${filialId}, 'CHIZIQLI_YETMADI',
+                  'buyurtma_pozitsiya', ${kirim.pozitsiyaId},
+                  ${tx.json({
+                    material_id: c.material_id,
+                    kerak,
+                    omborda: yechim.mavjud,
+                  })},
+                  ${`Chiziqli material yetmadi: kerak ${String(kerak)} m, omborda ${yechim.mavjud} m`})`;
+        continue;
+      }
+
+      for (const partiya of yechim.partiyalar) {
+        const olindi = Number(partiya.miqdor);
+        /**
+         * ⚠️ `miqdor_m`, `miqdor_dona` EMAS. Ikkalasi ham bir
+         *    `bolak` dan chiqsa ham, jurnal birlikni AJRATADI —
+         *    aks holda «8 dona karniz» deb ko'rinardi, aslida
+         *    8 METR bo'lsa.
+         */
+        await tx`
+          INSERT INTO ombor_harakat (filial_id, bolak_id, turi, miqdor_m,
+                                     tannarx_summa, manba_turi, manba_id, izoh,
+                                     xodim_id)
+          VALUES (${filialId}, ${partiya.bolakId}, 'KESIM',
+                  ${(-olindi).toFixed(2)},
+                  ${(-olindi * Number(partiya.tannarx)).toFixed(2)},
+                  'buyurtma_pozitsiya', ${kirim.pozitsiyaId},
+                  'Chiziqli material ishlatildi', ${xodimId})`;
+      }
+    }
+
     const aksessuarlar = await tx<
       { material_id: number; soni: string }[]
     >`

@@ -158,6 +158,8 @@ shubhalisi yo'q.**
 | Sotuv/band/tugatdim zanjiriga ulanishi | ✅ |
 | Egasining «dikkey» formulalari tuzatildi (2026-09-21) | ✅ |
 | Uchdan-uchgacha test: 0.40 × 100 rulon band qilinadi | ✅ |
+| **T-14** — chiziqli material ombordan yechiladi | ✅ |
+| T-14 — band qilish (buyurtma paytida ogohlantirish) | ❓ egasi hal qiladi |
 
 ### Dikkey formulalari — egasi tasdig'i 2026-09-21
 
