@@ -101,6 +101,9 @@ unutilsa raqam 100 (yoki 10 000) barobar adashardi. Endi o'girishning
 | Telegram bot metrda so'raydi (`2.1`, vergul ham qabul) | ✅ |
 | Kanonik raqamlar qayta hisoblandi (K-01 · K-02 · K-03) | ✅ |
 | `docs/JALYUZI-TURLARI.md` 28 formula metrda qayta yozildi | ✅ |
+| Migratsiya ISHLAB CHIQARISHGA qo'llandi (2026-09-21) | ✅ |
+| Zaxira bilan tekshiruv — 0 ta nomuvofiqlik | ✅ |
+| Kod deploy qilindi (`36bb9bf..f7da2db`) | ✅ |
 | Bazadagi formulalarni tekshirish asbobi (`db:formula-tekshir`) | ✅ |
 
 ### `numeric` → MATN tuzog'i (P-13) — baza testlari ushladi

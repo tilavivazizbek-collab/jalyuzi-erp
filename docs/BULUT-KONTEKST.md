@@ -82,6 +82,35 @@ Formulalar `mahsulot_slot.formula` ustunida saqlanadi; `CEIL`, `MIN`, `MAX`
 qo'llab-quvvatlanadi. Kesish yo'nalishi hal qilingan. Formulani kodga
 ko'chirish taklif qilinmaydi.
 
+## 6a. Metr tizimi — santimetr YO'Q (2026-09-20)
+
+`Santimetr` turi, `sm()`, `smToM`, `mToSm`, `kvSmToKvM`, `maydonKvSm` —
+hammasi **o'chirilgan**. `SarflashBirligi` endi `'M' | 'KV_M' | 'DONA'`.
+Buyurtma ham, bo'lak ham, sarf ham metrda; maydon — kv.m.
+
+**Nega:** har `÷100` beshta ayri joyda turardi (`kesimOlchami`, `olchovi`,
+`qatorSummasi`, `birlikda`, `miqdorMatni`) va bittasi unutilsa raqam 100
+yoki 10 000 barobar adashardi. Egasi: «ba'zi joylarda 100 ga o'tgansan».
+
+**Baza holati:** migratsiya `0043_metr_tizimi` ishlab chiqarishga
+**qo'llangan** (jami 44 ta). Qaytarish nuqtasi `zaxira_0043_*`
+jadvallarida — o'chirilmaydi.
+
+**Ikki tuzoq:**
+
+1. **`numeric` = MATN.** `buyurtma_pozitsiya.eni_m/boyi_m` endi
+   `numeric(8,2)` va postgres.js undan `'2.50'` qaytaradi, `2.5` emas.
+   Har o'qishda `::text` + `Number()` — `band.ts` dagi konvensiya.
+   Typecheck buni **ko'rmaydi** (qator turlari qo'lda yozilgan), faqat
+   baza testlari ushlaydi. Shu sabab `'2.50' !== 2.5` solishtiruvi
+   tahrirlashda har safar «o'lcham o'zgardi» deb hisoblardi.
+2. **Formula matni o'girilmagan** — ATAYLAB. `MAYDON * 1.12` dagi 1.12
+   koeffitsient, `ENI - 2` dagi 2 esa santimetr; sondan ma'nosini bilib
+   bo'lmaydi. `npm run db:formula-tekshir` shubhalisini ko'rsatadi
+   (formulalarni ham, `mahsulot_parametr.standart_qiymat` ni ham).
+
+Kodda `×100` yoki `÷100` ko'rsangiz — bu xato, tuzatiladi.
+
 ## 7. Ochiq savollar — javob kutilmoqda
 
 Usta stavkasi **yopildi** (2026-09-10): uchala usul qurilgan, egasi har
