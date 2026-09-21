@@ -156,6 +156,28 @@ shubhalisi yo'q.**
 | `kesimOlchami` qat'iy enini qo'llaydi | ✅ |
 | Konstruktor ekranida «Kesim eni» katagi | ✅ |
 | Sotuv/band/tugatdim zanjiriga ulanishi | ✅ |
+| Egasining «dikkey» formulalari tuzatildi (2026-09-21) | ✅ |
+| Uchdan-uchgacha test: 0.40 × 100 rulon band qilinadi | ✅ |
+
+### Dikkey formulalari — egasi tasdig'i 2026-09-21
+
+Metrga o'tish formula MATNINI o'girmagani uchun ikki formula
+mantiqan noto'g'ri qolgan edi:
+
+| Slot | Eski | Yangi |
+|---|---|---|
+| material dikkey | `MAYDON * 1` | `CEIL(ENI / 0.10) * BO'YI * 0.40` |
+| dikkey bigunok | `ENI * 0.001` | `CEIL(ENI / 0.10)` |
+| turba dikkey | `ENI * 1` | tegilmadi — to'g'ri edi |
+
+⚠️ Eski `MAYDON * 1` 1 × 2 m mahsulotga **2 kv.m** deb yozardi.
+Haqiqiy sarf **8 kv.m** (10 ta lamel × 2 m × 0.40) — to'rt barobar
+ko'p. Ombor har buyurtmada jimgina kamomad qilardi.
+
+⚠️ Eski `ENI * 0.001` enidan qat'i nazar **1 ta** begunok berardi.
+
+Tuzatish `npm run db:dikkey-tuzat` bilan, `mahsulotTuriTahrirla`
+orqali — eski slotlar o'chirilmadi, nofaol qilindi (4.10).
 
 ⚠️ Vertikal jalyuzi lameli rulonda **0.40 m** enli keladi va uni
 ENIGA kesib bo'lmaydi. 8 kv.m sarf — bu «4.00 × 2.00» emas,

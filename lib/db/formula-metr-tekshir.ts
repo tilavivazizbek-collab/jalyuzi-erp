@@ -58,18 +58,37 @@ interface Qator {
  */
 const KOPAYTIRUVCHI_CHEGARASI = 10;
 
+/**
+ * 1 dan KICHIK son hech qachon santimetr emas.
+ *
+ * ⚠️ «Yarim santimetr kam» (`ENI - 0.5`) degan formula yozilmaydi —
+ *    bunday aniqlikda hech kim ishlamaydi. Aksincha, `ENI / 0.10`
+ *    (lamel qadami) metrda mutlaqo to'g'ri. Shuning uchun 1 dan
+ *    kichiklari ko'rsatilmaydi: aks holda to'g'ri formula ham
+ *    abadiy «shubhali» bo'lib turardi va ro'yxat ishonchini
+ *    yo'qotardi.
+ *
+ * ⚠️ 1 dan KATTASI esa ikkala tomonga ham ochiq: `ENI / 1.25`
+ *    metrda to'g'ri, `ENI / 125` esa santimetr. Asbob farqni
+ *    bilmaydi va bilmoqchi ham emas — u SAVOL beradi, hukm
+ *    chiqarmaydi.
+ */
+const SANTIMETR_ETIMOLI = 1;
+
 function shubhaliJoylar(formula: string): string[] {
   const topilgan: string[] = [];
 
   // ENI / BO'YI / MAYDON / parametr dan keyin + yoki - va SON
   const qoshish = /([A-Z_'][A-Z0-9_']*|\))\s*([+\-])\s*(\d+(?:\.\d+)?)/g;
   for (const m of formula.matchAll(qoshish)) {
+    if (Number(m[3]) < SANTIMETR_ETIMOLI) continue;
     topilgan.push(`${m[1] ?? ''} ${m[2] ?? ''} ${m[3] ?? ''}`);
   }
 
   // O'zgaruvchi / SON — bo'luvchi uzunlik bo'lishi mumkin
   const bolish = /([A-Z_'][A-Z0-9_']*)\s*\/\s*(\d+(?:\.\d+)?)/g;
   for (const m of formula.matchAll(bolish)) {
+    if (Number(m[2]) < SANTIMETR_ETIMOLI) continue;
     topilgan.push(`${m[1] ?? ''} / ${m[2] ?? ''}`);
   }
 
