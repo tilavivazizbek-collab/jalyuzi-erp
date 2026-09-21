@@ -91,7 +91,8 @@ export default async function VaraqaSahifasi({ params }: { params: Promise<{ id:
               <tbody className="divide-y divide-chegara [&>tr:nth-child(even)]:bg-fon/50">
                 {v.satrlar.map((s) => {
                   const dona = s.turi === 'DONA';
-                  const birlik = dona ? (s.sarflashBirligi === 'M' ? 'sm' : 'dona') : 'kv.m';
+                  /** ⚠️ Chiziqlida miqdor METRDA — 2026-09-21 da 'sm' dan tuzatildi */
+              const birlik = dona ? (s.sarflashBirligi === 'M' ? 'm' : 'dona') : 'kv.m';
                   const sanaldi = dona
                     ? s.haqiqatdaMiqdor !== null
                     : s.haqiqatdaEniM !== null && s.haqiqatdaBoyiM !== null;

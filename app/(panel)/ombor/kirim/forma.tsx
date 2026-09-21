@@ -630,17 +630,36 @@ export function KirimFormasi({
                       ))}
                     </select>
 
-                    <input
-                      value={q.miqdorKirim}
-                      onChange={(e) => {
-                        miqdorniYangila(i, e.target.value);
-                      }}
-                      placeholder={
-                        m === undefined ? 'miqdor' : `nechta ${m.kirimBirligi}`
-                      }
-                      inputMode="decimal"
-                      className={kichik}
-                    />
+                    {/*
+                      ⚠️ BIRLIK KATAK YONIDA TURADI, faqat
+                         placeholderda EMAS — 2026-09-21.
+
+                         Placeholder yozishni boshlagan zahoti
+                         yo'qoladi va omborchi nima kiritayotganini
+                         ko'rmay qoladi. Egasi bu qoidani boshlang'ich
+                         qoldiq ekranida allaqachon aytgan
+                         (`zahira.tsx`), kirim ekranida esa
+                         qo'llanmagan edi.
+                    */}
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        value={q.miqdorKirim}
+                        onChange={(e) => {
+                          miqdorniYangila(i, e.target.value);
+                        }}
+                        placeholder="miqdor"
+                        aria-label={
+                          m === undefined ? 'Miqdor' : `Miqdor — nechta ${m.kirimBirligi}`
+                        }
+                        inputMode="decimal"
+                        className={kichik}
+                      />
+                      {m !== undefined && (
+                        <span className="shrink-0 text-[12px] text-matn-kuchsiz">
+                          {m.kirimBirligi}
+                        </span>
+                      )}
+                    </div>
 
                     {/*
                       ⚠️ Narx nimaga berilgani TANLANADI. Yetkazib

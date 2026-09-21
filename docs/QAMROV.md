@@ -190,8 +190,41 @@ tizimdan top». Skanerlar yozilib, har topilma KOD BILAN tasdiqlandi.
 | Server sarfni qayta hisoblaydimi | ha — barcha slot uchun, birlik bazadan |
 | «Tugatdim» ikki marta ishlashi | holat tekshiruvi to'xtatadi |
 
-**Ochiq qoldi — egasining qarori kerak:** T-15 (qayta kesishda ikki
-marta yechish), T-16 (kasr metrlab sotish).
+**Egasi hal qildi (2026-09-21):** T-15 — hozirgidek qoladi, kod
+o'zgarmadi. T-16 — tuzatildi (migratsiya 0044).
+
+### Sotuv va ombor auditi — 2026-09-21
+
+Egasi: «asosiy sotuvni va omborni tuliq tugrilab chiqamiz» + «narx
+belgiladim, sotuvda baribir narx qo'yilmagan deydi».
+
+**Narx sahifasi ↔ sotuv sahifasi — bog'lanish TEKSHIRILDI:**
+
+| Narx sahifasi nimani saqlaydi | Sotuv o'qiydimi |
+|---|---|
+| mahsulot turi · mato darajasi | ✅ |
+| mijoz turi (TZ 6.2) | ✅ mijozdan olinadi, umumiysiga tushadi |
+| filial (TZ 20.9) | ✅ so'rovda filtrlanadi, filialniki ustun |
+| hisoblash usuli (maydon/eni/bo'yi/dona) | ✅ |
+| bosqichlar, valyuta, kurs | ✅ |
+| qo'shimchalar + material guruhi | ✅ dropdown bor, tanlanmasa ogohlantiradi |
+| qo'shimchalar tartibi | ✅ `ORDER BY tartib` |
+
+**Tuzatilgan nuqsonlar:**
+
+| Nima | Qayerda | Oqibati |
+|---|---|---|
+| Daraja **birinchi** darajali materialdan olinardi | `forma.tsx` | slot tartibi karnizni oldinga qo'ysa narx KARNIZ darajasidan izlanardi |
+| Xato xabari sababni AYTMASDI | `forma.tsx` + `katalog.ts` | egasi narx qo'yib ham sababni topolmadi |
+| Forma **210 × 140 METR** bilan ochilardi | `forma.tsx` | metrga o'tishda tushib qolgan sm standartlari |
+| **Soni katagi yo'q edi** | `forma.tsx` | server T-12 ni qo'llardi, ekran esa 1 ni qotirardi |
+| Slot dropdownida qoldiq birliksiz | `forma.tsx` | «· 8» — metrmi, donami? |
+| `'sm'` yorliqlari **oltita joyda** qolgan | chiqim, ko'chirish (2), inventarizatsiya (2), material kartochkasi | chiziqli material «8 sm» deb ko'rinardi, aslida 8 metr |
+| Ko'chirishda miqdor birliksiz | `kochirish/[id]`, `qabul-forma` | «8» aslida 8 metr |
+| Kirimda birlik faqat placeholderda | `kirim/forma.tsx` | yozish boshlangach yo'qolardi — egasi bu qoidani allaqachon aytgan |
+| `lib/amal` da eskirgan `sm` nomlari | `kirim.ts`, `kochirish.ts` | izohlar yolg'on yo'l ko'rsatardi |
+
+⚠️ Endi butun tizimda `'sm'` yorlig'i **QOLMADI**.
 
 ### Dikkey formulalari — egasi tasdig'i 2026-09-21
 

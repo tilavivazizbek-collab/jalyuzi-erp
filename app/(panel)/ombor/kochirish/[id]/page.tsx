@@ -100,8 +100,13 @@ export default async function KochirishSahifasi({ params }: { params: Promise<{ 
                   <td className="raqam px-4 py-2.5">{q.kod}</td>
                   <td className="px-4 py-2.5">{q.materialNomi}</td>
                   <td className="raqam px-4 py-2.5">
+                    {/*
+                      ⚠️ BIRLIK YOZILADI — 2026-09-21. Chiziqli
+                         material ham `turi = 'DONA'` bo'lak bo'lib
+                         yotadi va miqdor METRDA: «8» aslida 8 metr.
+                    */}
                     {q.turi === 'DONA'
-                      ? (q.miqdor ?? '—')
+                      ? `${q.miqdor ?? '—'} ${q.sarflashBirligi === 'M' ? 'm' : 'dona'}`
                       : `${q.eniM ?? '—'} × ${q.boyiM ?? '—'} m`}
                   </td>
                   <td className="raqam px-4 py-2.5">

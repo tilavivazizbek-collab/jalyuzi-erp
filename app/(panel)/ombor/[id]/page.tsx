@@ -347,7 +347,8 @@ function Xulosa({
   xulosa: MaterialXulosasi;
   birlik: string;
 }) {
-  const b = birlik === 'KV_M' ? 'kv.m' : birlik === 'M' ? 'sm' : 'dona';
+  /** ⚠️ Chiziqli material METRDA — 2026-09-21 da 'sm' dan tuzatildi */
+  const b = birlik === 'KV_M' ? 'kv.m' : birlik === 'M' ? 'm' : 'dona';
   const raqam = (n: number): string =>
     n.toLocaleString('uz-UZ', { maximumFractionDigits: 2 });
 

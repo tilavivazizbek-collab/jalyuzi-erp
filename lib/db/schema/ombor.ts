@@ -190,7 +190,7 @@ export const bolak = pgTable(
     /** Q-05 — METRDA. Kv.m saqlanmaydi, `eni_m × boyi_m` dan hisoblanadi */
     eniM: numeric('eni_m', { precision: 8, scale: 2 }),
     boyiM: numeric('boyi_m', { precision: 8, scale: 2 }),
-    /** DONA va CHIZIQLI uchun — sm yoki dona (Q-01) */
+    /** DONA va CHIZIQLI uchun — METR yoki dona (Q-01, 2026-09-20) */
     miqdor: numeric('miqdor', { precision: 10, scale: 2 }),
 
     // Kelib chiqish

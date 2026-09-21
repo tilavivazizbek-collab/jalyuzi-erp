@@ -77,7 +77,10 @@ export function QabulFormasi({
                 <td className="raqam px-4 py-2.5">{q.kod}</td>
                 <td className="px-4 py-2.5">{q.materialNomi}</td>
                 <td className="raqam px-4 py-2.5">
-                  {q.turi === 'DONA' ? (q.miqdor ?? '—') : `${q.eniM ?? '—'} × ${q.boyiM ?? '—'} m`}
+                  {/* ⚠️ Birlik yoziladi — chiziqlida miqdor METRDA (2026-09-21) */}
+                  {q.turi === 'DONA'
+                    ? `${q.miqdor ?? '—'} ${q.sarflashBirligi === 'M' ? 'm' : 'dona'}`
+                    : `${q.eniM ?? '—'} × ${q.boyiM ?? '—'} m`}
                 </td>
                 <td className="px-4 py-2.5">
                   <div className="flex flex-wrap items-center gap-1.5">

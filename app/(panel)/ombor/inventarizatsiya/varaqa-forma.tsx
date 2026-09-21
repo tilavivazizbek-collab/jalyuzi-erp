@@ -153,7 +153,8 @@ export function VaraqaFormasi({
               const k = ol(s.qatorId);
               const dona = s.turi === 'DONA';
               const farq = farqlar[s.qatorId] ?? null;
-              const birlik = dona ? (s.sarflashBirligi === 'M' ? 'sm' : 'dona') : 'kv.m';
+              /** ⚠️ Chiziqlida miqdor METRDA — 2026-09-21 da 'sm' dan tuzatildi */
+              const birlik = dona ? (s.sarflashBirligi === 'M' ? 'm' : 'dona') : 'kv.m';
 
               return (
                 <tr key={s.qatorId} className={s.yolda ? 'bg-fon text-matn-kuchsiz' : ''}>

@@ -74,6 +74,15 @@ export interface KochirishBolagi {
   readonly kod: string;
   readonly materialNomi: string;
   readonly turi: string;
+  /**
+   * Materialning sarflash birligi — 2026-09-21 da qo'shildi.
+   *
+   * ⚠️ Ekranda `turi === 'DONA'` bo'lgan qator BIRLIKSIZ raqam
+   *    ko'rsatardi. Chiziqli material ham `turi = 'DONA'` bo'lak
+   *    bo'lib yotadi va `miqdor` da METR turadi — ya'ni «8»
+   *    aslida 8 metr edi, omborchi esa 8 dona deb o'ylashi mumkin.
+   */
+  readonly sarflashBirligi: string;
   readonly eniM: string | null;
   readonly boyiM: string | null;
   readonly miqdor: string | null;
@@ -137,6 +146,7 @@ export async function kochirishOl(id: number): Promise<KochirishKorinishi | null
       kod: string;
       material_nomi: string;
       turi: string;
+      sarflash_birligi: string;
       eni_m_snapshot: string | null;
       boyi_m_snapshot: string | null;
       miqdor_snapshot: string | null;
@@ -147,6 +157,7 @@ export async function kochirishOl(id: number): Promise<KochirishKorinishi | null
     }[]
   >`
     SELECT kq.bolak_id, b.kod, m.nom AS material_nomi, b.turi,
+           m.sarflash_birligi,
            kq.eni_m_snapshot, kq.boyi_m_snapshot, kq.miqdor_snapshot,
            kq.tannarx_summa_snapshot, kq.haqiqiy_eni_m, kq.haqiqiy_boyi_m,
            kq.olchov_izoh
@@ -177,6 +188,7 @@ export async function kochirishOl(id: number): Promise<KochirishKorinishi | null
       turi: r.turi,
       eniM: r.eni_m_snapshot,
       boyiM: r.boyi_m_snapshot,
+      sarflashBirligi: r.sarflash_birligi,
       miqdor: r.miqdor_snapshot,
       tannarxSumma: r.tannarx_summa_snapshot,
       haqiqiyEniM: r.haqiqiy_eni_m,
@@ -233,7 +245,7 @@ export async function tanlanadiganBolaklar(
     turi: r.turi,
     olcham:
       r.turi === 'DONA'
-        ? `${r.miqdor ?? '0'} ${r.sarflash_birligi === 'M' ? 'sm' : 'dona'}`
+        ? `${r.miqdor ?? '0'} ${r.sarflash_birligi === 'M' ? 'm' : 'dona'}`
         : `${r.eni_m ?? '0'} × ${r.boyi_m ?? '0'} m`,
     tannarxSumma: r.tannarx_summa,
   }));

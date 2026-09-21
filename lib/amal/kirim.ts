@@ -420,7 +420,7 @@ export async function kirimYarat(
         /**
          * Q-01 — koeffitsient «1 kirim birligida nechta sarflash birligi».
          * Tannarx ham shu birlikka o'giriladi: 66 000 so'm/shtanga va
-         * 1 shtanga = 300 sm bo'lsa, 220 so'm/sm.
+         * 1 shtanga = 3 m bo'lsa, 22 000 so'm/m (2026-09-20: metrda).
          */
         const sarflashTannarx = new Decimal(pulMatn(tannarx.birlikTannarx)).div(koeff);
 
@@ -436,7 +436,7 @@ export async function kirimYarat(
           // 9.6 — tannarx kirim kursida QOTDI, endi u so'mda
           valyuta: 'SOM',
           xodimId,
-          sm: material.sarflash_birligi === 'M' ? sarflashMiqdori : null,
+          metr: material.sarflash_birligi === 'M' ? sarflashMiqdori : null,
           dona: material.sarflash_birligi === 'DONA' ? Math.round(sarflashMiqdori) : null,
         });
         bolakSoni += 1;
@@ -540,7 +540,7 @@ interface BolakYozuvi {
   readonly valyuta: string;
   readonly xodimId: number;
   readonly kvM?: number;
-  readonly sm?: number | null;
+  readonly metr?: number | null;
   readonly dona?: number | null;
 }
 
@@ -576,7 +576,7 @@ async function bolakYoz(tx: postgres.TransactionSql, b: BolakYozuvi): Promise<vo
     INSERT INTO ombor_harakat (filial_id, bolak_id, turi, miqdor_kv_m, miqdor_m,
                                miqdor_dona, tannarx_summa, manba_turi, manba_id,
                                xodim_id)
-    VALUES (${b.filialId}, ${bolakId}, 'KIRIM', ${b.kvM ?? null}, ${b.sm ?? null},
+    VALUES (${b.filialId}, ${bolakId}, 'KIRIM', ${b.kvM ?? null}, ${b.metr ?? null},
             ${b.dona ?? null}, ${summa.toFixed(2)}, 'kirim_qator',
             ${b.kirimQatorId}, ${b.xodimId})`;
 }
@@ -669,7 +669,7 @@ export async function kirimniStorno(
       // Uning qoldig'i manfiyga tushadi va qizil bo'lib turadi (2.5).
       if (b.holat !== 'BOSH') manfiyQoldiq.add(b.material_nomi);
 
-      const sm = b.turi === 'DONA' && b.sarflash_birligi === 'M' ? b.miqdor : null;
+      const metr = b.turi === 'DONA' && b.sarflash_birligi === 'M' ? b.miqdor : null;
       const dona =
         b.turi === 'DONA' && b.sarflash_birligi === 'DONA'
           ? Math.round(Number(b.miqdor ?? 0))
@@ -681,7 +681,7 @@ export async function kirimniStorno(
                                    izoh, xodim_id)
         VALUES (${hujjat.filial_id}, ${b.id}, 'STORNO',
                 ${kvM === null ? null : kvM.negated().toFixed(4)},
-                ${sm === null ? null : new Decimal(sm).negated().toFixed(2)},
+                ${metr === null ? null : new Decimal(metr).negated().toFixed(2)},
                 ${dona === null ? null : -dona},
                 ${summa.negated().toFixed(2)}, 'kirim', ${kirimId},
                 ${`Kirim ${hujjat.raqam} storno qilindi`}, ${xodimId})`;

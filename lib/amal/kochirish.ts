@@ -48,18 +48,18 @@ function olchovlar(b: {
   boyi_m: string | null;
   miqdor: string | null;
   sarflash_birligi: string;
-}): { kvM: string | null; sm: string | null; dona: number | null } {
+}): { kvM: string | null; metr: string | null; dona: number | null } {
   if (b.turi !== 'DONA') {
     return {
       kvM: new Decimal(b.eni_m ?? 0).times(b.boyi_m ?? 0).toFixed(4),
-      sm: null,
+      metr: null,
       dona: null,
     };
   }
   if (b.sarflash_birligi === 'M') {
-    return { kvM: null, sm: new Decimal(b.miqdor ?? 0).toFixed(2), dona: null };
+    return { kvM: null, metr: new Decimal(b.miqdor ?? 0).toFixed(2), dona: null };
   }
-  return { kvM: null, sm: null, dona: Math.round(Number(b.miqdor ?? 0)) };
+  return { kvM: null, metr: null, dona: Math.round(Number(b.miqdor ?? 0)) };
 }
 
 function qiymat(b: BolakQatori): string {
@@ -215,7 +215,7 @@ export async function kochirishJonat(
                                    izoh, xodim_id)
         VALUES (${b.filial_id}, ${b.id}, 'KOCHIRISH_CHIQDI',
                 ${o.kvM === null ? null : new Decimal(o.kvM).negated().toFixed(4)},
-                ${o.sm === null ? null : new Decimal(o.sm).negated().toFixed(2)},
+                ${o.metr === null ? null : new Decimal(o.metr).negated().toFixed(2)},
                 ${o.dona === null ? null : -o.dona},
                 ${new Decimal(summa).negated().toFixed(2)},
                 'kochirish', ${kirim.kochirishId},
@@ -379,7 +379,7 @@ export async function kochirishQabulQil(
                                    miqdor_dona, tannarx_summa, manba_turi, manba_id,
                                    izoh, xodim_id)
         VALUES (${hujjat.kimga_filial_id}, ${b.id}, 'KOCHIRISH_KIRDI',
-                ${o.kvM}, ${o.sm}, ${o.dona}, ${summa},
+                ${o.kvM}, ${o.metr}, ${o.dona}, ${summa},
                 'kochirish', ${kirim.kochirishId},
                 ${t === undefined ? 'Filialdan qabul qilindi' : `Qabulda o'lchandi — ${t.izoh}`},
                 ${xodimId})`;
@@ -512,7 +512,7 @@ export async function kochirishBekorQil(
                                      miqdor_dona, tannarx_summa, manba_turi, manba_id,
                                      izoh, xodim_id)
           VALUES (${hujjat.kimdan_filial_id}, ${b.id}, 'KOCHIRISH_KIRDI',
-                  ${o.kvM}, ${o.sm}, ${o.dona}, ${summa},
+                  ${o.kvM}, ${o.metr}, ${o.dona}, ${summa},
                   'kochirish', ${kirim.kochirishId},
                   ${`Bekor qilindi — ${kirim.sabab.trim()}`}, ${xodimId})`;
 

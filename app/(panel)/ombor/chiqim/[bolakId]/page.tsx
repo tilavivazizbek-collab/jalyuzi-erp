@@ -54,7 +54,7 @@ export default async function HisobdanChiqarish({
     bolak.eniM !== null && bolak.boyiM !== null
       ? `${bolak.eniM.toFixed(2)} × ${bolak.boyiM.toFixed(2)} m`
       : bolak.miqdor !== null
-        ? `${String(bolak.miqdor)} ${bolak.sarflashBirligi === 'M' ? 'sm' : 'dona'}`
+        ? `${String(bolak.miqdor)} ${bolak.sarflashBirligi === 'M' ? 'm' : 'dona'}`
         : '—';
 
   return (
