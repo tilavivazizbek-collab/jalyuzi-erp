@@ -187,6 +187,11 @@ export interface PozitsiyaTafsili {
   readonly eniM: number;
   readonly boyiM: number;
   readonly soni: number;
+  /**
+   * O'lchov bilan sotilgan miqdor, METR — T-16 (2026-09-21).
+   * `null` bo'lsa donalab sotilgan va miqdor `soni` da.
+   */
+  readonly miqdor: string | null;
   readonly narx: string;
   readonly chegirma: string;
   readonly holat: string;
@@ -284,6 +289,8 @@ export async function buyurtmaTafsili(
       eni_m: string;
       boyi_m: string;
       soni: number;
+      /** T-16 — o'lchovli miqdor, metr */
+      miqdor: string | null;
       narx_snapshot: string;
       chegirma_summa: string | null;
       holat: string;
@@ -300,7 +307,7 @@ export async function buyurtmaTafsili(
     SELECT p.id, p.tartib,
            COALESCE(t.nom, qm.nom) AS tur_nomi,
            p.mahsulot_tur_id, p.qoshimcha_material_id,
-           p.eni_m::text, p.boyi_m::text, p.soni,
+           p.eni_m::text, p.boyi_m::text, p.soni, p.miqdor::text,
            p.narx_snapshot, p.chegirma_summa, p.holat, u.ism AS usta_ismi
     FROM buyurtma_pozitsiya p
     LEFT JOIN mahsulot_tur t ON t.id = p.mahsulot_tur_id
@@ -396,6 +403,8 @@ export async function buyurtmaTafsili(
       /** ⚠️ `numeric` matn bo'lib keladi (P-13) — `Number()` shart */
       eniM: Number(p.eni_m),
       boyiM: Number(p.boyi_m),
+      /** T-16 — o'lchovli miqdor; `null` bo'lsa donalab sotilgan */
+      miqdor: p.miqdor,
       soni: p.soni,
       narx: p.narx_snapshot,
       chegirma: p.chegirma_summa ?? '0',

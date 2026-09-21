@@ -144,6 +144,26 @@ export const sotuvPozitsiyaSxema = z
     eniM: olcham('Enini metrda kiriting'),
     boyiM: olcham("Bo'yini metrda kiriting"),
     soni: z.number().int().positive().default(1),
+    /**
+     * O'LCHOV BILAN SOTISH — T-16, egasi qarori 2026-09-21.
+     *
+     * ⚠️ Chiziqli materialni 2.5 metrlab sotish uchun. `soni`
+     *    butun bo'lib qoladi (u dona sanog'i), miqdor shu yerda.
+     *
+     * ⚠️ MATN, `number` EMAS — bazaga `NUMERIC` bo'lib tushadi va
+     *    ikkilik kasr oralig'iga kirmaydi (QISM 1 §3.1 ruhida:
+     *    o'lchov ham, pul ham matn bo'lib yuradi).
+     *
+     * ⚠️ Faqat QO'SHIMCHA BUYUMDA — bazadagi
+     *    `pozitsiya_miqdor_qoshimchada` cheklovi bilan bir xil.
+     */
+    miqdor: z
+      .string()
+      .trim()
+      .regex(/^\d+(\.\d{1,2})?$/, "Miqdor noto'g'ri")
+      .refine((x) => Number(x) > 0, "Miqdor noldan katta bo'lsin")
+      .nullable()
+      .default(null),
   narxSnapshot: pulMatni("Pozitsiya narxi noto'g'ri"),
   chegirmaSumma: pulMatni("Chegirma noto'g'ri").default('0'),
   xizmatHaqi: pulMatni("Xizmat haqi noto'g'ri").default('0'),
@@ -167,6 +187,16 @@ export const sotuvPozitsiyaSxema = z
   .refine((p) => p.qoshimchaMaterialId !== null || p.slotlar.length > 0, {
     path: ['slotlar'],
     message: "Kamida bitta slot to'ldirilsin",
+  })
+  /**
+   * ⚠️ Bazadagi `pozitsiya_miqdor_qoshimchada` cheklovi bilan
+   *    BIR XIL. Ikki joyda ikki xil qoida bo'lmasligi uchun —
+   *    aks holda baza rad etgan narsani sxema o'tkazib yuborardi
+   *    va sotuvchi tushunarsiz SQL xatosini ko'rardi.
+   */
+  .refine((p) => p.miqdor === null || p.qoshimchaMaterialId !== null, {
+    path: ['miqdor'],
+    message: "O'lchovli miqdor faqat alohida sotiladigan buyumda bo'ladi",
   })
   // Qo'shimcha buyumda o'lcham ham, slot ham YO'Q (3.10)
   .refine((p) => p.qoshimchaMaterialId === null || (p.eniM === 0 && p.boyiM === 0), {

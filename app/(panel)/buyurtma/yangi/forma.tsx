@@ -70,6 +70,11 @@ interface SavatQatori {
   readonly yuk: unknown;
   /** Qo'shimcha mahsulotda — nechta dona */
   readonly soni?: number;
+  /**
+   * O'lchov bilan sotilgan miqdor, METR — T-16 (2026-09-21).
+   * `null`/yo'q bo'lsa donalab sotilgan.
+   */
+  readonly miqdor?: string | null;
 }
 
 let keyingiKalit = 0;
@@ -1293,6 +1298,7 @@ export function SotuvFormasi({
                     eniM: t.eniM,
                     boyiM: t.boyiM,
                     soni: t.soni,
+                    miqdor: t.miqdor,
                     narx: t.narx,
                     yuk: {
                       mahsulotTurId: null,
@@ -1300,6 +1306,8 @@ export function SotuvFormasi({
                       eniM: t.eniM,
                       boyiM: t.boyiM,
                       soni: t.soni,
+                      /** ⚠️ O'lchovli miqdor — T-16 (2026-09-21) */
+                      miqdor: t.miqdor,
                       narxSnapshot: t.narx,
                       chegirmaSumma: '0',
                       xizmatHaqi: '0',
@@ -1355,8 +1363,16 @@ export function SotuvFormasi({
                             ⚠️ Qo'shimcha mahsulotda o'lcham yo'q —
                                u tayyorlanmaydi, ombordan olinadi.
                           */}
+                          {/*
+                            ⚠️ O'LCHOVLI MIQDOR ALOHIDA ko'rsatiladi
+                               (T-16). Ilgari savatda har qo'shimcha
+                               buyum «1 dona» deb turardi — 2.5 metr
+                               karniz ham.
+                          */}
                           {q.turId === null
-                            ? `${String(q.soni ?? 1)} dona`
+                            ? typeof q.miqdor === 'string' && q.miqdor !== ''
+                              ? `${q.miqdor} m`
+                              : `${String(q.soni ?? 1)} dona`
                             : `${String(q.eniM)} × ${String(q.boyiM)} m`}
                         </span>
                       </td>

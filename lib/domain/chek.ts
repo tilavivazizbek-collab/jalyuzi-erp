@@ -48,6 +48,11 @@ export interface ChekPozitsiyasi {
   readonly eniM: number;
   readonly boyiM: number;
   readonly soni: number;
+  /**
+   * O'lchov bilan sotilgan miqdor, METR — T-16 (2026-09-21).
+   * `null` bo'lsa donalab sotilgan.
+   */
+  readonly miqdor?: string | null;
   /** `narx_snapshot` — chegirmasiz, kelishilgan narx (3.9) */
   readonly narx: string;
   readonly chegirma: string;
@@ -248,8 +253,18 @@ export function qatorYasa(p: ChekPozitsiyasi, valyuta: Valyuta): ChekQatori {
    * ⚠️ Dona narxi KO'RSATISH uchun bo'linadi, hisobda ishlatilmaydi:
    *    jami baribir `narx_snapshot` dan olinadi (2.3).
    */
-  const miqdor =
-    p.soni > 1
+  /**
+   * ⚠️ O'LCHOVLI SOTUV ALOHIDA — T-16 (2026-09-21).
+   *
+   *    2.5 metr karniz chekda «2.5 m × 35 000» bo'lib chiqadi.
+   *    Ilgari u «1 dona» edi va mijoz nima uchun pul to'laganini
+   *    chekdan bilolmasdi.
+   */
+  const olchovli = typeof p.miqdor === 'string' && p.miqdor !== '';
+
+  const miqdor = olchovli
+    ? `${p.miqdor ?? ''} m × ${chekPuli(pulYasa(donaNarxi(p.narx, Number(p.miqdor)), valyuta))}`
+    : p.soni > 1
       ? `${String(p.soni)} × ${chekPuli(pulYasa(donaNarxi(p.narx, p.soni), valyuta))}`
       : null;
 
@@ -263,9 +278,14 @@ export function qatorYasa(p: ChekPozitsiyasi, valyuta: Valyuta): ChekQatori {
   };
 }
 
-/** Dona narxi — ko'rsatish uchun, ikki xonagacha */
+/**
+ * Bir birlik narxi — KO'RSATISH uchun, ikki xonagacha.
+ *
+ * ⚠️ Hisobda ishlatilmaydi: jami baribir `narx_snapshot` dan
+ *    olinadi (2.3). Shuning uchun bu yerda `Decimal` shart emas.
+ */
 function donaNarxi(jami: string, soni: number): string {
-  if (soni <= 0) return jami;
+  if (!Number.isFinite(soni) || soni <= 0) return jami;
   const d = Number(jami) / soni;
   return d.toFixed(2);
 }

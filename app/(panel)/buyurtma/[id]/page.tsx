@@ -280,10 +280,19 @@ export default async function BuyurtmaKartochkasi({ params }: { params: Promise<
                   <span className="font-medium">
                     {p.tartib}. {p.turNomi}
                   </span>
-                  <span className="raqam ml-3 text-sm text-matn-ikki">
-                    {p.eniM} × {p.boyiM} m
-                  </span>
-                  {p.soni > 1 && (
+                  {/*
+                    ⚠️ O'LCHOVLI SOTUV ALOHIDA — T-16 (2026-09-21).
+                       Qo'shimcha buyumda o'lcham nol bo'ladi, shuning
+                       uchun «0 × 0 m» o'rniga miqdor ko'rsatiladi.
+                  */}
+                  {p.miqdor !== null ? (
+                    <span className="raqam ml-3 text-sm text-matn-ikki">{p.miqdor} m</span>
+                  ) : (
+                    <span className="raqam ml-3 text-sm text-matn-ikki">
+                      {p.eniM} × {p.boyiM} m
+                    </span>
+                  )}
+                  {p.miqdor === null && p.soni > 1 && (
                     <span className="raqam ml-2 text-sm text-matn-kuchsiz">× {p.soni}</span>
                   )}
                 </div>

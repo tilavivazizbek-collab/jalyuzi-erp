@@ -193,6 +193,17 @@ export const buyurtmaPozitsiya = pgTable(
     eniM: numeric('eni_m', { precision: 8, scale: 2 }).notNull(),
     boyiM: numeric('boyi_m', { precision: 8, scale: 2 }).notNull(),
     soni: integer('soni').notNull().default(1),
+    /**
+     * O'lchov bilan sotilgan miqdor, METR — T-16 (2026-09-21).
+     *
+     * ⚠️ FAQAT QO'SHIMCHA BUYUMDA. `soni` dona sanog'i bo'lib
+     *    qoladi (band `soni` marta takrorlanadi, kesim jami maydonni
+     *    `soni` ga bo'ladi) — uni kasrga aylantirish «2.5 marta band
+     *    qil» degan ma'nosiz holatni tug'dirardi.
+     *
+     * ⚠️ `null` — donalab sotilgan, miqdor `soni` da.
+     */
+    miqdor: numeric('miqdor', { precision: 10, scale: 2 }),
 
     /** TZ 3.9 — kelishilgan narx qotadi (2.3-invariant) */
     narxSnapshot: numeric('narx_snapshot', { precision: 14, scale: 2 }).notNull(),

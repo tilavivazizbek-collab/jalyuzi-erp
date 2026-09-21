@@ -113,6 +113,11 @@ export interface PozitsiyaKirimi {
   readonly eniM: number;
   readonly boyiM: number;
   readonly soni: number;
+  /**
+   * O'lchov bilan sotilgan miqdor, METR — T-16 (2026-09-21).
+   * Faqat qo'shimcha buyumda; `null` bo'lsa miqdor `soni` da.
+   */
+  readonly miqdor?: string | null;
   readonly narxSnapshot: string;
   readonly chegirmaSumma: string;
   readonly xizmatHaqi: string;
@@ -232,12 +237,13 @@ export async function pozitsiyaYozTx(
   const q = await tx<{ id: number }[]>`
     INSERT INTO buyurtma_pozitsiya (buyurtma_id, tartib, mahsulot_tur_id,
                                     qoshimcha_material_id,
-                                    eni_m, boyi_m, soni, narx_snapshot,
+                                    eni_m, boyi_m, soni, miqdor, narx_snapshot,
                                     chegirma_summa, xizmat_haqi,
                                     formula_snapshot, holat, yaratdi_id)
     VALUES (${k.buyurtmaId}, ${k.tartib}, ${p.mahsulotTurId},
             ${p.qoshimchaMaterialId ?? null}, ${p.eniM}, ${p.boyiM},
-            ${p.soni}, ${p.narxSnapshot}, ${p.chegirmaSumma}, ${p.xizmatHaqi},
+            ${p.soni}, ${p.miqdor ?? null},
+            ${p.narxSnapshot}, ${p.chegirmaSumma}, ${p.xizmatHaqi},
             ${tx.json(p.formulaSnapshot as never)},
             ${k.tasdiqlangan ? k.tasdiqHolati : k.boshHolati}, ${xodimId})
     RETURNING id`;
@@ -393,11 +399,22 @@ export async function pozitsiyaYozTx(
       SELECT sarflash_birligi FROM material WHERE id = ${p.qoshimchaMaterialId}`;
     const qmDonami = (qm[0]?.sarflash_birligi ?? 'DONA') !== 'M';
 
+    /**
+     * ⚠️ OMBORDAN NECHTA YECHILADI — T-16 (2026-09-21).
+     *
+     *    `miqdor` berilgan bo'lsa SHU yechiladi: karniz 2.5 metrlab
+     *    sotilganda `soni` = 1 bo'lib qoladi va u miqdor emas.
+     *    Berilmasa avvalgidek `soni` — donalab sotish.
+     */
+    const yechiladi = p.miqdor === null || p.miqdor === undefined
+      ? p.soni
+      : Number(p.miqdor);
+
     const yechim = await donaYech(
       tx,
       p.qoshimchaMaterialId,
       k.ishlabChiqaruvchiFilialId,
-      p.soni,
+      yechiladi,
     );
 
     if (yechim.holat === 'YETMADI') {

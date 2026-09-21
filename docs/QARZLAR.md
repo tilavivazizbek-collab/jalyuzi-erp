@@ -114,7 +114,7 @@ ruhida), band qilinmasa oqim soddaroq bo'ladi.
 
 ---
 
-## T-15 · QAYTA KESISHDA MATERIAL IKKI MARTA YECHILADI — ⚠️ OCHIQ
+## T-15 · Qayta kesishda material ikki marta yechiladi — ✅ EGASI TASDIQLADI
 
 **Topildi:** 2026-09-21 tizim auditida.
 
@@ -138,17 +138,19 @@ yechiladi» (`bildirishnoma.ts`). Ya'ni bu **bilib qilingan** bo'lishi
 ham mumkin. Lekin xabar MATO haqida yozilgan va aksessuar/slot uchun
 to'g'ri ekani hech qayerda yozilmagan.
 
-### Bu texnik emas, BIZNES savoli — egasi hal qiladi
+### QAROR (egasi, 2026-09-21): HOZIRGIDEK QOLADI
 
-1. **Hozirgidek qolsin** — qayta kesishda hamma narsa yangidan
-   yechiladi. Mantiq: usta odatda butun mahsulotni qaytadan yasaydi.
-2. **Faqat mato qayta yechilsin** — karniz, begunok, aksessuar bir
-   marta. Mantiq: ular buzilmagan, usta ularni saqlab qolgan.
-3. **Usta o'zi belgilasin** — qayta kesish so'rovida «nima buzildi»
-   ro'yxati.
+«xa tugri» — qayta kesishda material yangidan yechiladi.
 
-Men o'zim hal qilmadim: har uch variant ham to'g'ri bo'lishi mumkin
-va tanlov ustaxonadagi haqiqiy tartibga bog'liq.
+Ya'ni usta pozitsiyani qaytadan yasaydi: mato ham, karniz ham,
+begunok ham, aksessuar ham yangisi ketadi. Eskisi brak bo'lgan.
+
+⚠️ **KOD O'ZGARMAYDI** — hozirgi xulq to'g'ri ekan. Bu yozuv
+   shuning uchun qoldirildi: kelajakda kimdir buni «xato» deb
+   o'ylab «tuzatib» qo'ymasin. Bot xabari ham shuni aytadi:
+   «Tasdiqlansa material IKKINCHI marta yechiladi»
+   (`bildirishnoma.ts`) — endi u slot va aksessuarga ham
+   tegishli ekani YOZIB QO'YILDI.
 
 ---
 

@@ -103,6 +103,8 @@ async function chekPozitsiyalari(
       eni_m: string;
       boyi_m: string;
       soni: number;
+      /** T-16 — o'lchovli miqdor, metr */
+      miqdor: string | null;
       narx_snapshot: string;
       chegirma_summa: string | null;
       holat: string;
@@ -111,7 +113,7 @@ async function chekPozitsiyalari(
   >`
     SELECT p.id, p.tartib,
            COALESCE(t.nom, qm.nom) AS nom,
-           p.eni_m::text, p.boyi_m::text, p.soni,
+           p.eni_m::text, p.boyi_m::text, p.soni, p.miqdor::text,
            p.narx_snapshot, p.chegirma_summa, p.holat,
            (p.mahsulot_tur_id IS NOT NULL) AS composite
     FROM buyurtma_pozitsiya p
@@ -170,6 +172,8 @@ async function chekPozitsiyalari(
     /** ⚠️ `numeric` matn bo'lib keladi (P-13) */
     eniM: Number(p.eni_m),
     boyiM: Number(p.boyi_m),
+    /** T-16 — o'lchovli miqdor chekda alohida chiqadi */
+    miqdor: p.miqdor,
     soni: p.soni,
     narx: p.narx_snapshot,
     chegirma: p.chegirma_summa ?? '0',

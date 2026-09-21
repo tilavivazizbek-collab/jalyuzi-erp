@@ -609,3 +609,132 @@ describe("T-14 (3-qism) — chiziqli materialni alohida sotish", () => {
     expect(h[0]?.miqdor_m).toBeNull();
   }, 120_000);
 });
+
+/**
+ * T-16 — KASR METRLAB SOTISH (egasi qarori 2026-09-21: «metrlab sotib bulsin»)
+ *
+ * ⚠️ Ilgari karnizni 2.5 metrlab sotib bo'lmasdi: miqdor
+ *    `buyurtma_pozitsiya.soni` ustunida saqlanardi va u `integer`.
+ *    Endi o'lchovli miqdor ALOHIDA `miqdor` ustuniga tushadi;
+ *    `soni` esa dona sanog'i bo'lib qoladi (band `soni` marta
+ *    takrorlanadi, kesim jami maydonni `soni` ga bo'ladi — kasr
+ *    u yerga yaramaydi).
+ */
+describe('T-16 — chiziqli materialni kasr metrlab sotish', () => {
+  async function sot(
+    karnizId: number,
+    miqdor: string | null,
+    soni = 1,
+  ): Promise<number> {
+    hisoblagich += 1;
+    const n = await buyurtmaYarat(
+      sql,
+      {
+        raqam: `B-T16-${String(Date.now())}-${String(hisoblagich)}`,
+        mijozId: null,
+        sotganFilialId: FILIAL,
+        ishlabChiqaruvchiFilialId: FILIAL,
+        manba: 'SAYT',
+        valyuta: 'SOM',
+        kursSnapshot: null,
+        tayyorlikSana: null,
+        qarzgaKetadimi: false,
+        pozitsiyalar: [
+          {
+            mahsulotTurId: null,
+            qoshimchaMaterialId: karnizId,
+            eniM: 0,
+            boyiM: 0,
+            soni,
+            miqdor,
+            narxSnapshot: '87500',
+            chegirmaSumma: '0',
+            xizmatHaqi: '0',
+            formulaSnapshot: { qoshimcha: true },
+            slotlar: [],
+            aksessuarlar: [],
+          },
+        ],
+      },
+      XODIM,
+    );
+    return n.pozitsiyalar[0]?.pozitsiyaId ?? 0;
+  }
+
+  it('2.5 metr sotiladi — qoldiq 30 → 27.5', async () => {
+    const karnizId = await karnizYarat(30);
+    await sot(karnizId, '2.50');
+    expect(await qoldiq(karnizId)).toBe(27.5);
+  }, 120_000);
+
+  it('ombor jurnaliga AYNAN 2.50 metr tushadi', async () => {
+    const karnizId = await karnizYarat(30);
+    const poz = await sot(karnizId, '2.50');
+
+    const h = await sql<{ miqdor_m: string | null; miqdor_dona: number | null }[]>`
+      SELECT oh.miqdor_m::text, oh.miqdor_dona
+        FROM ombor_harakat oh
+        JOIN bolak b ON b.id = oh.bolak_id
+       WHERE b.material_id = ${karnizId} AND oh.manba_id = ${poz}`;
+
+    expect(h[0]?.miqdor_m).toBe('-2.50');
+    expect(h[0]?.miqdor_dona).toBeNull();
+  }, 120_000);
+
+  it("`soni` BIR bo'lib qoladi, miqdor alohida ustunda", async () => {
+    const karnizId = await karnizYarat(30);
+    const poz = await sot(karnizId, '2.50');
+
+    const p = await sql<{ soni: number; miqdor: string | null }[]>`
+      SELECT soni, miqdor::text FROM buyurtma_pozitsiya WHERE id = ${poz}`;
+
+    expect(p[0]?.soni).toBe(1);
+    expect(p[0]?.miqdor).toBe('2.50');
+  }, 120_000);
+
+  it('miqdor berilmasa AVVALGIDEK `soni` yechiladi', async () => {
+    const karnizId = await karnizYarat(30);
+    await sot(karnizId, null, 4);
+    expect(await qoldiq(karnizId)).toBe(26);
+  }, 120_000);
+
+  it('qoldiq yetmasa MATERIALGA_KUTMOQDA — kasr miqdorda ham', async () => {
+    const karnizId = await karnizYarat(2);
+    hisoblagich += 1;
+    const n = await buyurtmaYarat(
+      sql,
+      {
+        raqam: `B-T16Y-${String(Date.now())}-${String(hisoblagich)}`,
+        mijozId: null,
+        sotganFilialId: FILIAL,
+        ishlabChiqaruvchiFilialId: FILIAL,
+        manba: 'SAYT',
+        valyuta: 'SOM',
+        kursSnapshot: null,
+        tayyorlikSana: null,
+        qarzgaKetadimi: false,
+        pozitsiyalar: [
+          {
+            mahsulotTurId: null,
+            qoshimchaMaterialId: karnizId,
+            eniM: 0,
+            boyiM: 0,
+            soni: 1,
+            miqdor: '2.50',
+            narxSnapshot: '87500',
+            chegirmaSumma: '0',
+            xizmatHaqi: '0',
+            formulaSnapshot: { qoshimcha: true },
+            slotlar: [],
+            aksessuarlar: [],
+          },
+        ],
+      },
+      XODIM,
+    );
+
+    expect(n.pozitsiyalar[0]?.holat).toBe('MATERIALGA_KUTMOQDA');
+    /** ⚠️ Yarim yechish yo'q — qoldiq tegilmaydi (2.1-invariant) */
+    expect(await qoldiq(karnizId)).toBe(2);
+  }, 120_000);
+});

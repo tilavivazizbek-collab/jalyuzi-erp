@@ -309,6 +309,13 @@
       "when": 1789908455990,
       "tag": "0043_metr_tizimi",
       "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "7",
+      "when": 1789979650268,
+      "tag": "0044_olchovli_sotish",
+      "breakpoints": true
     }
   ]
 }

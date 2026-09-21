@@ -53,6 +53,11 @@ export interface QoshimchaTanlovi {
   readonly materialId: number;
   readonly nom: string;
   readonly soni: number;
+  /**
+   * O'lchov bilan sotilgan miqdor, METR — T-16 (2026-09-21).
+   * `null` bo'lsa donalab sotilgan va miqdor `soni` da.
+   */
+  readonly miqdor: string | null;
   readonly narx: string;
   /** ⚠️ Metrlab kesib sotishda — METRDA (2026-09-20) */
   readonly eniM: number;
@@ -168,7 +173,13 @@ export function QoshimchaQoshish({
       : null
     : birlikNarx === null || !Number.isFinite(son) || son <= 0
       ? null
-      : kopaytir(birlikNarx, son);
+      : /**
+         * ⚠️ MATN beriladi, `number` emas. `kopaytir` ikkalasini ham
+         *    qabul qiladi, lekin matnda ikkilik kasr umuman
+         *    tug'ilmaydi — narx 1 metr uchun va miqdor kasr bo'lishi
+         *    mumkin (T-16).
+         */
+        kopaytir(birlikNarx, soni.trim());
 
   function yop(): void {
     ochiqniOzgartir(false);
@@ -202,25 +213,27 @@ export function QoshimchaQoshish({
       }
     } else {
       /**
-       * ⚠️ KASR QABUL QILINMAYDI — metrda ham.
+       * ⚠️ METRDA KASR RUXSAT, DONADA YO'Q — T-16 (2026-09-21).
        *
-       *    Chiziqli materialni 2.5 metrlab to'g'ridan-to'g'ri
-       *    sotish HOZIR MUMKIN EMAS: miqdor `buyurtma_pozitsiya.soni`
-       *    ustunida saqlanadi va u `integer`. Matoda bunday muammo
-       *    yo'q — u o'lchamda (`eni_m` × `boyi_m`) yuradi.
-       *
-       *    Bu yerda kasr qabul qilinsa, server uni RAD ETARDI
-       *    (`sotuv.ts`: `z.number().int()`) va sotuvchi tushunarsiz
-       *    xato olardi. Shuning uchun cheklov ekranda, sabab bilan
-       *    aytiladi. Yechim sxema o'zgarishini talab qiladi —
-       *    egasining qarori (QARZLAR.md T-16).
+       *    Yarim kronshteyn bo'lmaydi; yarim metr karniz — oddiy
+       *    hol. Ilgari ikkalasiga ham butun son talab qilinardi va
+       *    2.5 metr karnizni umuman sotib bo'lmasdi (miqdor `soni`
+       *    ustunida saqlanardi, u esa `integer`). Endi o'lchovli
+       *    miqdor alohida `miqdor` ustuniga tushadi.
        */
-      if (!Number.isInteger(son) || son <= 0) {
+      if (!Number.isFinite(son) || son <= 0) {
         xatoniOzgartir(
-          metrlik
-            ? "Butun metr kiriting — kasr metrni hozircha sotib bo'lmaydi"
-            : "Soni butun va noldan katta bo'lishi kerak",
+          metrlik ? "Necha metr ekanini kiriting" : "Soni noldan katta bo'lsin",
         );
+        return;
+      }
+      if (!metrlik && !Number.isInteger(son)) {
+        xatoniOzgartir("Dona butun bo'lishi kerak — yarim buyum bo'lmaydi");
+        return;
+      }
+      if (metrlik && !/^\d+(\.\d{1,2})?$/.test(soni.trim())) {
+        /** Baza NUMERIC(10,2) — santimetrdan mayda miqdor sig'maydi */
+        xatoniOzgartir("Miqdor eng ko'pi 2 kasr xonasi bilan bo'lsin");
         return;
       }
       if (jami === null) {
@@ -237,7 +250,13 @@ export function QoshimchaQoshish({
     qoshildi({
       materialId: tanlangan.id,
       nom: tanlangan.nom,
-      soni: kesiladimi ? 1 : son,
+      /**
+       * ⚠️ METRLIKDA `soni` = 1, miqdor alohida. `soni` dona
+       *    sanog'i bo'lib qoladi — u bilan band ham, kesim ham
+       *    hisoblanadi (T-12), kasr u yerga yaramaydi.
+       */
+      soni: kesiladimi || metrlik ? 1 : son,
+      miqdor: metrlik ? soni.trim() : null,
       narx: pulMatn(jami),
       eniM: kesiladimi ? eniM : 0,
       boyiM: kesiladimi ? boyiM : 0,
@@ -377,7 +396,7 @@ export function QoshimchaQoshish({
                     soniniOzgartir(e.target.value);
                     xatoniOzgartir(null);
                   }}
-                  inputMode="numeric"
+                  inputMode={metrlik ? 'decimal' : 'numeric'}
                   className={kirishUslubi(false)}
                 />
               </label>
