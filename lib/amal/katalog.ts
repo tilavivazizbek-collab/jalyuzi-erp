@@ -56,6 +56,15 @@ export interface SotuvMaterial {
    * va sotuvchi «narx qo'yilmagan» xabarini oladi.
    */
   readonly narxGuruhId: number | null;
+  /**
+   * Daraja NOMI — narx topilmaganda xabarda ko'rsatiladi.
+   *
+   * ⚠️ 2026-09-21: egasi «narx belgiladim, sotuvda baribir
+   *    narx qo'yilmagan deydi» dedi. Sababi — qoida «oddiy»
+   *    darajasiga, mato esa «qimmat» darajasida edi. Ekran buni
+   *    AYTMAGANI uchun sabab topilmadi.
+   */
+  readonly narxGuruhNomi: string | null;
 }
 
 /**
@@ -305,13 +314,15 @@ export async function sotuvTurlari(
       sarflash_birligi: string;
       almashtirish_guruh_id: number | null;
       narx_guruh_id: number | null;
+      /** Daraja NOMI — xato xabarida ko'rsatiladi (2026-09-21) */
+      narx_guruh_nomi: string | null;
       narx: string | null;
       narx_valyuta: string;
       rasm_bormi: boolean;
     }[]
   >`
     SELECT m.id, m.nom, m.sarflash_birligi, m.almashtirish_guruh_id,
-           m.narx_guruh_id,
+           m.narx_guruh_id, ng.nom AS narx_guruh_nomi,
            COALESCE(fn.sotuv_narx::text, m.sotuv_narx::text) AS narx,
            /*
             * ⚠️ Valyuta narx bilan BIRGA olinadi. Filial narxi
@@ -321,6 +332,7 @@ export async function sotuvTurlari(
            COALESCE(fn.valyuta, m.sotuv_valyuta) AS narx_valyuta,
            (m.rasm IS NOT NULL) AS rasm_bormi
     FROM material m
+    LEFT JOIN narx_guruh ng ON ng.id = m.narx_guruh_id
     LEFT JOIN material_filial_narx fn
            ON fn.material_id = m.id AND fn.filial_id = ${filialId}
     WHERE m.faol = true
@@ -451,6 +463,7 @@ export async function sotuvTurlari(
       boshKvM: q?.kvM ?? 0,
       boshDona: q?.dona ?? 0,
       narxGuruhId: m.narx_guruh_id,
+      narxGuruhNomi: m.narx_guruh_nomi,
     };
   };
 

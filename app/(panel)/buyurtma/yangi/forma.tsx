@@ -179,8 +179,25 @@ export function SotuvFormasi({
    */
   const [tur, turniYukla] = useState<SotuvTuri | null>(birinchiTur);
   const [turYuklanmoqda, yuklanishniOzgartir] = useState(false);
-  const [eni, eniniOzgartir] = useState('210');
-  const [boyi, boyiniOzgartir] = useState('140');
+  /**
+   * ⚠️ METRDA — 2026-09-21 da tuzatildi. Bu yerda `'210'` va
+   *    `'140'` turardi: metrga o'tishda (2026-09-20) tushib qolgan
+   *    eski SANTIMETR qiymatlari. Forma har safar 210 × 140 METR
+   *    bilan ochilardi — sotuvchi buni sezmasa ombordan hech narsa
+   *    topilmasdi.
+   */
+  const [eni, eniniOzgartir] = useState('2.10');
+  const [boyi, boyiniOzgartir] = useState('1.40');
+  /**
+   * SONI — 2026-09-21 da qo'shildi.
+   *
+   * ⚠️ Server `soni > 1` ni ALLAQACHON qo'llab-quvvatlardi
+   *    (T-12: band `soni` marta qo'yiladi, kesim bitta buyum
+   *    o'lchamida bo'ladi, narx `soni` ga ko'paytiriladi) — lekin
+   *    EKRANDA uni kiritish joyi yo'q edi va `soni: 1` qotirilgan
+   *    edi. Ya'ni uchta bir xil parda uch marta savatga solinardi.
+   */
+  const [soni, soniniOzgartir] = useState('1');
   const [parametrlar, parametrlarniOzgartir] = useState<Record<string, string>>({});
   const [slotlar, slotlarniOzgartir] = useState<Record<number, SlotTanlovi>>({});
   const [aksessuarlar, aksessuarlarniOzgartir] = useState<Record<number, AksessuarTanlovi>>({});
@@ -268,13 +285,22 @@ export function SotuvFormasi({
     const boyiM = son(boyi);
     if (eniM === null || boyiM === null || eniM <= 0 || boyiM <= 0) return null;
 
+    /**
+     * ⚠️ SONI butun va musbat bo'lishi shart. Noto'g'ri yozilsa
+     *    1 deb olinadi — hisob to'xtamaydi, sotuvchi raqamni
+     *    tuzatgach o'zi yangilanadi.
+     */
+    const soniSoni = son(soni);
+    const buyumSoni =
+      soniSoni !== null && Number.isInteger(soniSoni) && soniSoni > 0 ? soniSoni : 1;
+
     const qiymatlar: Record<string, number> = {};
     for (const p of tur.parametrlar) {
       const q = son(parametrlar[p.kod] ?? p.standartQiymat ?? '');
       if (q !== null) qiymatlar[p.kod] = q;
     }
 
-    const asos = standartQiymatlar(m(eniM), m(boyiM), 1, qiymatlar);
+    const asos = standartQiymatlar(m(eniM), m(boyiM), buyumSoni, qiymatlar);
 
     const qatorlar = tur.slotlar.map((s) => {
       const tanlov = slotlar[s.id];
@@ -394,13 +420,29 @@ export function SotuvFormasi({
      *    o'lchamga qarab bosqichni tanlaydi. Materiallarning narxi
      *    endi mijoz narxiga umuman ta'sir qilmaydi.
      *
-     * ⚠️ Daraja BIRINCHI topilgan matodan olinadi. Odatda bu mato
-     *    sloti: mexanizm va kronshteynga daraja qo'yilmaydi va
-     *    ularning `narxGuruhId` si `null` bo'ladi.
+     * ⚠️ Daraja MATO SLOTIDAN olinadi — 2026-09-21 da aniqlashtirildi.
+     *
+     *    Ilgari «birinchi darajasi bor material» olinardi va bu
+     *    SLOT TARTIBIGA bog'liq edi. Egasining bazasida karnizga ham
+     *    daraja qo'yilgan («arzon»), matoga ham («qimmat»). Karniz
+     *    sloti birinchi bo'lib qolsa, narx KARNIZ darajasidan
+     *    izlanardi va butunlay boshqa jadvalga tushardi — yoki
+     *    umuman topilmasdi.
+     *
+     *    Mijoz narxi MATOGA bog'langan (egasi qarori 2026-09-20),
+     *    shuning uchun `KV_M` birlikdagi slot ustun. Mato topilmasa
+     *    avvalgi xulq saqlanadi — bu «materialni o'zi sotish» kabi
+     *    matosiz holatlar uchun kerak.
      */
-    const narxGuruhId =
-      qatorlar.find((q) => (q.material?.narxGuruhId ?? null) !== null)?.material?.narxGuruhId ??
-      null;
+    const matoQatori = qatorlar.find(
+      (q) => q.birlik === 'KV_M' && (q.material?.narxGuruhId ?? null) !== null,
+    );
+    const darajaliQator =
+      matoQatori ?? qatorlar.find((q) => (q.material?.narxGuruhId ?? null) !== null);
+    const narxGuruhId = darajaliQator?.material?.narxGuruhId ?? null;
+    /** Xato xabarida ko'rsatish uchun — sotuvchi sababni ko'rsin */
+    const darajaNomi = darajaliQator?.material?.narxGuruhNomi ?? null;
+    const darajaliMaterial = darajaliQator?.material?.nom ?? null;
 
     /**
      * TZ 6.2 — mijoz turiga qo'yilgan qoida umumiysidan USTUN.
@@ -427,7 +469,7 @@ export function SotuvFormasi({
     const narx = pozitsiyaNarxiniHisobla({
       eniM,
       boyiM,
-      soni: 1,
+      soni: buyumSoni,
       parametrlar: qiymatlar,
       slotlar: [],
       aksessuarlar: [],
@@ -504,11 +546,24 @@ export function SotuvFormasi({
         };
       });
 
-    return { qatorlar, aksQatorlar, xizmat, narx, jami, qoshimchaYuki, eniM, boyiM };
+    return {
+      qatorlar,
+      aksQatorlar,
+      xizmat,
+      narx,
+      jami,
+      qoshimchaYuki,
+      eniM,
+      boyiM,
+      buyumSoni,
+      darajaNomi,
+      darajaliMaterial,
+    };
   }, [
     tur,
     eni,
     boyi,
+    soni,
     parametrlar,
     slotlar,
     aksessuarlar,
@@ -558,7 +613,8 @@ export function SotuvFormasi({
       mahsulotTurId: tur.id,
       eniM: hisob.eniM,
       boyiM: hisob.boyiM,
-      soni: 1,
+      /** ⚠️ Ekrandan keladi (2026-09-21); ilgari 1 qotirilgan edi */
+      soni: hisob.buyumSoni,
       /** ⚠️ Sotuvchi tuzatgan bo'lsa — o'sha raqam, aks holda hisoblangani */
       narxSnapshot: qoldaNarx ?? pulMatn(hisob.jami),
       chegirmaSumma: '0',
@@ -604,6 +660,8 @@ export function SotuvFormasi({
         turNomi: tur.nom,
         eniM: hisob.eniM,
         boyiM: hisob.boyiM,
+        /** ⚠️ Savatda ham ko'rinsin: «2.10 × 1.40 m × 3» */
+        soni: hisob.buyumSoni,
         /** ⚠️ Savatdagi raqam ham TUZATILGANI — jami shundan chiqadi */
         narx: qoldaNarx ?? pulMatn(hisob.jami),
         yuk,
@@ -797,7 +855,7 @@ export function SotuvFormasi({
                   onChange={(e) => {
                     eniniOzgartir(e.target.value);
                   }}
-                  inputMode="numeric"
+                  inputMode="decimal"
                   className={`${kirishUslubi(false)} w-28`}
                 />
               </Maydon>
@@ -808,8 +866,26 @@ export function SotuvFormasi({
                   onChange={(e) => {
                     boyiniOzgartir(e.target.value);
                   }}
-                  inputMode="numeric"
+                  inputMode="decimal"
                   className={`${kirishUslubi(false)} w-28`}
+                />
+              </Maydon>
+
+              {/*
+                ⚠️ SONI — 2026-09-21 da qo'shildi. Uchta bir xil
+                   parda uchun uchta alohida savat qatori kerak
+                   emas: server har biriga ALOHIDA bo'lak band
+                   qiladi (T-12) va narxni `soni` ga ko'paytiradi.
+              */}
+              <Maydon nom="soni" yorliq="Soni (dona)">
+                <input
+                  id="soni"
+                  value={soni}
+                  onChange={(e) => {
+                    soniniOzgartir(e.target.value);
+                  }}
+                  inputMode="numeric"
+                  className={`${kirishUslubi(false)} w-20`}
                 />
               </Maydon>
 
@@ -880,9 +956,18 @@ export function SotuvFormasi({
                             {q.slot.materiallar.map((m) => (
                               <option key={m.id} value={m.id}>
                                 {m.nom}
+                                {/*
+                                  ⚠️ BIRLIK YOZILADI — 2026-09-21.
+                                     Ilgari bu yerda shunchaki «· 8»
+                                     turardi: metrmi, donami — bilib
+                                     bo'lmasdi. Chiziqli materialning
+                                     qoldig'i METRDA yotadi.
+                                */}
                                 {m.sarflashBirligi === 'KV_M'
                                   ? ` · ${m.boshKvM.toFixed(2)} kv.m`
-                                  : ` · ${String(m.boshDona)}`}
+                                  : m.sarflashBirligi === 'M'
+                                    ? ` · ${m.boshDona.toFixed(2)} m`
+                                    : ` · ${String(m.boshDona)} dona`}
                               </option>
                             ))}
                           </select>
@@ -1168,10 +1253,28 @@ export function SotuvFormasi({
                 className="rounded-karta border border-belgi-qizil bg-belgi-qizil-fon px-5 py-4 text-sm text-belgi-qizil"
               >
                 <p className="font-medium">{hisob.narx.xato}</p>
-                <p className="mt-1 text-xs">
-                  «Narxlar va turlar» sahifasida shu mahsulot turi va tanlangan matoning
-                  darajasi uchun narx qo&apos;ying.
-                </p>
+                {/*
+                  ⚠️ SABABNI AYTAMIZ — 2026-09-21. Egasi «narx
+                     belgiladim, sotuvda baribir narx qo'yilmagan
+                     deydi» dedi va sababni topolmadi: qoida
+                     «oddiy» darajasiga, mato esa «qimmat»
+                     darajasida edi. Endi ekranning o'zi aytadi.
+                */}
+                {hisob.darajaNomi !== null && (
+                  <p className="mt-1 text-xs">
+                    Tanlangan mato <b>{hisob.darajaliMaterial}</b> — darajasi{' '}
+                    <b>«{hisob.darajaNomi}»</b>. «Narxlar va turlar» da shu tur uchun
+                    AYNAN SHU daraja bo'yicha narx qo'ying yoki material kartochkasida
+                    darajani o'zgartiring.
+                  </p>
+                )}
+                {hisob.darajaNomi === null && (
+                  <p className="mt-1 text-xs">
+                    Tanlangan matoga <b>daraja qo&apos;yilmagan</b>. Material kartochkasida
+                    mato darajasini tanlang — narx o&apos;sha daraja bo&apos;yicha
+                    topiladi.
+                  </p>
+                )}
               </div>
             )}
 
@@ -1373,7 +1476,9 @@ export function SotuvFormasi({
                             ? typeof q.miqdor === 'string' && q.miqdor !== ''
                               ? `${q.miqdor} m`
                               : `${String(q.soni ?? 1)} dona`
-                            : `${String(q.eniM)} × ${String(q.boyiM)} m`}
+                            : `${String(q.eniM)} × ${String(q.boyiM)} m${
+                                (q.soni ?? 1) > 1 ? ` × ${String(q.soni ?? 1)}` : ''
+                              }`}
                         </span>
                       </td>
                       <td className="raqam px-3 py-2.5 font-medium">{pulKorsat(som(q.narx))}</td>
