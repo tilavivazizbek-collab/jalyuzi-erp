@@ -38,8 +38,13 @@ import type postgres from 'postgres';
 import Decimal from 'decimal.js';
 import { pozitsiyaNarxiniHisobla } from '@/lib/domain/pozitsiya-narxi';
 import { amaldagiOffset } from '@/lib/domain/mijoz';
-import { kurs as kursYasa, type Kurs } from '@/lib/domain/pul';
-import type { HisoblashUsuli, QoshimchaUsuli } from '@/lib/domain/narx-qoidasi';
+import { katalogNarxi } from '@/lib/domain/narx';
+import { kopaytir, kurs as kursYasa, pulMatn, type Kurs } from '@/lib/domain/pul';
+import {
+  pozitsiyaQoidaNarxi,
+  type HisoblashUsuli,
+  type QoshimchaUsuli,
+} from '@/lib/domain/narx-qoidasi';
 
 type Tranzaksiya = postgres.TransactionSql;
 
@@ -245,5 +250,169 @@ export async function narxniTekshir(
   return {
     qoldami: farq.greaterThan(BAGRIKENGLIK_SOM),
     hisoblangan: natija.jami,
+  };
+}
+
+// ─── Qo'shimcha buyum narxi ───────────────────────────────────────────────
+
+export interface TekshirilayotganQoshimcha {
+  readonly materialId: number;
+  /** Sotuvchi kiritgan summa — solishtiriladigan qiymat */
+  readonly narxSnapshot: string;
+  /** Donalab yoki metrlab sotilgan miqdor */
+  readonly miqdor: number;
+  /** Kesib sotishda — kesilgan to'rtburchak, metrda */
+  readonly eniM: number;
+  readonly boyiM: number;
+  readonly mijozId: number | null;
+  readonly filialId: number;
+  readonly kursSnapshot: string | null;
+}
+
+/**
+ * ALOHIDA SOTILGAN BUYUM NARXINI QAYTA HISOBLAYDI — 2026-09-22.
+ *
+ * ⚠️ NEGA KERAK
+ *
+ *    `narxniTekshir` faqat MAHSULOT TURI bor pozitsiyani tekshiradi.
+ *    Metrlab kesilgan mato, karniz va donalab sotilgan buyumda tur
+ *    yo'q — ular tekshiruvdan butunlay chetda qolardi.
+ *
+ *    Ya'ni tayyor jalyuzida yopilgan teshik alohida sotuvda ochiq
+ *    turardi: egasi narxni o'zgartiradi, sotuvchining brauzerida
+ *    ochiq turgan ESKI sahifa eski narxda sotaveradi va hech
+ *    qanday iz qolmaydi.
+ *
+ *    2026-09-22 da «miqdor bo'yicha bosqich» qo'shilgach teshik
+ *    kattalashdi: endi u yerda butun bosqich jadvali turibdi.
+ *
+ * ⚠️ EKRAN BILAN BIR XIL TARTIB (`qoshimcha.tsx`):
+ *
+ *      1. RULON + daraja bor    → kesim qoidasi (maydon/eni/bo'yi)
+ *      2. daraja + MIQDOR qoida → miqdor bosqichi
+ *      3. qolgan holatda        → material narxi × miqdor
+ *
+ *    Tartib farq qilsa tekshiruvning o'zi yolg'on ogohlantirish
+ *    berardi va egasi ro'yxatni o'qimay qo'yardi.
+ *
+ * ⚠️ BLOKLAMAYDI — `narxniTekshir` bilan bir xil qoida.
+ */
+export async function qoshimchaNarxiniTekshir(
+  tx: Tranzaksiya,
+  k: TekshirilayotganQoshimcha,
+): Promise<NarxTekshiruvi> {
+  const m = (
+    await tx<
+      {
+        hisob_turi: string;
+        narx_guruh_id: number | null;
+        narx: string | null;
+        valyuta: string;
+      }[]
+    >`
+      SELECT m.hisob_turi, m.narx_guruh_id,
+             COALESCE(tn.sotuv_narx::text, fn.sotuv_narx::text, m.sotuv_narx::text)
+               AS narx,
+             COALESCE(tn.valyuta, fn.valyuta, m.sotuv_valyuta) AS valyuta
+        FROM material m
+        LEFT JOIN material_filial_narx fn
+               ON fn.material_id = m.id AND fn.filial_id = ${k.filialId}
+        LEFT JOIN material_tur_narx tn
+               ON tn.material_id = m.id
+              AND tn.mijoz_turi_id = (
+                SELECT mijoz_turi_id FROM mijoz WHERE id = ${k.mijozId})
+       WHERE m.id = ${k.materialId}`
+  )[0];
+
+  if (m === undefined) return { qoldami: false, hisoblangan: null };
+
+  const kursObyekti: Kurs | null =
+    k.kursSnapshot === null ? null : kursYasa(k.kursSnapshot, new Date(), 'JORIY');
+
+  const kesiladimi = m.hisob_turi === 'RULON';
+
+  /** Daraja qoidasi — mijoz turiga qo'yilgani umumiysidan ustun (6.2) */
+  const qoida =
+    m.narx_guruh_id === null
+      ? undefined
+      : (
+          await tx<
+            { id: number; mijoz_turi_id: number | null; hisoblash_usuli: string }[]
+          >`
+            SELECT id, mijoz_turi_id, hisoblash_usuli
+              FROM mahsulot_narx
+             WHERE mahsulot_tur_id IS NULL
+               AND narx_guruh_id = ${m.narx_guruh_id}
+               AND faol = true
+               AND (filial_id IS NULL OR filial_id = ${k.filialId})
+               AND (mijoz_turi_id IS NULL
+                    OR mijoz_turi_id = (
+                      SELECT mijoz_turi_id FROM mijoz WHERE id = ${k.mijozId}))
+             ORDER BY (mijoz_turi_id IS NULL), (filial_id IS NULL)`
+        )[0];
+
+  if (qoida !== undefined && (kesiladimi || qoida.hisoblash_usuli === 'MIQDOR')) {
+    const bosqichlar = await tx<
+      { dan: string; gacha: string | null; narx: string; valyuta: string }[]
+    >`
+      SELECT dan::text, gacha::text, narx::text, valyuta
+        FROM mahsulot_narx_bosqich
+       WHERE mahsulot_narx_id = ${qoida.id} AND faol = true
+       ORDER BY dan`;
+
+    let hisoblangan: string;
+    try {
+      hisoblangan = pozitsiyaQoidaNarxi({
+        qoida: {
+          hisoblashUsuli: qoida.hisoblash_usuli as HisoblashUsuli,
+          bosqichlar: bosqichlar.map((b) => ({
+            dan: Number(b.dan),
+            gacha: b.gacha === null ? null : Number(b.gacha),
+            narx: b.narx,
+            valyuta: b.valyuta === 'USD' ? ('USD' as const) : ('SOM' as const),
+          })),
+        },
+        eniM: k.eniM,
+        boyiM: k.boyiM,
+        miqdor: k.miqdor,
+        qoshimchalar: [],
+        /** ⚠️ TZ 6.3 — offset MATOGA, alohida sotuvga qo'llanmaydi */
+        offset: null,
+        kurs: kursObyekti,
+      }).jami;
+    } catch {
+      /**
+       * ⚠️ Bosqich topilmasa JIM O'TILADI. Bu «narx noto'g'ri»
+       *    degani emas: egasi o'sha oraliqqa hali bosqich
+       *    qo'ymagan bo'lishi mumkin va sotuvchi summani qo'lda
+       *    kiritgan. Yolg'on ogohlantirish ro'yxatni shovqinga
+       *    aylantirardi.
+       */
+      return { qoldami: false, hisoblangan: null };
+    }
+
+    return {
+      qoldami: new Decimal(hisoblangan)
+        .minus(new Decimal(k.narxSnapshot))
+        .abs()
+        .greaterThan(BAGRIKENGLIK_SOM),
+      hisoblangan,
+    };
+  }
+
+  /** Qoida yo'q — materialning o'z narxi × miqdor */
+  if (m.narx === null) return { qoldami: false, hisoblangan: null };
+
+  const birlik = katalogNarxi(m.narx, m.valyuta, kursObyekti);
+  if (birlik === null) return { qoldami: false, hisoblangan: null };
+
+  const jami = pulMatn(kopaytir(birlik, k.miqdor));
+
+  return {
+    qoldami: new Decimal(jami)
+      .minus(new Decimal(k.narxSnapshot))
+      .abs()
+      .greaterThan(BAGRIKENGLIK_SOM),
+    hisoblangan: jami,
   };
 }

@@ -22,7 +22,7 @@ import Decimal from 'decimal.js';
 import { bandQilTx, type SlotSorovi } from './band';
 import { kesimOlchami } from '@/lib/domain/kesish';
 import { parametrlarniOqi, sarflashniTekshir } from './sarflash';
-import { narxniTekshir } from './narx-tekshir';
+import { narxniTekshir, qoshimchaNarxiniTekshir } from './narx-tekshir';
 import { donaYech } from './dona-yechish';
 import {
   boshHolat,
@@ -213,8 +213,7 @@ export async function pozitsiyaYozTx(
    *    bo'lgan sotuvchi «Savatda bironta pozitsiya yo'q» degan
    *    xatoni olardi. Baza testi topdi (2026-09-03).
    */
-  const qoshimchami =
-    p.qoshimchaMaterialId !== null && p.qoshimchaMaterialId !== undefined;
+  const qoshimchami = p.qoshimchaMaterialId !== null && p.qoshimchaMaterialId !== undefined;
 
   if (!qoshimchami && p.slotlar.length === 0) {
     throw new BiznesXato('BUYURTMA_BOSH', `pozitsiya ${String(k.tartib)}`);
@@ -245,9 +244,7 @@ export async function pozitsiyaYozTx(
        *    Uning miqdori sotuvchi kiritgan o'lchamdan chiqadi va
        *    server uni kesim to'rtburchagi bilan solishtiradi.
        */
-      slotlar: p.slotlar.filter(
-        (s): s is typeof s & { slotId: number } => s.slotId !== null,
-      ),
+      slotlar: p.slotlar.filter((s): s is typeof s & { slotId: number } => s.slotId !== null),
     });
   }
 
@@ -286,6 +283,39 @@ export async function pozitsiyaYozTx(
       materialIdlar: p.slotlar.map((x) => x.materialId),
       qoshimchaIdlar: (p.qoshimchalar ?? []).map((x) => x.mahsulotQoshimchaId),
       parametrlar: Object.fromEntries(parametrlarniOqi(p.formulaSnapshot)),
+    });
+    qoldaNarx = tekshiruv.qoldami;
+    serverNarxi = tekshiruv.hisoblangan;
+  }
+
+  /**
+   * ⚠️ ALOHIDA SOTILGAN BUYUM HAM TEKSHIRILADI — 2026-09-22.
+   *
+   *    Yuqoridagi tekshiruv faqat MAHSULOT TURI bor pozitsiyaga
+   *    tegishli. Metrlab kesilgan mato, karniz va donalab sotilgan
+   *    buyumda tur yo'q — ular tekshiruvdan butunlay chetda
+   *    qolardi va tayyor jalyuzida yopilgan teshik shu yerda ochiq
+   *    turardi.
+   *
+   *    «Miqdor bo'yicha bosqich» qo'shilgach (egasi qarori
+   *    2026-09-22) teshik kattalashdi: endi u yerda butun bosqich
+   *    jadvali turibdi va egasi uni o'zgartirsa, ochiq turgan eski
+   *    sahifa eski narxda sotaverardi.
+   */
+  if (qoshimchami && p.qoshimchaMaterialId !== null && p.qoshimchaMaterialId !== undefined) {
+    const tekshiruv = await qoshimchaNarxiniTekshir(tx, {
+      materialId: p.qoshimchaMaterialId,
+      narxSnapshot: p.narxSnapshot,
+      /**
+       * ⚠️ Metrlab sotishda miqdor `miqdor` ustunida, donalab
+       *    sotishda `soni` da (T-16). Ekran ham shunday yuboradi.
+       */
+      miqdor: p.miqdor === null || p.miqdor === undefined ? p.soni : Number(p.miqdor),
+      eniM: p.eniM,
+      boyiM: p.boyiM,
+      mijozId: k.mijozId,
+      filialId: k.ishlabChiqaruvchiFilialId,
+      kursSnapshot: k.kursSnapshot,
     });
     qoldaNarx = tekshiruv.qoldami;
     serverNarxi = tekshiruv.hisoblangan;
@@ -488,9 +518,7 @@ export async function pozitsiyaYozTx(
      *    sotilganda `soni` = 1 bo'lib qoladi va u miqdor emas.
      *    Berilmasa avvalgidek `soni` — donalab sotish.
      */
-    const yechiladi = p.miqdor === null || p.miqdor === undefined
-      ? p.soni
-      : Number(p.miqdor);
+    const yechiladi = p.miqdor === null || p.miqdor === undefined ? p.soni : Number(p.miqdor);
 
     const yechim = await donaYech(
       tx,
@@ -552,9 +580,11 @@ export async function pozitsiyaYozTx(
                   ${qmDonami ? -olindi : null},
                   ${(-olindi * Number(partiya.tannarx)).toFixed(2)},
                   'buyurtma_pozitsiya', ${pozitsiyaId},
-                  ${qmDonami
-                    ? "Qo'shimcha buyum sotildi (3.10)"
-                    : "Qo'shimcha buyum sotildi — metrda (3.10)"},
+                  ${
+                    qmDonami
+                      ? "Qo'shimcha buyum sotildi (3.10)"
+                      : "Qo'shimcha buyum sotildi — metrda (3.10)"
+                  },
                   ${xodimId})`;
       }
     }
@@ -609,10 +639,7 @@ export async function buyurtmaYarat(
     const tasdiqlangan = bosh === 'TASDIQLANGAN';
 
     // 20.5 — filiallar har xil bo'lsa pozitsiya «Filialga yuborildi» bo'ladi
-    const tasdiqHolati = tasdiqdanKeyin(
-      kirim.sotganFilialId,
-      kirim.ishlabChiqaruvchiFilialId,
-    );
+    const tasdiqHolati = tasdiqdanKeyin(kirim.sotganFilialId, kirim.ishlabChiqaruvchiFilialId);
 
     const natijalar: PozitsiyaNatijasi[] = [];
     let yetishmadi = false;
@@ -689,11 +716,11 @@ export async function buyurtmaYarat(
     const ndsMijoz =
       kirim.mijozId === null
         ? null
-        : (
+        : ((
             await tx<{ nds_tolovchi: boolean; nds_stavka: string | null }[]>`
               SELECT nds_tolovchi, nds_stavka::text FROM mijoz
                WHERE id = ${kirim.mijozId}`
-          )[0] ?? null;
+          )[0] ?? null);
 
     const ndsStavka =
       ndsMijoz !== null && ndsMijoz.nds_tolovchi && ndsMijoz.nds_stavka !== null
@@ -902,8 +929,7 @@ export async function pozitsiyaniTasdiqla(
             hozir,
           );
 
-    const holat: PozitsiyaHolati =
-      band.holat === 'MATERIAL_YOQ' ? 'MATERIALGA_KUTMOQDA' : yangi;
+    const holat: PozitsiyaHolati = band.holat === 'MATERIAL_YOQ' ? 'MATERIALGA_KUTMOQDA' : yangi;
 
     await tx`
       UPDATE buyurtma_pozitsiya
