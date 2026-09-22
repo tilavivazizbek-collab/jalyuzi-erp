@@ -187,6 +187,25 @@ export default async function BuyurtmalarRoyxati({
                             ? `${pulKorsat(som(b.tolangan))} to'landi`
                             : "To'lanmagan"}
                       </span>
+
+                      {/*
+                        ⚠️ «To'lanmagan» IKKI XIL bo'ladi va ular bir xil
+                           ko'rinardi: qarzga ketgan buyurtma (odatiy) va
+                           oldindan to'lovi YOZILMAY QOLGANI (xato).
+                           Ikkinchisida pul kassada, tizimda esa yo'q —
+                           kun yopilganda sababsiz farq chiqadi.
+
+                           Belgi to'lov kiritilishi bilan o'zi yo'qoladi.
+                      */}
+                      {b.tolovYozilmadi && (
+                        <Link
+                          href={`/buyurtma/${String(b.id)}`}
+                          title="Sotuvda oldindan to'lov kiritilgan, lekin yozilmay qolgan. Kartochkadan qayta kiriting."
+                          className="mt-1 block rounded-full bg-belgi-qizil-fon px-2 py-0.5 text-[11px] font-semibold text-belgi-qizil hover:underline"
+                        >
+                          ⚠ To'lov yozilmagan
+                        </Link>
+                      )}
                     </td>
 
                     <td className="px-4 py-3">

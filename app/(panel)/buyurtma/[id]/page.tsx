@@ -207,6 +207,23 @@ export default async function BuyurtmaKartochkasi({ params }: { params: Promise<
         <section>
           <h2 className="mb-1 text-sm font-medium text-matn-ikki">To&apos;lovlar</h2>
 
+          {/*
+            ⚠️ Sotuvda oldindan to'lov kiritilgan edi, lekin yozilmay
+               qoldi (u alohida tranzaksiyada yoziladi). Ya'ni pul
+               kassa yashigida, tizimda esa yo'q. Ilgari buni faqat
+               sotuv ekrani BIR MARTA aytardi va unutilardi; kun
+               yopilganda sababsiz farq chiqardi.
+
+               Belgi to'lov kiritilishi bilan o'zi yo'qoladi.
+          */}
+          {tolov.tolovYozilmadi && (
+            <p className="mb-3 rounded-karta bg-belgi-qizil-fon px-4 py-3 text-sm text-belgi-qizil">
+              ⚠ Bu buyurtmada oldindan to&apos;lov kiritilgan edi, lekin{' '}
+              <b>yozilmay qoldi</b>. Pul olingan bo&apos;lsa, uni quyidan qayta
+              kiriting — aks holda kun yopilganda kassada farq chiqadi.
+            </p>
+          )}
+
           <dl className="mb-3 grid max-w-md grid-cols-2 gap-x-4 gap-y-1 rounded-karta border border-chegara bg-fon px-4 py-3 text-sm">
             <dt className="text-matn-kuchsiz">Jami</dt>
             <dd className="raqam">{pul(tolov.jami)}</dd>

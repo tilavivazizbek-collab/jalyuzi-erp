@@ -18,7 +18,7 @@ import {
   type PozitsiyaKirimi,
 } from '@/lib/amal/buyurtma';
 import { turTafsili, type SotuvTuri } from '@/lib/amal/katalog';
-import { buyurtmaTolovi } from '@/lib/amal/tolov';
+import { buyurtmaTolovi, tolovYozilmadiBelgila } from '@/lib/amal/tolov';
 import { pozitsiyaQosh } from '@/lib/amal/buyurtma-tahrir';
 import { kesimOlchami } from '@/lib/domain/kesish';
 import {
@@ -285,6 +285,33 @@ export async function buyurtmaYaratAmali(
           'buyurtma/yangi/amal-tolov',
           `Buyurtma ${n.raqam} saqlandi, lekin to'lov yozilmadi`,
         );
+
+        /**
+         * ⚠️ XABAR YETARLI EMAS. U ekranda bir marta ko'rinadi;
+         *    sotuvchi sahifani yopsa pul kassada qoladi, tizimda
+         *    esa yo'q va kun yopilganda sababsiz farq chiqadi.
+         *    Shuning uchun buyurtmaga IZ qoldiriladi — ro'yxatda
+         *    ko'rinadi va to'lov kiritilishi bilan o'zi o'chadi.
+         *
+         * ⚠️ Bu yozuvning o'zi ham yiqilishi mumkin (baza
+         *    o'chgan bo'lsa). Unda ham sotuvchi TO'LOV xatosini
+         *    ko'radi — belgilash xatosi uni bosib ketmaydi.
+         */
+        try {
+          await tolovYozilmadiBelgila(
+            sql,
+            {
+              buyurtmaId: n.buyurtmaId,
+              filialId: f.filialId,
+              summa: tolov.summa,
+              valyuta: tolov.valyuta,
+              sabab: tolovXatosi,
+            },
+            f.xodimId,
+          );
+        } catch {
+          /** Baza javob bermayapti — ekrandagi xabar yagona iz */
+        }
       }
     }
 

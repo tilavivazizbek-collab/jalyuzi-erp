@@ -25,6 +25,23 @@ export interface BuyurtmaQatori {
   readonly holatlar: Readonly<Record<string, number>>;
   /** TZ 8.9 — yopilgan buyurtmadan chek chiqariladi */
   readonly yopilganmi: boolean;
+  /**
+   * ⚠️ OLDINDAN TO'LOV YOZILMAY QOLGAN (2026-09-22).
+   *
+   *    Sotuv ekranida to'lov ALOHIDA tranzaksiyada yoziladi:
+   *    buyurtma saqlanadi, to'lov yiqilsa buyurtma qoladi. Sabab
+   *    `buyurtma/yangi/amal.ts` da yozilgan — buyurtmani bekor
+   *    qilgandan ko'ra to'lovni qayta kiritish yengilroq.
+   *
+   *    Lekin xabar BIR MARTA ko'rinardi. Sotuvchi sahifani yopsa,
+   *    pul kassada, tizimda esa yo'q. Kun yopilganda farq chiqardi
+   *    va sababi topilmasdi.
+   *
+   *    Endi iz qoladi va u O'ZI O'CHADI: buyurtmaga birorta
+   *    to'lov tushishi bilan belgi yo'qoladi. Shuning uchun
+   *    alohida ustun ham, `UPDATE` ham kerak emas (2.2-invariant).
+   */
+  readonly tolovYozilmadi: boolean;
 }
 
 export type BuyurtmaFiltri =
@@ -74,6 +91,7 @@ export async function buyurtmalar(
       jami: string | null;
       tolangan: string | null;
       yopilganmi: boolean;
+      tolov_yozilmadi: boolean;
     }[]
   >`
     SELECT b.id, b.raqam, b.sana, m.ism AS mijoz_ismi, b.manba, b.valyuta,
@@ -94,7 +112,22 @@ export async function buyurtmalar(
              SELECT SUM(y.summa) FROM kassa_yozuv y
              WHERE y.manba_turi = 'buyurtma' AND y.manba_id = b.id
                AND y.summa > 0
-           ), 0)::text AS tolangan
+           ), 0)::text AS tolangan,
+           /*
+            * Oldindan to'lov yozilmay qolganmi — audit izidan.
+            *
+            * ⚠️ Birorta to'lov tushsa belgi O'ZI yo'qoladi:
+            *    sotuvchi kartochkadan kiritsa ham, kassadan
+            *    kiritsa ham. Qo'lda «hal qilindi» bosish shart
+            *    emas — bosiladigan tugma unutiladi.
+            */
+           (EXISTS (SELECT 1 FROM audit_jurnal a
+                     WHERE a.amal = 'TOLOV_YOZILMADI'
+                       AND a.obyekt_turi = 'buyurtma' AND a.obyekt_id = b.id)
+            AND NOT EXISTS (SELECT 1 FROM kassa_yozuv y
+                             WHERE y.manba_turi = 'buyurtma'
+                               AND y.manba_id = b.id AND y.summa > 0))
+             AS tolov_yozilmadi
     FROM buyurtma b
     LEFT JOIN mijoz m ON m.id = b.mijoz_id
     LEFT JOIN buyurtma_pozitsiya p ON p.buyurtma_id = b.id
@@ -172,6 +205,7 @@ export async function buyurtmalar(
     tolangan: q.tolangan ?? '0',
     holatlar: holatBoyicha.get(q.id) ?? {},
     yopilganmi: q.yopilganmi,
+    tolovYozilmadi: q.tolov_yozilmadi,
   }));
 }
 
@@ -532,6 +566,14 @@ export interface TolovHolati {
   readonly tolangan: string;
   readonly qarz: string;
   readonly mijozId: number | null;
+  /**
+   * ⚠️ Sotuvda oldindan to'lov kiritilgan, lekin yozilmay qolgan
+   *    (alohida tranzaksiya yiqilgan). Ro'yxatda ham ko'rinadi —
+   *    §13: bir joyda emas, HAMMA joyda.
+   *
+   *    Birorta to'lov tushishi bilan o'zi yo'qoladi.
+   */
+  readonly tolovYozilmadi: boolean;
   readonly qatorlar: readonly {
     readonly id: number;
     readonly sana: Date;
@@ -593,6 +635,19 @@ export async function tolovHolati(
 
   const jami = Number(buyurtma.jami ?? 0);
 
+  /**
+   * ⚠️ Belgi FAQAT birorta to'lov yo'qligida ko'rsatiladi. Sotuvchi
+   *    to'lovni qayta kiritsa — ogohlantirish o'zi o'chadi va
+   *    «hal qilindi» tugmasi kerak bo'lmaydi.
+   */
+  const ogoh =
+    q.length > 0
+      ? []
+      : await sql<{ n: number }[]>`
+          SELECT COUNT(*)::int AS n FROM audit_jurnal
+           WHERE amal = 'TOLOV_YOZILMADI' AND obyekt_turi = 'buyurtma'
+             AND obyekt_id = ${buyurtmaId}`;
+
   return {
     buyurtmaId,
     valyuta: buyurtma.valyuta,
@@ -600,6 +655,7 @@ export async function tolovHolati(
     tolangan: tolangan.toFixed(2),
     qarz: (jami - tolangan).toFixed(2),
     mijozId: buyurtma.mijoz_id,
+    tolovYozilmadi: (ogoh[0]?.n ?? 0) > 0,
     qatorlar: q.map((r) => ({
       id: r.id,
       sana: r.sana,

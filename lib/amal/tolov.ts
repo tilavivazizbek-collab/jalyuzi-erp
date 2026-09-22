@@ -423,3 +423,50 @@ export async function ishHaqiTola(
     return { kassaYozuvId, balansdanYechildi: balansdan };
   });
 }
+
+// ─── TZ 12.5 · To'lov yozilmay qolgani ────────────────────────────────────
+
+/**
+ * Oldindan to'lov yozilmay qolganini AUDIT JURNALIGA yozadi.
+ *
+ * ⚠️ NEGA KERAK
+ *
+ *    Sotuv ekranida buyurtma va oldindan to'lov IKKI TRANZAKSIYADA
+ *    yoziladi. Sabab `app/(panel)/buyurtma/yangi/amal.ts` da ochiq
+ *    yozilgan: to'lov yiqilganda butun buyurtmani yo'qotgandan ko'ra,
+ *    to'lovni kartochkadan qayta kiritish yengilroq.
+ *
+ *    Lekin xabar ekranda BIR MARTA ko'rinardi. Sotuvchi uni o'qimay
+ *    sahifani yopsa — pul kassa yashigida, tizimda esa yo'q. Kun
+ *    yopilganda farq chiqardi va sababini hech kim topa olmasdi.
+ *
+ * ⚠️ BU YOZUV TO'LOV EMAS. U pulni hisobga olmaydi — faqat
+ *    «bu yerda pul kutilgan edi» deb IZ qoldiradi. Buyurtmaga
+ *    birorta to'lov tushishi bilan belgi o'zi yo'qoladi
+ *    (`app/(panel)/buyurtma/malumot.ts`), ya'ni «hal qilindi»
+ *    tugmasi kerak emas — bosiladigan tugma unutiladi.
+ *
+ * ⚠️ O'ZI ham yiqilishi mumkin (baza o'chgan bo'lsa). Shuning uchun
+ *    chaqiruvchi uni ASOSIY xatoni bosib ketishiga yo'l qo'ymaydi:
+ *    bu funksiya xato tashlasa ham, sotuvchiga to'lov xatosi
+ *    aytiladi.
+ */
+export async function tolovYozilmadiBelgila(
+  ulanish: postgres.Sql,
+  kirim: {
+    readonly buyurtmaId: number;
+    readonly filialId: number;
+    readonly summa: string;
+    readonly valyuta: Valyuta;
+    readonly sabab: string;
+  },
+  xodimId: number,
+): Promise<void> {
+  await ulanish`
+    INSERT INTO audit_jurnal (xodim_id, filial_id, amal, obyekt_turi,
+                              obyekt_id, yangi_qiymat, izoh)
+    VALUES (${xodimId}, ${kirim.filialId}, 'TOLOV_YOZILMADI', 'buyurtma',
+            ${kirim.buyurtmaId},
+            ${ulanish.json({ summa: kirim.summa, valyuta: kirim.valyuta })},
+            ${`Kutilgan to'lov ${kirim.summa} ${kirim.valyuta} yozilmadi: ${kirim.sabab}`})`;
+}

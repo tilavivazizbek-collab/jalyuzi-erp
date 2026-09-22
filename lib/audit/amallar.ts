@@ -44,6 +44,17 @@ export const AUDIT_AMALLARI = {
     sababMajburiy: true,
   },
   MIJOZ_NOFAOL: { nom: 'Mijoz nofaol qilindi', band: 'TZ 2.4, 6.7', sababMajburiy: false },
+  /**
+   * ⚠️ Oldindan to'lov ALOHIDA tranzaksiyada yoziladi (sotuv ekrani).
+   *    U yiqilsa buyurtma qoladi, pul esa kassada — tizimda yo'q.
+   *    Ilgari sotuvchi buni BIR MARTA ekranda ko'rardi va tamom;
+   *    kun yopilganda farq chiqar, sababi topilmasdi.
+   */
+  TOLOV_YOZILMADI: {
+    nom: "Oldindan to'lov yozilmay qoldi",
+    band: 'TZ 2.4, 12.5',
+    sababMajburiy: false,
+  },
 
   // §10 U-08 — turkum sifatida qo'shilganlar
   CHEGARADAN_OSHDI: { nom: 'Chegaradan oshish', band: 'QISM 1 §10', sababMajburiy: false },
