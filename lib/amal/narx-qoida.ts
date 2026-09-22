@@ -39,7 +39,15 @@ function nuqsonMatni(
   bosqichlar: readonly Bosqich[],
   usuli: string,
 ): string[] {
-  const birlik = usuli === 'MAYDON' ? 'kv.m' : usuli === 'DONA' ? 'dona' : 'm';
+  /** ⚠️ `MIQDOR` da birlik materialga bog'liq — «metr / dona» deyiladi */
+  const birlik =
+    usuli === 'MAYDON'
+      ? 'kv.m'
+      : usuli === 'DONA'
+        ? 'dona'
+        : usuli === 'MIQDOR'
+          ? 'metr / dona'
+          : 'm';
 
   return bosqichlarniTekshir(bosqichlar).map((n) => {
     switch (n.tur) {

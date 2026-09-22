@@ -51,6 +51,20 @@ const USULLAR: readonly { readonly kod: HisoblashUsuli; readonly nom: string }[]
   { kod: 'DONA', nom: 'Har donaga' },
 ];
 
+/**
+ * ⚠️ `MIQDOR` FAQAT «Materialni o'zi sotish» da ko'rinadi — egasi
+ *    qarori 2026-09-22 («ko'p olganga arzonroq»).
+ *
+ *    Tayyor jalyuzida u ma'nosiz bo'lardi: u yerda narx o'lchamdan
+ *    hisoblanadi va soni allaqachon oxirida ko'paytiriladi. Ro'yxatga
+ *    qo'shilsa, kimdir uni tanlab qo'yib, katta jalyuzi kichigidan
+ *    arzon ketib qolardi.
+ */
+const MATERIAL_USULLARI: readonly {
+  readonly kod: HisoblashUsuli;
+  readonly nom: string;
+}[] = [...USULLAR, { kod: 'MIQDOR', nom: 'Miqdordan (necha metr / dona)' }];
+
 const QOSHIMCHA_USULLARI: readonly { readonly kod: QoshimchaUsuli; readonly nom: string }[] = [
   { kod: 'QATIY', nom: "Qat'iy summa" },
   { kod: 'ENI', nom: 'Eni bo‘yicha' },
@@ -62,6 +76,13 @@ const QOSHIMCHA_USULLARI: readonly { readonly kod: QoshimchaUsuli; readonly nom:
 function birlikNomi(usuli: string): string {
   if (usuli === 'MAYDON') return 'kv.m';
   if (usuli === 'DONA') return 'dona';
+  /**
+   * ⚠️ `MIQDOR` da birlik MATERIALGA bog'liq: karnizda metr,
+   *    mexanizmda dona. Bitta so'z bilan ikkalasini ham to'g'ri
+   *    atab bo'lmaydi, shuning uchun «metr / dona» deyiladi —
+   *    yolg'on yorliqdan ko'ra ochiq noaniqlik yaxshi.
+   */
+  if (usuli === 'MIQDOR') return 'metr / dona';
   return 'metr';
 }
 
@@ -340,17 +361,26 @@ export function NarxFormasi({
       };
     }
 
-    const eni = son(sinovEni);
-    const boyi = son(sinovBoyi);
-    if (eni === null || boyi === null || eni <= 0 || boyi <= 0) {
+    /**
+     * ⚠️ `MIQDOR` da O'LCHAM SO'RALMAYDI — karniz va mexanizmda u
+     *    umuman kiritilmaydi. Bosqich «Soni» katagiga qarab
+     *    tanlanadi, ya'ni tekshiruv sotuv ekranidagi bilan bir xil
+     *    ishlaydi (egasi qarori 2026-09-22).
+     */
+    const miqdorlimi = q.hisoblashUsuli === 'MIQDOR';
+
+    const eni = miqdorlimi ? 0 : son(sinovEni);
+    const boyi = miqdorlimi ? 0 : son(sinovBoyi);
+    if (!miqdorlimi && (eni === null || boyi === null || eni <= 0 || boyi <= 0)) {
       return { xato: "O'lcham kiriting", hisob: null };
     }
 
     try {
       const hisob = pozitsiyaQoidaNarxi({
         qoida: { hisoblashUsuli: q.hisoblashUsuli, bosqichlar: domenBosqichlari(q.bosqichlar) },
-        eniM: eni,
-        boyiM: boyi,
+        eniM: eni ?? 0,
+        boyiM: boyi ?? 0,
+        miqdor: sinovSoniAdadi,
         qoshimchalar: qoshimchalar
           .filter((_, i) => tanlangan.includes(i))
           .map((x) => ({
@@ -371,12 +401,29 @@ export function NarxFormasi({
     qoshimchalar,
     sinovEni,
     sinovBoyi,
+    sinovSoniAdadi,
     sinovGuruh,
     sinovMijoz,
     sinovFilial,
     tanlangan,
     kursObyekti,
   ]);
+
+  /**
+   * ⚠️ `MIQDOR` da soni NARXNING ICHIDA — u bosqichni tanlagan va
+   *    narxga ko'paytirilgan. Pastda yana «Jami × 3» deb ko'rsatilsa
+   *    raqam UCH BAROBAR ko'rinardi va egasi jadvalni noto'g'ri
+   *    deb o'ylardi.
+   */
+  const soniAlohidami = (() => {
+    const mos = qoidalar.filter((x) => x.narxGuruhId === sinovGuruh);
+    const q =
+      mos.find((x) => x.mijozTuriId === sinovMijoz && x.filialId === sinovFilial) ??
+      mos.find((x) => x.mijozTuriId === sinovMijoz && x.filialId === null) ??
+      mos.find((x) => x.mijozTuriId === null && x.filialId === sinovFilial) ??
+      mos.find((x) => x.mijozTuriId === null && x.filialId === null);
+    return q?.hisoblashUsuli !== 'MIQDOR';
+  })();
 
   return (
     <form action={yubor} className="flex flex-col gap-5">
@@ -412,7 +459,7 @@ export function NarxFormasi({
           <div>
             <h2 className="text-[15px] font-semibold text-matn">Narx jadvali</h2>
             <p className="mt-0.5 text-[12px] text-matn-ikki">
-              {turNomi} — har mato darajasi uchun alohida
+              {turNomi} — har narx darajasi uchun alohida
             </p>
           </div>
           {ozgartiraOladi && darajaQoshishRoyxati.length > 0 && (
@@ -468,7 +515,7 @@ export function NarxFormasi({
             {guruhlar.length === 0 ? (
               <>
                 <p className="text-sm font-medium text-matn">
-                  Avval mato darajasi kerak
+                  Avval narx darajasi kerak
                 </p>
                 <p className="mx-auto mt-1 max-w-md text-[13px] text-matn-ikki">
                   Narx jadvali darajalar bo‘yicha to‘ldiriladi: «Oddiy» matoga bir
@@ -493,7 +540,7 @@ export function NarxFormasi({
                   Bu turga hali narx qo‘yilmagan
                 </p>
                 <p className="mx-auto mt-1 max-w-md text-[13px] text-matn-ikki">
-                  Yuqoridagi <b>«+ daraja qo‘shish»</b> ro‘yxatidan mato darajasini
+                  Yuqoridagi <b>«+ daraja qo‘shish»</b> ro‘yxatidan narx darajasini
                   tanlang — shundan keyin bosqichlar jadvali ochiladi.
                 </p>
               </>
@@ -559,7 +606,7 @@ export function NarxFormasi({
                       className={`${kichik} w-[210px]`}
                       disabled={!ozgartiraOladi}
                     >
-                      {USULLAR.map((u) => (
+                      {(turId === null ? MATERIAL_USULLARI : USULLAR).map((u) => (
                         <option key={u.kod} value={u.kod}>
                           {u.nom}
                         </option>
@@ -854,7 +901,7 @@ export function NarxFormasi({
               }}
               className="rounded-maydon border border-chegara-quyuq bg-sirt px-3 py-1.5 text-[13px] font-medium text-matn transition-colors hover:border-brend hover:text-brend"
             >
-              + Yangi mato darajasi
+              + Yangi narx darajasi
             </button>
           )}
           {/*
@@ -1055,6 +1102,20 @@ export function NarxFormasi({
           Saqlashdan oldin narxni shu yerda ko‘ring
         </p>
 
+        {/*
+          ⚠️ «Miqdordan» qoidasida o'lcham HISOBGA OLINMAYDI — bosqich
+             «Soni» katagiga qarab tanlanadi. Kataklar yashirilmaydi
+             (boshqa daraja tanlansa yana kerak bo'ladi), lekin nima
+             bo'layotgani ochiq aytiladi: jim turgan katak egasini
+             «nega raqam o'zgarmayapti?» degan savolga olib kelardi.
+        */}
+        {!soniAlohidami && (
+          <p className="mb-2 rounded-maydon bg-brend-fon px-3 py-2 text-[12px] text-brend">
+            Bu daraja <b>miqdordan</b> hisoblanadi — o&apos;lcham e&apos;tiborga
+            olinmaydi, narx <b>Soni</b> katagiga qarab topiladi.
+          </p>
+        )}
+
         <div className="flex flex-wrap items-center gap-2">
           <input
             value={sinovEni}
@@ -1063,7 +1124,8 @@ export function NarxFormasi({
             }}
             inputMode="numeric"
             aria-label="Sinov eni"
-            className={`${kichik} w-[90px]`}
+            disabled={!soniAlohidami}
+            className={`${kichik} w-[90px] disabled:opacity-40`}
           />
           <span className="text-sm text-matn-kuchsiz">×</span>
           <input
@@ -1073,7 +1135,8 @@ export function NarxFormasi({
             }}
             inputMode="numeric"
             aria-label="Sinov bo‘yi"
-            className={`${kichik} w-[90px]`}
+            disabled={!soniAlohidami}
+            className={`${kichik} w-[90px] disabled:opacity-40`}
           />
           <span className="text-sm text-matn-kuchsiz">m</span>
 
@@ -1193,7 +1256,9 @@ export function NarxFormasi({
                 </div>
               ))}
               <div className="mt-1 flex justify-between border-t border-chegara pt-1">
-                <dt className="text-matn-ikki">Bitta buyum</dt>
+                <dt className="text-matn-ikki">
+                  {soniAlohidami ? 'Bitta buyum' : 'Jami'}
+                </dt>
                 <dd className="tabular-nums">{pulKorsat(som(natija.hisob.jami))} so‘m</dd>
               </div>
               {/*
@@ -1203,7 +1268,7 @@ export function NarxFormasi({
                    savolga javobni ko'radi va bitta buyum narxi ham
                    ko'rinib turadi.
               */}
-              {sinovSoniAdadi > 1 && (
+              {soniAlohidami && sinovSoniAdadi > 1 && (
                 <div className="flex justify-between border-t border-chegara pt-1 font-semibold">
                   <dt>Jami × {sinovSoniAdadi}</dt>
                   <dd className="tabular-nums">
@@ -1249,7 +1314,7 @@ export function NarxFormasi({
         yop={() => {
           setGuruhModali(false);
         }}
-        sarlavha="Yangi mato darajasi"
+        sarlavha="Yangi narx darajasi"
         izoh="Narx jadvali shu darajalar bo‘yicha to‘ldiriladi"
         bolalar={
           <NarxGuruhFormasi

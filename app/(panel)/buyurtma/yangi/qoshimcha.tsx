@@ -159,13 +159,56 @@ export function QoshimchaQoshish({
    *    TZ 6.2 — mijoz turiga qo'yilgan qoida umumiysidan ustun.
    */
   const qoida = (() => {
-    if (!kesiladimi || (tanlangan?.narxGuruhId ?? null) === null) return null;
+    if (tanlangan === undefined) return null;
     const g = tanlangan.narxGuruhId;
+    if (g === null) return null;
     return (
       qoidalar.find((q) => q.narxGuruhId === g && q.mijozTuriId === mijozTuriId) ??
       qoidalar.find((q) => q.narxGuruhId === g && q.mijozTuriId === null) ??
       null
     );
+  })();
+
+  /**
+   * MIQDOR BO'YICHA BOSQICH — egasi qarori 2026-09-22.
+   *
+   * ⚠️ «Ko'p olganga arzonroq beriladi — muni matoni qilgandek
+   *    belgilab qo'yish orqali». Ya'ni karniz va donalab sotiladigan
+   *    buyum ham xuddi mato kabi «Materialni o'zi sotish» jadvalidan
+   *    narx oladi, faqat bosqich MIQDORGA qarab tanlanadi.
+   *
+   * ⚠️ MAJBURIY EMAS. Materialga daraja qo'yilmagan bo'lsa yoki
+   *    qoida `MIQDOR` usulida bo'lmasa — hammasi avvalgidek:
+   *    materialning o'z `sotuv_narx` i ishlaydi. Shuning uchun
+   *    hech bir mavjud mahsulot buzilmaydi.
+   */
+  const miqdorQoidasi =
+    !kesiladimi && qoida !== null && qoida.hisoblashUsuli === 'MIQDOR' ? qoida : null;
+
+  const miqdorNatijasi = (() => {
+    if (miqdorQoidasi === null) return null;
+    if (!Number.isFinite(son) || son <= 0) return null;
+    try {
+      return pozitsiyaQoidaNarxi({
+        qoida: {
+          hisoblashUsuli: 'MIQDOR',
+          bosqichlar: miqdorQoidasi.bosqichlar.map((x) => ({
+            dan: x.dan,
+            gacha: x.gacha,
+            narx: x.narx,
+            valyuta: x.valyuta,
+          })),
+        },
+        eniM: 0,
+        boyiM: 0,
+        miqdor: son,
+        qoshimchalar: [],
+        offset: null,
+        kurs,
+      });
+    } catch (x) {
+      return { xato: biznesXatosimi(x) ? x.message : 'Narxni hisoblab bo‘lmadi' };
+    }
   })();
 
   const kesimNatijasi = (() => {
@@ -193,19 +236,35 @@ export function QoshimchaQoshish({
     }
   })();
 
-  const jami = kesiladimi
-    ? kesimNatijasi !== null && 'jami' in kesimNatijasi
-      ? som(kesimNatijasi.jami)
-      : null
-    : birlikNarx === null || !Number.isFinite(son) || son <= 0
-      ? null
-      : /**
-         * ⚠️ MATN beriladi, `number` emas. `kopaytir` ikkalasini ham
-         *    qabul qiladi, lekin matnda ikkilik kasr umuman
-         *    tug'ilmaydi — narx 1 metr uchun va miqdor kasr bo'lishi
-         *    mumkin (T-16).
-         */
-        kopaytir(birlikNarx, soni.trim());
+  const jami = (() => {
+    if (kesiladimi) {
+      return kesimNatijasi !== null && 'jami' in kesimNatijasi
+        ? som(kesimNatijasi.jami)
+        : null;
+    }
+
+    /**
+     * ⚠️ MIQDOR QOIDASI USTUN — u ataylab qo'yilgan bosqichli narx,
+     *    materialning `sotuv_narx` i esa standart. Qoida bo'lsa-yu
+     *    e'tiborga olinmasa, egasi jadvalni to'ldirib qo'yib,
+     *    nega ishlamayotganini tushunmasdi.
+     */
+    if (miqdorQoidasi !== null) {
+      return miqdorNatijasi !== null && 'jami' in miqdorNatijasi
+        ? som(miqdorNatijasi.jami)
+        : null;
+    }
+
+    if (birlikNarx === null || !Number.isFinite(son) || son <= 0) return null;
+
+    /**
+     * ⚠️ MATN beriladi, `number` emas. `kopaytir` ikkalasini ham
+     *    qabul qiladi, lekin matnda ikkilik kasr umuman
+     *    tug'ilmaydi — narx 1 metr uchun va miqdor kasr bo'lishi
+     *    mumkin (T-16).
+     */
+    return kopaytir(birlikNarx, soni.trim());
+  })();
 
   function yop(): void {
     ochiqniOzgartir(false);
@@ -263,7 +322,18 @@ export function QoshimchaQoshish({
         return;
       }
       if (jami === null) {
-        xatoniOzgartir('Bu mahsulotning sotuv narxi belgilanmagan');
+        /**
+         * ⚠️ Ikki xil sabab, ikki xil xabar. «Narx belgilanmagan»
+         *    degani jadvalni to'ldirgan egasini adashtirardi:
+         *    jadval bor, faqat SHU MIQDOR uchun bosqich yo'q.
+         */
+        xatoniOzgartir(
+          miqdorQoidasi === null
+            ? 'Bu mahsulotning sotuv narxi belgilanmagan'
+            : miqdorNatijasi !== null && 'xato' in miqdorNatijasi
+              ? miqdorNatijasi.xato
+              : "Bu miqdor uchun bosqich qo'yilmagan — «Narxlar va turlar» → «Materialni o'zi sotish»",
+        );
         return;
       }
     }
@@ -446,6 +516,30 @@ export function QoshimchaQoshish({
                     <>
                       <span className="text-matn-kuchsiz">
                         {(eniM * boyiM).toFixed(4)} kv.m ={' '}
+                      </span>
+                      <b>{pulKorsat(jami)}</b>
+                    </>
+                  )
+                ) : miqdorQoidasi !== null ? (
+                  /*
+                    ⚠️ MIQDOR QOIDASIDA BIRLIK NARXI O'ZGARADI —
+                       shuning uchun materialning standart narxini
+                       ko'rsatib bo'lmaydi: «35 000 × 20 = 640 000»
+                       deb turardi va bu arifmetik YOLG'ON edi.
+                       Bosqichning o'z stavkasi ko'rsatiladi.
+                  */
+                  jami === null ? (
+                    <span className="text-matn-kuchsiz">
+                      {miqdorNatijasi !== null && 'xato' in miqdorNatijasi
+                        ? miqdorNatijasi.xato
+                        : 'Miqdorni kiriting'}
+                    </span>
+                  ) : (
+                    <>
+                      <span className="text-matn-kuchsiz">
+                        {miqdorNatijasi !== null && 'bosqich' in miqdorNatijasi
+                          ? `${miqdorNatijasi.bosqich?.narx ?? '?'} × ${soni} = `
+                          : ''}
                       </span>
                       <b>{pulKorsat(jami)}</b>
                     </>

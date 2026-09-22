@@ -35,12 +35,19 @@ export const bosqichSxema = z
   });
 
 export const narxQoidaSxema = z.object({
-  narxGuruhId: z.number().int().positive('Mato darajasini tanlang'),
+  narxGuruhId: z.number().int().positive('Narx darajasini tanlang'),
   /** TZ 6.2 — bo'sh bo'lsa hamma mijoz turiga */
   mijozTuriId: z.number().int().positive().nullable().default(null),
   /** TZ 20.9 — bo'sh bo'lsa hamma filialga */
   filialId: z.number().int().positive().nullable().default(null),
-  hisoblashUsuli: z.enum(['MAYDON', 'ENI', "BO'YI", 'DONA']).default('MAYDON'),
+  /**
+   * ⚠️ `MIQDOR` — egasi qarori 2026-09-22: «ko'p olganga arzonroq».
+   *    Bosqich sotilayotgan miqdorga qarab tanlanadi (metr yoki dona).
+   *    Ekranda u faqat «Materialni o'zi sotish» da taklif qilinadi,
+   *    lekin sxema uni umumiy qabul qiladi: tayyor mahsulotga qo'yib
+   *    bo'lmasligi — ekran qarori, ma'lumot cheklovi emas.
+   */
+  hisoblashUsuli: z.enum(['MAYDON', 'ENI', "BO'YI", 'DONA', 'MIQDOR']).default('MAYDON'),
   bosqichlar: z.array(bosqichSxema).min(1, 'Kamida bitta bosqich kiriting'),
 });
 

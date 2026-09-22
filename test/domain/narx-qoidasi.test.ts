@@ -18,7 +18,7 @@ import {
   type Bosqich,
   type Qoida,
 } from '@/lib/domain/narx-qoidasi';
-import { dollar, kurs, som } from '@/lib/domain/pul';
+import { dollar, kurs, pulMatn, som } from '@/lib/domain/pul';
 import { BiznesXato } from '@/lib/xato';
 
 /** Egasi bergan jadval (2026-09-20): 8 $ · 5 $ · 3 $ */
@@ -311,5 +311,82 @@ describe('chegarada narx tushishi — ogohlantirish, blok emas', () => {
       bosqichlar: [{ dan: 0, gacha: null, narx: '3', valyuta: 'SOM' }],
     };
     expect(chegaradaNarxTushadimi(yagona, null)).toEqual([]);
+  });
+});
+
+/**
+ * MIQDOR BO'YICHA BOSQICH — egasi qarori 2026-09-22.
+ *
+ * ⚠️ Egasi: «ko'p olganga arzonroq beriladi — muni matoni qilgandek
+ *    belgilab qo'yish orqali hal qilsa bo'ladi».
+ *
+ *    Karniz va donalab sotiladigan buyumda eni-bo'yi umuman
+ *    kiritilmaydi, `DONA` usulida esa o'lchov DOIM 1 — ya'ni
+ *    «10 metrdan ko'p olsa arzon» degan qoidani mavjud usullar
+ *    bilan YOZIB BO'LMASDI.
+ */
+describe('MIQDOR — bosqich sotilayotgan miqdorga qarab tanlanadi', () => {
+  /** Egasi misoli: 10 metrgacha 35 000, undan ko'p bo'lsa 32 000 */
+  const KARNIZ: readonly Bosqich[] = [
+    { dan: 0, gacha: 10, narx: '35000', valyuta: 'SOM' },
+    { dan: 10, gacha: null, narx: '32000', valyuta: 'SOM' },
+  ];
+  const KARNIZ_QOIDASI: Qoida = { hisoblashUsuli: 'MIQDOR', bosqichlar: KARNIZ };
+
+  it("o'lchov — miqdorning o'zi", () => {
+    expect(olchovi('MIQDOR', 0, 0, 7)).toBe(7);
+    expect(olchovi('MIQDOR', 0, 0, 2.5)).toBe(2.5);
+  });
+
+  it("o'lcham E'TIBORGA OLINMAYDI — karnizda u umuman yo‘q", () => {
+    expect(olchovi('MIQDOR', 0, 0, 4)).toBe(4);
+    expect(olchovi('MIQDOR', 99, 99, 4)).toBe(4);
+  });
+
+  it('miqdor berilmasa 1 — eski chaqiruvlar buzilmaydi', () => {
+    expect(olchovi('MIQDOR', 0, 0)).toBe(1);
+  });
+
+  it('miqdor nol yoki manfiy bo‘lsa XATO — bepulga ketmasin', () => {
+    expect(() => olchovi('MIQDOR', 0, 0, 0)).toThrow(BiznesXato);
+    expect(() => olchovi('MIQDOR', 0, 0, -3)).toThrow(BiznesXato);
+  });
+
+  it('7 metr — birinchi bosqich: 7 × 35 000 = 245 000', () => {
+    expect(qoidaNarxi(KARNIZ_QOIDASI, 0, 0, null, 7)).toEqual(som('245000'));
+  });
+
+  it('⚠️ 20 metr — arzon bosqich: 20 × 32 000 = 640 000', () => {
+    expect(qoidaNarxi(KARNIZ_QOIDASI, 0, 0, null, 20)).toEqual(som('640000'));
+  });
+
+  it('AYNAN 10 metr keyingi bosqichga tushadi — [dan, gacha)', () => {
+    expect(qoidaNarxi(KARNIZ_QOIDASI, 0, 0, null, 10)).toEqual(som('320000'));
+  });
+
+  it("ko'p olgan KAM olgandan arzonga tushmaydi — jami baribir ortadi", () => {
+    const on = Number(pulMatn(qoidaNarxi(KARNIZ_QOIDASI, 0, 0, null, 10)));
+    const toqqiz = Number(pulMatn(qoidaNarxi(KARNIZ_QOIDASI, 0, 0, null, 9)));
+    expect(on).toBeGreaterThan(toqqiz);
+  });
+
+  it('pozitsiya narxi ham miqdorni oladi', () => {
+    const n = pozitsiyaQoidaNarxi({
+      qoida: KARNIZ_QOIDASI,
+      eniM: 0,
+      boyiM: 0,
+      miqdor: 20,
+      qoshimchalar: [],
+      offset: null,
+      kurs: null,
+    });
+
+    expect(n.olchov).toBe(20);
+    expect(n.bosqich?.narx).toBe('32000');
+    expect(n.jami).toBe('640000.00');
+  });
+
+  it('DONA usuliga TEGILMAGAN — o‘lchov doim 1', () => {
+    expect(olchovi('DONA', 0, 0, 50)).toBe(1);
   });
 });

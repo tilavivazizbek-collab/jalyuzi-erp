@@ -35,7 +35,17 @@ import { katalogNarxi, offsetQolla, type Offset } from './narx';
 const D = Decimal.clone({ precision: 34, rounding: Decimal.ROUND_HALF_UP });
 
 /** Narx nimadan hisoblanadi */
-export type HisoblashUsuli = 'MAYDON' | 'ENI' | "BO'YI" | 'DONA';
+/**
+ * ⚠️ `MIQDOR` — egasi qarori 2026-09-22: «ko'p olganga arzonroq
+ *    beriladi, muni matoni qilgandek belgilab qo'yish orqali».
+ *
+ *    Karniz va donalab sotiladigan buyumda eni-bo'yi umuman
+ *    kiritilmaydi, `DONA` da esa o'lchov DOIM 1 — ya'ni «10 donadan
+ *    ko'p olsa arzon» degan qoidani mavjud usullar bilan yozib
+ *    bo'lmasdi. `MIQDOR` da bosqich SOTILAYOTGAN MIQDORGA qarab
+ *    tanlanadi: M materialda metr, DONA materialda dona.
+ */
+export type HisoblashUsuli = 'MAYDON' | 'ENI' | "BO'YI" | 'DONA' | 'MIQDOR';
 
 /** Qo'shimcha narxi nimadan — `QATIY` o'lchamdan bog'liq emas */
 export type QoshimchaUsuli = 'QATIY' | 'MAYDON' | 'ENI' | "BO'YI";
@@ -55,8 +65,33 @@ export type QoshimchaUsuli = 'QATIY' | 'MAYDON' | 'ENI' | "BO'YI";
  *    birlikda edi — endi kirish ham o'sha birlikda, demak
  *    o'girishning o'zi kerak emas.
  */
-export function olchovi(usuli: HisoblashUsuli, eniM: number, boyiM: number): number {
+export function olchovi(
+  usuli: HisoblashUsuli,
+  eniM: number,
+  boyiM: number,
+  /**
+   * Sotilayotgan miqdor — FAQAT `MIQDOR` usulida ishlatiladi.
+   *
+   * ⚠️ Qolgan usullarda e'tiborga olinmaydi: ular o'lchamdan
+   *    hisoblanadi va miqdor keyin, jamiga ko'paytirishda qatnashadi.
+   *    Ikki joyda ikki marta qo'llanmasligi uchun shunday.
+   */
+  miqdor = 1,
+): number {
   if (usuli === 'DONA') return 1;
+
+  /**
+   * ⚠️ MIQDOR o'lcham TEKSHIRUVIDAN OLDIN turadi: karniz va
+   *    mexanizmda eni-bo'yi umuman kiritilmaydi va ular nol
+   *    bo'ladi. Pastdagi tekshiruvga tushsa, «o'lcham noldan katta
+   *    bo'lsin» degan ma'nosiz xato chiqardi.
+   */
+  if (usuli === 'MIQDOR') {
+    if (!Number.isFinite(miqdor) || miqdor <= 0) {
+      throw new BiznesXato('NARX_NOTOGRI', 'miqdor noldan katta bo‘lsin');
+    }
+    return new D(miqdor).toNumber();
+  }
 
   if (!Number.isFinite(eniM) || !Number.isFinite(boyiM) || eniM <= 0 || boyiM <= 0) {
     throw new BiznesXato('NARX_NOTOGRI', "o'lcham noldan katta bo'lsin");
@@ -122,8 +157,10 @@ export function qoidaNarxi(
   eniM: number,
   boyiM: number,
   kurs: Kurs | null,
+  /** `MIQDOR` usulida bosqich shunga qarab tanlanadi (2026-09-22) */
+  miqdor = 1,
 ): Som {
-  const olchov = olchovi(qoida.hisoblashUsuli, eniM, boyiM);
+  const olchov = olchovi(qoida.hisoblashUsuli, eniM, boyiM, miqdor);
   const bosqich = bosqichniTop(qoida.bosqichlar, olchov);
 
   if (bosqich === null) {
@@ -174,6 +211,12 @@ export interface PozitsiyaKirishi {
   readonly qoida: Qoida;
   readonly eniM: number;
   readonly boyiM: number;
+  /**
+   * Sotilayotgan miqdor — `MIQDOR` usulida bosqich shunga qarab
+   * tanlanadi va narx shunga ko'paytiriladi. Boshqa usullarda
+   * e'tiborga olinmaydi.
+   */
+  readonly miqdor?: number;
   readonly qoshimchalar: readonly Qoshimcha[];
   /** TZ 6.3 — mijoz guruhi chegirmasi/ustamasi */
   readonly offset: Offset | null;
@@ -203,10 +246,11 @@ export interface PozitsiyaNatijasi {
  *    uni mijoz guruhi avtomatik hal qilmasligi kerak.
  */
 export function pozitsiyaQoidaNarxi(k: PozitsiyaKirishi): PozitsiyaNatijasi {
-  const olchov = olchovi(k.qoida.hisoblashUsuli, k.eniM, k.boyiM);
+  const miqdor = k.miqdor ?? 1;
+  const olchov = olchovi(k.qoida.hisoblashUsuli, k.eniM, k.boyiM, miqdor);
   const bosqich = bosqichniTop(k.qoida.bosqichlar, olchov);
 
-  const xom = qoidaNarxi(k.qoida, k.eniM, k.boyiM, k.kurs);
+  const xom = qoidaNarxi(k.qoida, k.eniM, k.boyiM, k.kurs, miqdor);
   const asosiy = offsetQolla(xom, k.offset, k.kurs);
 
   const qatorlar: NarxQatori[] = k.qoshimchalar.map((q) => ({

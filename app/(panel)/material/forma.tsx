@@ -324,13 +324,21 @@ export function MaterialFormasi({
         {narxGuruhlari.length > 0 && (
           <TanlovModal
             nom="narxGuruhId"
-            yorliq="Mato darajasi"
+            /*
+              ⚠️ «Mato darajasi» EDI (2026-09-22 gacha). Daraja endi
+                 matoga ham, karnizga ham, donalab sotiladigan buyumga
+                 ham qo'yiladi — egasi qarori 2026-09-22 («ko'p olganga
+                 arzonroq»). Karniz kartochkasida «Mato darajasi»
+                 degan yorliq turgani odamni «bu menga tegishli emas»
+                 deb o'ylashga majburlardi.
+            */
+            yorliq="Narx darajasi"
             izoh="mijoz narxi shu darajaga qarab hisoblanadi"
             bandlar={narxGuruhlari}
             boshlangich={qiymatlar.narxGuruhId}
             boshMatn="— narxga kirmaydi —"
             yangiYorliq="Yangi daraja"
-            modalSarlavha="Yangi mato darajasi"
+            modalSarlavha="Yangi narx darajasi"
             modalIzoh="Narx jadvali shu darajalar bo‘yicha to‘ldiriladi"
             boshqaruvYoli="/narx"
             qoshaOladi={narxGuruhQoshaOladi}

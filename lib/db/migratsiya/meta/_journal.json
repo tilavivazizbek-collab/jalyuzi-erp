@@ -330,6 +330,13 @@
       "when": 1790043766251,
       "tag": "0046_chegirma_limiti",
       "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1790130166251,
+      "tag": "0047_miqdor_bosqichi",
+      "breakpoints": true
     }
   ]
 }

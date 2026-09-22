@@ -185,7 +185,7 @@ export const TUR_TAVSIFI: Record<OchiriladiganTur, TurTavsifi> = {
 
   narxGuruh: {
     jadval: 'narx_guruh',
-    nom: 'Mato darajasi',
+    nom: 'Narx darajasi',
     ruxsat: 'narx.standart.ozgartir',
     bandmi: async (tx, id) => {
       /**
