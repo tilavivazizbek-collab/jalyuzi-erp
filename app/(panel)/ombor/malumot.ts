@@ -264,7 +264,7 @@ export interface MaterialXulosasi {
  *    yig'indisidan chiqadi. Saqlansa bir marta xato bo'lib abadiy
  *    qolardi.
  *
- * ⚠️ Miqdor uch ustunda yotadi (kv.m · sm · dona) — materialning
+ * ⚠️ Miqdor uch ustunda yotadi (kv.m · m · dona) — materialning
  *    turiga qarab biri to'ladi. Shuning uchun uchalasi qo'shiladi:
  *    bitta material faqat bitta birlikda yuritiladi.
  *

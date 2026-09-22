@@ -87,7 +87,22 @@ export const BIRLIK_TAVSIFI: Record<OlchovBirligi, BirlikTavsifi> = {
     hisobTuri: 'CHIZIQLI',
     kirimBirligi: 'metr',
     sarflashBirligi: 'M',
-    ozgarishKerak: true,
+    /**
+     * ⚠️ 2026-09-22 — `true` EDI va bu XATO edi.
+     *
+     *    Kirim birligi ham, sarflash birligi ham METR: o'girish
+     *    yo'q, koeffitsient doim 1. `true` turgani uchun material
+     *    formasi «METR bo'lsa 100» deb maxsus shoxcha yozgan edi
+     *    (santimetr davridan qolgan) va yangi metr materiali
+     *    koeffitsient = 100 bilan saqlanardi. Keyin 50 m kirim
+     *    omborga 5000 m bo'lib tushardi, metr tannarxi esa 100
+     *    barobar kamayardi — va buni hech kim sezmasdi.
+     *
+     *    Bazadagi ikki materialda koeffitsient 1.0000 (0043 to'g'ri
+     *    o'girgan), ya'ni zarar hali yetmagan: xato YANGI material
+     *    ochilganda yoki eskisi qayta saqlanganda otardi.
+     */
+    ozgarishKerak: false,
     olchamliMi: false,
     narxBirligi: 'metr',
   },
@@ -148,9 +163,9 @@ export function birlikTavsifi(birlik: string): BirlikTavsifi {
 /**
  * «Bitta shtanga necha metr material?» qatorining savoli.
  *
- * ⚠️ Ekranda METRDA so'raladi, bazada esa SANTIMETRDA saqlanadi
- *    (Q-01: koeffitsient = 1 kirim birligida nechta METR). Omborchi
- *    «300» deb emas, «3» deb yozadi — u shunday o'ylaydi.
+ * ⚠️ Q-01: koeffitsient = «1 kirim birligida nechta METR». 2026-09-20
+ *    dan bazada ham metr — o'girish yo'q. Omborchi «3» deb yozadi va
+ *    bazaga ham 3 tushadi.
  */
 export function ozgarishSavoli(birlik: OlchovBirligi): string {
   const t = BIRLIK_TAVSIFI[birlik];
@@ -167,7 +182,12 @@ export function ozgarishSavoli(birlik: OlchovBirligi): string {
  *    birligi metrdan farq qilishi mumkin — u yerda so'raladi.
  */
 export function ozgarishKiritiladimi(birlik: OlchovBirligi): boolean {
-  if (birlik === 'METR') return false;
+  /**
+   * ⚠️ METR uchun maxsus shoxcha bor edi — endi kerak emas:
+   *    jadvalning o'zida `ozgarishKerak: false` turibdi. Ikki
+   *    joyda ikki xil javob bo'lishi xatoning manbayi edi
+   *    (forma koeffitsientni 100 deb yuborardi).
+   */
   return BIRLIK_TAVSIFI[birlik].ozgarishKerak;
 }
 

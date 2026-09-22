@@ -159,11 +159,29 @@ describe("O'girish qachon so'raladi", () => {
     expect(BIRLIK_TAVSIFI.DONA.ozgarishKerak).toBe(false);
   });
 
+  /**
+   * ⚠️ METR BU RO'YXATDAN CHIQARILDI (2026-09-22).
+   *
+   *    Testning nomi o'zi sababini aytib turibdi: «kirim va sarflash
+   *    HAR XIL». METR da ular bir xil — kirim ham metr, sarflash ham
+   *    metr. Ya'ni METR bu yerda boshidan noto'g'ri turgan va o'sha
+   *    `true` material formasini «METR bo'lsa koeffitsient 100»
+   *    degan shoxchaga olib kelgan edi (santimetr davridan).
+   *
+   *    Test ko'rsatkichni emas, KUTILGAN XATTI-HARAKATNI tekshirishi
+   *    kerak — shuning uchun tuzatildi, o'chirilmadi.
+   */
   it('chiziqli materiallarda — so\'raladi (kirim va sarflash har xil)', () => {
-    for (const b of ['METR', 'SHTANGA', 'QUTI'] as const) {
+    for (const b of ['SHTANGA', 'QUTI'] as const) {
       expect(BIRLIK_TAVSIFI[b].ozgarishKerak).toBe(true);
       expect(BIRLIK_TAVSIFI[b].sarflashBirligi).toBe('M');
     }
+  });
+
+  it("METR chiziqli, lekin o'girishsiz — kirim ham sarflash ham metr", () => {
+    expect(BIRLIK_TAVSIFI.METR.hisobTuri).toBe('CHIZIQLI');
+    expect(BIRLIK_TAVSIFI.METR.sarflashBirligi).toBe('M');
+    expect(BIRLIK_TAVSIFI.METR.ozgarishKerak).toBe(false);
   });
 
   it("faqat rulon o'lchamli — eni va bo'yi bilan keladi (Q-05)", () => {
@@ -173,5 +191,38 @@ describe("O'girish qachon so'raladi", () => {
 
   it('chiziqli materialning narxi 1 METR uchun yoziladi (Q-01)', () => {
     expect(BIRLIK_TAVSIFI.SHTANGA.narxBirligi).toBe('metr');
+  });
+});
+
+/**
+ * ⚠️ 2026-09-22 — SANTIMETR DAVRIDAN QOLGAN XATO.
+ *
+ *    `BIRLIK_TAVSIFI.METR.ozgarishKerak` `true` turgani uchun material
+ *    formasi maxsus shoxcha yozgan edi: «METR bo'lsa koeffitsient 100»
+ *    (1 metr = 100 sm). Tizim 2026-09-20 dan butunlay metrda, demak
+ *    kirim metri = sarflash metri va koeffitsient DOIM 1.
+ *
+ *    Yangi metr materiali koeffitsient 100 bilan saqlanardi. Keyin
+ *    50 m kirim omborga 5000 m bo'lib tushardi va metr tannarxi 100
+ *    barobar kamayardi. Hech bir test, `typecheck` yoki `lint` buni
+ *    ko'rmagan — shuning uchun test aynan shu yerga yoziladi.
+ */
+describe('METR — o‘girish umuman yo‘q (2026-09-22)', () => {
+  it('kirim birligi ham, sarflash birligi ham metr', () => {
+    expect(BIRLIK_TAVSIFI.METR.kirimBirligi).toBe('metr');
+    expect(BIRLIK_TAVSIFI.METR.sarflashBirligi).toBe('M');
+  });
+
+  it("o'girish KERAK EMAS — ⚠️ bu bayroq `100` xatosining manbayi edi", () => {
+    expect(BIRLIK_TAVSIFI.METR.ozgarishKerak).toBe(false);
+  });
+
+  it('ekranda savol ham so‘ralmaydi — «1 metr necha metr» bema’ni', () => {
+    expect(ozgarishKiritiladimi('METR')).toBe(false);
+  });
+
+  it('o‘girish kerak bo‘lgan birliklar — faqat SHTANGA va QUTI', () => {
+    const kerak = OLCHOV_BIRLIKLARI.filter((b) => BIRLIK_TAVSIFI[b].ozgarishKerak);
+    expect([...kerak].sort()).toEqual(['QUTI', 'SHTANGA']);
   });
 });

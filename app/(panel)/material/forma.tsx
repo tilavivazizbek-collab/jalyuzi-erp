@@ -876,13 +876,13 @@ export function MaterialFormasi({
  *    Bu yerda «1» deb to'ldirib qo'yish jimgina noto'g'ri
  *    konversiya yaratardi.
  *
- * ⚠️ METRda har doim 100 (1 metr = 100 sm) — o'zgarmas, so'ralmaydi.
+ * ⚠️ METR uchun bu yerda maxsus shoxcha bor edi va u `100` qaytarardi
+ *    («1 metr = 100 sm»). Santimetr davridan qolgan: tizim 2026-09-20
+ *    dan butunlay metrda, demak kirim metri = sarflash metri = 1.
+ *    Shoxcha o'chirildi, javob endi BIR JOYDA — `BIRLIK_TAVSIFI`
+ *    jadvalida (§2.2).
  */
 function birlikKoeffitsienti(birlik: OlchovBirligi, ozgarishMetr: string): string {
-  // 1 metr = 100 sm — o'zgarmas. Egasi savolni bema'niga o'xshardi,
-  // shuning uchun METR so'ralmaydi va o'zi 100 yuboradi.
-  if (birlik === 'METR') return '100';
-
   const ozgarishKerak = BIRLIK_TAVSIFI[birlik].ozgarishKerak;
   if (!ozgarishKerak) return '1';
   if (ozgarishMetr.trim() === '') return '';
