@@ -157,6 +157,30 @@ function ChekBlogi({ chek, qrSvg }: { chek: Chek; qrSvg: string }) {
         <Juft yorliq="Hisoblangan" qiymat={chek.hisoblangan} raqam />
         {chek.chegirma !== null && <Juft yorliq="Chegirma" qiymat={chek.chegirma} raqam />}
         <Juft yorliq="Jami" qiymat={chek.jami} raqam qalin />
+        {/*
+          ⚠️ NDS — Q-23 · TZ 8.14 (2026-09-21).
+
+             Uch ustun bazada 2026-08 dan beri turardi va hech qachon
+             to'ldirilmasdi: mijoz kartochkasida «NDS to'lovchisi»
+             yig'ilar, chekda esa ajratilmasdi.
+
+             «Shu jumladan» — NDS jamiga QO'SHILMAYDI, undan
+             AJRATILADI (Q-23). Qo'shilsa mijoz kelishilgan summadan
+             ortiq to'lardi.
+
+             Mijoz NDS to'lovchisi bo'lmasa bu qatorlar UMUMAN
+             chiqmaydi: «NDS: 0» oddiy xaridorni chalg'itardi.
+        */}
+        {chek.nds !== null && (
+          <>
+            <Juft yorliq="Summa NDSsiz" qiymat={chek.nds.summaNdssiz} raqam />
+            <Juft
+              yorliq={`shu jumladan NDS ${chek.nds.stavka}%`}
+              qiymat={chek.nds.summa}
+              raqam
+            />
+          </>
+        )}
         <Juft yorliq="To'langan" qiymat={chek.tolangan} raqam />
         {/* ⚠️ Qarz nol bo'lsa bu qator UMUMAN yo'q (8.13) */}
         {chek.qarz !== null && <Juft yorliq="Qarz (shu savdodan)" qiymat={chek.qarz} raqam qalin />}

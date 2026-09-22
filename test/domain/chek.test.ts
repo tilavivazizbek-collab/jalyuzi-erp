@@ -278,3 +278,81 @@ describe('14.3 — korxona ma‘lumotlari sozlamadan keladi', () => {
     expect(c.qrRaqam).toBe('14202608300184');
   });
 });
+
+/**
+ * Q-23 · TZ 8.14 — NDS CHEKDA
+ *
+ * ⚠️ `buyurtma.nds_stavka`, `nds_summa`, `summa_ndssiz` uch ustun
+ *    2026-08 dan beri bazada turardi va HECH QACHON to'ldirilmasdi.
+ *    Mijoz kartochkasida «NDS to'lovchisi» belgisi yig'ilardi,
+ *    buyurtmaga esa o'tmasdi — yuridik mijozga chekda NDS
+ *    ajratilmasdi.
+ *
+ * ⚠️ Q-23 ning o'zida yozilgan: NDS CHEGIRMADAN KEYIN ajratiladi.
+ */
+describe('Q-23 — NDS chekda ajratiladi', () => {
+  it("NDS to'lovchisi bo'lmasa qatorlar UMUMAN chiqmaydi", () => {
+    const c = chekYasa(kirim({ valyuta: 'SOM', tolangan: '0', pozitsiyalar: [poz({ narx: '100000' })] }));
+    expect(c.nds).toBeNull();
+  });
+
+  it('stavka nol bo‘lsa ham chiqmaydi — «NDS: 0» chalg‘itardi', () => {
+    const c = chekYasa(
+      kirim({ valyuta: 'SOM', tolangan: '0', ndsStavka: '0', pozitsiyalar: [poz({ narx: '100000' })] }),
+    );
+    expect(c.nds).toBeNull();
+  });
+
+  it('12% — 112 000 dan 12 000 ajratiladi, QO‘SHILMAYDI', () => {
+    /**
+     * ⚠️ Narx NDS BILAN aytiladi va undan ichki summa chiqariladi.
+     *    Qo'shilsa mijoz kelishilgan summadan ortiq to'lardi.
+     *
+     *    112 000 ÷ 1.12 = 100 000  →  NDS = 12 000
+     */
+    const c = chekYasa(
+      kirim({ valyuta: 'SOM', tolangan: '0', ndsStavka: '12', pozitsiyalar: [poz({ narx: '112000' })] }),
+    );
+
+    expect(c.jami).toBe(chekPuli(som('112000.00')));
+    expect(c.nds?.summaNdssiz).toBe(chekPuli(som('100000.00')));
+    expect(c.nds?.summa).toBe(chekPuli(som('12000.00')));
+    expect(c.nds?.stavka).toBe('12.00');
+  });
+
+  it('CHEGIRMADAN KEYIN ajratiladi — Q-23', () => {
+    /**
+     * 112 000 − 22 400 = 89 600 chegirmali summa
+     * 89 600 ÷ 1.12 = 80 000  →  NDS = 9 600
+     *
+     * ⚠️ Teskari bo'lsa (chegirmadan OLDIN) NDS 12 000 chiqib,
+     *    soliq ortiqcha to'lanardi.
+     */
+    const c = chekYasa(
+      kirim({
+        valyuta: 'SOM',
+        tolangan: '0',
+        ndsStavka: '12',
+        pozitsiyalar: [poz({ narx: '112000', chegirma: '22400' })],
+      }),
+    );
+
+    expect(c.nds?.summaNdssiz).toBe(chekPuli(som('80000.00')));
+    expect(c.nds?.summa).toBe(chekPuli(som('9600.00')));
+  });
+
+  it('NDSsiz summa + NDS = jami — tiyinigacha', () => {
+    const c = chekYasa(
+      kirim({ valyuta: 'SOM', tolangan: '0', ndsStavka: '12', pozitsiyalar: [poz({ narx: '333333' })] }),
+    );
+
+    /** ⚠️ Matndan faqat raqam olinadi: «333 333 so'm» → 333333 */
+    const raqam = (x: string): number => Number(x.replace(/[^0-9.]/g, ''));
+
+    const ndssiz = raqam(c.nds?.summaNdssiz ?? '0');
+    const nds = raqam(c.nds?.summa ?? '0');
+    const jami = raqam(c.jami);
+
+    expect(Math.abs(ndssiz + nds - jami)).toBeLessThanOrEqual(0.01);
+  });
+});

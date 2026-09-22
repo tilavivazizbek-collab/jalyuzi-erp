@@ -25,6 +25,8 @@ interface BoshQator {
   readonly sana: Date;
   readonly yopildi: Date | null;
   readonly valyuta: string;
+  /** Q-23 — NDS stavkasi; nol bo'lsa chekda qator chiqmaydi */
+  readonly nds_stavka: string | null;
   readonly sotuvchi_ismi: string;
   readonly mijoz_id: number | null;
   readonly mijoz_ismi: string | null;
@@ -43,6 +45,7 @@ export async function buyurtmaCheki(
 ): Promise<Chek | null> {
   const bosh = await ulanish<BoshQator[]>`
     SELECT b.id, b.raqam, b.sana, b.yopildi, b.valyuta,
+           b.nds_stavka::text,
            x.ism AS sotuvchi_ismi, b.mijoz_id, m.ism AS mijoz_ismi
     FROM buyurtma b
     JOIN xodim x ON x.id = b.sotuvchi_id
@@ -72,6 +75,7 @@ export async function buyurtmaCheki(
     mijoz: h.mijoz_ismi,
     valyuta: h.valyuta === 'USD' ? 'USD' : 'SOM',
     pozitsiyalar,
+    ndsStavka: h.nds_stavka,
     tolangan,
     qarzKeyin: qarz,
     korxonaNom: korxona.korxona_nom,
@@ -275,6 +279,7 @@ export async function buyurtmaKvitansiyasi(
 ): Promise<Kvitansiya | null> {
   const bosh = await ulanish<BoshQator[]>`
     SELECT b.id, b.raqam, b.sana, b.yopildi, b.valyuta,
+           b.nds_stavka::text,
            x.ism AS sotuvchi_ismi, b.mijoz_id, m.ism AS mijoz_ismi
     FROM buyurtma b
     JOIN xodim x ON x.id = b.sotuvchi_id

@@ -14,6 +14,7 @@
  *    ishonay?» degan savol bilan qolardi.
  */
 
+import Decimal from 'decimal.js';
 import {
   ayir,
   dollar,
@@ -74,6 +75,11 @@ export interface ChekKirimi {
   readonly mijoz: string | null;
   readonly valyuta: Valyuta;
   readonly pozitsiyalar: readonly ChekPozitsiyasi[];
+  /**
+   * NDS stavkasi — buyurtmada saqlangani (Q-23).
+   * `null` yoki nol bo'lsa chekda NDS qatorlari chiqmaydi.
+   */
+  readonly ndsStavka?: string | null;
   /** Kassa yozuvlaridan yig'ilgan to'lov (2.2-invariant) */
   readonly tolangan: string;
   /**
@@ -138,6 +144,21 @@ export interface Chek {
   /** Nol bo'lsa `null` — chegirmasiz savdoda bu qator ham chiqmaydi */
   readonly chegirma: string | null;
   readonly jami: string;
+  /**
+   * NDS — Q-23 · TZ 8.14 (2026-09-21).
+   *
+   * ⚠️ `null` — mijoz NDS to'lovchisi emas yoki mijoz yo'q.
+   *    Unda chekda bu qatorlar UMUMAN chiqmaydi: «NDS: 0»
+   *    yozuvi oddiy xaridorni chalg'itardi.
+   *
+   * ⚠️ NDS jamiga QO'SHILMAYDI — undan AJRATILADI. Chekda
+   *    «shu jumladan NDS» deb ko'rsatiladi.
+   */
+  readonly nds: {
+    readonly stavka: string;
+    readonly summa: string;
+    readonly summaNdssiz: string;
+  } | null;
   readonly tolangan: string;
   /** ⚠️ Nol bo'lsa `null` — «$0.00» yozilmaydi, qator YO'Q bo'ladi */
   readonly qarz: string | null;
@@ -372,6 +393,30 @@ export function chekYasa(k: ChekKirimi): Chek {
 
   const chekRaqam = chekRaqami(k.filialKod, k.sana, k.buyurtmaRaqam);
 
+  /**
+   * Q-23 — NDS CHEGIRMADAN KEYINGI summadan AJRATILADI.
+   *
+   * ⚠️ Bu yerda qayta hisoblanadi, buyurtmadagi `nds_summa`
+   *    olinmaydi: chekda faqat KO'RINADIGAN pozitsiyalar bor
+   *    (qaytarilgani tushib qoladi, 8.14) va ularning jamisi
+   *    buyurtmanikidan farq qilishi mumkin. Chekdagi raqamlar
+   *    o'zaro mos bo'lishi muhimroq.
+   */
+  const ndsStavka = k.ndsStavka ?? null;
+  const nds =
+    ndsStavka === null || Number(ndsStavka) <= 0
+      ? null
+      : (() => {
+          const stavka = new Decimal(ndsStavka);
+          const jamiD = new Decimal(pulMatn(jami));
+          const ndssiz = jamiD.div(stavka.div(100).plus(1));
+          return {
+            stavka: stavka.toFixed(2),
+            summa: chekPuli(pulYasa(jamiD.minus(ndssiz).toFixed(2), k.valyuta)),
+            summaNdssiz: chekPuli(pulYasa(ndssiz.toFixed(2), k.valyuta)),
+          };
+        })();
+
   /** Mijozsiz buyurtmada qarz bloklari umuman chiqmaydi (3.10) */
   const keyin = k.qarzKeyin;
   const oldin = keyin === null ? null : qarzOldingi(keyin, pulMatn(qarz), k.valyuta);
@@ -380,6 +425,7 @@ export function chekYasa(k: ChekKirimi): Chek {
     keyin === null || oldin === null ? new Set<Valyuta>() : korinadiganValyutalar(oldin, keyin);
 
   return {
+    nds,
     korxonaNom: k.korxonaNom,
     korxonaManzil: k.korxonaManzil,
     korxonaTelefon: k.korxonaTelefon,

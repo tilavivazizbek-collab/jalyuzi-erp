@@ -656,6 +656,58 @@ export async function buyurtmaYarat(
                 ${xodimId})`;
     }
 
+    /**
+     * Q-23 · TZ 8.14 — NDS AJRATILADI (2026-09-21).
+     *
+     * ⚠️ Uchta ustun (`nds_stavka`, `nds_summa`, `summa_ndssiz`)
+     *    2026-08 dan beri bazada turardi va HECH QACHON
+     *    to'ldirilmasdi. Mijoz kartochkasida «NDS to'lovchisi»
+     *    belgisi va stavkasi yig'ilardi, buyurtmaga esa
+     *    o'tmasdi — yuridik mijozga chekda NDS ajratilmasdi.
+     *
+     * ⚠️ «AJRATILADI», qo'shilmaydi: narx NDS bilan aytiladi va
+     *    undan ichki summa chiqariladi (Q-23). Qo'shilsa mijoz
+     *    kelishilgan summadan ortiq to'lardi.
+     *
+     * ⚠️ CHEGIRMADAN KEYIN (Q-23 ning o'zida yozilgan): avval
+     *    chegirma, keyin NDS. Teskari bo'lsa NDS chegirma berilmagan
+     *    summadan hisoblanib, soliq ortiqcha chiqardi.
+     *
+     * ⚠️ Mijoz NDS to'lovchisi bo'lmasa — nol. Mijozsiz
+     *    buyurtmada ham nol (3.10 — «ko'chadagi xaridor»).
+     */
+    const ndsMijoz =
+      kirim.mijozId === null
+        ? null
+        : (
+            await tx<{ nds_tolovchi: boolean; nds_stavka: string | null }[]>`
+              SELECT nds_tolovchi, nds_stavka::text FROM mijoz
+               WHERE id = ${kirim.mijozId}`
+          )[0] ?? null;
+
+    const ndsStavka =
+      ndsMijoz !== null && ndsMijoz.nds_tolovchi && ndsMijoz.nds_stavka !== null
+        ? new Decimal(ndsMijoz.nds_stavka)
+        : new Decimal(0);
+
+    if (ndsStavka.greaterThan(0)) {
+      const jamiChegirmali = kirim.pozitsiyalar.reduce(
+        (y, p) => y.plus(new Decimal(p.narxSnapshot)).minus(new Decimal(p.chegirmaSumma)),
+        new Decimal(0),
+      );
+
+      /** summa ÷ (1 + stavka/100) — NDSsiz asos */
+      const ndssiz = jamiChegirmali.div(ndsStavka.div(100).plus(1));
+      const ndsSumma = jamiChegirmali.minus(ndssiz);
+
+      await tx`
+        UPDATE buyurtma
+           SET nds_stavka = ${ndsStavka.toFixed(2)},
+               nds_summa = ${ndsSumma.toFixed(2)},
+               summa_ndssiz = ${ndssiz.toFixed(2)}
+         WHERE id = ${buyurtmaId}`;
+    }
+
     // TZ 2.4 — har buyurtma audit jurnalida
     await tx`
       INSERT INTO audit_jurnal (xodim_id, filial_id, amal, obyekt_turi, obyekt_id,
