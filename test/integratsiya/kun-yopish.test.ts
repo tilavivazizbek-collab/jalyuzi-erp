@@ -345,3 +345,63 @@ describe('kun hisobi kassa yozuvlariga tayanadi', () => {
     expect(Number(h.chiqim) - oldin).toBe(450_000);
   });
 });
+
+/**
+ * `kunHolati().kunId` — EKRANGA KERAK (2026-09-22).
+ *
+ * ⚠️ TZ 12.17 «Kerak bo'lsa ADMIN kunni qayta ochadi» deb yozilgan va
+ *    `kunniQaytaOch()` 2026-08 dan beri to'liq ishlaydi. Lekin ekranda
+ *    faqat VA'DA turardi: «kerak bo'lsa admin qayta ochadi» degan
+ *    jumla bor edi, tugma esa yo'q. `kunHolati()` yopilgan kunning
+ *    `id` sini qaytarmagani uchun tugmani yasab ham bo'lmasdi.
+ *
+ *    Oqibati og'ir edi: kun xato yopilsa, o'sha sanaga BIRORTA to'lov
+ *    kiritib bo'lmasdi (`kunOchiqmi` xato tashlaydi) va uni ochadigan
+ *    yo'l yo'q edi.
+ */
+describe('kun holati — qayta ochish uchun kerakli id', () => {
+  it('yopilmagan kunda `kunId` bo‘sh', async () => {
+    const sana = yangiSana();
+    await yozuv('120000', sana);
+
+    const h = await kunHolati(sql, kassaId, sana);
+
+    expect(h.yopilganmi).toBe(false);
+    expect(h.kunId).toBeNull();
+  });
+
+  it('yopilgan kunda `kunId` bor va `kunniYop` bergani bilan BIR XIL', async () => {
+    const sana = yangiSana();
+    await yozuv('130000', sana);
+
+    const oldin = await kunHolati(sql, kassaId, sana);
+    const n = await kunniYop(
+      sql,
+      { kassaId, sana, sanaldi: oldin.hisoblangan, izoh: null },
+      XODIM,
+    );
+
+    const keyin = await kunHolati(sql, kassaId, sana);
+
+    expect(keyin.yopilganmi).toBe(true);
+    expect(keyin.kunId).toBe(n.kunId);
+  });
+
+  it('⚠️ qayta ochilgach yana bo‘shab qoladi — tugma o‘zi yo‘qoladi', async () => {
+    const sana = yangiSana();
+    await yozuv('140000', sana);
+
+    const oldin = await kunHolati(sql, kassaId, sana);
+    const n = await kunniYop(
+      sql,
+      { kassaId, sana, sanaldi: oldin.hisoblangan, izoh: null },
+      XODIM,
+    );
+
+    await kunniQaytaOch(sql, n.kunId, 'Kechki to‘lov kiritilmagan', XODIM);
+
+    const keyin = await kunHolati(sql, kassaId, sana);
+    expect(keyin.yopilganmi).toBe(false);
+    expect(keyin.kunId).toBeNull();
+  });
+});

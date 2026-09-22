@@ -1454,7 +1454,7 @@ export function SotuvFormasi({
                 {hisob.darajaNomi === null && (
                   <p className="mt-1 text-xs">
                     Tanlangan matoga <b>daraja qo&apos;yilmagan</b>. Material kartochkasida
-                    mato darajasini tanlang — narx o&apos;sha daraja bo&apos;yicha
+                    narx darajasini tanlang — narx o&apos;sha daraja bo&apos;yicha
                     topiladi.
                   </p>
                 )}

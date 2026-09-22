@@ -30,7 +30,7 @@ export function DarajaQoshish() {
         yop={() => {
           ochiqniOzgartir(false);
         }}
-        sarlavha="Yangi mato darajasi"
+        sarlavha="Yangi narx darajasi"
         izoh="Narx jadvali shu darajalar bo‘yicha to‘ldiriladi"
         bolalar={
           <NarxGuruhFormasi

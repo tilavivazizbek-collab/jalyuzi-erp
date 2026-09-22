@@ -15,6 +15,14 @@ export default async function KunYopishSahifasi({
 }) {
   const f = await sahifaRuxsati('kassa.oz.kor');
   const barchaniKoradi = ruxsatBormi(f, 'kassa.barcha.kor');
+  /**
+   * TZ 12.17 — «Kerak bo'lsa ADMIN kunni qayta ochadi».
+   *
+   * ⚠️ Ruxsat `kassa.storno` — amalning o'zi ham shuni talab qiladi
+   *    (`kunniQaytaOchAmali`). Ikki xil ruxsat bo'lsa, tugma
+   *    ko'rinib, bosilganda «ruxsat yo'q» chiqardi.
+   */
+  const qaytaOchaOladi = ruxsatBormi(f, 'kassa.storno');
 
   const { sana } = await searchParams;
   const bugun = new Date().toISOString().slice(0, 10);
@@ -95,7 +103,9 @@ export default async function KunYopishSahifasi({
                   chiqim: k.chiqim,
                   hisoblangan: k.hisoblangan,
                   yopilganmi: k.yopilganmi,
+                  kunId: k.kunId,
                 }}
+                qaytaOchaOladi={qaytaOchaOladi}
               />
             </section>
           ))}

@@ -34,6 +34,15 @@ export interface KunHolati {
   readonly chiqim: string;
   readonly hisoblangan: string;
   readonly yopilganmi: boolean;
+  /**
+   * Yopilgan kun yozuvining `id` si — QAYTA OCHISH uchun kerak.
+   *
+   * ⚠️ 2026-09-22: ilgari qaytarilmasdi va shu sabab «qayta ochish»
+   *    tugmasini yasab bo'lmasdi. Amalning o'zi (`kunniQaytaOch`)
+   *    2026-08 dan beri to'liq yozilgan, ekranda esa faqat
+   *    «kerak bo'lsa admin qayta ochadi» degan VA'DA turardi.
+   */
+  readonly kunId: number | null;
 }
 
 /**
@@ -71,9 +80,10 @@ export async function kunHolati(
   // §2.2 — hisob DOMAINDA, bu yerda takrorlanmaydi
   const h = kunHisobi(som(r.boshlangich), som(r.kirim), som(r.chiqim));
 
-  const yopiq = await ulanish<{ n: number }[]>`
-    SELECT COUNT(*)::int AS n FROM kassa_kun
-    WHERE kassa_id = ${kassaId} AND sana = ${sana} AND yopildi IS NOT NULL`;
+  const yopiq = await ulanish<{ id: number }[]>`
+    SELECT id FROM kassa_kun
+    WHERE kassa_id = ${kassaId} AND sana = ${sana} AND yopildi IS NOT NULL
+    LIMIT 1`;
 
   return {
     kassaId,
@@ -84,7 +94,8 @@ export async function kunHolati(
     kirim: pulMatn(h.kirim),
     chiqim: pulMatn(h.chiqim),
     hisoblangan: pulMatn(h.hisoblangan),
-    yopilganmi: (yopiq[0]?.n ?? 0) > 0,
+    yopilganmi: yopiq[0] !== undefined,
+    kunId: yopiq[0]?.id ?? null,
   };
 }
 

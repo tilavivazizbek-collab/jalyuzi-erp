@@ -13,8 +13,8 @@
 import { useActionState, useState } from 'react';
 import { Maydon, kirishUslubi } from '../maydon';
 import { pulKorsat, som } from '@/lib/domain/pul';
-import { kunniYopAmali } from './amal';
-import { BOSH_KUN } from './holat';
+import { kunniQaytaOchAmali, kunniYopAmali } from './amal';
+import { BOSH_HOLAT, BOSH_KUN } from './holat';
 
 export interface KunKorinishi {
   readonly kassaId: number;
@@ -25,9 +25,18 @@ export interface KunKorinishi {
   readonly chiqim: string;
   readonly hisoblangan: string;
   readonly yopilganmi: boolean;
+  /** Yopilgan kun yozuvining id si — qayta ochish uchun */
+  readonly kunId: number | null;
 }
 
-export function KunYopishFormasi({ kun }: { kun: KunKorinishi }) {
+export function KunYopishFormasi({
+  kun,
+  qaytaOchaOladi = false,
+}: {
+  kun: KunKorinishi;
+  /** TZ 12.17 — faqat admin qayta ocha oladi (`kassa.storno`) */
+  qaytaOchaOladi?: boolean;
+}) {
   const [holat, yubor, kutilmoqda] = useActionState(kunniYopAmali, BOSH_KUN);
   const [sanaldi, sanaldiniOzgartir] = useState('');
 
@@ -44,10 +53,27 @@ export function KunYopishFormasi({ kun }: { kun: KunKorinishi }) {
 
   if (kun.yopilganmi) {
     return (
-      <p className="rounded-karta bg-belgi-yashil-fon px-4 py-3 text-sm text-belgi-yashil ">
-        <b>{kun.kassaNomi}</b> — {kun.sana} kuni yopilgan. Bu sanaga yangi yozuv kiritib
-        bo&apos;lmaydi (12.17). Kerak bo&apos;lsa admin qayta ochadi.
-      </p>
+      <div className="flex max-w-md flex-col gap-3">
+        <p className="rounded-karta bg-belgi-yashil-fon px-4 py-3 text-sm text-belgi-yashil ">
+          <b>{kun.kassaNomi}</b> — {kun.sana} kuni yopilgan. Bu sanaga yangi yozuv
+          kiritib bo&apos;lmaydi (12.17).
+        </p>
+
+        {/*
+          ⚠️ 2026-09-22 — BU YERDA FAQAT VA'DA TURARDI.
+             «Kerak bo'lsa admin qayta ochadi» deb yozilgan edi, lekin
+             tugma hech qayerda yo'q edi. Amalning o'zi
+             (`kunniQaytaOchAmali`) to'liq yozilgan — ruxsat, filial
+             tekshiruvi, majburiy sabab, audit yozuvi — faqat ekranga
+             ulanmagan edi.
+
+             Oqibati og'ir: kun xato yopilsa, o'sha sanaga BIRORTA
+             to'lov kiritib bo'lmasdi va uni ochadigan yo'l yo'q edi.
+        */}
+        {qaytaOchaOladi && kun.kunId !== null && (
+          <QaytaOchish kunId={kun.kunId} />
+        )}
+      </div>
     );
   }
 
@@ -130,6 +156,93 @@ export function KunYopishFormasi({ kun }: { kun: KunKorinishi }) {
       >
         {kutilmoqda ? 'Yopilmoqda…' : 'Kunni yopish'}
       </button>
+    </form>
+  );
+}
+
+/**
+ * TZ 12.17 — «Kerak bo'lsa ADMIN kunni qayta ochadi — sabab MAJBURIY,
+ * audit jurnaliga tushadi.»
+ *
+ * ⚠️ IKKI QADAM: avval «qayta ochish» bosiladi, keyin sabab yoziladi.
+ *    Bitta tugma bo'lsa, tasodifan bosilishi mumkin edi — yopilgan
+ *    kunni ochish kassa hisobiga aralashish demak.
+ *
+ * ⚠️ Sabab BO'SH bo'lsa tugma ishlamaydi. Serverda ham tekshiriladi
+ *    (`kunniQaytaOch`) — bu yerdagi tekshiruv faqat odamga tez javob
+ *    berish uchun, himoya emas.
+ */
+function QaytaOchish({ kunId }: { kunId: number }) {
+  const [holat, yubor, kutilmoqda] = useActionState(kunniQaytaOchAmali, BOSH_HOLAT);
+  const [ochiq, ochiqniOzgartir] = useState(false);
+  const [sabab, sababniOzgartir] = useState('');
+
+  if (holat.bajarildi) {
+    return (
+      <p className="rounded-maydon bg-belgi-yashil-fon px-3 py-2.5 text-sm text-belgi-yashil">
+        Kun qayta ochildi — endi bu sanaga yozuv kiritish mumkin.
+      </p>
+    );
+  }
+
+  if (!ochiq) {
+    return (
+      <button
+        type="button"
+        onClick={() => {
+          ochiqniOzgartir(true);
+        }}
+        className="self-start rounded-maydon border border-chegara-quyuq px-3 py-1.5 text-sm text-matn-ikki transition-all hover:bg-fon active:scale-[0.98]"
+      >
+        Kunni qayta ochish
+      </button>
+    );
+  }
+
+  return (
+    <form action={yubor} className="flex flex-col gap-3">
+      <input type="hidden" name="kunId" value={kunId} />
+
+      {holat.xato !== null && (
+        <p
+          role="alert"
+          className="rounded-maydon bg-belgi-qizil-fon px-3 py-2.5 text-sm text-belgi-qizil"
+        >
+          {holat.xato}
+        </p>
+      )}
+
+      <Maydon nom="sabab" yorliq="Nima uchun qayta ochilmoqda" izoh="audit jurnaliga tushadi">
+        <input
+          id="sabab"
+          name="sabab"
+          value={sabab}
+          onChange={(e) => {
+            sababniOzgartir(e.target.value);
+          }}
+          placeholder="Masalan: kun xato yopilgan, kechki to'lov kiritilmagan"
+          className={kirishUslubi(false)}
+        />
+      </Maydon>
+
+      <div className="flex items-center gap-3">
+        <button
+          type="submit"
+          disabled={kutilmoqda || sabab.trim() === ''}
+          className="rounded-maydon bg-brend px-4 py-2 text-sm font-medium text-white transition-all hover:bg-brend-quyuq active:scale-[0.98] disabled:opacity-50"
+        >
+          {kutilmoqda ? 'Ochilmoqda…' : 'Qayta ochish'}
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            ochiqniOzgartir(false);
+          }}
+          className="text-sm text-matn-kuchsiz hover:text-matn"
+        >
+          Bekor
+        </button>
+      </div>
     </form>
   );
 }

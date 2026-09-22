@@ -284,7 +284,7 @@ export function QoshimchaQoshish({
       }
       if (qoida === null) {
         xatoniOzgartir(
-          "Bu mato darajasi uchun narx qo'yilmagan — «Narxlar va turlar» → «Materialni o'zi sotish»",
+          "Bu narx darajasi uchun narx qo'yilmagan — «Narxlar va turlar» → «Materialni o'zi sotish»",
         );
         return;
       }
@@ -503,7 +503,7 @@ export function QoshimchaQoshish({
                 {kesiladimi ? (
                   qoida === null ? (
                     <span className="text-belgi-sariq">
-                      Bu mato darajasi uchun narx qo&apos;yilmagan — «Narxlar va
+                      Bu narx darajasi uchun narx qo&apos;yilmagan — «Narxlar va
                       turlar» → «Materialni o&apos;zi sotish»
                     </span>
                   ) : jami === null ? (
