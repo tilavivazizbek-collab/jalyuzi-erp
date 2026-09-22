@@ -138,6 +138,10 @@ export const XATO_BAND = {
    *    bu o'lchamda esa mahsulot jismonan qilinmaydi.
    */
   OLCHAM_CHEGARADAN: 'Egasi qarori 2026-09-22',
+  /** Tanlov kodi tizimning o'z o'zgaruvchisi bilan to'qnashdi (2026-09-22) */
+  TANLOV_KODI_BAND: 'Egasi qarori 2026-09-22',
+  /** Majburiy tanlov tanlanmagan */
+  TANLOV_TANLANMAGAN: 'Egasi qarori 2026-09-22',
   BUYURTMA_MIJOZ_KERAK: 'TZ 3.10',
   /** TZ 12.3 · 13.10 — bir to'lov ikki marta yozilmaydi */
   TOLOV_TAKROR: 'TZ 12.3',

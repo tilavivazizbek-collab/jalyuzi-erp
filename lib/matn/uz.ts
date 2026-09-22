@@ -131,6 +131,8 @@ export const XATO_MATNI: Record<XatoKod, string> = {
    *    Bu yerda faqat umumiy sarlavha.
    */
   OLCHAM_CHEGARADAN: "Bu o'lchamda mahsulot qilib bo'lmaydi",
+  TANLOV_KODI_BAND: "Bu kod tizimda band — boshqa kod bering",
+  TANLOV_TANLANMAGAN: 'Tanlov qilinmagan',
   BUYURTMA_MIJOZ_KERAK: "Qarzga sotishda mijoz tanlanishi shart",
   TOLOV_TAKROR: "Bu to'lov allaqachon yozilgan — sahifani yangilang",
   TOLOV_KALIT_KERAK: "To'lovni qayta yuboring — sahifani yangilang",
