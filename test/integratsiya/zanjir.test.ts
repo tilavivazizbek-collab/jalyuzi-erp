@@ -114,8 +114,7 @@ describe('2. Kartochkada to‘ldirilgani saqlanadi', () => {
         kirimBirligi: 'rulon',
         sarflashBirligi: 'KV_M',
         koeffitsient: '1',
-        sotuvNarx: '120000',
-        sotuvValyuta: 'SOM',
+        kod: null,
         kirimNarxAsosi: 'METR',
   togridanSotiladi: false,
         kutilayotganKelishNarx: '78000',
@@ -276,8 +275,20 @@ describe('5. Sotuv ekrani turni va uning matolarini ko‘radi', () => {
     const matolar = slot?.materiallar ?? [];
     expect(matolar.some((m) => m.id === matoId)).toBe(true);
 
-    const mato = matolar.find((m) => m.id === matoId);
-    expect(Number(mato?.narx)).toBe(120000);
+    /**
+     * ⚠️ SOTUV NARXI endi material kartochkasidan QO'YILMAYDI
+     *    (egasi qarori 2026-09-22) — u `/narx` jadvalidan keladi.
+     *    Ustun bazada qoldi va eski qiymatlar zaxira yo'l bo'lib
+     *    ishlaydi, shuning uchun katalog uni HAMON olib chiqishi
+     *    kerak. Shuni tekshiramiz: qiymat to'g'ridan-to'g'ri
+     *    bazaga qo'yiladi (eski yozuvni taqlid qiladi).
+     */
+    await sql`UPDATE material SET sotuv_narx = 120000 WHERE id = ${matoId}`;
+    const qayta = await turTafsili(turId, FILIAL, sql);
+    const matoQayta = qayta?.slotlar
+      .flatMap((x) => x.materiallar)
+      .find((x) => x.id === matoId);
+    expect(Number(matoQayta?.narx)).toBe(120000);
   });
 
   it('formula 210 × 140 uchun to‘g‘ri miqdor beradi', () => {

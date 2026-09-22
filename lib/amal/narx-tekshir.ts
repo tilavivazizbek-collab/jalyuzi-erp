@@ -41,7 +41,9 @@ import { amaldagiOffset } from '@/lib/domain/mijoz';
 import { katalogNarxi } from '@/lib/domain/narx';
 import { kopaytir, kurs as kursYasa, pulMatn, type Kurs } from '@/lib/domain/pul';
 import {
+  darajaliSlotniTop,
   pozitsiyaQoidaNarxi,
+  type DarajaliSlot,
   type HisoblashUsuli,
   type QoshimchaUsuli,
 } from '@/lib/domain/narx-qoidasi';
@@ -59,8 +61,17 @@ export interface TekshirilayotganNarx {
   readonly mijozId: number | null;
   readonly filialId: number;
   readonly kursSnapshot: string | null;
-  /** Slotlarga tanlangan materiallar — daraja shulardan topiladi */
-  readonly materialIdlar: readonly number[];
+  /**
+   * Slotlarga tanlangan materiallar — daraja shulardan topiladi.
+   *
+   * ⚠️ `slotId` KERAK: qaysi slot narxni belgilashi admin tomonidan
+   *    `mahsulot_slot.narx_belgilaydi` da belgilanadi (0048). Faqat
+   *    material id lari bilan buni bilib bo'lmaydi.
+   *
+   * ⚠️ `slotId` `null` bo'lishi mumkin — qo'lda qo'shilgan qator.
+   *    Bunday qatorda belgi yo'q deb qaraladi.
+   */
+  readonly slotlar: readonly { readonly slotId: number | null; readonly materialId: number }[];
   /** Mijoz tanlagan qo'shimchalar (`pozitsiya_qoshimcha` ga tushadigan) */
   readonly qoshimchaIdlar: readonly number[];
   /** Konstruktor parametrlari — `formula_snapshot` dan */
@@ -125,25 +136,65 @@ export async function narxniTekshir(
   const mijozTuriId = mijoz?.mijoz_turi_id ?? null;
 
   /**
-   * DARAJA — MATO SLOTIDAN.
+   * DARAJA — qaysi slotdan olinishi `darajaliSlotniTop()` da.
    *
-   * ⚠️ 2026-09-21: ekranda ham shunday (`forma.tsx`). Ilgari
-   *    «birinchi darajasi bor material» olinardi va bu slot
-   *    tartibiga bog'liq edi — karnizga daraja qo'yilgan bo'lsa
-   *    narx karniz darajasidan izlanardi.
+   * ⚠️ 2026-09-22: qoida SHU YERDAN OLIB TASHLANDI. Ilgari u sotuv
+   *    ekranida, bu yerda va botda uch marta yozilgan edi — biri
+   *    o'zgarsa uchtasi uch xil narx berardi (CLAUDE.md §3).
+   *
+   * ⚠️ Tartib MUHIM: `k.slotlar` ekrandan qanday kelsa shunday
+   *    qoladi, chunki belgi qo'yilmagan turda «birinchi mato»
+   *    qoidasi ishlaydi va u tartibga tayanadi.
    */
+  const materialIdlar = k.slotlar.map((s) => s.materialId);
   const darajalar =
-    k.materialIdlar.length === 0
+    materialIdlar.length === 0
       ? []
-      : await tx<{ narx_guruh_id: number | null; sarflash_birligi: string }[]>`
-          SELECT narx_guruh_id, sarflash_birligi FROM material
-           WHERE id = ANY(${k.materialIdlar})`;
+      : await tx<
+          { id: number; narx_guruh_id: number | null; sarflash_birligi: string }[]
+        >`
+          SELECT id, narx_guruh_id, sarflash_birligi FROM material
+           WHERE id = ANY(${materialIdlar})`;
+
+  /**
+   * ⚠️ BELGILANGAN SLOT TURDAN O'QILADI, kelgan qatorlardan EMAS.
+   *
+   *    Sotuv ekrani materiali TANLANMAGAN slotni yubormaydi
+   *    (`forma.tsx` → `.filter((q) => q.material !== null)`). Agar
+   *    belgini faqat kelgan qatorlardan izlasak, mijoz belgilangan
+   *    slotga mato tanlamagan holatda server belgini KO'RMAY qolardi
+   *    va boshqa slotning darajasidan narx hisoblardi — ekran esa
+   *    «narx topilmadi» derdi. Ikki xil natija, ya'ni biz endigina
+   *    yopgan teshikning o'zi.
+   */
+  const belgilangan = await tx<{ id: number }[]>`
+    SELECT id FROM mahsulot_slot
+     WHERE mahsulot_tur_id = ${k.mahsulotTurId} AND faol = true
+       AND narx_belgilaydi
+     LIMIT 1`;
+  const belgilanganSlotId = belgilangan[0]?.id ?? null;
+
+  const daraja = (materialId: number | undefined) => {
+    const m = darajalar.find((d) => d.id === materialId);
+    return {
+      matomi: m?.sarflash_birligi === 'KV_M',
+      narxGuruhId: m?.narx_guruh_id ?? null,
+    };
+  };
 
   const narxGuruhId =
-    darajalar.find((d) => d.sarflash_birligi === 'KV_M' && d.narx_guruh_id !== null)
-      ?.narx_guruh_id ??
-    darajalar.find((d) => d.narx_guruh_id !== null)?.narx_guruh_id ??
-    null;
+    darajaliSlotniTop<DarajaliSlot>(
+      belgilanganSlotId === null
+        ? k.slotlar.map((s) => ({ narxBelgilaydi: false, ...daraja(s.materialId) }))
+        : [
+            {
+              narxBelgilaydi: true,
+              ...daraja(
+                k.slotlar.find((s) => s.slotId === belgilanganSlotId)?.materialId,
+              ),
+            },
+          ],
+    )?.narxGuruhId ?? null;
 
   if (narxGuruhId === null) return { qoldami: false, hisoblangan: null };
 

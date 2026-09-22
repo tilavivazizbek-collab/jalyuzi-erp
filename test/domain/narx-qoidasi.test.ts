@@ -16,6 +16,7 @@ import {
   qoidaNarxi,
   qoshimchaNarxi,
   type Bosqich,
+  darajaliSlotniTop,
   type Qoida,
 } from '@/lib/domain/narx-qoidasi';
 import { dollar, kurs, pulMatn, som } from '@/lib/domain/pul';
@@ -388,5 +389,60 @@ describe('MIQDOR — bosqich sotilayotgan miqdorga qarab tanlanadi', () => {
 
   it('DONA usuliga TEGILMAGAN — o‘lchov doim 1', () => {
     expect(olchovi('DONA', 0, 0, 50)).toBe(1);
+  });
+});
+
+// ─── Daraja — narxni qaysi slot belgilaydi (egasi qarori 2026-09-22) ──────
+
+describe('darajaliSlotniTop', () => {
+  /** Zebra: ikki mato sloti. Egasining haqiqiy holati */
+  const mato = (narxGuruhId: number | null, narxBelgilaydi = false) => ({
+    narxBelgilaydi,
+    matomi: true,
+    narxGuruhId,
+  });
+  const karniz = (narxGuruhId: number | null, narxBelgilaydi = false) => ({
+    narxBelgilaydi,
+    matomi: false,
+    narxGuruhId,
+  });
+
+  it('EC-NARX-30: belgilangan slot ustun — slot tartibi ahamiyatsiz', () => {
+    const topilgan = darajaliSlotniTop([mato(7), mato(9, true)]);
+    expect(topilgan?.narxGuruhId).toBe(9);
+  });
+
+  it('EC-NARX-31: belgi karnizda bo‘lsa ham hurmat qilinadi', () => {
+    // Egasi «narx karnizdan hisoblansin» desa — shunday bo'ladi
+    const topilgan = darajaliSlotniTop([mato(7), karniz(3, true)]);
+    expect(topilgan?.narxGuruhId).toBe(3);
+  });
+
+  it('EC-NARX-32: belgilangan slotda daraja yo‘q — BOSHQASIGA O‘TILMAYDI', () => {
+    /**
+     * ⚠️ ENG MUHIM TEST. Orqaga qaytish bo'lsa, jalyuzi boshqa
+     *    matoning narxida sotilardi va ekranda hech qanday iz
+     *    qolmasdi.
+     */
+    const topilgan = darajaliSlotniTop([mato(null, true), mato(9)]);
+    expect(topilgan?.narxGuruhId).toBeNull();
+  });
+
+  it('EC-NARX-33: belgi yo‘q — mato karnizdan ustun (eski xulq saqlanadi)', () => {
+    const topilgan = darajaliSlotniTop([karniz(3), mato(9)]);
+    expect(topilgan?.narxGuruhId).toBe(9);
+  });
+
+  it('EC-NARX-34: mato yo‘q — birinchi darajali material olinadi', () => {
+    const topilgan = darajaliSlotniTop([karniz(null), karniz(3)]);
+    expect(topilgan?.narxGuruhId).toBe(3);
+  });
+
+  it('EC-NARX-35: hech kimda daraja yo‘q — null', () => {
+    expect(darajaliSlotniTop([mato(null), karniz(null)])).toBeNull();
+  });
+
+  it('EC-NARX-36: slot umuman yo‘q — null (materialni o‘zi sotish)', () => {
+    expect(darajaliSlotniTop([])).toBeNull();
   });
 });

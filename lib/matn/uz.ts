@@ -125,6 +125,12 @@ export const XATO_MATNI: Record<XatoKod, string> = {
   BUYURTMA_TOPILMADI: "Buyurtma topilmadi",
   BUYURTMA_YOPILGAN: "Buyurtma yopilgan — yangi buyurtma oching",
   BUYURTMA_BOSH: "Savatda bironta pozitsiya yo'q",
+  /**
+   * ⚠️ Tafsilot `BiznesXato` ning ikkinchi argumentida keladi:
+   *    qaysi chegara, qancha yozilgani va nega bo'lmasligi.
+   *    Bu yerda faqat umumiy sarlavha.
+   */
+  OLCHAM_CHEGARADAN: "Bu o'lchamda mahsulot qilib bo'lmaydi",
   BUYURTMA_MIJOZ_KERAK: "Qarzga sotishda mijoz tanlanishi shart",
   TOLOV_TAKROR: "Bu to'lov allaqachon yozilgan — sahifani yangilang",
   TOLOV_KALIT_KERAK: "To'lovni qayta yuboring — sahifani yangilang",

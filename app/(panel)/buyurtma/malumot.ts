@@ -228,6 +228,18 @@ export interface PozitsiyaTafsili {
   readonly miqdor: string | null;
   readonly narx: string;
   readonly chegirma: string;
+  /** «Zal — katta oyna» — qaysi oyna ekani (0049) */
+  readonly yorliq: string | null;
+  /** Ichki eslatma — usta va montajchi uchun (0049) */
+  readonly izoh: string | null;
+  /**
+   * Narx jadvaldagidan farq qiladimi (0045).
+   *
+   * ⚠️ Bu belgi 2026-09-21 dan beri bazaga yozilardi, lekin
+   *    HECH QAYERDA KO'RINMASDI. Ya'ni iz qolardi-yu, uni
+   *    ko'radigan odam yo'q edi.
+   */
+  readonly qoldaNarx: boolean;
   readonly holat: string;
   readonly ustaIsmi: string | null;
   readonly materiallar: readonly {
@@ -327,6 +339,9 @@ export async function buyurtmaTafsili(
       miqdor: string | null;
       narx_snapshot: string;
       chegirma_summa: string | null;
+      yorliq: string | null;
+      izoh: string | null;
+      qolda_narx: boolean;
       holat: string;
       usta_ismi: string | null;
     }[]
@@ -342,7 +357,8 @@ export async function buyurtmaTafsili(
            COALESCE(t.nom, qm.nom) AS tur_nomi,
            p.mahsulot_tur_id, p.qoshimcha_material_id,
            p.eni_m::text, p.boyi_m::text, p.soni, p.miqdor::text,
-           p.narx_snapshot, p.chegirma_summa, p.holat, u.ism AS usta_ismi
+           p.narx_snapshot, p.chegirma_summa, p.holat, u.ism AS usta_ismi,
+           p.yorliq, p.izoh, p.qolda_narx
     FROM buyurtma_pozitsiya p
     LEFT JOIN mahsulot_tur t ON t.id = p.mahsulot_tur_id
     LEFT JOIN material qm     ON qm.id = p.qoshimcha_material_id
@@ -442,6 +458,9 @@ export async function buyurtmaTafsili(
       soni: p.soni,
       narx: p.narx_snapshot,
       chegirma: p.chegirma_summa ?? '0',
+      yorliq: p.yorliq,
+      izoh: p.izoh,
+      qoldaNarx: p.qolda_narx,
       holat: p.holat,
       ustaIsmi: p.usta_ismi,
       materiallar: materiallar
@@ -474,6 +493,8 @@ export interface QaytaKesishQatori {
   readonly buyurtmaId: number;
   readonly buyurtmaRaqam: string;
   readonly tartib: number;
+  /** «Zal — katta oyna» (0049) */
+  readonly yorliq: string | null;
   readonly turNomi: string;
   readonly eniM: number;
   readonly boyiM: number;
@@ -510,6 +531,7 @@ export async function ochiqQaytaKesishlar(filialId: number): Promise<QaytaKesish
       sabab: string;
       izoh: string | null;
       sana: Date;
+      pozitsiya_yorliq: string | null;
       oldingi_soni: number;
       yoqotilgan_kv_m: string | null;
       yoqotilgan_summa: string | null;
@@ -517,6 +539,7 @@ export async function ochiqQaytaKesishlar(filialId: number): Promise<QaytaKesish
   >`
     SELECT qk.id, p.id AS pozitsiya_id, b.id AS buyurtma_id,
            b.raqam AS buyurtma_raqam, p.tartib, t.nom AS tur_nomi,
+           p.yorliq AS pozitsiya_yorliq,
            p.eni_m::text, p.boyi_m::text, x.ism AS usta_ismi, qk.sabab, qk.izoh,
            qk.yaratildi AS sana, p.qayta_kesildi_soni AS oldingi_soni,
            (SELECT SUM(ABS(oh.miqdor_kv_m))
@@ -544,6 +567,8 @@ export async function ochiqQaytaKesishlar(filialId: number): Promise<QaytaKesish
     buyurtmaRaqam: r.buyurtma_raqam,
     tartib: r.tartib,
     turNomi: r.tur_nomi,
+    /** 0049 — qaysi oyna. Qayta kesishda «qaysinisi» eng birinchi savol */
+    yorliq: r.pozitsiya_yorliq,
     /** ⚠️ `numeric` matn bo'lib keladi (P-13) — `Number()` shart */
     eniM: Number(r.eni_m),
     boyiM: Number(r.boyi_m),
@@ -793,6 +818,10 @@ export interface PozitsiyaTahriri {
   readonly narxSnapshot: string;
   readonly chegirmaSumma: string;
   readonly xizmatHaqi: string;
+  /** «Zal — katta oyna» (0049) — tahrirlanadi, snapshot emas */
+  readonly yorliq: string | null;
+  /** Ichki eslatma usta uchun (0049) */
+  readonly izoh: string | null;
   readonly formulaSnapshot: unknown;
   readonly slotlar: readonly TahrirSlot[];
   readonly aksessuarlar: readonly TahrirAksessuar[];
@@ -826,12 +855,15 @@ export async function pozitsiyaTahriri(
       narx_snapshot: string;
       chegirma_summa: string | null;
       xizmat_haqi: string | null;
+      yorliq: string | null;
+      izoh: string | null;
       formula_snapshot: unknown;
     }[]
   >`
     SELECT p.id, p.mahsulot_tur_id, t.nom AS tur_nomi, p.holat,
            p.eni_m::text, p.boyi_m::text, p.soni,
            p.narx_snapshot::text, p.chegirma_summa::text, p.xizmat_haqi::text,
+           p.yorliq, p.izoh,
            p.formula_snapshot
     FROM buyurtma_pozitsiya p
     JOIN buyurtma b       ON b.id = p.buyurtma_id
@@ -890,6 +922,8 @@ export async function pozitsiyaTahriri(
     narxSnapshot: p.narx_snapshot,
     chegirmaSumma: p.chegirma_summa ?? '0',
     xizmatHaqi: p.xizmat_haqi ?? '0',
+    yorliq: p.yorliq,
+    izoh: p.izoh,
     formulaSnapshot: p.formula_snapshot,
     slotlar: slotlar.map((x) => ({
       slotId: x.slot_id,

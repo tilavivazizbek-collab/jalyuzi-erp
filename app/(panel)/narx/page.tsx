@@ -2,9 +2,11 @@ import Link from 'next/link';
 import { sahifaRuxsati } from '@/lib/kirish/joriy';
 import { ruxsatBormi } from '@/lib/ruxsat/tekshir';
 import { NarxFormasi } from './forma';
+import { NarxMatritsasi } from './matritsa';
 import {
   almashtirishGuruhlariniOl,
   materialQoidalariSoni,
+  narxMatritsasiniOl,
   filiallarniOl,
   joriyKursniOl,
   materiallarniOl,
@@ -59,6 +61,7 @@ export default async function NarxSahifasi({
     filiallar,
     kursQiymati,
     materialQoidaSoni,
+    matritsa,
   ] = await Promise.all([
       narxGuruhlariniOl(),
       materiallarniOl(),
@@ -67,6 +70,7 @@ export default async function NarxSahifasi({
       filiallarniOl(),
       joriyKursniOl(),
       materialQoidalariSoni(),
+      narxMatritsasiniOl(),
     ]);
 
   /** Materialni o'zi sotishda tur yo'q — `null` beriladi */
@@ -90,6 +94,16 @@ export default async function NarxSahifasi({
           Mijozga narx qanday hisoblanishini shu yerda belgilaysiz
         </p>
       </div>
+
+      {/*
+        ⚠️ NARX XARITASI — soha auditi 2026-09-22.
+
+           Eng tepada turadi: egasi sahifani ochganda birinchi
+           ko'radigan narsa «qayerda teshik bor» degan javob
+           bo'lsin. Ilgari bu savolga javob faqat SOTUV paytida,
+           mijoz oldida chiqardi.
+      */}
+      <NarxMatritsasi turlar={turlar} guruhlar={guruhlar} kataklar={matritsa} />
 
       {turlar.length === 0 ? (
         <p className="rounded-maydon border border-chegara p-4 text-sm text-matn-kuchsiz">

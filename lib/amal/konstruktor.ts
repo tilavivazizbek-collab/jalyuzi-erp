@@ -85,11 +85,11 @@ async function bolaklarniYoz(
       INSERT INTO mahsulot_slot (mahsulot_tur_id, nom, tartib, majburiy,
                                  almashtirish_guruh_id, formula,
                                  koeffitsient, kesish_turi, kesim_eni_m,
-                                 yaratdi_id)
+                                 narx_belgilaydi, yaratdi_id)
       VALUES (${turId}, ${s.nom}, ${i}, ${s.majburiy},
               ${s.almashtirishGuruhId}, ${s.formula},
               ${s.koeffitsient}, ${s.kesishTuri}, ${s.kesimEniM},
-              ${xodimId})`;
+              ${s.narxBelgilaydi ?? false}, ${xodimId})`;
   }
 
   for (const p of kirim.parametrlar) {
@@ -126,9 +126,14 @@ export async function mahsulotTuriYarat(
   return ulanish.begin(async (tx) => {
     const qator = await tx<{ id: number }[]>`
       INSERT INTO mahsulot_tur (nom, xizmat_haqi, tartib, oynada_korinadi,
-                                botda_korinadi, yaratdi_id)
+                                botda_korinadi,
+                                min_eni_m, maks_eni_m, min_boyi_m, maks_boyi_m,
+                                yaratdi_id)
       VALUES (${kirim.nom}, ${kirim.xizmatHaqi ?? '0'}, ${Number(kirim.tartib)},
-              ${kirim.oynadaKorinadi}, ${kirim.botdaKorinadi}, ${xodimId})
+              ${kirim.oynadaKorinadi}, ${kirim.botdaKorinadi},
+              ${kirim.minEniM ?? null}, ${kirim.maksEniM ?? null},
+              ${kirim.minBoyiM ?? null}, ${kirim.maksBoyiM ?? null},
+              ${xodimId})
       RETURNING id`;
 
     const id = qator[0]?.id;
@@ -170,6 +175,9 @@ export async function mahsulotTuriTahrirla(
         tartib = ${Number(kirim.tartib)},
         oynada_korinadi = ${kirim.oynadaKorinadi},
         botda_korinadi = ${kirim.botdaKorinadi},
+        -- 0051 — o'lcham chegarasi; NULL degani «chegara yo'q»
+        min_eni_m = ${kirim.minEniM ?? null}, maks_eni_m = ${kirim.maksEniM ?? null},
+        min_boyi_m = ${kirim.minBoyiM ?? null}, maks_boyi_m = ${kirim.maksBoyiM ?? null},
         ozgartirildi = now(), ozgartirdi_id = ${xodimId}
       WHERE id = ${turId}`;
 

@@ -178,6 +178,69 @@ export function qoidaNarxi(
   return kopaytir(birlikNarxi, olchov);
 }
 
+// ─── Daraja — narxni qaysi slot belgilaydi ────────────────────────────────
+
+/**
+ * Narx darajasini izlash uchun slot haqida kerak bo'ladigan minimum.
+ *
+ * ⚠️ Faqat shu uchta maydon. Sotuv ekrani, server tekshiruvi va bot —
+ *    uchalasining slot obyekti boshqa-boshqa, lekin bu uchtasi
+ *    hammasida bor.
+ */
+export interface DarajaliSlot {
+  /** Admin belgilagan: «mijoz narxini SHU slot belgilaydi» */
+  readonly narxBelgilaydi: boolean;
+  /** `KV_M` — mato. Belgi qo'yilmagan turlarda mato ustun turadi */
+  readonly matomi: boolean;
+  /** Tanlangan materialning darajasi. `null` — daraja qo'yilmagan */
+  readonly narxGuruhId: number | null;
+}
+
+/**
+ * Mijoz narxini belgilaydigan slotni topadi — egasi qarori 2026-09-22.
+ *
+ * ⚠️ NEGA BU FUNKSIYA BOR
+ *
+ *    Bu qoida UCH JOYDA alohida yozilgan edi: sotuv ekranida
+ *    (`buyurtma/yangi/forma.tsx`), server tekshiruvida
+ *    (`lib/amal/narx-tekshir.ts`) va botda (`bot/buyurtma-oqimi.ts`).
+ *    Uchalasi bir xil ishlashi SHART — aks holda mijoz ko'rgan narx,
+ *    bazaga tushgan narx va botdagi narx uch xil bo'ladi va buni
+ *    hech kim sezmaydi. «Bir mantiq — bir joyda» (CLAUDE.md §3).
+ *
+ * ⚠️ TARTIB:
+ *
+ *      1. Admin belgilagan slot bor  → SHU. Boshqasiga o'tilmaydi
+ *      2. Belgi yo'q  → birinchi darajali MATO (eski xulq)
+ *      3. Mato yo'q   → birinchi darajali material (eski xulq)
+ *      4. Hech biri   → `null`, narx topilmaydi
+ *
+ * ⚠️ 1-BANDDA ORQAGA QAYTISH YO'Q — ataylab.
+ *
+ *    Belgilangan slotga daraja qo'yilmagan material tanlansa,
+ *    funksiya o'sha slotni qaytaradi va uning darajasi `null`
+ *    bo'ladi — ya'ni narx topilmaydi va sotuvchi sababni ko'radi.
+ *    Boshqa slotdan olib qo'yilsa, jalyuzi BOSHQA matoning narxida
+ *    sotilardi va ekranda hech qanday belgi qolmasdi. Egasi aynan
+ *    shu holatdan qutulish uchun belgini so'radi (2026-09-22).
+ *
+ * ⚠️ Ikkita slot belgilangan bo'lishi MUMKIN EMAS — bazada qisman
+ *    unique indeks bor (`mahsulot_slot_narx_bitta`, 0048). Bu yerda
+ *    baribir birinchisi olinadi: domen bazaga tayanmaydi.
+ */
+export function darajaliSlotniTop<T extends DarajaliSlot>(
+  slotlar: readonly T[],
+): T | null {
+  const belgilangan = slotlar.find((s) => s.narxBelgilaydi);
+  if (belgilangan !== undefined) return belgilangan;
+
+  return (
+    slotlar.find((s) => s.matomi && s.narxGuruhId !== null) ??
+    slotlar.find((s) => s.narxGuruhId !== null) ??
+    null
+  );
+}
+
 // ─── Qo'shimchalar ────────────────────────────────────────────────────────
 
 export interface Qoshimcha {

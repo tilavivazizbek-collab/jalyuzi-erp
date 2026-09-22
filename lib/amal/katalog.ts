@@ -129,6 +129,14 @@ export interface SotuvSlot {
    * `null` — eni maydondan hisoblanadi (odatdagi holat).
    */
   readonly kesimEniM: number | null;
+  /**
+   * Mijoz narxini SHU slot belgilaydimi — egasi qarori 2026-09-22 (0048).
+   *
+   * ⚠️ Sotuv ekrani, server tekshiruvi va bot — uchalasi ham shu
+   *    belgini `darajaliSlotniTop()` ga uzatadi. Qoida o'sha yerda,
+   *    bu yerda emas.
+   */
+  readonly narxBelgilaydi: boolean;
   readonly materiallar: readonly SotuvMaterial[];
 }
 
@@ -154,6 +162,19 @@ export interface SotuvTuri {
   readonly id: number;
   readonly nom: string;
   readonly xizmatHaqi: string | null;
+  /**
+   * JISMONIY O'LCHAM CHEGARASI — egasi qarori 2026-09-22 (0051).
+   *
+   * ⚠️ `null` — chegara yo'q. Tekshiruvning o'zi
+   *    `lib/domain/olcham-chegarasi.ts` da: sotuv ekrani, server
+   *    va bot — uchalasi ham o'sha bitta funksiyani chaqiradi.
+   */
+  readonly chegara: {
+    readonly minEniM: number | null;
+    readonly maksEniM: number | null;
+    readonly minBoyiM: number | null;
+    readonly maksBoyiM: number | null;
+  };
   readonly slotlar: readonly SotuvSlot[];
   readonly parametrlar: readonly SotuvParametr[];
   readonly aksessuarlar: readonly SotuvAksessuar[];
@@ -211,11 +232,33 @@ export async function sotuvTurlari(
 
   const turlar =
     turIdlari === undefined
-      ? await sql<{ id: number; nom: string; xizmat_haqi: string | null }[]>`
-          SELECT id, nom, xizmat_haqi FROM mahsulot_tur
+      ? await sql<{
+          id: number;
+          nom: string;
+          xizmat_haqi: string | null;
+          min_eni_m: string | null;
+          maks_eni_m: string | null;
+          min_boyi_m: string | null;
+          maks_boyi_m: string | null;
+        }[]>`
+          SELECT id, nom, xizmat_haqi,
+                 min_eni_m::text, maks_eni_m::text,
+                 min_boyi_m::text, maks_boyi_m::text
+          FROM mahsulot_tur
           WHERE faol = true ORDER BY nom`
-      : await sql<{ id: number; nom: string; xizmat_haqi: string | null }[]>`
-          SELECT id, nom, xizmat_haqi FROM mahsulot_tur
+      : await sql<{
+          id: number;
+          nom: string;
+          xizmat_haqi: string | null;
+          min_eni_m: string | null;
+          maks_eni_m: string | null;
+          min_boyi_m: string | null;
+          maks_boyi_m: string | null;
+        }[]>`
+          SELECT id, nom, xizmat_haqi,
+                 min_eni_m::text, maks_eni_m::text,
+                 min_boyi_m::text, maks_boyi_m::text
+          FROM mahsulot_tur
           WHERE faol = true AND id = ANY(${turIdlari}) ORDER BY nom`;
 
   if (turlar.length === 0) return [];
@@ -234,10 +277,11 @@ export async function sotuvTurlari(
       koeffitsient: string;
       kesish_turi: string;
       kesim_eni_m: string | null;
+      narx_belgilaydi: boolean;
     }[]
   >`
     SELECT id, mahsulot_tur_id, nom, tartib, majburiy, formula, almashtirish_guruh_id,
-           koeffitsient::text, kesish_turi, kesim_eni_m::text
+           koeffitsient::text, kesish_turi, kesim_eni_m::text, narx_belgilaydi
     FROM mahsulot_slot
     WHERE mahsulot_tur_id = ANY(${turIdlar}) AND faol = true
     ORDER BY mahsulot_tur_id, tartib`;
@@ -471,6 +515,13 @@ export async function sotuvTurlari(
     id: t.id,
     nom: t.nom,
     xizmatHaqi: t.xizmat_haqi,
+    /** ⚠️ `numeric` MATN bo'lib keladi (P-13) — `Number()` shart */
+    chegara: {
+      minEniM: t.min_eni_m === null ? null : Number(t.min_eni_m),
+      maksEniM: t.maks_eni_m === null ? null : Number(t.maks_eni_m),
+      minBoyiM: t.min_boyi_m === null ? null : Number(t.min_boyi_m),
+      maksBoyiM: t.maks_boyi_m === null ? null : Number(t.maks_boyi_m),
+    },
     slotlar: slotlar
       .filter((s) => s.mahsulot_tur_id === t.id)
       .map((s) => ({
@@ -483,6 +534,8 @@ export async function sotuvTurlari(
         koeffitsient: Number(s.koeffitsient),
         kesishTuri: s.kesish_turi,
         kesimEniM: s.kesim_eni_m === null ? null : Number(s.kesim_eni_m),
+        // Egasi qarori 2026-09-22 — mijoz narxini shu slot belgilaydimi (0048)
+        narxBelgilaydi: s.narx_belgilaydi,
         // 3.3 — guruh belgilangan bo'lsa faqat o'sha guruh matolari
         materiallar: materiallar
           .filter((m) =>

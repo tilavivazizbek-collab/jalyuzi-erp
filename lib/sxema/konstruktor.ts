@@ -40,6 +40,19 @@ export const slotSxema = z.object({
     .transform((v) => (v === '' ? null : v))
     .nullable()
     .default(null),
+  /**
+   * MIJOZ NARXINI SHU SLOT BELGILAYDI — egasi qarori 2026-09-22 (0048).
+   *
+   * ⚠️ IXTIYORIY — `default(false)` emas. Ikkalasi bir xil ko'rinadi,
+   *    lekin farqi bor: `default` chiqish turini MAJBURIY qiladi va
+   *    o'shanda bu maydonni bilmaydigan har bir eski chaqiruvchi
+   *    (tuzatish skriptlari, integratsiya testlari) buziladi.
+   *
+   *    Ixtiyoriy bo'lsa ma'no ham to'g'ri chiqadi: belgi YO'Q =
+   *    eski xulq (birinchi darajali mato). Bazaga yozishda
+   *    `?? false` qo'llanadi.
+   */
+  narxBelgilaydi: z.boolean().optional(),
 });
 
 export const parametrSxema = z.object({
@@ -69,6 +82,27 @@ export const aksessuarSxema = z.object({
   majburiy: z.boolean().default(true),
 });
 
+/**
+ * O'lcham chegarasi katagi — bo'sh bo'lsa `null` (chegara yo'q).
+ *
+ * ⚠️ Bitta joyda yozilgan: to'rtta katak bir xil qoidaga bo'ysunadi
+ *    va biri unutilsa chegara jimgina ishlamay qolardi.
+ */
+const chegaraSoni = (xabar: string) =>
+  z
+    .union([z.literal(''), z.coerce.number().positive(xabar)])
+    .transform((v) => (v === '' ? null : v))
+    .nullable()
+    /**
+     * ⚠️ IXTIYORIY, `default(null)` emas. Ikkalasi bir xil
+     *    ko'rinadi, lekin `default` chiqish turini MAJBURIY qiladi
+     *    va o'shanda bu maydonni bilmaydigan har bir eski
+     *    chaqiruvchi (tuzatish skriptlari, integratsiya testlari)
+     *    buziladi. Ma'no ham to'g'ri chiqadi: maydon yo'q =
+     *    chegara yo'q.
+     */
+    .optional();
+
 export const mahsulotTurSxema = z.object({
   nom: z.string().trim().min(1, 'Nomini kiriting').max(200),
   xizmatHaqi: z
@@ -80,6 +114,20 @@ export const mahsulotTurSxema = z.object({
       (x) => x === undefined || (!Number.isNaN(Number(x)) && Number(x) >= 0),
       "Xizmat haqi musbat son bo'lishi kerak",
     ),
+  /**
+   * JISMONIY O'LCHAM CHEGARASI — egasi qarori 2026-09-22 (0051).
+   *
+   * ⚠️ Bo'sh satr `null` ga aylanadi = «chegara yo'q». Egasi
+   *    turlarni bittalab to'ldiradi, to'ldirilmagani avvalgidek
+   *    ishlayveradi.
+   *
+   * ⚠️ Musbat bo'lishi shart: «eng katta eni 0» degan tur hech
+   *    qachon sotilmasdi va sababi ko'rinmasdi.
+   */
+  minEniM: chegaraSoni("Eng kichik eni noto'g'ri"),
+  maksEniM: chegaraSoni("Eng katta eni noto'g'ri"),
+  minBoyiM: chegaraSoni("Eng kichik bo'yi noto'g'ri"),
+  maksBoyiM: chegaraSoni("Eng katta bo'yi noto'g'ri"),
   tartib: z
     .string()
     .trim()
@@ -91,7 +139,39 @@ export const mahsulotTurSxema = z.object({
   slotlar: z.array(slotSxema).min(1, "Kamida bitta mato sloti bo'lishi kerak"),
   parametrlar: z.array(parametrSxema),
   aksessuarlar: z.array(aksessuarSxema),
-});
+})
+  /**
+   * ⚠️ TESKARI CHEGARA SAQLASHDAN OLDIN USHLANADI — 0051.
+   *
+   *    «Eng kichik 2.50, eng katta 2.00» bo'lsa HECH BIR o'lcham
+   *    o'tmaydi va tur butunlay sotilmay qoladi. Bazada ham CHECK
+   *    bor, lekin u xom xato beradi; bu yerda sotuvchiga tushunarli
+   *    jumla chiqadi.
+   */
+  .refine(
+    (t) =>
+      t.minEniM === null ||
+      t.minEniM === undefined ||
+      t.maksEniM === null ||
+      t.maksEniM === undefined ||
+      t.minEniM <= t.maksEniM,
+    {
+      path: ['maksEniM'],
+      message: "Eng katta eni eng kichigidan kichik — hech qanday o'lcham o'tmaydi",
+    },
+  )
+  .refine(
+    (t) =>
+      t.minBoyiM === null ||
+      t.minBoyiM === undefined ||
+      t.maksBoyiM === null ||
+      t.maksBoyiM === undefined ||
+      t.minBoyiM <= t.maksBoyiM,
+    {
+      path: ['maksBoyiM'],
+      message: "Eng katta bo'yi eng kichigidan kichik — hech qanday o'lcham o'tmaydi",
+    },
+  );
 
 export type SlotKirimi = z.infer<typeof slotSxema>;
 export type ParametrKirimi = z.infer<typeof parametrSxema>;

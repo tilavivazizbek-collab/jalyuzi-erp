@@ -44,6 +44,10 @@ export default async function QaytaKesishSahifasi() {
                   </Link>
                   <span className="ml-2 text-sm">
                     {s.tartib}. {s.turNomi}
+                    {/* 0049 — qaysi oyna ekani darhol ko'rinsin */}
+                    {s.yorliq !== null && (
+                      <span className="ml-1.5 text-brend">{s.yorliq}</span>
+                    )}
                   </span>
                   <span className="raqam ml-2 text-sm text-matn-ikki">
                     {s.eniM} × {s.boyiM} m

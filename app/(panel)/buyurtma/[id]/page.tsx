@@ -312,6 +312,25 @@ export default async function BuyurtmaKartochkasi({ params }: { params: Promise<
                   {p.miqdor === null && p.soni > 1 && (
                     <span className="raqam ml-2 text-sm text-matn-kuchsiz">× {p.soni}</span>
                   )}
+                  {/*
+                    ⚠️ YORLIQ va IZOH — soha auditi 2026-09-22 (0049).
+
+                       Usta va montajchi kartochkani shu yerdan
+                       o'qiydi. Ilgari olti oynali buyurtmada qaysi
+                       biri qayerga ketishini bilishning IMKONI
+                       yo'q edi.
+
+                    ⚠️ Izoh alohida qatorda va boshqa rangda: u
+                       mijozga emas, ICHKARIGA yozilgan gap.
+                  */}
+                  {p.yorliq !== null && (
+                    <span className="ml-3 text-sm font-medium text-brend">{p.yorliq}</span>
+                  )}
+                  {p.izoh !== null && (
+                    <span className="mt-1 block text-[13px] text-matn-ikki">
+                      <span className="text-matn-kuchsiz">Izoh:</span> {p.izoh}
+                    </span>
+                  )}
                 </div>
 
                 <div className="flex items-center gap-3">
@@ -326,6 +345,25 @@ export default async function BuyurtmaKartochkasi({ params }: { params: Promise<
                   >
                     {HOLAT_NOMI[p.holat as PozitsiyaHolati] ?? p.holat}
                   </span>
+                  {/*
+                    ⚠️ QO'LDA QO'YILGAN NARX BELGISI — 2026-09-22.
+
+                       Belgi 2026-09-21 dan beri bazaga yozilardi,
+                       lekin HECH QAYERDA KO'RINMASDI: iz qolardi-yu,
+                       uni ko'radigan odam yo'q edi.
+
+                       Endi egasi kartochkani ochib «bu narx
+                       jadvaldan emas» ekanini darhol ko'radi.
+                       Batafsili audit jurnalida (NARX_QOLDA).
+                  */}
+                  {p.qoldaNarx && (
+                    <span
+                      title="Narx jadvaldagidan farq qiladi"
+                      className="rounded bg-belgi-sariq-fon px-1.5 py-0.5 text-[11px] text-belgi-sariq"
+                    >
+                      qo&apos;lda
+                    </span>
+                  )}
                   <span className="raqam text-sm font-medium">
                     {pul(pulMatn(ayir(som(p.narx), som(p.chegirma))))}
                   </span>

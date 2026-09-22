@@ -245,6 +245,29 @@ export const buyurtmaPozitsiya = pgTable(
     /** TZ 7.13 — «sotilmagan tayyor mahsulot» ro'yxatidami */
     tayyorMahsulot: boolean('tayyor_mahsulot').notNull().default(false),
 
+    /**
+     * QAYSI OYNA — soha auditi 2026-09-22 (0049).
+     *
+     * ⚠️ «Zal — katta oyna», «Oshxona». Bitta buyurtmada olti oyna
+     *    bo'lsa, usta va montajchi qaysi biri qayerga ketishini
+     *    bilmasdi: ro'yxatda faqat «1-qator» turardi. O'lchamlari
+     *    yaqin bo'lsa (1.40×2.10 va 1.45×2.10) adashish muqarrar.
+     *
+     * ⚠️ Chekda va kvitansiyada KO'RINADI — mijoz qaysi pul qaysi
+     *    oyna uchun ekanini ko'rsin.
+     */
+    yorliq: text('yorliq'),
+    /**
+     * ICHKI ESLATMA — usta va montajchi uchun (0049).
+     *
+     * ⚠️ Chekka CHIQMAYDI: ichki gap mijoz qo'liga tushmasin.
+     *
+     * ⚠️ `yorliq` va `izoh` SNAPSHOT EMAS — tahrirlanadi. Ular pul
+     *    yoki o'lcham emas; 2.3-invariant qotirishni faqat pul va
+     *    o'lcham uchun talab qiladi.
+     */
+    izoh: text('izoh'),
+
     ...izlar,
   },
   (t) => [

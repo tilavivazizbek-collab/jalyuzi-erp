@@ -52,6 +52,19 @@ const ixtiyoriySon = (nom: string) =>
 export const materialSxema = z
   .object({
     nom: z.string().trim().min(1, 'Nomini kiriting').max(200),
+    /**
+     * TA'MINOTCHI ARTIKULI — «BLACKOUT 1120-08» (0050).
+     *
+     * ⚠️ Bo'sh satr `null` ga aylanadi: bazadagi qisman unique
+     *    indeks bo'sh satrlarni bir-biriga urishtirib yuborardi.
+     */
+    kod: z
+      .string()
+      .trim()
+      .max(60, 'Kod juda uzun (60 belgigacha)')
+      .transform((v) => (v === '' ? null : v))
+      .nullable()
+      .default(null),
 
     hisobTuri: z.enum(HISOB_TURLARI),
     kirimBirligi: z.string().trim().min(1, "Kirim birligini kiriting").max(50),
@@ -68,8 +81,19 @@ export const materialSxema = z
       .min(1, 'Koeffitsientni kiriting')
       .refine((x) => Number(x) > 0, 'Koeffitsient noldan katta bo\'lishi kerak'),
 
-    sotuvNarx: ixtiyoriySon('Sotuv narxi'),
-    sotuvValyuta: royxat(VALYUTALAR, 'SOM'),
+    /**
+     * ⚠️ SOTUV NARXI BU SXEMADAN OLIB TASHLANDI — egasi qarori
+     *    2026-09-22: «u pageda narx kiritish kerak emas, tur va
+     *    narx pageda narx qo'yish kerak».
+     *
+     *    `material.sotuv_narx` ustuni BAZADA QOLADI va eski
+     *    qiymatlar o'chirilmaydi: ular `/narx` → «Materialni o'zi
+     *    sotish» jadvali to'lguncha zaxira yo'l bo'lib turadi
+     *    (`buyurtma/yangi/qoshimcha.tsx`). Shu sababli
+     *    `lib/amal/material.ts` dagi INSERT va UPDATE ham bu
+     *    ustunlarga TEGMAYDI — aks holda har tahrir eski narxni
+     *    o'chirib yuborardi.
+     */
 
     /**
      * ⚠️ TANNARX EMAS (5.4). Kirimni oldindan to'ldirish va

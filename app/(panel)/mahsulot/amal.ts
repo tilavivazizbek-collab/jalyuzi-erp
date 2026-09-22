@@ -37,6 +37,11 @@ function formadanOqi(forma: FormData): unknown {
   return {
     nom: xom(forma, 'nom'),
     xizmatHaqi: xom(forma, 'xizmatHaqi'),
+    // 0051 — o'lcham chegarasi; bo'sh satr «chegara yo'q» degani
+    minEniM: xom(forma, 'minEniM'),
+    maksEniM: xom(forma, 'maksEniM'),
+    minBoyiM: xom(forma, 'minBoyiM'),
+    maksBoyiM: xom(forma, 'maksBoyiM'),
     tartib: xom(forma, 'tartib'),
     oynadaKorinadi: forma.get('oynadaKorinadi') !== null,
     botdaKorinadi: forma.get('botdaKorinadi') !== null,

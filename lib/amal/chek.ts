@@ -112,13 +112,14 @@ async function chekPozitsiyalari(
       narx_snapshot: string;
       chegirma_summa: string | null;
       holat: string;
+      yorliq: string | null;
       composite: boolean;
     }[]
   >`
     SELECT p.id, p.tartib,
            COALESCE(t.nom, qm.nom) AS nom,
            p.eni_m::text, p.boyi_m::text, p.soni, p.miqdor::text,
-           p.narx_snapshot, p.chegirma_summa, p.holat,
+           p.narx_snapshot, p.chegirma_summa, p.holat, p.yorliq,
            (p.mahsulot_tur_id IS NOT NULL) AS composite
     FROM buyurtma_pozitsiya p
     LEFT JOIN mahsulot_tur t ON t.id = p.mahsulot_tur_id
@@ -182,6 +183,8 @@ async function chekPozitsiyalari(
     narx: p.narx_snapshot,
     chegirma: p.chegirma_summa ?? '0',
     holat: p.holat,
+    /** ⚠️ Faqat YORLIQ — izoh chekka chiqmaydi (0049) */
+    yorliq: p.yorliq,
     /** Qo'shimcha buyumning tarkibi yo'q — u bitta qatorda chiqadi */
     tarkib: p.composite
       ? [

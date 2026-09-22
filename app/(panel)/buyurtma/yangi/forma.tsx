@@ -22,7 +22,12 @@ import { m, type SarflashBirligi } from '@/lib/domain/birlik';
 import { dollar, kurs, nolSom, pulKorsat, pulMatn, qosh, som, type Som } from '@/lib/domain/pul';
 import { aksessuarNarxi, katalogNarxi, matoNarxi } from '@/lib/domain/narx';
 import { pozitsiyaNarxiniHisobla } from '@/lib/domain/pozitsiya-narxi';
-import type { HisoblashUsuli, QoshimchaUsuli } from '@/lib/domain/narx-qoidasi';
+import {
+  darajaliSlotniTop,
+  type HisoblashUsuli,
+  type QoshimchaUsuli,
+} from '@/lib/domain/narx-qoidasi';
+import { chegaraXabari, olchamniTekshir } from '@/lib/domain/olcham-chegarasi';
 import { amaldagiOffset, limitHolati, offsetQollanmadimi } from '@/lib/domain/mijoz';
 import { chegirmaMatni } from '../../mijoz/guruh/royxat';
 import { biznesXatosimi } from '@/lib/xato';
@@ -67,6 +72,8 @@ interface SavatQatori {
   readonly eniM: number;
   readonly boyiM: number;
   readonly narx: string;
+  /** «Zal — katta oyna» — savatda va chekda ko'rinadi (0049) */
+  readonly yorliq: string | null;
   readonly yuk: unknown;
   /**
    * Tahrirlash uchun EKRAN HOLATI — 2026-09-21.
@@ -80,6 +87,8 @@ interface SavatQatori {
     readonly eni: string;
     readonly boyi: string;
     readonly soni: string;
+    readonly yorliq: string;
+    readonly izoh: string;
     readonly parametrlar: Record<string, string>;
     readonly slotlar: Record<number, SlotTanlovi>;
     readonly aksessuarlar: Record<number, AksessuarTanlovi>;
@@ -218,6 +227,15 @@ export function SotuvFormasi({
    */
   const [soni, soniniOzgartir] = useState('1');
   const [parametrlar, parametrlarniOzgartir] = useState<Record<string, string>>({});
+  /**
+   * QAYSI OYNA va ICHKI IZOH — soha auditi 2026-09-22 (0049).
+   *
+   * ⚠️ Ilgari bunday matnni yozadigan joy BUTUN TIZIMDA yo'q edi:
+   *    «zanjir o'ngdan», «yuqori qavat, lift yo'q» og'zaki aytilib
+   *    yo'qolardi.
+   */
+  const [yorliq, yorliqniOzgartir] = useState('');
+  const [izoh, izohniOzgartir] = useState('');
   const [slotlar, slotlarniOzgartir] = useState<Record<number, SlotTanlovi>>({});
   const [aksessuarlar, aksessuarlarniOzgartir] = useState<Record<number, AksessuarTanlovi>>({});
   /**
@@ -514,29 +532,27 @@ export function SotuvFormasi({
      *    o'lchamga qarab bosqichni tanlaydi. Materiallarning narxi
      *    endi mijoz narxiga umuman ta'sir qilmaydi.
      *
-     * ⚠️ Daraja MATO SLOTIDAN olinadi — 2026-09-21 da aniqlashtirildi.
+     * ⚠️ DARAJA QAYSI SLOTDAN OLINISHI — `darajaliSlotniTop()` da,
+     *    bu yerda EMAS (egasi qarori 2026-09-22, migratsiya 0048).
      *
-     *    Ilgari «birinchi darajasi bor material» olinardi va bu
-     *    SLOT TARTIBIGA bog'liq edi. Egasining bazasida karnizga ham
-     *    daraja qo'yilgan («arzon»), matoga ham («qimmat»). Karniz
-     *    sloti birinchi bo'lib qolsa, narx KARNIZ darajasidan
-     *    izlanardi va butunlay boshqa jadvalga tushardi — yoki
-     *    umuman topilmasdi.
-     *
-     *    Mijoz narxi MATOGA bog'langan (egasi qarori 2026-09-20),
-     *    shuning uchun `KV_M` birlikdagi slot ustun. Mato topilmasa
-     *    avvalgi xulq saqlanadi — bu «materialni o'zi sotish» kabi
-     *    matosiz holatlar uchun kerak.
+     *    Ilgari bu qoida SHU YERDA, `lib/amal/narx-tekshir.ts` da va
+     *    `bot/buyurtma-oqimi.ts` da — UCH JOYDA alohida yozilgan edi.
+     *    Uchalasi bir xil ishlashi shart, aks holda mijoz ko'rgan
+     *    narx, bazaga tushgan narx va botdagi narx uch xil bo'lardi.
+     *    Endi qoida bitta joyda (CLAUDE.md §3).
      */
-    const matoQatori = qatorlar.find(
-      (q) => q.birlik === 'KV_M' && (q.material?.narxGuruhId ?? null) !== null,
+    const darajaliQator = darajaliSlotniTop(
+      qatorlar.map((q) => ({
+        narxBelgilaydi: q.slot.narxBelgilaydi,
+        matomi: q.birlik === 'KV_M',
+        narxGuruhId: q.material?.narxGuruhId ?? null,
+        qator: q,
+      })),
     );
-    const darajaliQator =
-      matoQatori ?? qatorlar.find((q) => (q.material?.narxGuruhId ?? null) !== null);
-    const narxGuruhId = darajaliQator?.material?.narxGuruhId ?? null;
+    const narxGuruhId = darajaliQator?.narxGuruhId ?? null;
     /** Xato xabarida ko'rsatish uchun — sotuvchi sababni ko'rsin */
-    const darajaNomi = darajaliQator?.material?.narxGuruhNomi ?? null;
-    const darajaliMaterial = darajaliQator?.material?.nom ?? null;
+    const darajaNomi = darajaliQator?.qator.material?.narxGuruhNomi ?? null;
+    const darajaliMaterial = darajaliQator?.qator.material?.nom ?? null;
 
     /**
      * TZ 6.2 — mijoz turiga qo'yilgan qoida umumiysidan USTUN.
@@ -691,12 +707,33 @@ export function SotuvFormasi({
   /** Kiritilgan narx pul sifatida yaroqlimi */
   const narxYaroqli = /^\d+(\.\d{1,2})?$/.test(korsatiladiganNarx.trim());
 
+  /**
+   * O'LCHAM CHEGARASI — egasi qarori 2026-09-22 (0051).
+   *
+   * ⚠️ Ilgari chegara umuman yo'q edi: 4 metrli rulon parda ham
+   *    savatga tushardi va muammo USTANING oldida chiqardi.
+   *
+   * ⚠️ Egasi: «butunlay to'xtatsin». Narxdan farqi shu — narx mijoz
+   *    bilan kelishiladi (TZ 3.8), jismoniy chegara kelishilmaydi.
+   *
+   * ⚠️ Qoida `lib/domain/olcham-chegarasi.ts` da; bu yerda faqat
+   *    chaqiriladi. Server (`lib/amal/buyurtma.ts`) va bot ham
+   *    AYNI funksiyani chaqiradi — §9.4: tugmani o'chirish himoya
+   *    emas.
+   */
+  const chegaraNuqsonlari =
+    tur === null || hisob === null
+      ? []
+      : olchamniTekshir(tur.chegara, hisob.eniM, hisob.boyiM);
+
   const savatgaQoshilsinmi =
     hisob !== null &&
     /** ⚠️ Narx qo'yilmagan pozitsiya savatga TUSHMAYDI — bepulga sotilmaydi */
     hisob.narx.xato === null &&
     tur !== null &&
     narxYaroqli &&
+    /** ⚠️ Chegaradan chiqqan o'lcham ham TUSHMAYDI */
+    chegaraNuqsonlari.length === 0 &&
     tur.slotlar.filter((s) => s.majburiy).every((s) => (slotlar[s.id]?.materialId ?? '') !== '');
 
   /**
@@ -720,6 +757,9 @@ export function SotuvFormasi({
       narxSnapshot: qoldaNarx ?? pulMatn(hisob.jami),
       chegirmaSumma: '0',
       xizmatHaqi: pulMatn(hisob.xizmat),
+      /** 0049 — bo'sh bo'lsa `null`, bazadagi cheklov bilan bir xil */
+      yorliq: yorliq.trim() === '' ? null : yorliq.trim(),
+      izoh: izoh.trim() === '' ? null : izoh.trim(),
       // TZ 4.10 — konstruktor holati QOTADI
       formulaSnapshot: {
         tur: tur.nom,
@@ -763,11 +803,14 @@ export function SotuvFormasi({
       soni: hisob.buyumSoni,
       /** ⚠️ Savatdagi raqam ham TUZATILGANI — jami shundan chiqadi */
       narx: qoldaNarx ?? pulMatn(hisob.jami),
+      yorliq: yorliq.trim() === '' ? null : yorliq.trim(),
       yuk,
       tahrir: {
         eni,
         boyi,
         soni,
+        yorliq,
+        izoh,
         parametrlar: { ...parametrlar },
         slotlar: { ...slotlar },
         aksessuarlar: { ...aksessuarlar },
@@ -793,6 +836,8 @@ export function SotuvFormasi({
     eniniOzgartir(t.eni);
     boyiniOzgartir(t.boyi);
     soniniOzgartir(t.soni);
+    yorliqniOzgartir(t.yorliq);
+    izohniOzgartir(t.izoh);
     parametrlarniOzgartir(t.parametrlar);
     tanlanganQoshimchalarniOzgartir([...t.tanlanganQoshimchalar]);
     qoshimchaMaterialiniOzgartir(t.qoshimchaMateriali);
@@ -829,6 +874,13 @@ export function SotuvFormasi({
     aksessuarlarniOzgartir({});
     /** Keyingi pozitsiya yana hisoblangan narxdan boshlanadi */
     qoldaNarxniOzgartir(null);
+    /**
+     * ⚠️ Yorliq va izoh HAM tozalanadi: aks holda «Zal» yorlig'i
+     *    keyingi oynaga ham yopishib qolardi va chekda ikkita
+     *    «Zal» chiqardi.
+     */
+    yorliqniOzgartir('');
+    izohniOzgartir('');
   }
 
   /**
@@ -847,6 +899,8 @@ export function SotuvFormasi({
     slotlarniOzgartir({});
     aksessuarlarniOzgartir({});
     qoldaNarxniOzgartir(null);
+    yorliqniOzgartir('');
+    izohniOzgartir('');
   }
 
   /** Tahrirni bekor qilish — qator o'zgarishsiz qoladi */
@@ -855,6 +909,52 @@ export function SotuvFormasi({
     slotlarniOzgartir({});
     aksessuarlarniOzgartir({});
     qoldaNarxniOzgartir(null);
+    yorliqniOzgartir('');
+    izohniOzgartir('');
+  }
+
+  /**
+   * QATORNI NUSXALASH — soha auditi 2026-09-22.
+   *
+   * ⚠️ NEGA KERAK: bir xonada bir xil beshta oyna bo'lishi odatiy
+   *    hol. Ilgari sotuvchi beshalasini QAYTADAN kiritardi —
+   *    o'lcham, mato, aksessuar, qo'shimcha. Bir joyda adashsa
+   *    mahsulot noto'g'ri chiqardi.
+   *
+   * ⚠️ Nusxa DARHOL savatga tushadi, chap ustunni band qilmaydi:
+   *    sotuvchi tahrir rejimida turgan bo'lishi mumkin va uning
+   *    ishini uzib qo'yish noto'g'ri bo'lardi.
+   *
+   * ⚠️ Yorliqqa « (2)» qo'shiladi — ikkita bir xil «Zal» qatori
+   *    chekda ajralib turishi uchun. Sotuvchi keyin tahrirlaydi.
+   */
+  function qatorniNusxala(q: SavatQatori): void {
+    keyingiKalit += 1;
+    const kalit = keyingiKalit;
+
+    savatniOzgartir((sv) => {
+      const nechta = sv.filter((x) => x.turId === q.turId).length;
+      const yangiYorliq =
+        q.yorliq === null ? null : `${q.yorliq} (${String(nechta + 1)})`;
+
+      const nusxa: SavatQatori = {
+        ...q,
+        kalit,
+        yorliq: yangiYorliq,
+        yuk:
+          typeof q.yuk === 'object' && q.yuk !== null
+            ? { ...q.yuk, yorliq: yangiYorliq }
+            : q.yuk,
+        tahrir:
+          q.tahrir === undefined
+            ? undefined
+            : { ...q.tahrir, yorliq: yangiYorliq ?? '' },
+      };
+
+      /** ⚠️ Nusxa asl qatorning YONIGA qo'yiladi, oxiriga emas */
+      const joy = sv.findIndex((x) => x.kalit === q.kalit);
+      return joy < 0 ? [...sv, nusxa] : [...sv.slice(0, joy + 1), nusxa, ...sv.slice(joy + 1)];
+    });
   }
 
   const kelishilganSom = son(kelishilgan);
@@ -1029,6 +1129,44 @@ export function SotuvFormasi({
 
         {tur !== null && (
           <>
+            {/*
+              ── QAYSI OYNA va IZOH — soha auditi 2026-09-22 (0049) ──
+
+              ⚠️ O'LCHAMDAN OLDIN turadi: sotuvchi mijoz bilan
+                 gaplashib «zal, katta oyna» deb yozadi, keyin
+                 o'lchamga o'tadi. Tartib suhbat tartibiga mos.
+
+              ⚠️ Majburiy emas. Majburiy qilinsa sotuvchi shoshib
+                 nuqta qo'yib ketardi va maydon ma'nosini
+                 yo'qotardi.
+            */}
+            <section className="flex flex-wrap items-end gap-4">
+              <Maydon nom="yorliq" yorliq="Qaysi oyna">
+                <input
+                  id="yorliq"
+                  value={yorliq}
+                  onChange={(e) => {
+                    yorliqniOzgartir(e.target.value);
+                  }}
+                  maxLength={60}
+                  placeholder="Zal — katta oyna"
+                  className={`${kirishUslubi(false)} w-56`}
+                />
+              </Maydon>
+              <Maydon nom="izoh" yorliq="Izoh (usta uchun)">
+                <input
+                  id="izoh"
+                  value={izoh}
+                  onChange={(e) => {
+                    izohniOzgartir(e.target.value);
+                  }}
+                  maxLength={500}
+                  placeholder="zanjir o'ngdan"
+                  className={`${kirishUslubi(false)} w-72`}
+                />
+              </Maydon>
+            </section>
+
             {/* ── 3.4 · O'lcham ── */}
             <section className="flex flex-wrap items-end gap-4">
               <Maydon nom="eni" yorliq="Eni (m)">
@@ -1086,6 +1224,34 @@ export function SotuvFormasi({
                 </Maydon>
               ))}
             </section>
+
+            {/*
+              ⚠️ O'LCHAM CHEGARASI XABARI — egasi qarori 2026-09-22.
+
+                 O'lcham kataklaridan KEYIN turadi: sotuvchi raqamni
+                 yozgan zahoti javobni shu yerda ko'radi, savat
+                 tugmasiga borib «nega ishlamayapti» deb o'ylamaydi.
+
+              ⚠️ Xabar uch narsani aytadi: qaysi chegara, qancha
+                 yozilgan va nega bo'lmaydi. Faqat «o'lcham
+                 noto'g'ri» deyilsa, sotuvchi raqamni tasodifiy
+                 o'zgartirib ko'raveradi.
+            */}
+            {chegaraNuqsonlari.length > 0 && (
+              <div
+                role="alert"
+                className="rounded-karta border border-belgi-qizil/30 bg-belgi-qizil-fon px-4 py-3"
+              >
+                <p className="text-sm font-medium text-belgi-qizil">
+                  Bu o&apos;lchamda mahsulot qilib bo&apos;lmaydi
+                </p>
+                <ul className="mt-1 flex list-disc flex-col gap-0.5 pl-5 text-[13px] text-belgi-qizil">
+                  {chegaraNuqsonlari.map((n) => (
+                    <li key={n.tur}>{chegaraXabari(n, tur.nom)}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
             {/* ── 3.3 · 3.5 · Slotlar ── */}
             <section>
@@ -1611,6 +1777,8 @@ export function SotuvFormasi({
                     soni: t.soni,
                     miqdor: t.miqdor,
                     narx: t.narx,
+                    /** Qo'shimcha buyumda yorliq so'ralmaydi (0049) */
+                    yorliq: null,
                     yuk: {
                       mahsulotTurId: null,
                       qoshimchaMaterialId: t.materialId,
@@ -1669,6 +1837,15 @@ export function SotuvFormasi({
                     <tr key={q.kalit}>
                       <td className="px-3 py-2.5">
                         <span className="font-medium text-matn">{q.turNomi}</span>
+                        {/*
+                          ⚠️ YORLIQ tur nomidan KEYIN, o'lchamdan
+                             OLDIN: olti qatorli savatda sotuvchi
+                             «qaysi oyna» degan savolga darrov javob
+                             topsin (0049).
+                        */}
+                        {q.yorliq !== null && (
+                          <span className="ml-1.5 text-[12px] text-brend">{q.yorliq}</span>
+                        )}
                         <span className="raqam mt-0.5 block text-left text-[12px] text-matn-kuchsiz">
                           {/*
                             ⚠️ Qo'shimcha mahsulotda o'lcham yo'q —
@@ -1712,6 +1889,27 @@ export function SotuvFormasi({
                             className="fokus rounded-maydon px-1.5 py-1 text-matn-kuchsiz transition-colors hover:bg-fon-ikki hover:text-brend"
                           >
                             ✎
+                          </button>
+                        )}
+                        {/*
+                          ⚠️ NUSXALASH — soha auditi 2026-09-22.
+                             Bir xonada beshta bir xil oyna odatiy
+                             hol; ilgari beshalasi qo'lda kiritilardi.
+
+                          ⚠️ Qo'shimcha buyumda ham ishlaydi: ikkita
+                             bir xil mexanizm sotish ham uchraydi.
+                        */}
+                        {tahrirKaliti === null && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              qatorniNusxala(q);
+                            }}
+                            aria-label="Nusxalash"
+                            title="Nusxalash"
+                            className="fokus rounded-maydon px-1.5 py-1 text-matn-kuchsiz transition-colors hover:bg-fon-ikki hover:text-brend"
+                          >
+                            ⧉
                           </button>
                         )}
                         <button

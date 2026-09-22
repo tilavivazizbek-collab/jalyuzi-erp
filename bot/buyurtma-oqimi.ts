@@ -40,7 +40,8 @@ import {
   type Qoralama,
 } from '@/lib/domain/bot-oqim';
 import { pozitsiyaNarxiniHisobla } from '@/lib/domain/pozitsiya-narxi';
-import type { HisoblashUsuli } from '@/lib/domain/narx-qoidasi';
+import { darajaliSlotniTop, type HisoblashUsuli } from '@/lib/domain/narx-qoidasi';
+import { chegaraXabari, olchamniTekshir } from '@/lib/domain/olcham-chegarasi';
 import { amaldagiOffset } from '@/lib/domain/mijoz';
 import type { SarflashBirligi } from '@/lib/domain/birlik';
 import { kesimOlchami } from '@/lib/domain/kesish';
@@ -183,37 +184,35 @@ function pozitsiyaHisobi(
    *    Tanlangan matoning DARAJASI qoidani topadi. Materiallarning
    *    narxi endi mijoz narxiga umuman ta'sir qilmaydi.
    *
-   *    Bot ham AYNAN shu qoidadan oladi (§2.2): aks holda botda bir
-   *    narx, saytda boshqa narx chiqardi.
+   * ⚠️ DARAJA QAYSI SLOTDAN — `darajaliSlotniTop()` da, bu yerda EMAS
+   *    (egasi qarori 2026-09-22, migratsiya 0048).
+   *
+   *    Qoida sayt, server tekshiruvi va shu yerda — UCH JOYDA
+   *    alohida yozilgan edi. Bot eng oxirida tuzatilardi va bir
+   *    muddat botdagi narx saytdagidan farq qilib turardi. Endi
+   *    uchalasi bitta funksiyani chaqiradi (CLAUDE.md §3 · §2.2).
+   *
+   * ⚠️ TURNING SLOTLARIDAN yuriladi, tanlanganlardan emas — sotuv
+   *    ekranidagi bilan AYNAN bir xil bo'lishi uchun. Mijoz
+   *    belgilangan slotga mato tanlamagan bo'lsa, belgi baribir
+   *    ko'rinadi va narx topilmaydi (jimgina boshqa matoning
+   *    narxiga o'tib ketmaydi).
    */
-  /**
-   * ⚠️ DARAJA MATO SLOTIDAN OLINADI — 2026-09-22.
-   *
-   *    Ilgari «darajasi bor BIRINCHI material» olinardi va bu slot
-   *    TARTIBIGA bog'liq edi: karnizga daraja qo'yilgan bo'lsa,
-   *    jalyuzi narxi karniz darajasidan izlanardi.
-   *
-   *    Sayt va server tekshiruvida bu 2026-09-21 da tuzatilgan edi,
-   *    BOTDA esa eski holicha qolgan — ya'ni bir buyurtma saytda
-   *    bir narxda, botda boshqa narxda chiqishi mumkin edi.
-   *
-   *    2026-09-22 dan daraja karnizga ham qo'yiladi («ko'p olganga
-   *    arzonroq»), shuning uchun bu endi nazariy xato emas.
-   */
-  const darajalar = p.slotlar.map((s) => {
-    const m = tur.slotlar
-      .find((x) => x.id === s.slotId)
-      ?.materiallar.find((y) => y.id === s.materialId);
-    return {
-      narxGuruhId: m?.narxGuruhId ?? null,
-      matomi: m?.sarflashBirligi === 'KV_M',
-    };
-  });
-
   const narxGuruhId =
-    darajalar.find((d) => d.matomi && d.narxGuruhId !== null)?.narxGuruhId ??
-    darajalar.find((d) => d.narxGuruhId !== null)?.narxGuruhId ??
-    null;
+    darajaliSlotniTop(
+      tur.slotlar.map((slot) => {
+        const tanlov = p.slotlar.find((x) => x.slotId === slot.id);
+        const m =
+          tanlov === undefined
+            ? undefined
+            : slot.materiallar.find((y) => y.id === tanlov.materialId);
+        return {
+          narxBelgilaydi: slot.narxBelgilaydi,
+          matomi: m?.sarflashBirligi === 'KV_M',
+          narxGuruhId: m?.narxGuruhId ?? null,
+        };
+      }),
+    )?.narxGuruhId ?? null;
 
   /** TZ 6.2 — mijoz turiga qo'yilgan qoida umumiysidan USTUN */
   const qoidaQatori =
@@ -877,7 +876,45 @@ export async function oqimMatniniQabulQil(
   }
 
   try {
-    await davomEt(ctx, olchamQoy(q, matn, qadam), turlar, kontekst);
+    const yangi = olchamQoy(q, matn, qadam);
+
+    /**
+     * ⚠️ O'LCHAM CHEGARASI BOTDA HAM — egasi qarori 2026-09-22 (0051).
+     *
+     *    §13 to'liqlik: saytda to'xtatilgan o'lcham botdan o'tib
+     *    ketsa, to'siqning ma'nosi qolmaydi. Bot mijozning o'zi
+     *    ishlatadigan yo'l — u yerdan kelgan 4 metrli buyurtma ham
+     *    ustaning oldida to'xtardi.
+     *
+     * ⚠️ FAQAT ENDIGINA KIRITILGAN o'lcham tekshiriladi. Bot avval
+     *    enini, keyin bo'yini so'raydi — eni kiritilganda bo'yi hali
+     *    nol va uni ham tekshirsak, mijoz yozmagan narsasi uchun
+     *    xato olardi.
+     *
+     * ⚠️ Xato bo'lsa qoralama SAQLANMAYDI: mijoz o'sha qadamda
+     *    qoladi va qaytadan kiritadi.
+     */
+    const tur = turlar[0];
+    if (tur !== undefined && yangi.joriy !== null) {
+      const chegara =
+        qadam === 'ENI'
+          ? { ...tur.chegara, minBoyiM: null, maksBoyiM: null }
+          : { ...tur.chegara, minEniM: null, maksEniM: null };
+
+      /** ⚠️ `null` — hali kiritilmagan. Nol bilan almashtiriladi: o'sha
+       *     o'lchamning chegarasi baribir yuqorida `null` qilingan */
+      const nuqson = olchamniTekshir(
+        chegara,
+        yangi.joriy.eniM ?? 0,
+        yangi.joriy.boyiM ?? 0,
+      )[0];
+      if (nuqson !== undefined) {
+        await ctx.reply(chegaraXabari(nuqson, tur.nom));
+        return true;
+      }
+    }
+
+    await davomEt(ctx, yangi, turlar, kontekst);
   } catch {
     // 13.4 — «Noto'g'ri o'lcham, qaytadan kiriting»
     await ctx.reply(MATN.olchamNotogri);

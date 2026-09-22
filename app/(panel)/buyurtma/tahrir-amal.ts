@@ -68,6 +68,9 @@ export async function pozitsiyaTahrirAmali(
         narxSnapshot: p.narxSnapshot,
         chegirmaSumma: p.chegirmaSumma,
         xizmatHaqi: p.xizmatHaqi,
+        /** 0049 — yorliq va izoh tahrirlanadi */
+        yorliq: p.yorliq,
+        izoh: p.izoh,
         formulaSnapshot: p.formulaSnapshot,
         slotlar: p.slotlar.map((s) => ({
           slotId: s.slotId,

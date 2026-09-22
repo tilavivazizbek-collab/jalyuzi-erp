@@ -90,6 +90,26 @@ describe('8.14 — pozitsiya qatori', () => {
     expect(q.miqdor).toBeNull();
   });
 
+  /**
+   * ⚠️ YORLIQ — soha auditi 2026-09-22 (0049). Olti oynali
+   *    buyurtmada mijoz qaysi pul qaysi oyna uchun ekanini chekdan
+   *    ko'rishi kerak.
+   */
+  it('EC-CHEK-20: yorliq chekda tur nomidan keyin chiqadi', () => {
+    const q = qatorYasa(poz({ yorliq: 'Zal, katta oyna' }), 'USD');
+    expect(q.sarlavha).toBe('Rollo parda — Zal, katta oyna 1.40×1.60 m');
+  });
+
+  it('EC-CHEK-21: yorliq yo‘q bo‘lsa sarlavha o‘zgarmaydi', () => {
+    expect(qatorYasa(poz({ yorliq: null }), 'USD').sarlavha).toBe(
+      'Rollo parda 1.40×1.60 m',
+    );
+    /** ⚠️ Bo'sh satr ham yorliqsiz hisoblanadi — bazadagi cheklov bilan bir xil */
+    expect(qatorYasa(poz({ yorliq: '' }), 'USD').sarlavha).toBe(
+      'Rollo parda 1.40×1.60 m',
+    );
+  });
+
   it("oddiy pozitsiya (qo'shimcha buyum) — o'lchovsiz bitta qator", () => {
     const q = qatorYasa(
       poz({ nom: 'Karniz', eniM: 0, boyiM: 0, narx: '4.00', tarkib: [] }),

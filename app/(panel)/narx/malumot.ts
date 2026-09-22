@@ -85,6 +85,50 @@ export async function materialQoidalariSoni(): Promise<number> {
   return q[0]?.n ?? 0;
 }
 
+/**
+ * NARX MATRITSASI — tur × daraja, soha auditi 2026-09-22.
+ *
+ * ⚠️ NEGA KERAK
+ *
+ *    Narx qo'yilmagani ilgari faqat SOTUV paytida bilinardi —
+ *    mijoz oldida, «narx topilmadi» degan xabar bilan. Chap
+ *    ustundagi belgi «bu turda N ta qoida bor» deydi, lekin
+ *    QAYSI DARAJA ochiq qolganini aytmaydi: uchta darajadan
+ *    ikkitasi to'ldirilgan tur ham «2» deb yashil turaveradi.
+ *
+ * ⚠️ UCH HOLAT AJRATILADI, ikkitasi emas:
+ *
+ *      to'liq    — umumiy qoida bor (mijoz turi ham, filial ham
+ *                  bo'sh) va kamida bitta bosqichi bor
+ *      qisman    — qoida bor, lekin FAQAT ma'lum mijoz turiga
+ *                  yoki filialga. Boshqa mijozga sotilmaydi —
+ *                  bu eng xavfli holat, chunki ekranda «bor»
+ *                  bo'lib ko'rinardi
+ *      yo'q      — umuman qoida yo'q
+ *
+ * ⚠️ BOSQICHSIZ QOIDA «yo'q» ga tenglashtiriladi: qoida bor-u
+ *    bosqichi yo'q bo'lsa, `qoidaNarxi()` xato otadi va sotuv
+ *    baribir to'xtaydi (`narx-qoidasi.ts:155`).
+ */
+export interface MatritsaKatagi {
+  readonly turId: number | null;
+  readonly narxGuruhId: number;
+  readonly holat: 'TOLIQ' | 'QISMAN';
+}
+
+export async function narxMatritsasiniOl(): Promise<MatritsaKatagi[]> {
+  return ulanishOl()<MatritsaKatagi[]>`
+    SELECT mn.mahsulot_tur_id AS "turId",
+           mn.narx_guruh_id   AS "narxGuruhId",
+           CASE WHEN bool_or(mn.mijoz_turi_id IS NULL AND mn.filial_id IS NULL)
+                THEN 'TOLIQ' ELSE 'QISMAN' END AS holat
+    FROM mahsulot_narx mn
+    WHERE mn.faol = true
+      AND EXISTS (SELECT 1 FROM mahsulot_narx_bosqich b
+                   WHERE b.mahsulot_narx_id = mn.id AND b.faol = true)
+    GROUP BY mn.mahsulot_tur_id, mn.narx_guruh_id`;
+}
+
 /** Mato darajalari — «Oddiy», «Premium» … */
 export async function narxGuruhlariniOl(): Promise<NarxGuruhQatori[]> {
   return ulanishOl()<NarxGuruhQatori[]>`

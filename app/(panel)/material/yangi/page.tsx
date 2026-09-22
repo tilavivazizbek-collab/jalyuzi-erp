@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import { turNarxlari as turNarxlariniOl } from '@/lib/amal/tur-narx';
 import { ulanishOl } from '@/lib/db';
 import { sahifaRuxsati } from '@/lib/kirish/joriy';
 import { ruxsatBormi } from '@/lib/ruxsat/tekshir';
@@ -18,7 +17,7 @@ export default async function YangiMaterial() {
 
   const ulanish = ulanishOl();
 
-  const [guruhlar, narxGuruhlari, kurs, turNarxlari] = await Promise.all([
+  const [guruhlar, narxGuruhlari, kurs] = await Promise.all([
     ulanish<Guruh[]>`
       SELECT id, nom FROM almashtirish_guruh WHERE faol = true ORDER BY nom`,
     /** Mato darajalari — mijoz narxi shundan (egasi qarori 2026-09-20) */
@@ -26,8 +25,11 @@ export default async function YangiMaterial() {
       SELECT id, nom FROM narx_guruh WHERE faol = true ORDER BY tartib, nom`,
     // $ ↔ so'm ko'rsatish uchun. Kurs yo'q bo'lsa hamroh katak jim turadi
     joriyKurs(ulanish),
-    /** TZ 5.4 · 6.2 — yangi materialda narxlar bo'sh, turlar ro'yxati kerak */
-    turNarxlariniOl(ulanish, null),
+    /**
+     * ⚠️ MIJOZ TURI NARXLARI ENDI SO'RALMAYDI (egasi, 2026-09-22).
+     *    Ular ham sotuv narxi — `/narx` jadvalining qoida qatorida
+     *    tanlanadi. Keraksiz so'rov ham olib tashlandi.
+     */
   ]);
 
   return (
@@ -51,7 +53,6 @@ export default async function YangiMaterial() {
           guruhQoshaOladi={guruhQoshaOladi}
           joriyKurs={kurs ?? ''}
           oxirgiKelish={null}
-          turNarxlari={turNarxlari}
         tugmaMatni="Saqlash"
           zahiraSoraladi={boshlangichQilaOladi}
         />

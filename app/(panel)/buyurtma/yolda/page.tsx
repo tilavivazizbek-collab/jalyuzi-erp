@@ -87,7 +87,13 @@ export default async function YoldagilarSahifasi() {
                         </Link>
                         <span className="ml-1 text-xs text-matn-kuchsiz">poz. {p.tartib}</span>
                       </td>
-                      <td className="px-4 py-2.5">{p.mahsulot}</td>
+                      <td className="px-4 py-2.5">
+                        {p.mahsulot}
+                        {/* 0049 — boshqa filialdan kelgan mahsulotni ajratish uchun */}
+                        {p.yorliq !== null && (
+                          <span className="ml-1.5 text-[13px] text-brend">{p.yorliq}</span>
+                        )}
+                      </td>
                       <td className="raqam px-4 py-2.5 text-matn-ikki">
                         {p.eniM}×{p.boyiM}
                       </td>

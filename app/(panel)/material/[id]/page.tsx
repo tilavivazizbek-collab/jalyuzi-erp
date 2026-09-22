@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import { turNarxlari as turNarxlariniOl } from '@/lib/amal/tur-narx';
 import { notFound } from 'next/navigation';
 import { ulanishOl } from '@/lib/db';
 import { sahifaRuxsati } from '@/lib/kirish/joriy';
@@ -17,6 +16,7 @@ export const dynamic = 'force-dynamic';
 interface Qator {
   readonly id: number;
   readonly nom: string;
+  readonly kod: string | null;
   readonly hisob_turi: string;
   readonly kirim_birligi: string;
   readonly sarflash_birligi: string;
@@ -63,7 +63,7 @@ export default async function MaterialTahrirlash({ params }: { params: Promise<{
    *    ochilishda rasm ikki marta yuklanardi.
    */
   const qatorlar = await ulanish<Qator[]>`
-    SELECT id, nom, hisob_turi, kirim_birligi, sarflash_birligi, koeffitsient,
+    SELECT id, nom, kod, hisob_turi, kirim_birligi, sarflash_birligi, koeffitsient,
            sotuv_narx, sotuv_valyuta, kutilayotgan_kelish_narx,
            kutilayotgan_kelish_valyuta, min_ustama_foiz, yaroqsiz_chegara_m,
            kam_ishlatiladigan_m, kam_qoldiq_chegara_m, standart_rulon_eni_m,
@@ -76,7 +76,7 @@ export default async function MaterialTahrirlash({ params }: { params: Promise<{
   const material = qatorlar[0];
   if (material === undefined) notFound();
 
-  const [guruhlar, narxGuruhlari, kurs, oxirgiKelish, turNarxlari] = await Promise.all([
+  const [guruhlar, narxGuruhlari, kurs, oxirgiKelish] = await Promise.all([
     ulanish<Guruh[]>`
       SELECT id, nom FROM almashtirish_guruh WHERE faol = true ORDER BY nom`,
     /** Mato darajalari — mijoz narxi shundan (egasi qarori 2026-09-20) */
@@ -87,7 +87,6 @@ export default async function MaterialTahrirlash({ params }: { params: Promise<{
     // TZ 5.4 — haqiqiy tannarx kirimdan keladi, faqat ko'rsatiladi
     oxirgiKelishNarxi(materialId),
     /** TZ 5.4 · 6.2 — mijoz turi bo'yicha narxlar */
-    turNarxlariniOl(ulanish, materialId),
   ]);
 
   // 20.9 — filial narx istisnolari (Q-28)
@@ -96,6 +95,8 @@ export default async function MaterialTahrirlash({ params }: { params: Promise<{
 
   const qiymatlar: MaterialQiymatlari = {
     nom: material.nom,
+    /** 0050 — artikul; `null` bo'lsa katak bo'sh turadi */
+    kod: material.kod ?? '',
     hisobTuri: material.hisob_turi,
     kirimBirligi: material.kirim_birligi,
     sarflashBirligi: material.sarflash_birligi,
@@ -145,7 +146,6 @@ export default async function MaterialTahrirlash({ params }: { params: Promise<{
           guruhQoshaOladi={ruxsatBormi(f, 'material.ozgartir')}
           joriyKurs={kurs ?? ''}
           oxirgiKelish={oxirgiKelish}
-          turNarxlari={turNarxlari}
         tugmaMatni="O'zgarishlarni saqlash"
           /**
            * ⚠️ Manzilga o'zgarish vaqti qo'shiladi: rasm bir yilga

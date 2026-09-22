@@ -16,9 +16,12 @@ import { materialModalYaratAmali } from '../material/amal';
 import {
   SARF_TAVSIFI,
   SARF_TURLARI,
+  YAXLITLASHLAR,
+  YAXLITLASH_NOMI,
   formuladanSarf,
   sarfFormulasi,
   type SarfTuri,
+  type Yaxlitlash,
 } from '@/lib/domain/sarf-turi';
 
 export interface MaterialTanlovi {
@@ -37,6 +40,13 @@ export interface SlotQatori {
   kesishTuri: 'ENIGA' | "BO'YIGA";
   /** Qat'iy kesim eni, metrda — bo'sh bo'lsa maydondan hisoblanadi */
   kesimEniM: string;
+  /**
+   * Mijoz narxini SHU slot belgilaydimi — egasi qarori 2026-09-22.
+   *
+   * ⚠️ Bir turda faqat BITTA slotda `true` bo'ladi (bazada qisman
+   *    unique indeks, 0048). Ekranda ham radio bilan shunday.
+   */
+  narxBelgilaydi: boolean;
 }
 
 export interface ParametrQatori {
@@ -54,6 +64,14 @@ export interface AksessuarQatori {
 export interface MahsulotQiymatlari {
   readonly nom: string;
   readonly xizmatHaqi: string;
+  /**
+   * JISMONIY O'LCHAM CHEGARASI — egasi qarori 2026-09-22 (0051).
+   * Bo'sh satr = chegara yo'q, tekshiruv o'tkazilmaydi.
+   */
+  readonly minEniM: string;
+  readonly maksEniM: string;
+  readonly minBoyiM: string;
+  readonly maksBoyiM: string;
   readonly tartib: string;
   readonly oynadaKorinadi: boolean;
   readonly botdaKorinadi: boolean;
@@ -65,6 +83,10 @@ export interface MahsulotQiymatlari {
 export const BOSH_QIYMATLAR: MahsulotQiymatlari = {
   nom: '',
   xizmatHaqi: '',
+  minEniM: '',
+  maksEniM: '',
+  minBoyiM: '',
+  maksBoyiM: '',
   tartib: '0',
   oynadaKorinadi: true,
   botdaKorinadi: true,
@@ -97,8 +119,18 @@ interface Qator {
   /** AUDIT 1-topilma — faqat GURUH (mato sloti) uchun ishlatiladi */
   koeffitsient: number;
   kesishTuri: 'ENIGA' | "BO'YIGA";
-  /** Qat'iy kesim eni, metrda — bo'sh bo'lsa maydondan hisoblanadi */
+  /**
+   * Qat'iy kesim eni, metrda — bo'sh bo'lsa maydondan hisoblanadi.
+   *
+   * ⚠️ `TASMALI` sarfida bu AYNI PAYTDA tasma eni: bitta katak ikki
+   *    joyga yoziladi (formulaga ham, kesim eniga ham). Ikki alohida
+   *    katak bo'lsa ular bir-biridan farq qilib qolishi mumkin edi.
+   */
   kesimEniM: string;
+  /** `TASMALI` — tasma soni qanday yaxlitlanadi */
+  yaxlitlash: Yaxlitlash;
+  /** Egasi qarori 2026-09-22 — mijoz narxini shu slot belgilaydimi */
+  narxBelgilaydi: boolean;
 }
 
 const kirish =
@@ -129,7 +161,9 @@ function boshQatorlar(q: MahsulotQiymatlari): Qator[] {
       majburiy: s.majburiy,
       koeffitsient: s.koeffitsient,
       kesishTuri: s.kesishTuri,
-      kesimEniM: s.kesimEniM,
+      kesimEniM: sarf.tasmaEniM ?? s.kesimEniM,
+      yaxlitlash: sarf.yaxlitlash ?? 'ROUND',
+      narxBelgilaydi: s.narxBelgilaydi,
     };
   });
 
@@ -145,6 +179,8 @@ function boshQatorlar(q: MahsulotQiymatlari): Qator[] {
       koeffitsient: 1,
       kesishTuri: 'ENIGA',
       kesimEniM: '',
+      yaxlitlash: 'ROUND',
+      narxBelgilaydi: false,
     };
   });
 
@@ -159,9 +195,15 @@ function boshQatorlar(q: MahsulotQiymatlari): Qator[] {
  *    formula bilan ketadi va serverdagi tekshiruv tushunarli xato
  *    beradi (4.5 — «xato bo'lsa saqlanmaydi»).
  */
-function xavfsizFormula(turi: SarfTuri, qiymat: string, qiymat2: string): string {
+function xavfsizFormula(
+  turi: SarfTuri,
+  qiymat: string,
+  qiymat2: string,
+  tasmaEniM = '',
+  yaxlitlash: Yaxlitlash = 'ROUND',
+): string {
   try {
-    return sarfFormulasi(turi, qiymat, qiymat2);
+    return sarfFormulasi(turi, qiymat, qiymat2, tasmaEniM, yaxlitlash);
   } catch {
     return '';
   }
@@ -227,12 +269,19 @@ export function MahsulotFormasi({
        *    sarlavhasi bo'lib chiqadi.
        */
       nom: guruhNomi(q.id),
-      formula: xavfsizFormula(q.sarfTuri, q.sarfQiymat, q.sarfQiymat2),
+      formula: xavfsizFormula(
+        q.sarfTuri,
+        q.sarfQiymat,
+        q.sarfQiymat2,
+        q.kesimEniM,
+        q.yaxlitlash,
+      ),
       majburiy: q.majburiy,
       almashtirishGuruhId: q.id,
       koeffitsient: q.koeffitsient,
       kesishTuri: q.kesishTuri,
       kesimEniM: q.kesimEniM.trim(),
+      narxBelgilaydi: q.narxBelgilaydi,
     }));
 
   const aksessuarlar: AksessuarQatori[] = qatorlar
@@ -305,6 +354,55 @@ export function MahsulotFormasi({
                 pozitsiyaga bir marta qo&apos;shiladi.
               </span>
             </label>
+
+            {/*
+              ⚠️ O'LCHAM CHEGARASI — egasi qarori 2026-09-22 (0051).
+
+                 Ilgari chegara UMUMAN yo'q edi: sotuvchi 4 metrli
+                 rulon parda yozsa ham tizim qabul qilardi. Muammo
+                 ustaning oldida chiqardi — val o'z og'irligidan
+                 egiladi — va o'shanda mato ham, karniz ham kesilgan,
+                 usta bir kun ishlagan bo'lardi.
+
+              ⚠️ BO'SH QOLDIRILSA tekshiruv o'tkazilmaydi. Egasi
+                 raqamlarni ustasidan so'rab, turlarni bittalab
+                 to'ldiradi. To'ldirilmagan tur avvalgidek ishlaydi.
+
+              ⚠️ Chegaraning O'ZI o'tadi: «2.80» degani 2.80 m li
+                 parda QILINADI degani.
+            */}
+            <div className="sm:col-span-2">
+              <h3 className="text-sm font-medium text-matn-ikki">
+                O&apos;lcham chegarasi
+              </h3>
+              <p className="mt-0.5 text-xs text-matn-kuchsiz">
+                Mexanizm ko&apos;taradigan eng kichik va eng katta o&apos;lcham.
+                Bo&apos;sh qoldirilsa tekshirilmaydi. Chegaradan chiqqan buyurtma
+                sotuvda <b>qabul qilinmaydi</b>.
+              </p>
+
+              <div className="mt-3 grid gap-3 sm:grid-cols-4">
+                {(
+                  [
+                    ['minEniM', "Eng kichik eni (m)", '0.30'],
+                    ['maksEniM', 'Eng katta eni (m)', '2.80'],
+                    ['minBoyiM', "Eng kichik bo'yi (m)", '0.30'],
+                    ['maksBoyiM', "Eng katta bo'yi (m)", '3.00'],
+                  ] as const
+                ).map(([nom, yorliq, namuna]) => (
+                  <label key={nom} className="flex flex-col gap-1">
+                    <span className="text-[13px] text-matn-ikki">{yorliq}</span>
+                    <input
+                      name={nom}
+                      defaultValue={qiymatlar[nom]}
+                      inputMode="decimal"
+                      placeholder={namuna}
+                      className={kirish}
+                    />
+                  </label>
+                ))}
+              </div>
+            </div>
 
             <label className="flex flex-col gap-1">
               <span className="text-sm font-medium text-matn-ikki">Tartib raqami</span>
@@ -408,7 +506,96 @@ export function MahsulotFormasi({
                         ))}
                       </select>
 
-                      {tavsif.ikkiQiymat ? (
+                      {tavsif.tasmali === true ? (
+                        /*
+                          ⚠️ TASMALI — lamel, vertikal, to'lqinsimon parda
+                             (egasi holati 2026-09-22).
+
+                             To'rtta narsa so'raladi, chunki to'rtalasi ham
+                             BOSHQA-BOSHQA son:
+
+                               qadam      — bitta tasma oynada qancha joy
+                                            egallaydi (0.11 m)
+                               tasma eni  — rulondan qancha enli tortiladi
+                                            (0.40 m)
+                               yaxlitlash — 18.02 ta tasma nechta bo'ladi
+                               qo'shimcha — markazdan ochilganda bitta kam
+                                            yoki ko'p
+
+                             Hech biri kodda emas: hammasi shu kataklardan
+                             keladi va formula matniga aylanadi.
+
+                          ⚠️ «Tasma eni» katagi IKKI joyga yoziladi —
+                             formulaga ham, «qat'iy kesim eni» ustuniga ham.
+                             Ikki alohida katak bo'lsa ular bir-biridan farq
+                             qilib qolardi va ombor noto'g'ri yechardi.
+                        */
+                        <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
+                          <label className="flex min-w-0 items-center gap-1">
+                            <span className="shrink-0 text-[11px] text-matn-kuchsiz">
+                              qadam
+                            </span>
+                            <input
+                              value={q.sarfQiymat}
+                              onChange={(e) => {
+                                yangila(i, { sarfQiymat: e.target.value });
+                              }}
+                              inputMode="decimal"
+                              placeholder="0.11"
+                              aria-label="Bitta tasma egallaydigan joy, metrda"
+                              title="Bitta tasma oynada qancha joy egallaydi, metrda (11 sm → 0.11)"
+                              className={`${kichik} min-w-0`}
+                            />
+                          </label>
+                          <label className="flex min-w-0 items-center gap-1">
+                            <span className="shrink-0 text-[11px] text-matn-kuchsiz">
+                              tasma
+                            </span>
+                            <input
+                              value={q.kesimEniM}
+                              onChange={(e) => {
+                                yangila(i, { kesimEniM: e.target.value });
+                              }}
+                              inputMode="decimal"
+                              placeholder="0.40"
+                              aria-label="Tasma eni, metrda"
+                              title="Rulondan qancha enli tasma tortiladi, metrda (40 sm → 0.40)"
+                              className={`${kichik} min-w-0`}
+                            />
+                          </label>
+                          <select
+                            value={q.yaxlitlash}
+                            onChange={(e) => {
+                              yangila(i, { yaxlitlash: e.target.value as Yaxlitlash });
+                            }}
+                            aria-label="Tasma soni yaxlitlanishi"
+                            title="18.02 ta tasma nechta bo'ladi"
+                            className={kichik}
+                          >
+                            {YAXLITLASHLAR.map((y) => (
+                              <option key={y} value={y}>
+                                {YAXLITLASH_NOMI[y]}
+                              </option>
+                            ))}
+                          </select>
+                          <label className="flex min-w-0 items-center gap-1">
+                            <span className="shrink-0 text-[11px] text-matn-kuchsiz">
+                              soniga
+                            </span>
+                            <input
+                              value={q.sarfQiymat2}
+                              onChange={(e) => {
+                                yangila(i, { sarfQiymat2: e.target.value });
+                              }}
+                              inputMode="numeric"
+                              placeholder="0"
+                              aria-label="Soniga qo'shimcha"
+                              title="Markazdan ochilganda bitta kam bo'lsa: -1"
+                              className={`${kichik} min-w-0`}
+                            />
+                          </label>
+                        </div>
+                      ) : tavsif.ikkiQiymat ? (
                         /*
                           ⚠️ IKKI KATAK, bitta emas. Eniga ketadigan miqdor va
                              bo'yiga ketadigan miqdor BOSHQA-BOSHQA bo'ladi:
@@ -472,6 +659,32 @@ export function MahsulotFormasi({
                          «qo'shiladimi yoki ko'paytiriladimi» deb
                          o'ylab qolmasin — ko'rib tursin.
                     */}
+                    {/*
+                      ⚠️ TASMALI formulasi DARHOL ko'rinadi — admin
+                         «qadam» va «tasma» qanday birikishini ko'rib
+                         tursin. O'lchamlar METRDA: 11 sm → 0.11.
+                    */}
+                    {tavsif.tasmali === true && (
+                      <p className="mt-2 text-[11px] text-matn-kuchsiz">
+                        Formula:{' '}
+                        <code className="font-mono">
+                          {xavfsizFormula(
+                            q.sarfTuri,
+                            q.sarfQiymat,
+                            q.sarfQiymat2,
+                            q.kesimEniM,
+                            q.yaxlitlash,
+                          ) || "— kataklarni to'ldiring —"}
+                        </code>
+                        <span className="mt-0.5 block">
+                          O&apos;lchamlar <b>metrda</b>: 11 sm → <code>0.11</code>,
+                          40 sm → <code>0.40</code>. Ombordan{' '}
+                          <b>{q.kesimEniM.trim() === '' ? '?' : q.kesimEniM} m</b> enli
+                          tasma tortiladi.
+                        </span>
+                      </p>
+                    )}
+
                     {tavsif.ikkiQiymat && (
                       <p className="mt-2 text-[11px] text-matn-kuchsiz">
                         Formula:{' '}
@@ -517,6 +730,13 @@ export function MahsulotFormasi({
                           />
                           <span className="text-[11px] text-matn-kuchsiz">marta</span>
                         </label>
+                        {/*
+                          ⚠️ TASMALI da kesish YO'NALISHI ma'nosiz: kesim
+                             eni qat'iy bo'lgani uchun `kesimOlchami`
+                             yo'nalishni baribir e'tiborga olmaydi. Ko'rinib
+                             tursa admin uni sozlayotgandek his qilardi.
+                        */}
+                        {tavsif.tasmali !== true && (
                         <label className="flex items-center gap-1.5 text-xs text-matn-ikki">
                           <span>Kesish</span>
                           <select
@@ -533,6 +753,7 @@ export function MahsulotFormasi({
                             <option value="BO'YIGA">Bo'yiga (bo'y × K)</option>
                           </select>
                         </label>
+                        )}
                         {/*
                           ⚠️ QAT'IY KESIM ENI — egasi holati 2026-09-20
                              («dikkey»).
@@ -548,6 +769,13 @@ export function MahsulotFormasi({
                              chunki 4 metr enli lamel rulonini hech kim
                              ishlab chiqarmaydi.
                         */}
+                        {/*
+                          ⚠️ TASMALI da bu katak YUQORIDA «tasma» deb
+                             so'ralgan va AYNI qiymatga bog'langan. Ikki
+                             marta ko'rsatilsa admin ularni boshqa-boshqa
+                             narsa deb o'ylardi.
+                        */}
+                        {tavsif.tasmali !== true && (
                         <label className="flex items-center gap-1.5 text-xs text-matn-ikki">
                           <span>Kesim eni</span>
                           <input
@@ -564,6 +792,7 @@ export function MahsulotFormasi({
                           />
                           <span className="text-[11px] text-matn-kuchsiz">m</span>
                         </label>
+                        )}
                         <span className="text-[11px] text-matn-kuchsiz">
                           {q.kesimEniM.trim() !== ''
                             ? `eni doim ${q.kesimEniM} m, bo'yi maydondan chiqadi`
@@ -599,6 +828,46 @@ export function MahsulotFormasi({
                           {q.majburiy ? "doim qo'shiladi" : "mijoz so'rasa"}
                         </label>
 
+                        {/*
+                          ⚠️ EGASI QARORI 2026-09-22 — «men slotda belgilayman».
+
+                             Mijoz narxi mato DARAJASIDAN keladi. Kun-tunda
+                             ikkita mato bo'ladi va qaysi biri narxni
+                             belgilashini ilgari KOD TAXMIN QILARDI
+                             («birinchi mato»). Endi egasi aytadi.
+
+                             ⚠️ CHECKBOX, radio emas — garchi faqat bitta
+                                slot belgilansa ham (bazada qisman unique
+                                indeks, 0048). Radioni bir marta bosgandan
+                                keyin BEKOR QILIB BO'LMAYDI: egasi fikridan
+                                qaytsa, eski xulqqa qaytish yo'li yopilardi.
+                                Bittalik shart quyidagi funksiyada.
+
+                             Faqat GURUH qatorida ko'rinadi: aniq material
+                             (aksessuar) mijoz tanlovi emas, uning darajasi
+                             narx uchun ma'noga ega emas.
+                        */}
+                        {q.turi === 'GURUH' && (
+                          <label className="flex items-center gap-1.5 text-xs text-matn-ikki">
+                            <input
+                              type="checkbox"
+                              checked={q.narxBelgilaydi}
+                              onChange={(e) => {
+                                const yoqildi = e.target.checked;
+                                setQatorlar(
+                                  qatorlar.map((x, j) => ({
+                                    ...x,
+                                    // Yoqilsa boshqalari o'chadi, o'chirilsa hech biri qolmaydi
+                                    narxBelgilaydi: yoqildi && j === i,
+                                  })),
+                                );
+                              }}
+                              className="size-3.5"
+                            />
+                            narxni belgilaydi
+                          </label>
+                        )}
+
                         <button
                           type="button"
                           onClick={() => {
@@ -632,6 +901,8 @@ export function MahsulotFormasi({
                   koeffitsient: 1,
                   kesishTuri: 'ENIGA',
                   kesimEniM: '',
+                  yaxlitlash: 'ROUND',
+                  narxBelgilaydi: false,
                 },
               ]);
             }}

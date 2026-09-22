@@ -13,12 +13,13 @@
  */
 export const MATERIAL_MAYDONLARI = [
   'nom',
+  // Ta'minotchi artikuli — 0050
+  'kod',
   'hisobTuri',
   'kirimBirligi',
   'sarflashBirligi',
   'koeffitsient',
-  'sotuvNarx',
-  'sotuvValyuta',
+  // ⚠️ `sotuvNarx` OLIB TASHLANDI (egasi, 2026-09-22) — narx `/narx` da
   // ⚠️ TANNARX EMAS (5.4) — kirimni oldindan to'ldirish uchun
   'kutilayotganKelishNarx',
   'kutilayotganKelishValyuta',
@@ -52,6 +53,13 @@ export const MATERIAL_MAYDONLARI = [
  *    ikkala nomi ham sxemada borligini tekshiradi.
  */
 export const NARX_MAYDONLARI = [
-  { narx: 'sotuvNarx', valyuta: 'sotuvValyuta' },
+  /**
+   * ⚠️ FAQAT KELISH NARXI QOLDI (egasi qarori 2026-09-22).
+   *
+   *    Sotuv narxi `/narx` → «Materialni o'zi sotish» jadvalidan
+   *    keladi. Kelish narxi esa narx siyosati EMAS: u kirim
+   *    formasini oldindan to'ldiradi va taxminiy ustamani
+   *    ko'rsatadi, pul hisobiga tegmaydi.
+   */
   { narx: 'kutilayotganKelishNarx', valyuta: 'kutilayotganKelishValyuta' },
 ] as const;

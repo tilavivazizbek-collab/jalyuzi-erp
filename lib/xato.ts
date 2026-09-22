@@ -130,6 +130,14 @@ export const XATO_BAND = {
   BUYURTMA_TOPILMADI: 'TZ 8.1',
   BUYURTMA_YOPILGAN: 'TZ 8.7',
   BUYURTMA_BOSH: 'TZ 3.9',
+  /**
+   * O'lcham mahsulot turining jismoniy chegarasidan chiqdi —
+   * egasi qarori 2026-09-22 (0051).
+   *
+   * ⚠️ BLOKLAYDI. Narxdan farqi shu: narx mijoz bilan kelishiladi,
+   *    bu o'lchamda esa mahsulot jismonan qilinmaydi.
+   */
+  OLCHAM_CHEGARADAN: 'Egasi qarori 2026-09-22',
   BUYURTMA_MIJOZ_KERAK: 'TZ 3.10',
   /** TZ 12.3 · 13.10 — bir to'lov ikki marta yozilmaydi */
   TOLOV_TAKROR: 'TZ 12.3',

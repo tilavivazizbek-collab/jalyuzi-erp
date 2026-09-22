@@ -167,6 +167,32 @@ export const sotuvPozitsiyaSxema = z
   narxSnapshot: pulMatni("Pozitsiya narxi noto'g'ri"),
   chegirmaSumma: pulMatni("Chegirma noto'g'ri").default('0'),
   xizmatHaqi: pulMatni("Xizmat haqi noto'g'ri").default('0'),
+    /**
+     * QAYSI OYNA — «Zal — katta oyna» (0049).
+     *
+     * ⚠️ Bo'sh satr `null` ga aylanadi: bazadagi
+     *    `pozitsiya_yorliq_bosh_emas` cheklovi bilan bir xil. Aks
+     *    holda ro'yxatda «yorliq bor» deb ko'rinadigan, lekin
+     *    ko'zga hech narsa ko'rinmaydigan qator paydo bo'lardi.
+     *
+     * ⚠️ Uzunlik chegarasi — chek 80 mm: undan uzun matn
+     *    qatorni buzadi.
+     */
+    yorliq: z
+      .string()
+      .trim()
+      .max(60, "Yorliq juda uzun (60 belgigacha)")
+      .transform((v) => (v === '' ? null : v))
+      .nullable()
+      .default(null),
+    /** Ichki eslatma — usta va montajchi uchun. Chekka chiqmaydi (0049) */
+    izoh: z
+      .string()
+      .trim()
+      .max(500, 'Izoh juda uzun (500 belgigacha)')
+      .transform((v) => (v === '' ? null : v))
+      .nullable()
+      .default(null),
     formulaSnapshot: z.unknown(),
     slotlar: z.array(sotuvSlotSxema).default([]),
     aksessuarlar: z.array(sotuvAksessuarSxema).default([]),

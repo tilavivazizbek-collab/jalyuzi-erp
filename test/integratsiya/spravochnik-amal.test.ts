@@ -33,11 +33,15 @@ const MATERIAL: MaterialKirimi = {
   kirimBirligi: 'rulon',
   sarflashBirligi: 'KV_M',
   koeffitsient: '1',
-  sotuvNarx: '120000',
-  sotuvValyuta: 'SOM',
+  /**
+   * ⚠️ `sotuvNarx` OLIB TASHLANDI (egasi, 2026-09-22): sotuv narxi
+   *    endi material kartochkasidan boshqarilmaydi. Audit testlari
+   *    o'rniga KELISH narxidan foydalanadi — u shu sahifada qoladi.
+   */
+  kod: null,
   kirimNarxAsosi: 'METR',
   togridanSotiladi: false,
-  kutilayotganKelishNarx: undefined,
+  kutilayotganKelishNarx: '120000',
   kutilayotganKelishValyuta: 'SOM',
   minUstamaFoiz: undefined,
   yaroqsizChegaraM: undefined,
@@ -56,10 +60,10 @@ describe('lib/amal/material.ts', () => {
     materialId = await materialYarat(sql, MATERIAL, XODIM);
     expect(materialId).toBeGreaterThan(0);
 
-    const q = await sql<{ nom: string; sotuv_narx: string }[]>`
-      SELECT nom, sotuv_narx FROM material WHERE id = ${materialId}`;
+    const q = await sql<{ nom: string; kutilayotgan_kelish_narx: string }[]>`
+      SELECT nom, kutilayotgan_kelish_narx FROM material WHERE id = ${materialId}`;
     expect(q[0]?.nom).toBe('Amal sinov matosi');
-    expect(Number(q[0]?.sotuv_narx)).toBe(120000);
+    expect(Number(q[0]?.kutilayotgan_kelish_narx)).toBe(120000);
   });
 
   it("o'zgarish bo'lmasa jurnalga yozilmaydi", async () => {
@@ -67,7 +71,7 @@ describe('lib/amal/material.ts', () => {
     expect(n.holat).toBe('OZGARISH_YOQ');
   });
 
-  it("narx o'zgarsa saqlanadi va jurnalga tushadi (2.4)", async () => {
+  it("kelish narxi o'zgarsa saqlanadi va jurnalga tushadi (2.4)", async () => {
     const oldin = await sql<{ n: number }[]>`
       SELECT COUNT(*)::int AS n FROM audit_jurnal
       WHERE obyekt_turi = 'material' AND obyekt_id = ${materialId}`;
@@ -75,7 +79,7 @@ describe('lib/amal/material.ts', () => {
     const n = await materialTahrirla(
       sql,
       materialId,
-      { ...MATERIAL, sotuvNarx: '130000' },
+      { ...MATERIAL, kutilayotganKelishNarx: '130000' },
       XODIM,
       FILIAL,
     );
@@ -94,9 +98,11 @@ describe('lib/amal/material.ts', () => {
       WHERE obyekt_turi = 'material' AND obyekt_id = ${materialId}
       ORDER BY id DESC LIMIT 1`;
 
-    expect(Object.keys(q[0]?.yangi_qiymat ?? {})).toEqual(['sotuv_narx']);
-    expect(q[0]?.eski_qiymat['sotuv_narx']).toBe('120000.00');
-    expect(q[0]?.yangi_qiymat['sotuv_narx']).toBe('130000.00');
+    expect(Object.keys(q[0]?.yangi_qiymat ?? {})).toEqual([
+      'kutilayotgan_kelish_narx',
+    ]);
+    expect(q[0]?.eski_qiymat['kutilayotgan_kelish_narx']).toBe('120000.00');
+    expect(q[0]?.yangi_qiymat['kutilayotgan_kelish_narx']).toBe('130000.00');
   });
 
   it("TZ 5.3 — qoldiq yo'q ekan birlik o'zgartiriladi", async () => {
@@ -104,7 +110,12 @@ describe('lib/amal/material.ts', () => {
     const n = await materialTahrirla(
       sql,
       materialId,
-      { ...MATERIAL, sotuvNarx: '130000', sarflashBirligi: 'M', koeffitsient: '1' },
+      {
+        ...MATERIAL,
+        kutilayotganKelishNarx: '130000',
+        sarflashBirligi: 'M',
+        koeffitsient: '1',
+      },
       XODIM,
       FILIAL,
     );

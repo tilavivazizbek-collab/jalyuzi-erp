@@ -38,8 +38,13 @@ export default async function MahsulotTahrirlash({ params }: { params: Promise<{
       botda_korinadi: boolean;
       rasm_bormi: boolean;
       ozgartirildi: string | null;
+      min_eni_m: string | null;
+      maks_eni_m: string | null;
+      min_boyi_m: string | null;
+      maks_boyi_m: string | null;
     }[]
   >`SELECT id, nom, xizmat_haqi, tartib, oynada_korinadi, botda_korinadi,
+           min_eni_m::text, maks_eni_m::text, min_boyi_m::text, maks_boyi_m::text,
            /* ⚠️ Rasmning O'ZI olinmaydi — u alohida yo'ldan keladi */
            (rasm IS NOT NULL) AS rasm_bormi,
            to_char(ozgartirildi, 'YYYYMMDDHH24MISS') AS ozgartirildi
@@ -51,9 +56,9 @@ export default async function MahsulotTahrirlash({ params }: { params: Promise<{
     ulanish<
       { nom: string; formula: string; majburiy: boolean; almashtirish_guruh_id: number | null;
         koeffitsient: string; kesish_turi: string;
-        kesim_eni_m: string | null }[]
+        kesim_eni_m: string | null; narx_belgilaydi: boolean }[]
     >`SELECT nom, formula, majburiy, almashtirish_guruh_id, koeffitsient::text,
-             kesish_turi, kesim_eni_m::text
+             kesish_turi, kesim_eni_m::text, narx_belgilaydi
       FROM mahsulot_slot WHERE mahsulot_tur_id = ${turId} AND faol = true
       ORDER BY tartib, id`,
     ulanish<
@@ -71,6 +76,11 @@ export default async function MahsulotTahrirlash({ params }: { params: Promise<{
   const qiymatlar: MahsulotQiymatlari = {
     nom: tur.nom,
     xizmatHaqi: tur.xizmat_haqi === null || Number(tur.xizmat_haqi) === 0 ? '' : tur.xizmat_haqi,
+    /** 0051 — `null` bo'lsa katak BO'SH turadi («chegara yo'q») */
+    minEniM: tur.min_eni_m ?? '',
+    maksEniM: tur.maks_eni_m ?? '',
+    minBoyiM: tur.min_boyi_m ?? '',
+    maksBoyiM: tur.maks_boyi_m ?? '',
     tartib: String(tur.tartib),
     oynadaKorinadi: tur.oynada_korinadi,
     botdaKorinadi: tur.botda_korinadi,
@@ -83,6 +93,8 @@ export default async function MahsulotTahrirlash({ params }: { params: Promise<{
       kesishTuri: s.kesish_turi === "BO'YIGA" ? ("BO'YIGA" as const) : ('ENIGA' as const),
       /** ⚠️ `null` — qat'iy eni yo'q, formadagi katak BO'SH turadi */
       kesimEniM: s.kesim_eni_m ?? '',
+      /** Egasi qarori 2026-09-22 — mijoz narxini shu slot belgilaydimi (0048) */
+      narxBelgilaydi: s.narx_belgilaydi,
     })),
     parametrlar: parametrlar.map((p): ParametrQatori => ({
       kod: p.kod,

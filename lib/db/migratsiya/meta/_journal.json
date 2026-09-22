@@ -337,6 +337,34 @@
       "when": 1790130166251,
       "tag": "0047_miqdor_bosqichi",
       "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1790168166251,
+      "tag": "0048_narx_belgilovchi_slot",
+      "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "7",
+      "when": 1790170166251,
+      "tag": "0049_pozitsiya_yorliq_izoh",
+      "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1790172166251,
+      "tag": "0050_material_kod",
+      "breakpoints": true
+    },
+    {
+      "idx": 51,
+      "version": "7",
+      "when": 1790174166251,
+      "tag": "0051_olcham_chegarasi",
+      "breakpoints": true
     }
   ]
 }

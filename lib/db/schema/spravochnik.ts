@@ -93,6 +93,21 @@ export const material = pgTable(
     id: id(),
     nom: text('nom').notNull(),
 
+    /**
+     * TA'MINOTCHI ARTIKULI — «BLACKOUT 1120-08» (0050).
+     *
+     * ⚠️ Ta'minotchi kod bilan gapiradi, korxona nom bilan.
+     *    Ikkalasini bog'laydigan narsa yo'q edi: hisob-fakturani
+     *    solishtirish qo'lda qilinardi va bir xil mato ikki xil
+     *    nom bilan ikki marta kiritilishi mumkin edi.
+     *
+     * ⚠️ IXTIYORIY, lekin kiritilsa TAKRORLANMAYDI
+     *    (`material_kod_bitta` — qisman unique, katta-kichik
+     *    harfni farqlamaydi). Kod identifikator: takrorlansa
+     *    qidiruv ikkita natija berib ma'nosini yo'qotadi.
+     */
+    kod: text('kod'),
+
     /** TZ 5.2 — to'rt xil hisob turi */
     hisobTuri: text('hisob_turi').notNull(),
     /** Ombor qanday qabul qiladi: shtanga, rulon, quti, metr, dona */
@@ -317,6 +332,27 @@ export const mahsulotTur = pgTable(
     /** `image/webp` kabi — brauzerga to'g'ri sarlavha berish uchun */
     rasmTuri: text('rasm_turi'),
 
+    /**
+     * JISMONIY O'LCHAM CHEGARASI — egasi qarori 2026-09-22 (0051).
+     *
+     * ⚠️ Ilgari chegara UMUMAN yo'q edi: 4 metrli rulon parda ham
+     *    qabul qilinardi. Muammo ustaning oldida chiqardi — val
+     *    o'z og'irligidan egiladi — va o'shanda mato ham, karniz
+     *    ham kesilgan, usta bir kun ishlagan bo'lardi.
+     *
+     * ⚠️ `null` — chegara yo'q, tekshiruv o'tkazilmaydi. Egasi
+     *    raqamlarni ustasidan so'rab turlarni bittalab to'ldiradi.
+     *
+     * ⚠️ Chegaraning O'ZI o'tadi (`<=`, `>=`): sohada «eng katta
+     *    eni 2.80» degani 2.80 m li parda QILINADI degani.
+     *
+     * ⚠️ Tekshiruvning o'zi `lib/domain/olcham-chegarasi.ts` da.
+     */
+    minEniM: numeric('min_eni_m', { precision: 6, scale: 2 }),
+    maksEniM: numeric('maks_eni_m', { precision: 6, scale: 2 }),
+    minBoyiM: numeric('min_boyi_m', { precision: 6, scale: 2 }),
+    maksBoyiM: numeric('maks_boyi_m', { precision: 6, scale: 2 }),
+
     oynadaKorinadi: boolean('oynada_korinadi').notNull().default(true),
     botdaKorinadi: boolean('botda_korinadi').notNull().default(true),
     ...ochirilmaydi,
@@ -326,6 +362,24 @@ export const mahsulotTur = pgTable(
     check(
       'mahsulot_tur_xizmat_haqi_manfiy_emas',
       sql`${t.xizmatHaqi} IS NULL OR ${t.xizmatHaqi} >= 0`,
+    ),
+    /** 0051 — manfiy yoki nol chegara ma'nosiz */
+    check(
+      'mahsulot_tur_olcham_musbat',
+      sql`(${t.minEniM} IS NULL OR ${t.minEniM} > 0)
+          AND (${t.maksEniM} IS NULL OR ${t.maksEniM} > 0)
+          AND (${t.minBoyiM} IS NULL OR ${t.minBoyiM} > 0)
+          AND (${t.maksBoyiM} IS NULL OR ${t.maksBoyiM} > 0)`,
+    ),
+    /**
+     * 0051 — teskari chegarada HECH BIR o'lcham o'tmaydi va tur
+     * butunlay sotilmay qoladi. Ekran ham aytadi, lekin bot va
+     * kelajakdagi import yo'llari ekranni chetlab o'tishi mumkin.
+     */
+    check(
+      'mahsulot_tur_olcham_tartibi',
+      sql`(${t.minEniM} IS NULL OR ${t.maksEniM} IS NULL OR ${t.minEniM} <= ${t.maksEniM})
+          AND (${t.minBoyiM} IS NULL OR ${t.maksBoyiM} IS NULL OR ${t.minBoyiM} <= ${t.maksBoyiM})`,
     ),
   ],
 );
@@ -384,10 +438,43 @@ export const mahsulotSlot = pgTable(
      *    Ko'pchilik mato uchun aynan shu to'g'ri.
      */
     kesimEniM: numeric('kesim_eni_m', { precision: 6, scale: 2 }),
+    /**
+     * MIJOZ NARXINI SHU SLOT BELGILAYDI — egasi qarori 2026-09-22.
+     *
+     * ⚠️ NEGA KERAK
+     *
+     *    Narx mato DARAJASIDAN keladi (2026-09-20). Lekin qaysi
+     *    matodan? Kun-tunda (zebra) ikkita mato sloti bor, egasining
+     *    bazasida esa karnizga ham daraja qo'yilgan. Ilgari kod
+     *    «birinchi mato sloti» deb taxmin qilardi — ya'ni narx
+     *    SLOT TARTIBIGA bog'liq edi va tartib o'zgarsa sababsiz
+     *    o'zgarardi.
+     *
+     *    Egasi: «men slotda belgilayman». Endi taxmin yo'q.
+     *
+     * ⚠️ `false` — eski xulq. Belgi qo'yilmagan turda avvalgidek
+     *    birinchi darajali mato olinadi, shuning uchun mavjud
+     *    ma'lumot va mavjud buyurtmalar o'zgarmaydi.
+     *
+     * ⚠️ Qoidaning O'ZI `lib/domain/narx-qoidasi.ts` →
+     *    `darajaliSlotniTop()` da. Bu yerda faqat ma'lumot turadi.
+     */
+    narxBelgilaydi: boolean('narx_belgilaydi').notNull().default(false),
     ...ochirilmaydi,
     ...izlar,
   },
-  (t) => [index('mahsulot_slot_tur').on(t.mahsulotTurId, t.tartib)],
+  (t) => [
+    index('mahsulot_slot_tur').on(t.mahsulotTurId, t.tartib),
+    /**
+     * ⚠️ Bir turda IKKITA belgilangan slot bo'lmaydi: o'shanda
+     *    «qaysi biri» degan savol qaytib kelardi va biz aynan
+     *    shundan qutulyapmiz. Qisman indeks — belgilanmaganlar
+     *    cheklanmaydi.
+     */
+    uniqueIndex('mahsulot_slot_narx_bitta')
+      .on(t.mahsulotTurId)
+      .where(sql`${t.narxBelgilaydi}`),
+  ],
 );
 
 // ─── 2.6 · mahsulot_parametr — TZ 4.3 ─────────────────────────────────────

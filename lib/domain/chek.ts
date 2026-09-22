@@ -54,6 +54,16 @@ export interface ChekPozitsiyasi {
    * `null` bo'lsa donalab sotilgan.
    */
   readonly miqdor?: string | null;
+  /**
+   * QAYSI OYNA — «Zal — katta oyna» (0049).
+   *
+   * ⚠️ Chekda KO'RINADI: mijoz qaysi pul qaysi oyna uchun ekanini
+   *    ko'rsin. Olti oynali buyurtmada «1-qator, 2-qator» degan
+   *    ro'yxat mijozga hech narsa aytmaydi.
+   *
+   * ⚠️ `izoh` esa chekka CHIQMAYDI — u ichki gap.
+   */
+  readonly yorliq?: string | null;
   /** `narx_snapshot` — chegirmasiz, kelishilgan narx (3.9) */
   readonly narx: string;
   readonly chegirma: string;
@@ -289,9 +299,22 @@ export function qatorYasa(p: ChekPozitsiyasi, valyuta: Valyuta): ChekQatori {
       ? `${String(p.soni)} × ${chekPuli(pulYasa(donaNarxi(p.narx, p.soni), valyuta))}`
       : null;
 
+  /**
+   * ⚠️ YORLIQ NOMDAN KEYIN — soha auditi 2026-09-22 (0049).
+   *
+   *    «Rulon — Zal, katta oyna 1.80 × 2.20 m». Olti oynali
+   *    buyurtmada mijoz qaysi pul qaysi oyna uchun ekanini
+   *    chekdan ko'radi; ilgari oltala qator bir xil ko'rinardi.
+   *
+   * ⚠️ IZOH chiqmaydi — u ichki gap va mijoz qo'liga tushmasligi
+   *    kerak.
+   */
+  const nom =
+    typeof p.yorliq === 'string' && p.yorliq !== '' ? `${p.nom} — ${p.yorliq}` : p.nom;
+
   return {
     tartib: p.tartib,
-    sarlavha: olcham === null ? p.nom : `${p.nom} ${olcham}`,
+    sarlavha: olcham === null ? nom : `${nom} ${olcham}`,
     miqdor,
     narx: chekPuli(jami),
     tarkib: p.tarkib,

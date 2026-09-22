@@ -65,7 +65,17 @@ describe('sarfFormulasi — natija formula qatlamida ishlaydi', () => {
    */
   it('har turdan chiqqan formula tekshiruvdan o‘tadi', () => {
     for (const t of SARF_TURLARI) {
-      const f = t === 'MURAKKAB' ? "(ENI - 60) * BO'YI" : sarfFormulasi(t, '2', '2');
+      /**
+       * ⚠️ `TASMALI` ga ikkita QO'SHIMCHA qiymat kerak: tasma eni va
+       *    yaxlitlash. Ularsiz formula yasalmaydi — bu ataylab,
+       *    chunki tasma enisiz sarf ham, kesim ham hisoblanmaydi.
+       */
+      const f =
+        t === 'MURAKKAB'
+          ? "(ENI - 60) * BO'YI"
+          : t === 'TASMALI'
+            ? sarfFormulasi(t, '0.11', '0', '0.4', 'ROUND')
+            : sarfFormulasi(t, '2', '2');
       expect(formulaTekshir(f, []).yaroqli).toBe(true);
     }
   });
@@ -136,8 +146,12 @@ describe('formuladanSarf — saqlangan formulani ekranga qaytarish', () => {
 
 describe('Borib-kelish qiymatni buzmaydi', () => {
   it('har raqamli tur formulaga aylanib, qaytib o‘ziga keladi', () => {
+    /** ⚠️ `TASMALI` alohida sinaladi — unga to'rtta qiymat kerak */
     const raqamlilar = SARF_TURLARI.filter(
-      (t) => SARF_TAVSIFI[t].raqamli && !SARF_TAVSIFI[t].ikkiQiymat,
+      (t) =>
+        SARF_TAVSIFI[t].raqamli &&
+        !SARF_TAVSIFI[t].ikkiQiymat &&
+        SARF_TAVSIFI[t].tasmali !== true,
     );
 
     for (const t of raqamlilar) {

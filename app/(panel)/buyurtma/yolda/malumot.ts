@@ -18,6 +18,8 @@ export interface YoldagiPozitsiya {
   readonly buyurtmaRaqami: string;
   readonly tartib: number;
   readonly mahsulot: string;
+  /** «Zal — katta oyna» (0049) */
+  readonly yorliq: string | null;
   readonly eniM: string;
   readonly boyiM: string;
   readonly mijozIsmi: string | null;
@@ -46,6 +48,7 @@ export async function yoldagilar(
       buyurtma_raqami: string;
       tartib: number;
       mahsulot: string;
+      yorliq: string | null;
       eni_m: string;
       boyi_m: string;
       mijoz_ismi: string | null;
@@ -59,6 +62,7 @@ export async function yoldagilar(
            b.raqam         AS buyurtma_raqami,
            p.tartib,
            mt.nom          AS mahsulot,
+           p.yorliq        AS yorliq,
            p.eni_m::text  AS eni_m,
            p.boyi_m::text AS boyi_m,
            m.ism           AS mijoz_ismi,
@@ -83,6 +87,8 @@ export async function yoldagilar(
     buyurtmaRaqami: r.buyurtma_raqami,
     tartib: r.tartib,
     mahsulot: r.mahsulot,
+    /** 0049 — qaysi oyna. Boshqa filialdan kelgan mahsulotni ajratish uchun */
+    yorliq: r.yorliq,
     eniM: r.eni_m,
     boyiM: r.boyi_m,
     mijozIsmi: r.mijoz_ismi,

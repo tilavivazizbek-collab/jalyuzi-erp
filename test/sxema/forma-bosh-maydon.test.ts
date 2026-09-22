@@ -133,12 +133,16 @@ describe('Boshqa formalar ham himoyalangan', () => {
     const r = materialSxema.safeParse({
       nom: 'Mato', hisobTuri: 'RULON', kirimBirligi: 'rulon',
       sarflashBirligi: 'KV_M', koeffitsient: '1',
-      sotuvNarx: '', sotuvValyuta: '',
       kutilayotganKelishNarx: '', kutilayotganKelishValyuta: '',
       kirimNarxAsosi: '',
     });
     expect(r.success).toBe(true);
-    if (r.success) expect(r.data.sotuvValyuta).toBe('SOM');
+    /**
+     * ⚠️ `sotuvValyuta` o'rniga KELISH valyutasi tekshiriladi:
+     *    sotuv narxi material kartochkasidan olib tashlandi
+     *    (egasi, 2026-09-22).
+     */
+    if (r.success) expect(r.data.kutilayotganKelishValyuta).toBe('SOM');
   });
 
   it('yetkazib beruvchi — valyuta yuborilmasa SOM', () => {

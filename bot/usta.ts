@@ -46,6 +46,10 @@ interface NavbatQatori {
   readonly muddat: string | null;
   readonly matolar: string | null;
   readonly aksessuarlar: string | null;
+  /** «Zal — katta oyna» (0049) */
+  readonly yorliq: string | null;
+  /** Sotuvchining ustaga eslatmasi (0049) */
+  readonly izoh: string | null;
 }
 
 /**
@@ -84,6 +88,7 @@ export async function navbat(filialId: number): Promise<readonly NavbatQatori[]>
      */
     SELECT p.id AS pozitsiya_id, b.raqam, p.tartib,
            mt.nom AS tur, p.eni_m::text, p.boyi_m::text,
+           p.yorliq, p.izoh,
            b.tayyorlik_sana::text AS muddat,
            (SELECT string_agg(ms.nom || ': ' || m.nom, ' · ' ORDER BY ms.tartib)
               FROM pozitsiya_material pm
@@ -196,10 +201,12 @@ export async function ishlarimniKorsat(
       tur: string;
       eni_m: string;
       boyi_m: string;
+      yorliq: string | null;
+      izoh: string | null;
     }[]
   >`
     SELECT p.id AS pozitsiya_id, b.raqam, p.tartib, mt.nom AS tur,
-           p.eni_m::text, p.boyi_m::text
+           p.eni_m::text, p.boyi_m::text, p.yorliq, p.izoh
     FROM buyurtma_pozitsiya p
     JOIN buyurtma b      ON b.id = p.buyurtma_id
     JOIN mahsulot_tur mt ON mt.id = p.mahsulot_tur_id

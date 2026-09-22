@@ -34,7 +34,8 @@ import {
   type PozitsiyaKirimi,
   type SlotKirimi,
 } from './buyurtma';
-import { sarflashniTekshir } from './sarflash';
+import { parametrlarniOqi, sarflashniTekshir } from './sarflash';
+import { narxniTekshir } from './narx-tekshir';
 import { BiznesXato } from '@/lib/xato';
 
 export interface PozitsiyaTahriri {
@@ -46,6 +47,16 @@ export interface PozitsiyaTahriri {
   readonly narxSnapshot: string;
   readonly chegirmaSumma: string;
   readonly xizmatHaqi: string;
+  /**
+   * Yorliq va izoh — 0049.
+   *
+   * ⚠️ Bular SNAPSHOT EMAS, ataylab tahrirlanadi: «mijoz qo'ng'iroq
+   *    qildi, zanjirni chapga o'zgartiring» degan gap ish davomida
+   *    keladi. 2.3-invariant qotirishni faqat PUL va O'LCHAM uchun
+   *    talab qiladi.
+   */
+  readonly yorliq?: string | null;
+  readonly izoh?: string | null;
   readonly formulaSnapshot: unknown;
   readonly slotlar: readonly SlotKirimi[];
   readonly aksessuarlar: readonly AksessuarKirimi[];
@@ -205,6 +216,81 @@ export async function pozitsiyaniTahrirla(
 
     const bandKerak = olchamOzgardi || matoOzgardi;
 
+    /**
+     * ── NARXNI SERVERDA QAYTA TEKSHIRISH — soha auditi 2026-09-22 ──
+     *
+     * ⚠️ NEGA BU YERDA HAM KERAK
+     *
+     *    Yangi buyurtmada bu teshik 2026-09-21 da yopilgan edi
+     *    (`lib/amal/narx-tekshir.ts`, QISM 1 §9.4): sotuvchining
+     *    brauzerida ochiq turgan ESKI sahifa eski narxni jimgina
+     *    yozib ketardi.
+     *
+     *    TAHRIRLASH yo'li esa o'sha holicha qolgan edi. Ya'ni
+     *    teshikni yopish uchun buyurtmani tahrirlash yetardi:
+     *    o'lchamni o'zgartirasan, narx brauzerdan qanday kelsa
+     *    shunday yoziladi va hech qanday iz qolmaydi. Egasi
+     *    narxni oshirgan bo'lsa ham eski narxda ketaverardi.
+     *
+     * ⚠️ BLOKLAMAYDI (TZ 3.8 · 3.11 — narx mijoz bilan
+     *    kelishiladi). Faqat `qolda_narx` belgisini qo'yadi.
+     *
+     * ⚠️ QO'SHIMCHALAR BAZADAN o'qiladi: tahrir oynasi ularni
+     *    o'zgartirmaydi, lekin narxga kiradi. Hisobga olinmasa
+     *    server narxi har safar past chiqib, har tahrir «qo'lda
+     *    qo'yilgan» deb belgilanardi va belgi ma'nosini
+     *    yo'qotardi.
+     */
+    let qoldaNarx = false;
+    let serverNarxi: string | null = null;
+
+    if (eski.mahsulot_tur_id !== null) {
+      const mavjudQoshimchalar = await tx<{ mahsulot_qoshimcha_id: number }[]>`
+        SELECT mahsulot_qoshimcha_id FROM pozitsiya_qoshimcha
+         WHERE buyurtma_pozitsiya_id = ${kirim.pozitsiyaId}`;
+
+      const tekshiruv = await narxniTekshir(tx, {
+        mahsulotTurId: eski.mahsulot_tur_id,
+        eniM: kirim.eniM,
+        boyiM: kirim.boyiM,
+        soni: kirim.soni,
+        narxSnapshot: kirim.narxSnapshot,
+        xizmatHaqi: kirim.xizmatHaqi,
+        mijozId: eski.mijoz_id,
+        /** ⚠️ Narx qoidasi ISHLAB CHIQARUVCHI filialga bog'langan (20.9) */
+        filialId: eski.ishlab_chiqaruvchi_filial_id,
+        kursSnapshot: eski.kurs_snapshot,
+        slotlar: kirim.slotlar.map((x) => ({
+          slotId: x.slotId,
+          materialId: x.materialId,
+        })),
+        qoshimchaIdlar: mavjudQoshimchalar.map((x) => x.mahsulot_qoshimcha_id),
+        parametrlar: Object.fromEntries(parametrlarniOqi(kirim.formulaSnapshot)),
+      });
+
+      qoldaNarx = tekshiruv.qoldami;
+      serverNarxi = tekshiruv.hisoblangan;
+    }
+
+    /**
+     * TZ 2.4 — NARX_QOLDA AUDITGA (yangi buyurtmadagi kabi).
+     *
+     * ⚠️ Bir xil hodisa ikki yo'ldan kelishi mumkin: yangi
+     *    buyurtma va tahrir. Ikkalasi ham yozmasa, «sotuvchi
+     *    intizomi» hisoboti YOLG'ON TINCHLIK berardi — narxga
+     *    tahrir orqali tegish ko'rinmay qolardi.
+     */
+    if (qoldaNarx) {
+      await tx`
+        INSERT INTO audit_jurnal (xodim_id, filial_id, amal, obyekt_turi,
+                                  obyekt_id, eski_qiymat, yangi_qiymat, izoh)
+        VALUES (${xodimId}, ${eski.ishlab_chiqaruvchi_filial_id}, 'NARX_QOLDA',
+                'buyurtma_pozitsiya', ${kirim.pozitsiyaId},
+                ${tx.json({ narx: serverNarxi })},
+                ${tx.json({ narx: kirim.narxSnapshot })},
+                ${`Tahrirda: jadval bo'yicha ${serverNarxi ?? '—'}, yozilgani ${kirim.narxSnapshot}`})`;
+    }
+
     // ── Pozitsiyaning o'zi ──
     await tx`
       UPDATE buyurtma_pozitsiya
@@ -212,6 +298,8 @@ export async function pozitsiyaniTahrirla(
           soni = ${kirim.soni}, narx_snapshot = ${kirim.narxSnapshot},
           chegirma_summa = ${kirim.chegirmaSumma},
           xizmat_haqi = ${kirim.xizmatHaqi},
+          yorliq = ${kirim.yorliq ?? null}, izoh = ${kirim.izoh ?? null},
+          qolda_narx = ${qoldaNarx},
           formula_snapshot = ${tx.json(kirim.formulaSnapshot as never)},
           ozgartirildi = now(), ozgartirdi_id = ${xodimId}
       WHERE id = ${kirim.pozitsiyaId}`;

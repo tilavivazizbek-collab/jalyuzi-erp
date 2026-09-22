@@ -34,6 +34,7 @@ import {
 import { mijozniOgohlantir } from './bildirishnoma';
 import { tasdiqlandiMatni } from '@/lib/domain/bildirishnoma';
 import { BiznesXato } from '@/lib/xato';
+import { chegaraXabari, olchamniTekshir } from '@/lib/domain/olcham-chegarasi';
 
 export interface SlotKirimi {
   /** ⚠️ `null` — materialni o'zi sotish, slot yo'q (egasi qarori 2026-09-20) */
@@ -124,6 +125,10 @@ export interface PozitsiyaKirimi {
   readonly xizmatHaqi: string;
   /** TZ 4.10 — konstruktor holati qotadi */
   readonly formulaSnapshot: unknown;
+  /** Qaysi oyna — «Zal — katta oyna» (0049). Chekda ko'rinadi */
+  readonly yorliq?: string | null;
+  /** Ichki eslatma — usta uchun (0049). Chekka chiqmaydi */
+  readonly izoh?: string | null;
   readonly slotlar: readonly SlotKirimi[];
   readonly aksessuarlar: readonly AksessuarKirimi[];
   readonly qoshimchalar?: readonly QoshimchaKirimi[];
@@ -220,6 +225,59 @@ export async function pozitsiyaYozTx(
   }
 
   /**
+   * §9.4 — O'LCHAM CHEGARASI SERVERDA HAM TEKSHIRILADI (0051).
+   *
+   * ⚠️ Ekranda tugma o'chiriladi, lekin bu HIMOYA EMAS: brauzerda
+   *    ochiq turgan ESKI sahifa chegara qo'yilishidan oldingi
+   *    holatni ushlab qoladi, bot esa butunlay boshqa yo'ldan
+   *    keladi.
+   *
+   * ⚠️ BLOKLAYDI — narxdan farqli o'laroq. Narx mijoz bilan
+   *    kelishiladi (TZ 3.8 · 3.11) va iz qoldirish yetarli; bu
+   *    o'lchamda esa mahsulot JISMONAN qilinmaydi. Egasi qarori
+   *    2026-09-22: «butunlay to'xtatsin».
+   *
+   * ⚠️ Qo'shimcha buyumda o'tkazilmaydi: u tayyorlanmaydi va
+   *    o'lchami nol bo'ladi.
+   */
+  if (!qoshimchami && p.mahsulotTurId !== null) {
+    const chegaraQatori = await tx<
+      {
+        nom: string;
+        min_eni_m: string | null;
+        maks_eni_m: string | null;
+        min_boyi_m: string | null;
+        maks_boyi_m: string | null;
+      }[]
+    >`
+      SELECT nom, min_eni_m::text, maks_eni_m::text,
+             min_boyi_m::text, maks_boyi_m::text
+        FROM mahsulot_tur WHERE id = ${p.mahsulotTurId}`;
+
+    const c = chegaraQatori[0];
+    if (c !== undefined) {
+      /** ⚠️ `numeric` MATN bo'lib keladi (P-13) — `Number()` shart */
+      const son = (x: string | null): number | null => (x === null ? null : Number(x));
+
+      const nuqsonlar = olchamniTekshir(
+        {
+          minEniM: son(c.min_eni_m),
+          maksEniM: son(c.maks_eni_m),
+          minBoyiM: son(c.min_boyi_m),
+          maksBoyiM: son(c.maks_boyi_m),
+        },
+        p.eniM,
+        p.boyiM,
+      );
+
+      const birinchi = nuqsonlar[0];
+      if (birinchi !== undefined) {
+        throw new BiznesXato('OLCHAM_CHEGARADAN', chegaraXabari(birinchi, c.nom));
+      }
+    }
+  }
+
+  /**
    * §9.4 — OMBOR SARFLASHI SERVERDA QAYTA HISOBLANADI.
    *
    * ⚠️ Shu paytgacha `hisoblangan_miqdor` brauzerdan kelgan ko'yi
@@ -280,7 +338,8 @@ export async function pozitsiyaYozTx(
       mijozId: k.mijozId,
       filialId: k.ishlabChiqaruvchiFilialId,
       kursSnapshot: k.kursSnapshot,
-      materialIdlar: p.slotlar.map((x) => x.materialId),
+      // 0048 — daraja qaysi slotdan olinishini server ham bilishi shart
+      slotlar: p.slotlar.map((x) => ({ slotId: x.slotId, materialId: x.materialId })),
       qoshimchaIdlar: (p.qoshimchalar ?? []).map((x) => x.mahsulotQoshimchaId),
       parametrlar: Object.fromEntries(parametrlarniOqi(p.formulaSnapshot)),
     });
@@ -327,13 +386,14 @@ export async function pozitsiyaYozTx(
                                     eni_m, boyi_m, soni, miqdor, narx_snapshot,
                                     chegirma_summa, xizmat_haqi,
                                     formula_snapshot, holat, qolda_narx,
-                                    yaratdi_id)
+                                    yorliq, izoh, yaratdi_id)
     VALUES (${k.buyurtmaId}, ${k.tartib}, ${p.mahsulotTurId},
             ${p.qoshimchaMaterialId ?? null}, ${p.eniM}, ${p.boyiM},
             ${p.soni}, ${p.miqdor ?? null},
             ${p.narxSnapshot}, ${p.chegirmaSumma}, ${p.xizmatHaqi},
             ${tx.json(p.formulaSnapshot as never)},
             ${k.tasdiqlangan ? k.tasdiqHolati : k.boshHolati}, ${qoldaNarx},
+            ${p.yorliq ?? null}, ${p.izoh ?? null},
             ${xodimId})
     RETURNING id`;
 

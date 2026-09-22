@@ -63,6 +63,9 @@ export function TahrirTugmasi({ pozitsiya }: { pozitsiya: PozitsiyaTahriri }) {
   const [eni, eniniOzgartir] = useState(String(pozitsiya.eniM));
   const [boyi, boyiniOzgartir] = useState(String(pozitsiya.boyiM));
   const [narx, narxniOzgartir] = useState(pozitsiya.narxSnapshot);
+  /** 0049 — yorliq va izoh tahrirlanadi (snapshot emas) */
+  const [yorliq, yorliqniOzgartir] = useState(pozitsiya.yorliq ?? '');
+  const [izoh, izohniOzgartir] = useState(pozitsiya.izoh ?? '');
   const [chegirma, chegirmaniOzgartir] = useState(pozitsiya.chegirmaSumma);
   const [matolar, matolarniOzgartir] = useState<Record<number, number>>(() =>
     Object.fromEntries(pozitsiya.slotlar.map((s) => [s.slotId, s.materialId])),
@@ -127,6 +130,8 @@ export function TahrirTugmasi({ pozitsiya }: { pozitsiya: PozitsiyaTahriri }) {
     narxSnapshot: narx.trim(),
     chegirmaSumma: chegirma.trim() === '' ? '0' : chegirma.trim(),
     xizmatHaqi: pozitsiya.xizmatHaqi,
+    yorliq,
+    izoh,
     formulaSnapshot: pozitsiya.formulaSnapshot,
     slotlar: qatorlar.map((q) => {
       // AUDIT 1-topilma — kesish sozlamalari joriy slotdan olinadi
@@ -209,6 +214,38 @@ export function TahrirTugmasi({ pozitsiya }: { pozitsiya: PozitsiyaTahriri }) {
                 )}
               </p>
             )}
+
+            {/*
+              ⚠️ YORLIQ va IZOH — 0049. Tahrirlanadi, chunki ular
+                 ish davomida aniqlashadi: «mijoz qo'ng'iroq qildi,
+                 zanjirni chapga o'zgartiring».
+            */}
+            <label className="flex flex-col gap-1">
+              <span className="text-sm font-medium text-matn-ikki">Qaysi oyna</span>
+              <input
+                value={yorliq}
+                onChange={(e) => {
+                  yorliqniOzgartir(e.target.value);
+                }}
+                maxLength={60}
+                placeholder="Zal — katta oyna"
+                className={kirishUslubi(false)}
+              />
+            </label>
+            <label className="flex flex-col gap-1">
+              <span className="text-sm font-medium text-matn-ikki">
+                Izoh (usta uchun)
+              </span>
+              <input
+                value={izoh}
+                onChange={(e) => {
+                  izohniOzgartir(e.target.value);
+                }}
+                maxLength={500}
+                placeholder="zanjir o'ngdan"
+                className={kirishUslubi(false)}
+              />
+            </label>
 
             <div className="grid grid-cols-2 gap-3">
               <label className="flex flex-col gap-1">

@@ -84,10 +84,16 @@ export async function materialYarat(
   turNarxlari: readonly TurNarxKirimi[] = [],
 ): Promise<number> {
   return ulanish.begin(async (tx) => {
+    /**
+     * ⚠️ SOTUV NARXI YOZILMAYDI — egasi qarori 2026-09-22.
+     *
+     *    Sotuv narxi «Narxlar va turlar» → «Materialni o'zi sotish»
+     *    jadvalidan keladi. Ustun bazada qoladi (eski qiymatlar
+     *    zaxira yo'l bo'lib turadi), lekin bu yerdan boshqarilmaydi.
+     */
     const qator = await tx<{ id: number }[]>`
       INSERT INTO material (
-        nom, hisob_turi, kirim_birligi, sarflash_birligi, koeffitsient,
-        sotuv_narx, sotuv_valyuta,
+        nom, kod, hisob_turi, kirim_birligi, sarflash_birligi, koeffitsient,
         kutilayotgan_kelish_narx, kutilayotgan_kelish_valyuta,
         min_ustama_foiz,
         yaroqsiz_chegara_m, kam_ishlatiladigan_m, kam_qoldiq_chegara_m,
@@ -96,9 +102,8 @@ export async function materialYarat(
         yaxlitlash_qadami, kirim_narx_asosi,
         yaratdi_id
       ) VALUES (
-        ${kirim.nom}, ${kirim.hisobTuri}, ${kirim.kirimBirligi},
+        ${kirim.nom}, ${kirim.kod}, ${kirim.hisobTuri}, ${kirim.kirimBirligi},
         ${kirim.sarflashBirligi}, ${kirim.koeffitsient},
-        ${yoNull(kirim.sotuvNarx)}, ${kirim.sotuvValyuta},
         ${yoNull(kirim.kutilayotganKelishNarx)}, ${kirim.kutilayotganKelishValyuta},
         ${yoNull(kirim.minUstamaFoiz)},
         ${yoNull(kirim.yaroqsizChegaraM)}, ${yoNull(kirim.kamIshlatiladiganM)},
@@ -206,12 +211,15 @@ export async function materialTahrirla(
     await tx`
       UPDATE material SET
         nom = ${kirim.nom},
+        kod = ${kirim.kod},
         hisob_turi = ${kirim.hisobTuri},
         kirim_birligi = ${kirim.kirimBirligi},
         sarflash_birligi = ${kirim.sarflashBirligi},
         koeffitsient = ${kirim.koeffitsient},
-        sotuv_narx = ${yoNull(kirim.sotuvNarx)},
-        sotuv_valyuta = ${kirim.sotuvValyuta},
+        -- SOTUV NARXIGA TEGILMAYDI (egasi, 2026-09-22). Ilgari bu
+        -- yerda sotuv_narx turardi; maydon formadan olib tashlangach
+        -- u har tahrirda eski narxni NOLGA tushirib yuborardi va
+        -- to'g'ridan sotiladigan mahsulot jimgina sotilmay qolardi.
         kutilayotgan_kelish_narx = ${yoNull(kirim.kutilayotganKelishNarx)},
         kutilayotgan_kelish_valyuta = ${kirim.kutilayotganKelishValyuta},
         min_ustama_foiz = ${yoNull(kirim.minUstamaFoiz)},
