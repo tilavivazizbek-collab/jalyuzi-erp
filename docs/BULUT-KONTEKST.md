@@ -111,6 +111,47 @@ jadvallarida — o'chirilmaydi.
 
 Kodda `×100` yoki `÷100` ko'rsangiz — bu xato, tuzatiladi.
 
+## 6b. Egasi sohani bilmaydi — ekspertizani SIZ berasiz (2026-09-22)
+
+Egasi ochiq aytdi: «men jalyuzi sohasini tushunmayman, ammo shu sohada
+ERP yaratyapman. AI ga qil desam kerakli funksiyalarni qo'shmayapti,
+yuzaki ishlayapti».
+
+⚠️ «Sizga nima kerak?» deb so'rash ISHLAMAYDI. U biznesni biladi (pul,
+mijoz, usta, narx siyosati), mahsulot konfiguratsiyasini esa yo'q:
+boshqaruv tomoni, o'rnatish turi, lamel eni, kasseta, val diametri.
+
+**Qanday ishlanadi:** avval sohada nima bo'lishi kerakligini o'zingiz
+ro'yxat qiling → loyihada bor-yo'qligini KODDA tekshiring → egasiga
+variant va tavsiya bilan ko'rsating. Savol doim aniq raqam bilan:
+«0.6 kv.m oyna uchun 8 $ mi yoki 4.80 $ mi».
+
+### Eng katta topilma — nima yetishmayotgani
+
+Tizim **o'lchov** (eni, bo'yi) va **materialni** (mato, karniz)
+mukammal modellashtiradi. **TANLOV**ni esa umuman yo'q: zanjir
+chapdanmi yoki o'ngdan, shiftga yoki devorga, kasseta bormi. Jalyuzida
+yetishmayotgan funksiyalarning deyarli hammasi shu bitta bo'shliqdan
+chiqadi — bittalab qo'shish behuda.
+
+To'liq audit: `docs/FUNKSIYA-AUDITI.md`. Qisqasi: `docs/QAMROV.md` §0-.
+
+### Egasining qarorlari — 2026-09-22
+
+| Savol | Qaror |
+|---|---|
+| Zebrada narxni qaysi mato belgilaydi | **Slotda belgilanadi** — `mahsulot_slot.narx_belgilaydi` (0048) |
+| Tanlovlar qanday ishlasin | **Faqat yozilsin va ustaga borsin** — narxga ham, omborga ham tegmaydi |
+| Minimal hisob maydoni | **Yo'q** — bosqich narxi o'lchovga ko'paytirilaveradi |
+| Mijoz qaysi o'lchamni aytadi | **Tayyor jalyuzi o'lchami** — o'lchov qo'shimchasi kerak emas |
+| Usta ishni qanday oladi | **Bot · qog'oz · kompyuter** — tanlov uchalasiga ham chiqsin |
+
+⚠️ Daraja tanlash mantig'i ilgari UCH JOYDA takrorlangan edi (sotuv
+ekrani, `narx-tekshir.ts`, bot). 2026-09-22 da `lib/domain/narx-qoidasi.ts`
+→ `darajaliSlotniTop()` ga yig'ildi. Yangi joyda takrorlamang.
+
+---
+
 ## 7. Ochiq savollar — javob kutilmoqda
 
 Usta stavkasi **yopildi** (2026-09-10): uchala usul qurilgan, egasi har

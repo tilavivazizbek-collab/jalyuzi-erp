@@ -41,6 +41,22 @@ docs/QAMROV.md      ← nima bor / nima yo'q jadvali (§14)
 TZ ning asosiy qismi auditdan o'tgan, **lekin tuzatilmagan**. Har safar TZ dan
 qoida olishdan oldin qarorlar ro'yxatini tekshir.
 
+### Bitta fakt — bitta hujjat
+
+Bir narsani ikki-uch hujjatga ko'chirma. Asosiy joyini tanla, qolganidan
+**havola** ber.
+
+| Nima | Qayerda turadi |
+|---|---|
+| Nima bor / nima yo'q | `docs/QAMROV.md` |
+| Mahsulot turi formulalari | `docs/JALYUZI-TURLARI.md` |
+| Bulut sessiyasi uchun kontekst | `docs/BULUT-KONTEKST.md` |
+| Audit topilmalari | `docs/FUNKSIYA-AUDITI.md` |
+
+⚠️ 2026-09-22: bitta qaror to'rtta faylga yozildi. Keyin biri
+yangilanib, qolgani eskirib qolish xavfi tug'ildi — hujjat kodga
+o'xshab «bir mantiq, bir joyda» qoidasiga bo'ysunadi.
+
 ### Eng ko'p adashtiradigan joylar
 
 | TZ da (eski) | To'g'risi |
@@ -84,6 +100,15 @@ o'tgansan». U haq edi — endi o'girishning O'ZI yo'q.
   qilindi, qo'llanmadi — deploydan keyin butun sayt yiqildi
   («column rasm does not exist»). `typecheck`, `lint`, `test`
   va `build` — hech biri buni ko'rmaydi
+- **Migratsiya IKKI bazaga qo'llanadi.** `npm run db:migrate` faqat
+  ishchi bazaga tegadi. Sinov bazasi (`jalyuzi_sinov`) — ALOHIDA baza:
+  ```bash
+  TEST_URL=$(grep '^TEST_DATABASE_URL=' .env | cut -d= -f2-) \
+    && DATABASE_URL="$TEST_URL" npx drizzle-kit migrate
+  ```
+  ⚠️ 2026-09-22: unutildi → **130 ta test yiqildi**, sabab bir soat
+  izlandi. Xato `CONNECTION_DESTROYED` bo'lib ko'rindi, ya'ni
+  TARMOQQA o'xshardi — aslida ustun yo'q edi
 - `DELETE` yo'q — `faol = false` · `ON DELETE CASCADE` yo'q
 - `FLOAT` / `REAL` / `ENUM` yo'q
 - Harakat jadvallarida `UPDATE` yo'q — storno yozuvi
@@ -116,13 +141,19 @@ Narx, formula, kesish, tannarx, stavka, filial hisobi — har biri **bitta fayl*
 
 ## 4. ISH USULI
 
-**To'rt qadam, har vazifada:**
+**Besh qadam, har vazifada:**
 
 1. **O'QI** — TZ bandi + qarorlar ro'yxati + bog'liq bandlar
 2. **REJA KO'RSAT** — nima yaratiladi, qanday test, qaysi joyda aniqlik kerak.
    **Tasdiq kut. Tasdiqsiz yozma.**
 3. **YOZ** — kichik qadamlar, har fayldan keyin `npm run typecheck`
-4. **HISOBOT BER** — "endi nima ishlaydi" + "qanday tekshirasiz" (aniq qadamlar)
+4. **YOP** — `test` · `lint` · `build` · ekran o'zgargan bo'lsa **ochib ko'r** ·
+   yangi ustunlarni §13 uchta savolidan o'tkaz · **KOMMIT**
+5. **HISOBOT BER** — "endi nima ishlaydi" + "qanday tekshirasiz" (aniq qadamlar)
+
+⚠️ 4-qadam 2026-09-22 da qo'shildi. O'sha sessiyada oltita migratsiya va
+qirqqa yaqin fayl **kommitsiz** to'planib qoldi, ekranlar esa brauzerda
+umuman ochilmadi — faqat `build` bilan tekshirildi.
 
 Namunalar: `docs/QOIDALAR.md` §3.
 
@@ -161,6 +192,10 @@ Faqat "ruxsat beringmi?" dema — **variant va tavsiya ber** (QOIDALAR §2).
 | Xatoni yashirish | — |
 | So'ralmagan narsa qo'shish | Doira kengayadi |
 | Sinamasdan "ishlayapti" deyish | — |
+| Egasidan **RAQAM** so'rash | Katak qurilib bo'sh qoldiriladi — §14a |
+| Qizil testda avval **tarmoqni** ayblash | Avval migratsiya, keyin tarmoq — §6 |
+| Ekran o'zgarib, uni **ochib ko'rmaslik** | `build` o'tgani «to'g'ri ko'rinadi» degani emas |
+| Tugagan qadamni **kommitsiz** qoldirish | To'plangan ish yo'qoladi, tekshirish qiyinlashadi |
 | **Egasining noto'g'ri fikriga qo'shilish** | Sen mutaxassissan |
 
 Oxirgisi eng xavflisi — QOIDALAR §4 ga qara.
@@ -191,6 +226,29 @@ KRITIK va JIDDIY edge case'lar.
 Test nomida kod: `test('EC-OMB-18: ...', ...)`.
 
 **Test yozilmagan modul tayyor emas.**
+
+### Test yozishdan oldin IMZONI och
+
+Chaqiriladigan funksiyaning argumentlarini **ko'z bilan ko'r**.
+
+⚠️ 2026-09-22: uchta test ketma-ket qizil chiqdi va uchalasida ham
+kod emas, **TESTNING O'ZI** xato edi (`standartQiymatlar` argumentlari,
+`Metr` turi, majburiy slot). Har biri vaqt yedi va chiqishni shovqinga
+to'ldirdi.
+
+### Qizil baza testi — DIAGNOSTIKA TARTIBI
+
+1. **Migratsiya sinov bazasida bormi?** — `information_schema.columns`
+   dan ustunni so'ra. Bir daqiqalik ish
+2. Keyin tarmoq: `ENOTFOUND` / `CONNECTION_DESTROYED` sana
+3. Undan keyingina kodni ayblash
+
+⚠️ Tartib muhim: migratsiya unutilsa xato AYNAN tarmoq uzilishiga
+o'xshab ko'rinadi. 2026-09-22 da shu sababli bir soat yo'qotildi.
+
+⚠️ **Yangi ish boshlashdan oldin** baza testi natijasi ma'lum bo'lsin.
+Noma'lum holat ustiga yangi migratsiya qo'yish — xatoni ikki barobar
+qiyin topiladigan qiladi.
 
 ⚠️ **Kanonik buyurtma `678 400` → `570 800`** (2026-09-20, egasining
 yozma tasdig'i bilan). Eski raqam «qatnashgan har materialning narxi
@@ -265,6 +323,27 @@ test o'tmasa kommit yo'q.
 - Kod parchasini javobga tashlama — faylni yoz, natijani ayt
 - Odatiy javob 10–20 qator. Jadval va ro'yxat ishlat
 
+### Egasi kodni o'qimaydi — EKRAN nomini ayt
+
+Hisobotda `forma.tsx:532` emas, **«sotuv ekrani»** deb yoz.
+Fayl nomi faqat DALIL sifatida, xato ko'rsatilayotganda kerak;
+xulosa va tavsiyada u ortiqcha shovqin.
+
+❌ «`kesimOlchami` da `kesimEniM` bo'lsa hisob teskari ketadi»
+✅ «Mahsulot turida `Kesim eni` to'ldirilsa, ombordan 0.40 m enli
+   tasma tortiladi»
+
+### «To'g'ri ishlaydimi?» — FIKR bilan emas, RAQAM bilan javob ber
+
+Egasi o'z holatini so'rasa (mening matom, mening rulonim, mening
+o'lchamim) — **haqiqiy funksiyalarni chaqirib simulyatsiya qil** va
+natijani jadval qilib ko'rsat.
+
+⚠️ 2026-09-22: «aynan shu mato eni va bo'yida to'g'ri ketadimi?»
+degan savolga simulyatsiya bilan javob berildi. O'shanda **fikrlab
+topilmagan** cheklov chiqdi: tizim ikkita rulonni qo'sha olmaydi.
+Mulohaza bilan javob berilganda bu bilinmasdi.
+
 ---
 
 ## 11. BUYRUQLAR
@@ -303,6 +382,21 @@ majbur bo'ldi. Sabab qoida yetishmagani emas — teshik
 KO'RINMAGANI. Shuning uchun qoida hujjatga emas, **jadvalga**
 bog'langan: uni ochib qarash mumkin.
 
+### Yangi ustun yoki belgi — UCHTA savol
+
+Ustun, belgi yoki maydon qo'shsang, uchalasiga javob ber:
+
+1. Qayerda **yoziladi**?
+2. Qayerda **o'qiladi** — qaysi ekranda, KIM ko'radi?
+3. Yozilib, hech kim o'qimasa — u **YO'Q bilan barobar**
+
+⚠️ 2026-09-21 da `qolda_narx` bazaga yozila boshladi, uni ko'rsatadigan
+ekran esa qo'shilmadi. Belgi bir yil tursa ham hech kim bilmasdi.
+2026-09-22 da tasodifan topildi — tizimli tekshiruv bilan emas.
+
+Shu tekshiruvni **har ish oxirida** o'tkaz: yangi ustunlarni sanab
+chiq, har biri uchun «buni kim ko'radi» deb so'ra.
+
 ---
 
 ## 14. TAXMIN QILMA — SO'RA
@@ -328,6 +422,42 @@ hal qildi.
 ⚠️ Bu §1 dagi «Talab noaniq — **aniqlashtirasan**» qoidasining
    kuchaytirilgan shakli: aniqlashtirmasdan **ishni boshlash
    ham** taqiqlanadi.
+
+---
+
+## 14a. LEKIN SO'RAMA — QUR
+
+§14 **biznes qarori** haqida. Bu bo'lim uning CHEGARASI.
+
+| SO'RALADI | SO'RALMAYDI — **KATAK QURILADI** |
+|---|---|
+| Biznes qarori: «narx maydondanmi yoki matodanmi?» | Raqam: qadam, chegara, foiz, koeffitsient, o'lcham |
+| Ikki xil tushunish mumkin bo'lgan talab | Egasining o'z ma'lumoti |
+| Xavfli amal: migratsiya, o'chirish, ishlab chiqarish bazasi | «Sizda qancha?» degan har qanday savol |
+
+**Raqam kerak bo'lsa — katakni qur va BO'SH qoldir.** Bo'sh chegara =
+tekshiruv yo'q, hech narsa buzilmaydi. Egasi ustasidan so'rab, bo'sh
+vaqtida to'ldiradi. Qaysi turni to'ldirsa — o'sha kuniyoq ishlaydi.
+
+⚠️ 2026-09-22: egasi «shu vaziyatni yig'sa bo'ladigan funksiya, input,
+dropdown qo'sh» dedi. Men undan **qadam raqamini so'radim**. Javob:
+«1 gapni 5 marta qaytarish kerakmi senga». U haq edi — o'sha sessiyada
+men aynan «katakni qurib bo'sh qoldirish» yondashuvini o'zim taklif
+qilgan, keyin darhol unutgan edim.
+
+**Bir sessiyada ikkitadan ortiq savol — ko'p.** Uchinchisidan oldin
+o'zingdan so'ra: *«buni qurib, bo'sh qoldirsam bo'ladimi?»*
+
+### Chetlab o'tish — ikki marta, uchinchisida TO'XTA
+
+Bir xil kamchilikni ikki marta «vaqtincha bunday qiling» deb chetlab
+o'tsang — uchinchisida to'xta va **asosiy ishni taklif qil**.
+
+⚠️ 2026-09-22: tanlov modeli yo'qligi **to'rtta** savolga sabab bo'ldi
+(zebra, dikkey ochilishi, motorli, burchak oyna). Har safar «ikki
+alohida tur qiling» deb javob berildi. Bu javob dasturchi uchun arzon,
+egasi uchun qimmat: har tur ikki barobar sozlanadi, ro'yxatda ikki
+barobar qator turadi.
 
 ---
 

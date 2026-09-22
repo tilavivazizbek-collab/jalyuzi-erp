@@ -8,7 +8,8 @@ majbur bo'ldi («dropdownlarda qo'shish bo'lsin»). Har safar bitta
 joy tuzatilib «bo'ldi» deyilardi. Teshik ko'rinmagani uchun shunday
 bo'ldi. Endi ko'rinadi.
 
-Oxirgi yangilanish: **2026-09-20** — **BUTUN TIZIM METRGA O'TDI**
+Oxirgi yangilanish: **2026-09-22** — soha auditi va narx zanjiri tuzatildi
+(§0-). Undan oldin: **2026-09-20** — **BUTUN TIZIM METRGA O'TDI**
 (§0a) + narx modeli butunlay almashtirildi:
 «Narxlar va turlar» sahifasi, bosqichli narx, mato darajasi,
 qo'shimchalar; sotuv ekrani, bot va chek yangi modelga o'tdi — kvitansiya, hisob-kitob va kunlik
@@ -16,6 +17,174 @@ yopish varaqalari (TZ 8.9 · 15.4); sotuv cheki (TZ 8.9) va korxona
 sozlamalari (TZ 14.3); **modullararo audit — 14 ta tuzatish** (§7);
 yetkazib beruvchi kartochkasi (9.7–9.8), kurs farqi (9.5–9.6),
 buyurtmani tahrirlash (8.7), material statistikasi (7.11)
+
+---
+
+## 0-. Soha auditi va narx zanjiri — 2026-09-22
+
+To'liq hisobot: **`docs/FUNKSIYA-AUDITI.md`**. Egasi: «kerakli
+funksiyalarning ko'pi yo'q, borlari ham sinovdan o'tmagan».
+
+### Tuzatildi
+
+| Nima edi | Nima qilindi |
+|---|---|
+| **Daraja tanlash mantig'i UCH JOYDA** — sotuv ekrani, server tekshiruvi va bot. Biri o'zgarsa uchtasi uch xil narx berardi | `lib/domain/narx-qoidasi.ts` → `darajaliSlotniTop()`. Uchalasi shu bitta funksiyani chaqiradi |
+| **Zebrada narx SLOT TARTIBIGA bog'liq edi** — «birinchi mato sloti» degan taxmin. Slot joyi almashsa narx sababsiz o'zgarardi | `mahsulot_slot.narx_belgilaydi` (**0048**). Egasi mahsulot turida belgilaydi. Belgi qo'yilmagan turda eski xulq saqlanadi |
+| Belgilangan slotga darajasiz material tanlansa | Boshqa slotdan OLINMAYDI — narx topilmaydi va sotuvchi sababni ko'radi. Jimgina boshqa matoning narxida sotilishdan ko'ra shu xavfsiz |
+
+7 ta yangi test (EC-NARX-30…36) · migratsiya qo'llandi va bazada
+tekshirildi.
+
+### Egasining qarorlari — 2026-09-22
+
+| Savol | Qaror |
+|---|---|
+| Zebrada narxni qaysi mato belgilaydi | **Slotda belgilanadi** |
+| Tanlovlar (zanjir tomoni, kasseta, o'rnatish turi) | **Faqat yozilsin va ustaga borsin** — narxga ham, omborga ham tegmaydi |
+| Minimal hisob maydoni | **Yo'q** — bosqich narxi o'lchovga ko'paytirilaveradi |
+| Mijoz qaysi o'lchamni aytadi | **Tayyor jalyuzi o'lchami** — o'lchov qo'shimchasi kerak emas |
+| Usta ishni qanday oladi | **Bot · qog'oz · kompyuter** — tanlovlar uchalasiga ham chiqishi shart |
+
+### Pozitsiya yorlig'i, izohi va nusxalash — 2026-09-22 (0049)
+
+| Nima edi | Nima qilindi |
+|---|---|
+| **Butun tizimda izoh yozadigan joy yo'q edi.** «Zanjir o'ngdan», «mijoz o'zi olib ketadi» og'zaki aytilib yo'qolardi | `buyurtma_pozitsiya.izoh` — sotuvda va tahrirda yoziladi |
+| Olti oynali buyurtmada qaysi qator qaysi oyna ekani **bilinmasdi** — faqat «1-qator, 2-qator» | `buyurtma_pozitsiya.yorliq` — «Zal — katta oyna» |
+| Bir xil beshta oyna **beshta marta qo'lda** kiritilardi | Savatda «⧉ Nusxalash» — nusxa asl qatorning yoniga tushadi, yorliqqa « (2)» qo'shiladi |
+
+**Qayerda ko'rinadi** (§13 to'liqlik):
+
+| Joy | Yorliq | Izoh |
+|---|:---:|:---:|
+| Sotuv ekrani — kiritish va savat | ✅ | ✅ |
+| Buyurtma kartochkasi | ✅ | ✅ |
+| Pozitsiyani tahrirlash | ✅ | ✅ |
+| Chek (80 mm) | ✅ | ❌ **ataylab** — ichki gap mijoz qo'liga tushmasin |
+| Kvitansiya | ✅ | ❌ ataylab |
+| Bot — usta navbati va «ishlarim» | ✅ | ✅ `⚠️` belgisi bilan |
+| Qayta kesish so'rovlari | ✅ | — |
+| Yo'ldagilar (filiallararo) | ✅ | — |
+
+⚠️ Yorliq va izoh **snapshot EMAS** — tahrirlanadi. Ular pul yoki
+o'lcham emas; 2.3-invariant qotirishni faqat pul va o'lcham uchun
+talab qiladi. Ish davomida aniqlashadi: «mijoz qo'ng'iroq qildi,
+zanjirni chapga o'zgartiring».
+
+### Narx xaritasi va tahrirda narx tekshiruvi — 2026-09-22
+
+| Nima edi | Nima qilindi |
+|---|---|
+| **Narx qo'yilmagani faqat SOTUV paytida bilinardi** — mijoz oldida. Chap ustundagi «3 daraja» belgisi qaysi daraja ochiq qolganini aytmasdi | `/narx` tepasida **tur × daraja xaritasi**. Sarlavhada «N ta juftlikka narx qo'yilmagan» |
+| Qoida FAQAT bir mijoz turiga qo'yilgan bo'lsa ham «bor» bo'lib ko'rinardi | Uchta holat ajratiladi: ✓ to'liq · **!** faqat ayrim mijoz turi/filialga · **—** yo'q |
+| Bosqichsiz qoida «bor» deb sanalardi, sotuvda esa xato otardi | Bosqichsiz qoida «yo'q» ga tenglashtirildi |
+| **Buyurtmani TAHRIRLASHDA narx serverda tekshirilmasdi** — yangi buyurtmada yopilgan teshik o'sha yerda ochiq turardi. O'lchamni o'zgartirish orqali eski narxni yozib ketish mumkin edi | `narxniTekshir` tahrir tranzaksiyasida ham chaqiriladi · `qolda_narx` qo'yiladi · `NARX_QOLDA` auditga tushadi |
+| **`qolda_narx` belgisi hech qayerda ko'rinmasdi** — 2026-09-21 dan beri bazaga yozilardi, lekin uni ko'radigan ekran yo'q edi | Buyurtma kartochkasida narx yonida sariq «qo'lda» yorlig'i |
+
+⚠️ Tahrirdagi tekshiruv qo'shimchalarni BAZADAN o'qiydi: tahrir oynasi
+ularni o'zgartirmaydi, lekin narxga kiradi. Hisobga olinmasa har
+tahrir «qo'lda qo'yilgan» deb belgilanib, belgi ma'nosini yo'qotardi.
+
+### Material sahifasi va ro'yxati — 2026-09-22
+
+Egasi: «u pageda narx kiritish kerak emas, tur va narx pageda narx
+qo'yish kerak».
+
+| Nima edi | Nima qilindi |
+|---|---|
+| **Sotish narxi** material kartochkasida turardi — narx ikki joydan boshqarilardi | Maydon OLIB TASHLANDI. Narx `/narx` → «Materialni o'zi sotish» dan |
+| **Mijoz turi bo'yicha narx** bloki ham shu yerda edi | U ham olib tashlandi — mijoz turiga narx `/narx` qoida qatorida |
+| Ta'minotchi «1120-08» deydi, tizimda faqat nom bor edi | **Artikul** maydoni (**0050**) — ixtiyoriy, lekin takrorlanmaydi |
+| Ro'yxatda **qidiruv yo'q** edi — 88 material ko'z bilan izlanardi | Nom va artikul bo'yicha qidiruv (`?q=`) |
+| Ro'yxatda **filtr yo'q** edi | Mato · Karniz va profil · Aksessuar (`?tur=`) — `hisob_turi` dan, yangi ustunsiz |
+| Ro'yxatda **qoldiq ko'rinmasdi** | «Bo'sh qoldiq» ustuni — shu filialning BAND QILINMAGAN qoldig'i |
+| Ro'yxatda **daraja ko'rinmasdi**, holbuki endi mijoz narxini aynan u belgilaydi | «Daraja» ustuni. Darajasi yo'q mato QIZIL bilan belgilanadi |
+| Eng ko'zga tashlanadigan ustun «Sotuv narxi» edi va odatda bo'sh turardi | O'rniga daraja va qoldiq |
+
+⚠️ **ESKI NARXLAR O'CHIRILMADI.** `material.sotuv_narx` ustuni bazada
+qoladi va `INSERT`/`UPDATE` unga TEGMAYDI. Sabab: maydon formadan
+olib tashlangach, `sotuv_narx = ${...}` har tahrirda eski narxni
+nolga tushirib yuborardi va to'g'ridan sotiladigan mahsulot jimgina
+sotilmay qolardi. Eski qiymat kartochkada **o'qish uchun** ko'rinadi
+(«jadval to'lguncha zaxira sifatida ishlaydi»).
+
+⚠️ To'g'ridan sotiladigan materialga **daraja tanlanmagan** bo'lsa,
+kartochkada qizil ogohlantirish chiqadi: «sotuvda narxsiz qoladi».
+
+⚠️ Sinov bazasiga (`jalyuzi_sinov`) migratsiya ALOHIDA qo'llanadi:
+`npm run db:migrate` faqat ishchi bazaga tegadi. 2026-09-22 da
+0048–0050 sinov bazasiga qo'lda qo'llandi — buni unutish baza
+testlarini ommaviy qizil qiladi (130 ta yiqilgan test aynan shundan
+bo'lgan).
+
+### O'lcham chegarasi — 2026-09-22 (0051)
+
+Egasi: «albatta kerak» · «butunlay to'xtatsin».
+
+| Nima edi | Nima qilindi |
+|---|---|
+| O'lcham uchun **hech qanday chegara yo'q** edi: yagona tekshiruv «noldan katta, 1000 metrdan kichik». 4 metrli rulon parda ham savatga tushardi | Mahsulot turida to'rtta chegara: eng kichik/katta eni va bo'yi |
+| Muammo **ustaning oldida** chiqardi: mato kesilgan, karniz kesilgan, usta bir kun ishlagan — hammasi qaytmaydi | Sotuv ekranida o'lcham yozilgan zahoti to'xtatiladi |
+
+**Qayerda tekshiriladi** (§13 · §9.4):
+
+| Joy | Holat |
+|---|---|
+| Sotuv ekrani — o'lcham kataklaridan keyin qizil xabar, savat tugmasi o'chadi | ✅ |
+| Server (`pozitsiyaYozTx`) — `OLCHAM_CHEGARADAN` xatosi bilan bloklaydi | ✅ ochiq turgan eski sahifa o'tkazib yuborolmaydi |
+| Telegram bot — faqat endigina kiritilgan o'lcham tekshiriladi | ✅ |
+| Admin ekrani — teskari chegara saqlashdan oldin rad etiladi | ✅ sxemada + bazada CHECK |
+
+⚠️ **BO'SH CHEGARA — TEKSHIRUV YO'Q.** To'rtala maydon ham ixtiyoriy.
+Egasi raqamlarni ustasidan so'rab turlarni bittalab to'ldiradi;
+to'ldirilmagan tur avvalgidek ishlayveradi.
+
+⚠️ **Chegaraning O'ZI o'tadi** (`<=`, `>=`): sohada «eng katta eni
+2.80» degani 2.80 m li parda QILINADI degani. Qat'iy taqqoslash
+bo'lsa aynan chegaradagi buyurtma rad etilardi.
+
+⚠️ **Mavjud buyurtmalarga tegmaydi** — chegara faqat yangi pozitsiya
+qo'shilganda tekshiriladi. Aks holda chegara kiritilgan kuni yarim
+ish to'xtab qolardi.
+
+Qoida bitta joyda: `lib/domain/olcham-chegarasi.ts`. 16 test
+(EC-OLCH-01…16).
+
+### Tasmali sarf turi — 2026-09-22
+
+Egasi: «shu vaziyatni yig'sa bo'ladigan funksiya, input, dropdown va
+buttonlar qo'sh».
+
+| Nima edi | Nima qilindi |
+|---|---|
+| To'lqinsimon dikkey matosini ifodalash MUMKIN EMAS edi: 0.40 m enli tasma oynada 0.11 m joy egallaydi, soni esa butun songa yaxlitlanadi | Yangi sarf turi **«Tasmalab (lamel, to'lqin)»** — to'rtta katak: qadam · tasma eni · yaxlitlash (dropdown) · soniga qo'shimcha |
+| Kesim eni alohida katakda edi va tasma eni bilan farq qilib qolishi mumkin edi | `TASMALI` da bitta katak ikkala joyga yoziladi |
+| Markazdan ochilganda bitta kam tasma — formula tilida shart yo'q | «soniga qo'shimcha» katagi: `-1` yoziladi |
+
+⚠️ **Hech bir raqam kodda emas** — hammasi ekrandan kiritiladi va
+formula matniga aylanadi (`mahsulot_slot.formula`). Egasi qadamni
+o'zgartirsa kod tegmaydi.
+
+⚠️ Bir tomonga / markazdan — hozircha **ikki alohida tur** (egasi
+qarori). Tanlov modeli qurilgach birlashtiriladi; eski buyurtmalar
+`formula_snapshot` tufayli buzilmaydi.
+
+⚠️ **NARX OGOHLANTIRISHI**: bu mahsulotda mato sarfi oyna maydonidan
+**3.6 barobar** ko'p (rulon pardada 1.05). Dikkey narx jadvali shuni
+hisobga olishi shart.
+
+9 test (EC-TASMA-01…09) · `docs/JALYUZI-TURLARI.md` §5a.
+
+### Ochiq qolgani
+
+| Nima | Holat |
+|---|---|
+| **TANLOV modeli umuman yo'q** — zanjir tomoni, o'rnatish turi, lamel eni, kasseta. Tizim o'lchov va materialni modellashtiradi, tanlovni esa yo'q | ❌ egasidan tanlovlar ro'yxati kutiladi. ⚠️ Vaqtinchalik yo'l: `izoh` katagiga qo'lda yozish mumkin (0049) |
+| **Ishlab chiqarish varaqasi** (usta uchun chop etish) | ❌ |
+| O'lcham chegarasi — **mexanizm qurildi**, egasi raqamlarni to'ldiradi | ⚠️ ustadan so'raladi |
+| Material izohi · yetkazib beruvchi · joylashuv | ❌ taklif qilindi, egasi hozircha rad etdi |
+| Naqshli mato — kesish yo'nalishi materialda emas, mahsulot turida | ❌ egasidan javob kutiladi: naqshli mato bormi |
 
 ---
 

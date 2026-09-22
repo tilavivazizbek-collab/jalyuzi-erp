@@ -127,6 +127,51 @@ rulondan ochiladigan tasmaning umumiy uzunligi bir xil.
 
 ---
 
+## 5a. VERTIKAL — TO'LQINSIMON (tasmali mato)
+
+Egasining haqiqiy matosi (2026-09-22): rulon, **eni 0.40 m**, bo'yi
+100 m. Mato tepadan pastga tushadi va orqa-oldinga tushib chiqib
+to'lqin hosil qiladi. Shu sababli **0.40 m enli tasma oynada ~0.11 m
+joy egallaydi**.
+
+⚠️ «Maydondan» turi buni IFODA QILA OLMAYDI: tasma soni butun songa
+yaxlitlanadi va qadamga bog'liq, maydonga esa bitta ko'paytma
+qo'yiladi.
+
+**Sarf turi:** `Tasmalab (lamel, to'lqin)` — to'rtta katak:
+
+| Katak | Ma'nosi | Egasining qiymati |
+|---|---|---|
+| qadam | bitta tasma oynada qancha joy egallaydi | `0.11` (11 sm) |
+| tasma | rulondan qancha enli tortiladi | `0.40` (40 sm) |
+| yaxlitlash | 18.18 ta tasma nechta bo'ladi | `yaqiniga` |
+| soniga | markazdan ochilsa bitta kam | `0` yoki `-1` |
+
+Yasaladigan formula: `ROUND(ENI / 0.11) * 0.4 * BO'YI`
+
+**Misol — 2.00 × 2.50 m oyna, bir tomonga ochiladi:**
+
+```
+tasma soni  = ROUND(2.00 / 0.11) = 18 ta
+mato sarfi  = 18 × 0.40 × 2.50   = 18.00 kv.m
+ombordan    = 18.00 ÷ 0.40       = 0.40 × 45.00 m
+100 m rulondan 45 m ketadi, 55 m qoladi
+```
+
+⚠️ **NARX OGOHLANTIRISHI.** Oyna maydoni 5.00 kv.m, mato sarfi
+18.00 kv.m — **3.6 barobar**. Rulon pardada bu nisbat 1.05.
+Dikkey narx jadvalidagi 1 kv.m narxi shuni hisobga olishi SHART,
+aks holda har buyurtmada zarar bo'ladi.
+
+⚠️ **Bir tomonga / markazdan** — hozircha **ikki alohida tur**
+(egasi qarori 2026-09-22). Formula tilida shart yo'q, tanlov modeli
+esa hali qurilmagan. Ikki turda mexanizm va kronshteyn formulalari
+ham boshqa-boshqa bo'ladi.
+
+Testlar: `test/domain/tasmali-sarf.test.ts` (EC-TASMA-01…09).
+
+---
+
 ## 6. GORIZONTAL
 
 **Parametrlar:** `QADAM` = `2.2` (25 mm lamel) yoki `4.4` (50 mm) [Taxmin]
