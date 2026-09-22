@@ -129,6 +129,8 @@ interface Qator {
   kesimEniM: string;
   /** `TASMALI` — tasma soni qanday yaxlitlanadi */
   yaxlitlash: Yaxlitlash;
+  /** `TASMALI` — HAR TASMAGA qo'shiladigan zapas, metrda */
+  zapasM: string;
   /** Egasi qarori 2026-09-22 — mijoz narxini shu slot belgilaydimi */
   narxBelgilaydi: boolean;
 }
@@ -163,6 +165,7 @@ function boshQatorlar(q: MahsulotQiymatlari): Qator[] {
       kesishTuri: s.kesishTuri,
       kesimEniM: sarf.tasmaEniM ?? s.kesimEniM,
       yaxlitlash: sarf.yaxlitlash ?? 'ROUND',
+      zapasM: sarf.zapasM ?? '',
       narxBelgilaydi: s.narxBelgilaydi,
     };
   });
@@ -180,6 +183,7 @@ function boshQatorlar(q: MahsulotQiymatlari): Qator[] {
       kesishTuri: 'ENIGA',
       kesimEniM: '',
       yaxlitlash: 'ROUND',
+      zapasM: '',
       narxBelgilaydi: false,
     };
   });
@@ -195,15 +199,27 @@ function boshQatorlar(q: MahsulotQiymatlari): Qator[] {
  *    formula bilan ketadi va serverdagi tekshiruv tushunarli xato
  *    beradi (4.5 — «xato bo'lsa saqlanmaydi»).
  */
-function xavfsizFormula(
-  turi: SarfTuri,
-  qiymat: string,
-  qiymat2: string,
-  tasmaEniM = '',
-  yaxlitlash: Yaxlitlash = 'ROUND',
-): string {
+/**
+ * ⚠️ `TASMALI` sozlamalari QATORNING O'ZIDAN olinadi — pozitsion
+ *    argument bo'lib uzatilmaydi. Beshta ketma-ket matn argumenti
+ *    yozilganda ularning birini adashtirib qo'yish oson edi.
+ */
+function xavfsizFormula(q: {
+  sarfTuri: SarfTuri;
+  sarfQiymat: string;
+  sarfQiymat2: string;
+  kesimEniM: string;
+  yaxlitlash: Yaxlitlash;
+  zapasM: string;
+}): string {
   try {
-    return sarfFormulasi(turi, qiymat, qiymat2, tasmaEniM, yaxlitlash);
+    return sarfFormulasi(q.sarfTuri, q.sarfQiymat, q.sarfQiymat2, {
+      qadam: q.sarfQiymat,
+      tasmaEniM: q.kesimEniM,
+      yaxlitlash: q.yaxlitlash,
+      qoshimchaSoni: q.sarfQiymat2,
+      zapasM: q.zapasM,
+    });
   } catch {
     return '';
   }
@@ -269,13 +285,7 @@ export function MahsulotFormasi({
        *    sarlavhasi bo'lib chiqadi.
        */
       nom: guruhNomi(q.id),
-      formula: xavfsizFormula(
-        q.sarfTuri,
-        q.sarfQiymat,
-        q.sarfQiymat2,
-        q.kesimEniM,
-        q.yaxlitlash,
-      ),
+      formula: xavfsizFormula(q),
       majburiy: q.majburiy,
       almashtirishGuruhId: q.id,
       koeffitsient: q.koeffitsient,
@@ -288,7 +298,7 @@ export function MahsulotFormasi({
     .filter((q) => q.turi === 'MATERIAL' && q.id !== null)
     .map((q) => ({
       materialId: q.id as number,
-      formula: xavfsizFormula(q.sarfTuri, q.sarfQiymat, q.sarfQiymat2),
+      formula: xavfsizFormula(q),
       majburiy: q.majburiy,
     }));
 
@@ -530,7 +540,7 @@ export function MahsulotFormasi({
                              Ikki alohida katak bo'lsa ular bir-biridan farq
                              qilib qolardi va ombor noto'g'ri yechardi.
                         */
-                        <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
+                        <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-5">
                           <label className="flex min-w-0 items-center gap-1">
                             <span className="shrink-0 text-[11px] text-matn-kuchsiz">
                               qadam
@@ -591,6 +601,33 @@ export function MahsulotFormasi({
                               placeholder="0"
                               aria-label="Soniga qo'shimcha"
                               title="Markazdan ochilganda bitta kam bo'lsa: -1"
+                              className={`${kichik} min-w-0`}
+                            />
+                          </label>
+                          {/*
+                            ⚠️ ZAPAS — egasi qarori 2026-09-22:
+                               «har tasmaga alohida».
+
+                               Buklama, qiyshiq kesish ehtimoli va
+                               o'lchov xatosi uchun qo'shiladigan
+                               zaxira. HAR TASMAGA qo'shiladi, ya'ni
+                               18 ta tasmada 10 sm 1.80 m mato beradi.
+
+                               Bo'sh qoldirilsa zapas yo'q.
+                          */}
+                          <label className="flex min-w-0 items-center gap-1">
+                            <span className="shrink-0 text-[11px] text-matn-kuchsiz">
+                              zapas
+                            </span>
+                            <input
+                              value={q.zapasM}
+                              onChange={(e) => {
+                                yangila(i, { zapasM: e.target.value });
+                              }}
+                              inputMode="decimal"
+                              placeholder="0.10"
+                              aria-label="Har tasmaga qo'shiladigan zapas, metrda"
+                              title="Har tasmaga qo'shiladi: 10 sm → 0.10. Bo'sh — zapas yo'q"
                               className={`${kichik} min-w-0`}
                             />
                           </label>
@@ -668,19 +705,16 @@ export function MahsulotFormasi({
                       <p className="mt-2 text-[11px] text-matn-kuchsiz">
                         Formula:{' '}
                         <code className="font-mono">
-                          {xavfsizFormula(
-                            q.sarfTuri,
-                            q.sarfQiymat,
-                            q.sarfQiymat2,
-                            q.kesimEniM,
-                            q.yaxlitlash,
-                          ) || "— kataklarni to'ldiring —"}
+                          {xavfsizFormula(q) || "— kataklarni to'ldiring —"}
                         </code>
                         <span className="mt-0.5 block">
                           O&apos;lchamlar <b>metrda</b>: 11 sm → <code>0.11</code>,
                           40 sm → <code>0.40</code>. Ombordan{' '}
                           <b>{q.kesimEniM.trim() === '' ? '?' : q.kesimEniM} m</b> enli
                           tasma tortiladi.
+                          {q.zapasM.trim() !== '' && (
+                            <> Zapas <b>har tasmaga</b> qo&apos;shiladi.</>
+                          )}
                         </span>
                       </p>
                     )}
@@ -902,6 +936,7 @@ export function MahsulotFormasi({
                   kesishTuri: 'ENIGA',
                   kesimEniM: '',
                   yaxlitlash: 'ROUND',
+                  zapasM: '',
                   narxBelgilaydi: false,
                 },
               ]);

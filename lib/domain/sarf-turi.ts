@@ -160,14 +160,41 @@ function sonMatni(xom: string): string {
  *    hisob-kitobning boshqa joyida qo'llaydi. Bu yerda ikkinchi
  *    marta ko'paytirsak sarf ikki barobar chiqib ketardi.
  */
+/**
+ * `TASMALI` turining sozlamalari.
+ *
+ * ⚠️ OBYEKT, pozitsion argument EMAS. Beshta-oltita ketma-ket matn
+ *    argumenti yozilsa, ularning birini adashtirib qo'yish oson va
+ *    xato JIMGINA o'tib ketardi: qadam bilan tasma eni o'rin
+ *    almashsa formula baribir «ishlaydi», faqat butunlay boshqa
+ *    raqam beradi.
+ */
+export interface TasmaSozlamasi {
+  /** Bitta tasma oynada egallaydigan joy, metrda */
+  readonly qadam: string;
+  /** Rulondan tortiladigan tasma eni, metrda. Kesim eni ham SHU */
+  readonly tasmaEniM: string;
+  /** Tasma soni qanday yaxlitlanadi */
+  readonly yaxlitlash: Yaxlitlash;
+  /** Soniga qo'shimcha: `-1` — markazdan ochilganda bitta kam */
+  readonly qoshimchaSoni: string;
+  /**
+   * HAR TASMAGA qo'shiladigan zapas, metrda — egasi qarori 2026-09-22.
+   *
+   * ⚠️ HAR TASMAGA, butun kesimga bir marta EMAS. Egasi shuni tanladi:
+   *    lamel pastidan buklama har tasmada alohida qilinadi. 18 ta
+   *    tasmada 10 sm zapas = 1.80 m qo'shimcha mato.
+   *
+   * ⚠️ Bo'sh — zapas yo'q.
+   */
+  readonly zapasM: string;
+}
+
 export function sarfFormulasi(
   turi: SarfTuri,
   qiymat: string,
   qiymat2 = '',
-  /** `TASMALI` — bitta tasmaning eni, metrda. Kesim eni ham SHU */
-  tasmaEniM = '',
-  /** `TASMALI` — tasma soni qanday yaxlitlanadi */
-  yaxlitlash: Yaxlitlash = 'ROUND',
+  tasma?: TasmaSozlamasi,
 ): string {
   if (turi === 'MURAKKAB') {
     const t = qiymat.trim();
@@ -206,10 +233,14 @@ export function sarfFormulasi(
    *    ko'ziga ham tushadi va ortiqcha qavs uni chalkashtiradi.
    */
   if (turi === 'TASMALI') {
-    const qadam = sonMatni(qiymat);
-    const tasma = sonMatni(tasmaEniM);
+    if (tasma === undefined) {
+      throw new BiznesXato('SARF_NOTOGRI', 'Tasma sozlamalari kiritilmagan');
+    }
 
-    const xomQoshimcha = qiymat2.trim();
+    const qadam = sonMatni(tasma.qadam);
+    const tasmaEni = sonMatni(tasma.tasmaEniM);
+
+    const xomQoshimcha = tasma.qoshimchaSoni.trim();
     const qoshimcha = xomQoshimcha === '' ? 0 : Number(xomQoshimcha);
     if (!Number.isInteger(qoshimcha)) {
       throw new BiznesXato(
@@ -220,10 +251,21 @@ export function sarfFormulasi(
 
     const soni =
       qoshimcha === 0
-        ? `${yaxlitlash}(ENI / ${qadam})`
-        : `(${yaxlitlash}(ENI / ${qadam}) ${qoshimcha > 0 ? '+' : '-'} ${String(Math.abs(qoshimcha))})`;
+        ? `${tasma.yaxlitlash}(ENI / ${qadam})`
+        : `(${tasma.yaxlitlash}(ENI / ${qadam}) ${qoshimcha > 0 ? '+' : '-'} ${String(Math.abs(qoshimcha))})`;
 
-    return `${soni} * ${tasma} * BO'YI`;
+    /**
+     * ⚠️ ZAPAS QAVS ICHIDA — egasi qarori 2026-09-22: «har tasmaga
+     *    alohida». `(BO'YI + 0.1)` yozilgani uchun u tasma soniga
+     *    KO'PAYADI: 18 ta tasmada 10 sm zapas 1.80 m mato beradi.
+     *
+     *    Qavssiz `BO'YI + 0.1` yozilsa, zapas butun kesimga bir
+     *    marta tushardi — bu BOSHQA hisob va egasi uni tanlamadi.
+     */
+    const xomZapas = tasma.zapasM.trim();
+    const boyi = xomZapas === '' ? "BO'YI" : `(BO'YI + ${sonMatni(xomZapas)})`;
+
+    return `${soni} * ${tasmaEni} * ${boyi}`;
   }
 
   const son = sonMatni(qiymat);
@@ -254,6 +296,8 @@ export interface SarfHolati {
   readonly tasmaEniM?: string;
   /** Faqat `TASMALI` — tasma soni qanday yaxlitlanadi */
   readonly yaxlitlash?: Yaxlitlash;
+  /** Faqat `TASMALI` — HAR TASMAGA qo'shiladigan zapas, metrda */
+  readonly zapasM?: string;
 }
 
 /**
@@ -291,7 +335,7 @@ export function formuladanSarf(formula: string): SarfHolati {
    *    aniqroq, oddiy ko'paytma bilan chalkashmaydi.
    */
   const tasmali =
-    /^\(?(ROUND|CEIL|FLOOR)\s*\(\s*ENI\s*\/\s*(\d+(?:\.\d+)?)\s*\)\s*(?:([+-])\s*(\d+)\s*\))?\s*\*\s*(\d+(?:\.\d+)?)\s*\*\s*BO'YI$/.exec(
+    /^\(?(ROUND|CEIL|FLOOR)\s*\(\s*ENI\s*\/\s*(\d+(?:\.\d+)?)\s*\)\s*(?:([+-])\s*(\d+)\s*\))?\s*\*\s*(\d+(?:\.\d+)?)\s*\*\s*(?:BO'YI|\(\s*BO'YI\s*\+\s*(\d+(?:\.\d+)?)\s*\))$/.exec(
       t,
     );
   if (tasmali !== null) {
@@ -300,6 +344,7 @@ export function formuladanSarf(formula: string): SarfHolati {
     const ishora = tasmali[3];
     const qoshimcha = tasmali[4];
     const tasmaEni = tasmali[5];
+    const zapas = tasmali[6];
     if (fn !== undefined && qadam !== undefined && tasmaEni !== undefined) {
       return {
         turi: 'TASMALI',
@@ -308,6 +353,7 @@ export function formuladanSarf(formula: string): SarfHolati {
           qoshimcha === undefined ? '0' : `${ishora === '-' ? '-' : ''}${qoshimcha}`,
         tasmaEniM: tasmaEni,
         yaxlitlash: fn as Yaxlitlash,
+        zapasM: zapas ?? '',
       };
     }
   }

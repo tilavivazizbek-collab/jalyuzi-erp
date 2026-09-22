@@ -74,7 +74,13 @@ describe('sarfFormulasi — natija formula qatlamida ishlaydi', () => {
         t === 'MURAKKAB'
           ? "(ENI - 60) * BO'YI"
           : t === 'TASMALI'
-            ? sarfFormulasi(t, '0.11', '0', '0.4', 'ROUND')
+            ? sarfFormulasi(t, '', '', {
+                qadam: '0.11',
+                tasmaEniM: '0.4',
+                yaxlitlash: 'ROUND',
+                qoshimchaSoni: '0',
+                zapasM: '',
+              })
             : sarfFormulasi(t, '2', '2');
       expect(formulaTekshir(f, []).yaroqli).toBe(true);
     }
