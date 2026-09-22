@@ -21,7 +21,8 @@ import type postgres from 'postgres';
 import Decimal from 'decimal.js';
 import { bandQilTx, type SlotSorovi } from './band';
 import { kesimOlchami } from '@/lib/domain/kesish';
-import { sarflashniTekshir } from './sarflash';
+import { parametrlarniOqi, sarflashniTekshir } from './sarflash';
+import { narxniTekshir } from './narx-tekshir';
 import { donaYech } from './dona-yechish';
 import {
   boshHolat,
@@ -171,6 +172,12 @@ export interface BuyurtmaNatijasi {
  */
 export interface PozitsiyaKonteksti {
   readonly buyurtmaId: number;
+  /**
+   * Narxni serverda qayta hisoblash uchun — 2026-09-21.
+   * Mijoz turi (TZ 6.2) va guruh offseti (6.3) shundan topiladi.
+   */
+  readonly mijozId: number | null;
+  readonly kursSnapshot: string | null;
   /** Buyurtma ichidagi tartib raqami — (buyurtma, tartib) noyob */
   readonly tartib: number;
   readonly ishlabChiqaruvchiFilialId: number;
@@ -234,22 +241,87 @@ export async function pozitsiyaYozTx(
     });
   }
 
+  /**
+   * §9.4 — NARX HAM SERVERDA QAYTA HISOBLANADI (2026-09-21).
+   *
+   * ⚠️ Ilgari bu yerda faqat SARFLASH tekshirilardi va izohda
+   *    «narxga tegilmaydi, u kelishilgan» deb yozilgan edi. O'sha
+   *    izoh 2026-09-20 gacha to'g'ri edi — o'shanda narx
+   *    materiallardan yig'ilardi.
+   *
+   *    Endi narx egasining jadvalidan keladi. Egasi narxni
+   *    o'zgartirsa, sotuvchining ochiq turgan ESKI sahifasi eski
+   *    narxni JIMGINA yozardi — xuddi sarflash bilan bo'lgani kabi.
+   *
+   * ⚠️ BLOKLAMAYDI (TZ 3.8 · 3.11 — narx mijoz bilan kelishiladi).
+   *    Faqat IZ qoldiradi: `qolda_narx` ustuni va audit yozuvi.
+   *
+   * ⚠️ Qo'shimcha buyumda o'tkazilmaydi: u tur ham, slot ham
+   *    yo'q va narxi boshqa yo'ldan keladi.
+   */
+  let qoldaNarx = false;
+  let serverNarxi: string | null = null;
+
+  if (!qoshimchami && p.mahsulotTurId !== null) {
+    const tekshiruv = await narxniTekshir(tx, {
+      mahsulotTurId: p.mahsulotTurId,
+      eniM: p.eniM,
+      boyiM: p.boyiM,
+      soni: p.soni,
+      narxSnapshot: p.narxSnapshot,
+      xizmatHaqi: p.xizmatHaqi,
+      mijozId: k.mijozId,
+      filialId: k.ishlabChiqaruvchiFilialId,
+      kursSnapshot: k.kursSnapshot,
+      materialIdlar: p.slotlar.map((x) => x.materialId),
+      qoshimchaIdlar: (p.qoshimchalar ?? []).map((x) => x.mahsulotQoshimchaId),
+      parametrlar: Object.fromEntries(parametrlarniOqi(p.formulaSnapshot)),
+    });
+    qoldaNarx = tekshiruv.qoldami;
+    serverNarxi = tekshiruv.hisoblangan;
+  }
+
   const q = await tx<{ id: number }[]>`
     INSERT INTO buyurtma_pozitsiya (buyurtma_id, tartib, mahsulot_tur_id,
                                     qoshimcha_material_id,
                                     eni_m, boyi_m, soni, miqdor, narx_snapshot,
                                     chegirma_summa, xizmat_haqi,
-                                    formula_snapshot, holat, yaratdi_id)
+                                    formula_snapshot, holat, qolda_narx,
+                                    yaratdi_id)
     VALUES (${k.buyurtmaId}, ${k.tartib}, ${p.mahsulotTurId},
             ${p.qoshimchaMaterialId ?? null}, ${p.eniM}, ${p.boyiM},
             ${p.soni}, ${p.miqdor ?? null},
             ${p.narxSnapshot}, ${p.chegirmaSumma}, ${p.xizmatHaqi},
             ${tx.json(p.formulaSnapshot as never)},
-            ${k.tasdiqlangan ? k.tasdiqHolati : k.boshHolati}, ${xodimId})
+            ${k.tasdiqlangan ? k.tasdiqHolati : k.boshHolati}, ${qoldaNarx},
+            ${xodimId})
     RETURNING id`;
 
   const pozitsiyaId = q[0]?.id;
   if (pozitsiyaId === undefined) throw new BiznesXato('POZITSIYA_TOPILMADI');
+
+  /**
+   * TZ 2.4 — NARX_QOLDA AUDITGA YOZILADI (2026-09-21).
+   *
+   * ⚠️ Bu hodisa `lib/audit/amallar.ts` da 2026-08 dan beri
+   *    ta'riflangan va «sotuvchi intizomi» hisobotida sanaladi
+   *    (`hisobot/malumot.ts`) — lekin HECH QAYERDA YOZILMAGAN edi.
+   *
+   *    Ya'ni hisobot har doim «narx qo'lda o'zgartirildi: 0» deb
+   *    turardi va egasi undan «hech kim narxga tegmayapti» degan
+   *    XATO xulosa chiqarardi. Hisobotsizlikdan yomonroq: u yolg'on
+   *    tinchlik berardi.
+   */
+  if (qoldaNarx) {
+    await tx`
+      INSERT INTO audit_jurnal (xodim_id, filial_id, amal, obyekt_turi,
+                                obyekt_id, eski_qiymat, yangi_qiymat, izoh)
+      VALUES (${xodimId}, ${k.ishlabChiqaruvchiFilialId}, 'NARX_QOLDA',
+              'buyurtma_pozitsiya', ${pozitsiyaId},
+              ${tx.json({ narx: serverNarxi })},
+              ${tx.json({ narx: p.narxSnapshot })},
+              ${`Jadval bo'yicha ${serverNarxi ?? '—'}, yozilgani ${p.narxSnapshot}`})`;
+  }
 
   // Har slot — o'z `pozitsiya_material` qatori (QISM 3 §3.2.1)
   const sorovlar: SlotSorovi[] = [];
@@ -542,6 +614,8 @@ export async function buyurtmaYarat(
         p,
         {
           buyurtmaId,
+          mijozId: kirim.mijozId,
+          kursSnapshot: kirim.kursSnapshot,
           tartib: i + 1,
           ishlabChiqaruvchiFilialId: kirim.ishlabChiqaruvchiFilialId,
           boshHolati: bosh,

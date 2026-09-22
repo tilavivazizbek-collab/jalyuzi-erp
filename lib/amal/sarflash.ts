@@ -69,7 +69,12 @@ export interface TekshirilayotganPozitsiya {
 }
 
 /** `formula_snapshot` — brauzerdan kelgan JSON, shakli TEKSHIRILADI */
-function parametrlarniOqi(xom: unknown): Map<string, number> {
+/**
+ * ⚠️ EKSPORT QILINGAN — `narx-tekshir.ts` ham shu funksiyani
+ *    ishlatadi. Nusxa ko'chirilsa, bir joyda tuzatilgan xato
+ *    ikkinchisida qolib ketardi (§2.2).
+ */
+export function parametrlarniOqi(xom: unknown): Map<string, number> {
   const natija = new Map<string, number>();
   if (typeof xom !== 'object' || xom === null) return natija;
 

@@ -487,6 +487,8 @@ export async function pozitsiyaQosh(
       p,
       {
         buyurtmaId,
+        mijozId: b.mijoz_id,
+        kursSnapshot: b.kurs_snapshot,
         tartib,
         ishlabChiqaruvchiFilialId: b.ishlab_chiqaruvchi_filial_id,
         boshHolati: tasdiq,

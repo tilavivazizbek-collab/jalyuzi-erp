@@ -204,6 +204,15 @@ export const buyurtmaPozitsiya = pgTable(
      * ⚠️ `null` — donalab sotilgan, miqdor `soni` da.
      */
     miqdor: numeric('miqdor', { precision: 10, scale: 2 }),
+    /**
+     * Narx jadvaldagidan FARQ QILADI — 2026-09-21.
+     *
+     * ⚠️ Server saqlashda narxni O'ZI qayta hisoblaydi va
+     *    farq bo'lsa shu belgini qo'yadi. Bloklamaydi (TZ 3.8 ·
+     *    3.11 — narx kelishiladi), lekin IZ qoldiradi: eski
+     *    sahifa jimgina eski narxni yozib ketmasin.
+     */
+    qoldaNarx: boolean('qolda_narx').notNull().default(false),
 
     /** TZ 3.9 — kelishilgan narx qotadi (2.3-invariant) */
     narxSnapshot: numeric('narx_snapshot', { precision: 14, scale: 2 }).notNull(),
