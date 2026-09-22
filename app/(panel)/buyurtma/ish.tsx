@@ -129,6 +129,16 @@ export function TugatdimTugmasi({
    */
   interface Qator {
     manba: string;
+    /**
+     * USTA HAQIQATDA QANCHA KESDI — egasi talabi 2026-09-22:
+     * «ustalar buncha kesdik yoki buncha kesdik deb».
+     *
+     * ⚠️ Tizim taklif qiladi, usta tuzatadi. O'zgartirilsa qoldiq
+     *    O'ZI qayta hisoblanadi — usta ikkita raqamni qo'lda
+     *    ayirib o'tirmaydi.
+     */
+    kesimEni: string;
+    kesimBoyi: string;
     manbaEni: string;
     manbaBoyi: string;
     kesmaEni: string;
@@ -138,6 +148,8 @@ export function TugatdimTugmasi({
 
   const BOSH_QATOR: Qator = {
     manba: 'OSTATKA',
+    kesimEni: '',
+    kesimBoyi: '',
     manbaEni: '',
     manbaBoyi: '',
     kesmaEni: '',
@@ -147,6 +159,56 @@ export function TugatdimTugmasi({
 
   const son = (n: number | null | undefined): string =>
     n === null || n === undefined ? '' : String(n);
+
+  /**
+   * Kesimdan qoldiqni hisoblaydi — §2.2: geometriya DOMAINDA
+   * (`kesimRejasi`), bu yerda takrorlanmaydi.
+   *
+   * ⚠️ Usta kesim raqamini o'zgartirsa, qoldiq SHU funksiya bilan
+   *    qayta hisoblanadi. Ikkita alohida hisob bo'lsa, ular
+   *    bir-biridan farq qilib qolishi mumkin edi.
+   */
+  const qoldiqTaklifi = (
+    b: { bandId: number; kod: string; eniM: number | null; boyiM: number | null },
+    manba: string,
+    kesimEniM: number | null,
+    kesimBoyiM: number | null,
+  ): Pick<Qator, 'manbaEni' | 'manbaBoyi' | 'kesmaEni' | 'kesmaBoyi'> => {
+    /**
+     * ⚠️ Kesim yoki manba noma'lum bo'lsa taklif BERILMAYDI:
+     *    noto'g'ri raqamdan ko'ra bo'sh katak yaxshi — usta
+     *    o'zi o'lchab yozadi.
+     */
+    if (
+      b.eniM === null ||
+      b.boyiM === null ||
+      kesimEniM === null ||
+      kesimBoyiM === null ||
+      kesimEniM <= 0 ||
+      kesimBoyiM <= 0
+    ) {
+      return { manbaEni: '', manbaBoyi: '', kesmaEni: '', kesmaBoyi: '' };
+    }
+
+    const r = kesimRejasi(
+      {
+        id: b.bandId,
+        kod: b.kod,
+        turi: manba === 'RULON' ? 'RULON' : 'OSTATKA',
+        eniM: b.eniM,
+        boyiM: b.boyiM,
+        qismanOchilgan: false,
+      },
+      { eniM: kesimEniM, boyiM: kesimBoyiM },
+    );
+
+    return {
+      manbaEni: son(r.manbaQoldiq?.eniM),
+      manbaBoyi: son(r.manbaQoldiq?.boyiM),
+      kesmaEni: son(r.kesma?.eniM),
+      kesmaBoyi: son(r.kesma?.boyiM),
+    };
+  };
 
   /** §2.2 — geometriya DOMAINDA, bu yerda takrorlanmaydi */
   const taklif = (b: {
@@ -183,25 +245,12 @@ export function TugatdimTugmasi({
       return { ...BOSH_QATOR, manba };
     }
 
-    const r = kesimRejasi(
-      {
-        id: b.bandId,
-        kod: b.kod,
-        turi: manba,
-        eniM: b.eniM,
-        boyiM: b.boyiM,
-        qismanOchilgan: false,
-      },
-      { eniM: b.kesimEniM, boyiM: b.kesimBoyiM },
-    );
-
     return {
       ...BOSH_QATOR,
       manba,
-      manbaEni: son(r.manbaQoldiq?.eniM),
-      manbaBoyi: son(r.manbaQoldiq?.boyiM),
-      kesmaEni: son(r.kesma?.eniM),
-      kesmaBoyi: son(r.kesma?.boyiM),
+      kesimEni: son(b.kesimEniM),
+      kesimBoyi: son(b.kesimBoyiM),
+      ...qoldiqTaklifi(b, manba, b.kesimEniM, b.kesimBoyiM),
     };
   };
 
@@ -213,6 +262,40 @@ export function TugatdimTugmasi({
 
   const ozgartir = (bandId: number, yangi: Partial<Qator>): void => {
     qatorlarniOzgartir((o) => ({ ...o, [bandId]: { ...qator(bandId), ...yangi } }));
+  };
+
+  /**
+   * KESIM O'ZGARTIRILDI — qoldiq O'ZI qayta hisoblanadi.
+   *
+   * ⚠️ Egasi talabi 2026-09-22: «ustalar buncha kesdik yoki buncha
+   *    kesdik deb». Usta kesgan raqamini yozadi, qolganini tizim
+   *    hisoblaydi — u ikkita raqamni qo'lda ayirib o'tirmaydi.
+   *
+   * ⚠️ Manba ham o'zgarsa (rulondan emas, ostatkadan kesilgan
+   *    bo'lsa) qoldiq ham boshqacha bo'ladi, shuning uchun manba
+   *    almashganda ham SHU funksiya chaqiriladi.
+   */
+  const kesimniOzgartir = (
+    b: { bandId: number; kod: string; eniM: number | null; boyiM: number | null },
+    yangi: { kesimEni?: string; kesimBoyi?: string; manba?: string },
+  ): void => {
+    const joriy = qator(b.bandId);
+    const kesimEni = yangi.kesimEni ?? joriy.kesimEni;
+    const kesimBoyi = yangi.kesimBoyi ?? joriy.kesimBoyi;
+    const manba = yangi.manba ?? joriy.manba;
+
+    const eni = Number(kesimEni);
+    const boyi = Number(kesimBoyi);
+
+    ozgartir(b.bandId, {
+      ...yangi,
+      ...qoldiqTaklifi(
+        b,
+        manba,
+        Number.isFinite(eni) && eni > 0 ? eni : null,
+        Number.isFinite(boyi) && boyi > 0 ? boyi : null,
+      ),
+    });
   };
 
   const maydon = (e: string, b: string): number => {
@@ -322,16 +405,53 @@ export function TugatdimTugmasi({
                      kesmaydi — u eni va bo'yini kesadi.
                 */}
                 {h.band.kesimEniM !== null && h.band.kesimBoyiM !== null && (
-                  <div className="rounded-maydon bg-brend/5 px-3 py-2 text-[13px]">
-                    <span className="text-matn-ikki">Kesiladi:</span>{' '}
-                    <b className="raqam text-brend">
-                      {h.band.kesimEniM.toFixed(2)} × {h.band.kesimBoyiM.toFixed(2)} m
-                    </b>
-                    {h.band.hisoblanganKvM !== null && (
-                      <span className="raqam ml-1 text-matn-kuchsiz">
-                        = {h.band.hisoblanganKvM.toFixed(2)} kv.m
+                  <div className="rounded-maydon bg-brend/5 px-3 py-2.5">
+                    <div className="mb-1.5 text-[13px] text-matn-ikki">
+                      Qancha kesildi
+                      <span className="ml-1 text-matn-kuchsiz">
+                        · tizim hisobi {h.band.kesimEniM.toFixed(2)} ×{' '}
+                        {h.band.kesimBoyiM.toFixed(2)} m
+                        {h.band.hisoblanganKvM !== null && (
+                          <> = {h.band.hisoblanganKvM.toFixed(2)} kv.m</>
+                        )}
                       </span>
-                    )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input
+                        value={h.q.kesimEni}
+                        onChange={(e) => {
+                          kesimniOzgartir(h.band, { kesimEni: e.target.value });
+                        }}
+                        inputMode="decimal"
+                        aria-label="Kesilgan eni, metrda"
+                        className={`${kirishUslubi(false)} w-24`}
+                      />
+                      <span className="text-matn-kuchsiz">×</span>
+                      <input
+                        value={h.q.kesimBoyi}
+                        onChange={(e) => {
+                          kesimniOzgartir(h.band, { kesimBoyi: e.target.value });
+                        }}
+                        inputMode="decimal"
+                        aria-label="Kesilgan bo'yi, metrda"
+                        className={`${kirishUslubi(false)} w-24`}
+                      />
+                      <span className="text-[13px] text-matn-kuchsiz">m</span>
+                      {maydon(h.q.kesimEni, h.q.kesimBoyi) > 0 && (
+                        <span className="raqam text-[13px] text-matn-ikki">
+                          = {maydon(h.q.kesimEni, h.q.kesimBoyi).toFixed(2)} kv.m
+                        </span>
+                      )}
+                    </div>
+                    {/*
+                      ⚠️ Kesim o'zgartirilsa QOLDIQ o'zi qayta
+                         hisoblanadi — usta ikkita raqamni qo'lda
+                         ayirib o'tirmaydi.
+                    */}
+                    <p className="mt-1.5 text-xs text-matn-kuchsiz">
+                      O&apos;zgartirsangiz pastdagi qoldiq o&apos;zi qayta
+                      hisoblanadi.
+                    </p>
                   </div>
                 )}
 
@@ -345,7 +465,8 @@ export function TugatdimTugmasi({
                   <select
                     value={h.q.manba}
                     onChange={(e) => {
-                      ozgartir(h.band.bandId, { manba: e.target.value });
+                      /** ⚠️ Manba almashsa qoldiq ham boshqacha bo'ladi */
+                      kesimniOzgartir(h.band, { manba: e.target.value });
                     }}
                     className={kirishUslubi(false)}
                   >
