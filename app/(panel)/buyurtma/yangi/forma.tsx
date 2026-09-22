@@ -16,7 +16,7 @@
  */
 
 import { enterYuborilmasin } from '../../forma-yordamchi';
-import { useActionState, useMemo, useState } from 'react';
+import { useActionState, useEffect, useMemo, useState } from 'react';
 import { sarflashHisobla, slotSarfi, standartQiymatlar } from '@/lib/domain/formula';
 import { m, type SarflashBirligi } from '@/lib/domain/birlik';
 import { dollar, kurs, nolSom, pulKorsat, pulMatn, qosh, som, type Som } from '@/lib/domain/pul';
@@ -68,6 +68,25 @@ interface SavatQatori {
   readonly boyiM: number;
   readonly narx: string;
   readonly yuk: unknown;
+  /**
+   * Tahrirlash uchun EKRAN HOLATI — 2026-09-21.
+   *
+   * ⚠️ `yuk` dan teskari tiklash mumkin emas: u serverga
+   *    ketadigan shakl va unda ekrandagi tanlovlar (qaysi
+   *    qo'shimcha belgilangan, qaysi aksessuar qo'lda kiritilgan)
+   *    yo'q. Shuning uchun holat AYNAN saqlanadi.
+   */
+  readonly tahrir?: {
+    readonly eni: string;
+    readonly boyi: string;
+    readonly soni: string;
+    readonly parametrlar: Record<string, string>;
+    readonly slotlar: Record<number, SlotTanlovi>;
+    readonly aksessuarlar: Record<number, AksessuarTanlovi>;
+    readonly tanlanganQoshimchalar: readonly number[];
+    readonly qoshimchaMateriali: Record<number, string>;
+    readonly qoldaNarx: string | null;
+  };
   /** Qo'shimcha mahsulotda — nechta dona */
   readonly soni?: number;
   /**
@@ -201,7 +220,82 @@ export function SotuvFormasi({
   const [parametrlar, parametrlarniOzgartir] = useState<Record<string, string>>({});
   const [slotlar, slotlarniOzgartir] = useState<Record<number, SlotTanlovi>>({});
   const [aksessuarlar, aksessuarlarniOzgartir] = useState<Record<number, AksessuarTanlovi>>({});
+  /**
+   * SAVAT BRAUZERDA SAQLANADI — 2026-09-21.
+   *
+   * ⚠️ Ilgari savat faqat xotirada turardi. Sotuvchi mijoz oldida
+   *    beshta xonani kiritadi, sahifa yangilanadi yoki telefon
+   *    uxlab qoladi — HAMMASI yo'qolardi. Botda qoralama bor
+   *    (TZ 13.10), saytda yo'q edi.
+   *
+   * ⚠️ `sessionStorage`, `localStorage` EMAS: savat shu ish
+   *    seansiniki. Boshqa kun ochilganda eski savat chiqib kelsa,
+   *    sotuvchi uni sezmasdan yuborib yuborishi mumkin edi.
+   *
+   * ⚠️ Faqat SAVAT saqlanadi, yig'ilayotgan pozitsiya emas:
+   *    yarim to'ldirilgan holatni tiklash chalkashlik tug'dirardi
+   *    (qaysi mato tanlangan edi, narx qayerdan chiqqan edi).
+   */
+  const SAVAT_KALITI = 'sotuv:savat';
+
   const [savat, savatniOzgartir] = useState<readonly SavatQatori[]>([]);
+
+  /** Sahifa ochilganda tiklash — bir marta */
+  useEffect(() => {
+    try {
+      const xom = sessionStorage.getItem(SAVAT_KALITI);
+      if (xom === null) return;
+      const q = JSON.parse(xom) as SavatQatori[];
+      if (!Array.isArray(q) || q.length === 0) return;
+      savatniOzgartir(q);
+      /** Kalitlar takrorlanmasin */
+      keyingiKalit = Math.max(keyingiKalit, ...q.map((x) => x.kalit));
+    } catch {
+      /**
+       * ⚠️ JIM O'TILADI. Buzuq yoki eski shakldagi yozuv
+       *    sotuvchining ishini TO'XTATMASLIGI kerak — u shunchaki
+       *    bo'sh savatdan boshlaydi.
+       */
+    }
+  }, []);
+
+  /**
+   * ⚠️ BUYURTMA SAQLANGACH SAVAT TOZALANADI. Aks holda sotuvchi
+   *    sahifani yangilaganda allaqachon yuborilgan savat qaytib
+   *    kelar va u ikkinchi marta yuborilishi mumkin edi.
+   */
+  useEffect(() => {
+    if (holat.buyurtmaRaqam === null) return;
+    savatniOzgartir([]);
+    try {
+      sessionStorage.removeItem(SAVAT_KALITI);
+    } catch {
+      /** Xotira taqiqlangan — ish davom etadi */
+    }
+  }, [holat.buyurtmaRaqam]);
+
+  /** Har o'zgarishda yozib boriladi */
+  useEffect(() => {
+    try {
+      if (savat.length === 0) sessionStorage.removeItem(SAVAT_KALITI);
+      else sessionStorage.setItem(SAVAT_KALITI, JSON.stringify(savat));
+    } catch {
+      /** Xotira to'lgan yoki taqiqlangan — ish davom etadi */
+    }
+  }, [savat]);
+  /**
+   * SAVAT QATORINI TAHRIRLASH — 2026-09-21.
+   *
+   * ⚠️ Ilgari savatga faqat QO'SHISH va O'CHIRISH bor edi.
+   *    Beshinchi qatorda bo'yi adashsa, sotuvchi uni o'chirib,
+   *    matoni, aksessuarni va qo'shimchalarni BOSHIDAN yig'ardi —
+   *    mijoz oldida turib.
+   *
+   *    `null` — yangi pozitsiya yig'ilmoqda. Son bo'lsa — o'sha
+   *    kalitli qator tahrirlanmoqda va «Saqlash» uni O'RNIGA
+   *    qaytaradi, oxiriga qo'shmaydi.
+   */
+  const [tahrirKaliti, tahrirKalitiniOzgartir] = useState<number | null>(null);
   const [mijoz, mijozniOzgartir] = useState<SotuvMijozi | null>(null);
   const [tikuvchi, tikuvchiniOzgartir] = useState(ozFilialId);
   const [tayyorlik, tayyorlikniOzgartir] = useState('');
@@ -605,10 +699,17 @@ export function SotuvFormasi({
     narxYaroqli &&
     tur.slotlar.filter((s) => s.majburiy).every((s) => (slotlar[s.id]?.materialId ?? '') !== '');
 
-  function savatgaQosh(): void {
-    if (hisob === null || tur === null) return;
+  /**
+   * Savat qatorini yasaydi — QO'SHISH va TAHRIRLASH ikkalasi ham
+   * shu funksiyadan foydalanadi (§2.2).
+   *
+   * ⚠️ Nusxa ko'chirilsa, bir joyda tuzatilgan xato ikkinchisida
+   *    qolib ketardi: masalan «soni» qo'shishda hisobga olinib,
+   *    tahrirda olinmay qolardi.
+   */
+  function savatQatoriYasa(kalit: number): SavatQatori {
+    if (hisob === null || tur === null) throw new Error("hisob yo'q");
 
-    keyingiKalit += 1;
     const yuk = {
       mahsulotTurId: tur.id,
       eniM: hisob.eniM,
@@ -652,25 +753,107 @@ export function SotuvFormasi({
       })),
     };
 
-    savatniOzgartir((s) => [
-      ...s,
-      {
-        kalit: keyingiKalit,
-        turId: tur.id,
-        turNomi: tur.nom,
-        eniM: hisob.eniM,
-        boyiM: hisob.boyiM,
-        /** ⚠️ Savatda ham ko'rinsin: «2.10 × 1.40 m × 3» */
-        soni: hisob.buyumSoni,
-        /** ⚠️ Savatdagi raqam ham TUZATILGANI — jami shundan chiqadi */
-        narx: qoldaNarx ?? pulMatn(hisob.jami),
-        yuk,
+    return {
+      kalit,
+      turId: tur.id,
+      turNomi: tur.nom,
+      eniM: hisob.eniM,
+      boyiM: hisob.boyiM,
+      /** ⚠️ Savatda ham ko'rinsin: «2.10 × 1.40 m × 3» */
+      soni: hisob.buyumSoni,
+      /** ⚠️ Savatdagi raqam ham TUZATILGANI — jami shundan chiqadi */
+      narx: qoldaNarx ?? pulMatn(hisob.jami),
+      yuk,
+      tahrir: {
+        eni,
+        boyi,
+        soni,
+        parametrlar: { ...parametrlar },
+        slotlar: { ...slotlar },
+        aksessuarlar: { ...aksessuarlar },
+        tanlanganQoshimchalar: [...tanlanganQoshimchalar],
+        qoshimchaMateriali: { ...qoshimchaMateriali },
+        qoldaNarx,
       },
-    ]);
+    };
+  }
+
+  /**
+   * Savat qatorini chap ustunga QAYTARADI.
+   *
+   * ⚠️ Tur ham qayta yuklanadi: sotuvchi oradan boshqa turni
+   *    tanlagan bo'lishi mumkin, ekrandagi slotlar esa o'sha
+   *    turniki bo'lardi.
+   */
+  function qatorniTahrirla(q: SavatQatori): void {
+    if (q.turId === null || q.tahrir === undefined) return;
+
+    const t = q.tahrir;
+    tahrirKalitiniOzgartir(q.kalit);
+    eniniOzgartir(t.eni);
+    boyiniOzgartir(t.boyi);
+    soniniOzgartir(t.soni);
+    parametrlarniOzgartir(t.parametrlar);
+    tanlanganQoshimchalarniOzgartir([...t.tanlanganQoshimchalar]);
+    qoshimchaMaterialiniOzgartir(t.qoshimchaMateriali);
+    qoldaNarxniOzgartir(t.qoldaNarx);
+
+    if (q.turId === turId) {
+      slotlarniOzgartir(t.slotlar);
+      aksessuarlarniOzgartir(t.aksessuarlar);
+      return;
+    }
+
+    turniOzgartir(q.turId);
+    yuklanishniOzgartir(true);
+    void turTafsiliAmali(q.turId)
+      .then((x) => {
+        turniYukla(x);
+        /** ⚠️ Slotlar tur YUKLANGACH qo'yiladi — aks holda
+         *     tur almashishi ularni tozalab yuborardi */
+        slotlarniOzgartir(t.slotlar);
+        aksessuarlarniOzgartir(t.aksessuarlar);
+      })
+      .finally(() => {
+        yuklanishniOzgartir(false);
+      });
+  }
+
+  function savatgaQosh(): void {
+    if (hisob === null || tur === null) return;
+
+    keyingiKalit += 1;
+    savatniOzgartir((s) => [...s, savatQatoriYasa(keyingiKalit)]);
 
     slotlarniOzgartir({});
     aksessuarlarniOzgartir({});
     /** Keyingi pozitsiya yana hisoblangan narxdan boshlanadi */
+    qoldaNarxniOzgartir(null);
+  }
+
+  /**
+   * Tahrirlanayotgan qatorni O'RNIGA qaytaradi.
+   *
+   * ⚠️ Tartib SAQLANADI: qator oxiriga ko'chib ketsa, sotuvchi
+   *    «qaysi xona edi» deb adashardi.
+   */
+  function tahrirniSaqla(): void {
+    if (hisob === null || tur === null || tahrirKaliti === null) return;
+
+    const yangi = savatQatoriYasa(tahrirKaliti);
+    savatniOzgartir((sv) => sv.map((x) => (x.kalit === tahrirKaliti ? yangi : x)));
+
+    tahrirKalitiniOzgartir(null);
+    slotlarniOzgartir({});
+    aksessuarlarniOzgartir({});
+    qoldaNarxniOzgartir(null);
+  }
+
+  /** Tahrirni bekor qilish — qator o'zgarishsiz qoladi */
+  function tahrirniBekor(): void {
+    tahrirKalitiniOzgartir(null);
+    slotlarniOzgartir({});
+    aksessuarlarniOzgartir({});
     qoldaNarxniOzgartir(null);
   }
 
@@ -1361,14 +1544,39 @@ export function SotuvFormasi({
                   </span>
                 )}
               </div>
-              <button
-                type="button"
-                disabled={!savatgaQoshilsinmi}
-                onClick={savatgaQosh}
-                className="rounded-maydon bg-brend px-4 py-2.5 text-[13px] font-medium text-white transition-all active:scale-[0.98] hover:bg-brend-quyuq disabled:opacity-50"
-              >
-                Savatga qo&apos;shish
-              </button>
+              {/*
+                ⚠️ TAHRIR REJIMIDA tugmalar boshqa: qator SAVATGA
+                   QO'SHILMAYDI, o'z o'rniga QAYTADI. Aks holda
+                   tahrirlangan qator ikkinchi nusxa bo'lib qolardi.
+              */}
+              {tahrirKaliti === null ? (
+                <button
+                  type="button"
+                  disabled={!savatgaQoshilsinmi}
+                  onClick={savatgaQosh}
+                  className="rounded-maydon bg-brend px-4 py-2.5 text-[13px] font-medium text-white transition-all active:scale-[0.98] hover:bg-brend-quyuq disabled:opacity-50"
+                >
+                  Savatga qo&apos;shish
+                </button>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={tahrirniBekor}
+                    className="rounded-maydon px-3 py-2.5 text-[13px] text-matn-kuchsiz transition-colors hover:text-matn"
+                  >
+                    Bekor
+                  </button>
+                  <button
+                    type="button"
+                    disabled={!savatgaQoshilsinmi}
+                    onClick={tahrirniSaqla}
+                    className="rounded-maydon bg-brend px-4 py-2.5 text-[13px] font-medium text-white transition-all active:scale-[0.98] hover:bg-brend-quyuq disabled:opacity-50"
+                  >
+                    O&apos;zgarishni saqlash
+                  </button>
+                </div>
+              )}
             </div>
           </>
         )}
@@ -1483,10 +1691,34 @@ export function SotuvFormasi({
                       </td>
                       <td className="raqam px-3 py-2.5 font-medium">{pulKorsat(som(q.narx))}</td>
                       <td className="px-2 py-2.5 text-right">
+                        {/*
+                          ⚠️ TAHRIRLASH — 2026-09-21. Ilgari faqat
+                             o'chirish bor edi: beshinchi qatorda bo'yi
+                             adashsa, sotuvchi matoni, aksessuarni va
+                             qo'shimchani BOSHIDAN yig'ardi.
+
+                          ⚠️ Faqat TAYYOR MAHSULOT tahrirlanadi.
+                             Qo'shimcha buyum (`turId === null`) alohida
+                             oynadan qo'shiladi — uni chap ustunga
+                             qaytarib bo'lmaydi.
+                        */}
+                        {q.turId !== null && tahrirKaliti === null && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              qatorniTahrirla(q);
+                            }}
+                            aria-label="Tahrirlash"
+                            className="fokus rounded-maydon px-1.5 py-1 text-matn-kuchsiz transition-colors hover:bg-fon-ikki hover:text-brend"
+                          >
+                            ✎
+                          </button>
+                        )}
                         <button
                           type="button"
                           onClick={() => {
                             savatniOzgartir((s) => s.filter((x) => x.kalit !== q.kalit));
+                            if (tahrirKaliti === q.kalit) tahrirKalitiniOzgartir(null);
                           }}
                           aria-label="Olib tashlash"
                           className="fokus rounded-maydon px-1.5 py-1 text-matn-kuchsiz transition-colors hover:bg-belgi-qizil-fon hover:text-belgi-qizil"
