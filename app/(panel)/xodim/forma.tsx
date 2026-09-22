@@ -20,12 +20,15 @@ export interface XodimQiymatlari {
   readonly telefon: string;
   readonly filialId: string;
   readonly ishgaKirdi: string;
+  /** TZ 6.4 — chegirma chegarasi, foizda. Bo'sh — chegara yo'q */
+  readonly chegirmaLimitFoiz: string;
   readonly rolIdlar: readonly number[];
 }
 
 export const BOSH_XODIM: XodimQiymatlari = {
   ism: '',
   telefon: '',
+  chegirmaLimitFoiz: '',
   filialId: '',
   ishgaKirdi: '',
   rolIdlar: [],
@@ -134,6 +137,32 @@ export function XodimFormasi({
             type="date"
             defaultValue={q('ishgaKirdi', qiymatlar.ishgaKirdi)}
             className={ch('ishgaKirdi')}
+          />
+        </Maydon>
+        {/*
+          ⚠️ CHEGIRMA CHEGARASI — 2026-09-21.
+
+             `CHEGIRMA_LIMITIDAN_OSHDI` audit hodisasi 2026-08 dan
+             beri ta'riflangan va «sotuvchi intizomi» hisobotida
+             sanaladi — lekin chegara tushunchasining O'ZI yo'q edi
+             va hisobot har doim nol ko'rsatardi.
+
+             BLOKLAMAYDI: qarz limiti ham bloklamaydi (TZ 6.4).
+             Bu taqiq emas, O'LCHOV.
+        */}
+        <Maydon
+          nom="chegirmaLimitFoiz"
+          yorliq="Chegirma chegarasi, %"
+          izoh="Bo‘sh — chegara yo‘q. Oshsa bloklanmaydi, jurnalga yoziladi (6.4)"
+          xato={x('chegirmaLimitFoiz')}
+        >
+          <input
+            id="chegirmaLimitFoiz"
+            name="chegirmaLimitFoiz"
+            inputMode="decimal"
+            placeholder="10"
+            defaultValue={q('chegirmaLimitFoiz', qiymatlar.chegirmaLimitFoiz)}
+            className={ch('chegirmaLimitFoiz')}
           />
         </Maydon>
       </section>

@@ -70,6 +70,23 @@ export const xodimSxema = z
       ),
 
     ishgaKirdi: ixtiyoriyMatn,
+    /**
+     * TZ 6.4 — sotuvchi bera oladigan eng ko'p chegirma, FOIZDA.
+     *
+     * ⚠️ Bo'sh — chegara YO'Q (standart). Nol esa «umuman
+     *    chegirma berolmaydi» degani, bu boshqa ma'no.
+     *
+     * ⚠️ Bloklamaydi: oshsa audit jurnaliga yoziladi
+     *    (`CHEGIRMA_LIMITIDAN_OSHDI`), sotuv to'xtamaydi.
+     */
+    chegirmaLimitFoiz: z
+      .string()
+      .trim()
+      .refine(
+        (x) => x === '' || (/^\d+(\.\d{1,2})?$/.test(x) && Number(x) <= 100),
+        "Chegirma chegarasi 0–100 oralig'ida bo'lsin",
+      )
+      .default(''),
   });
 
 export type XodimKirimi = z.infer<typeof xodimSxema>;

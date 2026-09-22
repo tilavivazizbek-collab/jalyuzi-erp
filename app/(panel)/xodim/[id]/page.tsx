@@ -56,6 +56,8 @@ export default async function XodimTahrirlash({
             telefon: xodim.telefon,
             filialId: String(xodim.filialId),
             ishgaKirdi: xodim.ishgaKirdi ?? '',
+            /** TZ 6.4 — chegirma chegarasi, bo'sh bo'lsa chegara yo'q */
+            chegirmaLimitFoiz: xodim.chegirmaLimitFoiz ?? '',
             rolIdlar: xodim.rolIdlar,
           }}
           filiallar={filiallar}

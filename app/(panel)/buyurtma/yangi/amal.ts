@@ -26,7 +26,16 @@ import {
   chegirmaHisobla,
   chegirmaniTaqsimla,
 } from '@/lib/domain/narx';
-import { ayir, kattami, manfiy, pulMatn, som, type Som } from '@/lib/domain/pul';
+import {
+  ayir,
+  kattami,
+  manfiy,
+  nisbat,
+  nolmi,
+  pulMatn,
+  som,
+  type Som,
+} from '@/lib/domain/pul';
 import { ruxsatTalab } from '@/lib/kirish/joriy';
 import { sotuvSxema } from '@/lib/sxema/sotuv';
 import { matnMaydon, maydonXatolari, FORMA_XATO_XABARI } from '../../forma-yordamchi';
@@ -194,6 +203,23 @@ export async function buyurtmaYaratAmali(
    *    pul tizimga tushmay qolardi.
    */
   const tolanadigan = ayir(buyurtmaNarxi(narxlar), buyurtmaNarxi(chegirmalar));
+
+  /**
+   * TZ 6.4 — CHEGIRMA FOIZI (2026-09-21).
+   *
+   * ⚠️ Butun savatdan hisoblanadi, pozitsiyadan emas: sotuvchi
+   *    «600 mingga kelishdik» deydi va bu butun savatga tegishli
+   *    (TZ 3.11). Pozitsiya bo'yicha hisoblansa, arzon qatorga
+   *    tushgan katta ulush yolg'on ogohlantirish berardi.
+   *
+   * ⚠️ Savat nol bo'lsa foiz ham yo'q — nolga bo'linmaydi.
+   */
+  const savatJami = buyurtmaNarxi(narxlar);
+  const chegirmaJami = buyurtmaNarxi(chegirmalar);
+  const chegirmaFoiz =
+    d.kelishilganSumma === null || nolmi(savatJami)
+      ? null
+      : Number(nisbat(chegirmaJami, savatJami).times(100).toFixed(2));
   const tolangan = tolov === null ? som(0) : som(tolov.summa);
   const qarzgaKetadimi = kattami(tolanadigan, tolangan);
 
@@ -213,6 +239,7 @@ export async function buyurtmaYaratAmali(
         kursSnapshot: d.kursSnapshot,
         tayyorlikSana: d.tayyorlikSana,
         qarzgaKetadimi,
+        chegirmaFoiz,
         pozitsiyalar,
       },
       f.xodimId,

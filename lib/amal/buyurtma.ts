@@ -140,6 +140,16 @@ export interface BuyurtmaKirimi {
   readonly tayyorlikSana: string | null;
   /** TZ 3.12 — to'lov to'liq emas bo'lsa qolgani qarzga yoziladi */
   readonly qarzgaKetadimi: boolean;
+  /**
+   * Butun savatga berilgan chegirma, FOIZDA — 2026-09-21.
+   *
+   * ⚠️ Sotuvchining chegarasi bilan solishtiriladi. Chegara
+   *    BLOKLAMAYDI (TZ 6.4 ruhida) — oshsa audit jurnaliga
+   *    yoziladi, xolos.
+   *
+   * ⚠️ `null` — chegirma berilmagan.
+   */
+  readonly chegirmaFoiz?: number | null;
   readonly pozitsiyalar: readonly PozitsiyaKirimi[];
 }
 
@@ -706,6 +716,42 @@ export async function buyurtmaYarat(
                nds_summa = ${ndsSumma.toFixed(2)},
                summa_ndssiz = ${ndssiz.toFixed(2)}
          WHERE id = ${buyurtmaId}`;
+    }
+
+    /**
+     * TZ 2.4 · 6.4 — CHEGIRMA CHEGARASI (2026-09-21).
+     *
+     * ⚠️ `CHEGIRMA_LIMITIDAN_OSHDI` hodisasi `audit/amallar.ts`
+     *    da 2026-08 dan beri ta'riflangan va «sotuvchi intizomi»
+     *    hisobotida SANALADI — lekin hech qayerda yozilmagan, va
+     *    chegara tushunchasining O'ZI ham yo'q edi. Hisobot har doim
+     *    nol ko'rsatardi va egasi «hech kim ortiqcha chegirma
+     *    bermayapti» degan XATO xulosa chiqarardi.
+     *
+     * ⚠️ BLOKLAMAYDI. Qarz limiti ham bloklamaydi (TZ 6.4:
+     *    «sotuvchi mustaqil qaror qabul qiladi»). Bu O'LCHOV.
+     *
+     * ⚠️ Chegara `null` bo'lsa tekshiruv umuman o'tkazilmaydi —
+     *    bu standart holat, egasi kerakli sotuvchiga o'zi qo'yadi.
+     */
+    if (kirim.chegirmaFoiz !== null && kirim.chegirmaFoiz !== undefined) {
+      const x = await tx<{ chegirma_limit_foiz: string | null; ism: string }[]>`
+        SELECT chegirma_limit_foiz::text, ism FROM xodim WHERE id = ${xodimId}`;
+
+      const chegara = x[0]?.chegirma_limit_foiz;
+      if (chegara !== null && chegara !== undefined) {
+        const berilgan = new Decimal(kirim.chegirmaFoiz);
+        if (berilgan.greaterThan(new Decimal(chegara))) {
+          await tx`
+            INSERT INTO audit_jurnal (xodim_id, filial_id, amal, obyekt_turi,
+                                      obyekt_id, eski_qiymat, yangi_qiymat, izoh)
+            VALUES (${xodimId}, ${kirim.sotganFilialId},
+                    'CHEGIRMA_LIMITIDAN_OSHDI', 'buyurtma', ${buyurtmaId},
+                    ${tx.json({ chegara })},
+                    ${tx.json({ berilgan: berilgan.toFixed(2) })},
+                    ${`Chegara ${chegara}%, berilgani ${berilgan.toFixed(2)}%`})`;
+        }
+      }
     }
 
     // TZ 2.4 — har buyurtma audit jurnalida

@@ -16,6 +16,7 @@ import {
   check,
   index,
   integer,
+  numeric,
   pgTable,
   primaryKey,
   text,
@@ -148,6 +149,18 @@ export const xodim = pgTable(
 
     /** Usta saytga kirmaydi → parol bo'lmasligi mumkin (Q-04 qattiq qoidasi) */
     parolHash: text('parol_hash'),
+    /**
+     * Sotuvchi bera oladigan eng ko'p chegirma, FOIZDA — 2026-09-21.
+     *
+     * ⚠️ BLOKLAMAYDI. Qarz limiti ham bloklamaydi (TZ 6.4:
+     *    «sotuvchi mustaqil qaror qabul qiladi, tizim
+     *    BLOKLAMAYDI») — chegirma ham shu qoidaga bo'ysunadi.
+     *    Bu taqiq emas, O'LCHOV.
+     *
+     * ⚠️ `null` — chegara yo'q (standart). Nol esa «umuman
+     *    chegirma berolmaydi» degani — boshqa ma'no.
+     */
+    chegirmaLimitFoiz: numeric('chegirma_limit_foiz', { precision: 5, scale: 2 }),
 
     /** Telegram ID — 52 bitdan oshmaydi, `number` yetarli */
     telegramId: bigint('telegram_id', { mode: 'number' }).unique(),

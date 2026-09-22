@@ -40,6 +40,8 @@ export interface XodimTafsili {
   readonly telefon: string;
   readonly filialId: number;
   readonly ishgaKirdi: string | null;
+  /** TZ 6.4 — chegirma chegarasi, foizda */
+  readonly chegirmaLimitFoiz: string | null;
   readonly rolIdlar: readonly number[];
 }
 
@@ -53,10 +55,12 @@ export async function xodimniOl(id: number): Promise<XodimTafsili | null> {
       telefon: string;
       filialId: number;
       ishgaKirdi: string | null;
+      chegirmaLimitFoiz: string | null;
     }[]
   >`
     SELECT id, ism, telefon, filial_id AS "filialId",
-           to_char(ishga_kirdi, 'YYYY-MM-DD') AS "ishgaKirdi"
+           to_char(ishga_kirdi, 'YYYY-MM-DD') AS "ishgaKirdi",
+           chegirma_limit_foiz::text AS "chegirmaLimitFoiz"
     FROM xodim WHERE id = ${id}`;
 
   const x = q[0];

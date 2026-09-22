@@ -73,9 +73,14 @@ export async function xodimYarat(
     }
 
     const q = await tx<{ id: number }[]>`
-      INSERT INTO xodim (filial_id, ism, telefon, parol_hash, ishga_kirdi, yaratdi_id)
+      INSERT INTO xodim (filial_id, ism, telefon, parol_hash, ishga_kirdi,
+                         chegirma_limit_foiz, yaratdi_id)
       VALUES (${kirim.filialId}, ${kirim.ism}, ${telefon}, ${hash},
-              ${kirim.ishgaKirdi ?? null}, ${yaratdiId})
+              ${kirim.ishgaKirdi ?? null},
+              ${kirim.chegirmaLimitFoiz === undefined || kirim.chegirmaLimitFoiz === ''
+                  ? null
+                  : kirim.chegirmaLimitFoiz},
+              ${yaratdiId})
       RETURNING id`;
 
     const id = q[0]?.id;
@@ -131,6 +136,9 @@ export async function xodimTahrirla(
         ism = ${kirim.ism},
         telefon = ${telefon},
         ishga_kirdi = ${kirim.ishgaKirdi ?? null},
+        chegirma_limit_foiz = ${kirim.chegirmaLimitFoiz === undefined || kirim.chegirmaLimitFoiz === ''
+            ? null
+            : kirim.chegirmaLimitFoiz},
         /* Parol bo'sh qoldirilsa eskisi qoladi — izoh funksiya tepasida */
         parol_hash = COALESCE(${hash}, parol_hash),
         ozgartirdi_id = ${ozgartirdiId},

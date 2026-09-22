@@ -68,6 +68,8 @@ const asos = (o: Partial<Parameters<typeof xodimYarat>[1]> = {}) => ({
   rolIdlar: [sotuvchiRolId],
   parol: undefined,
   ishgaKirdi: undefined,
+  /** Chegirma chegarasi yo'q — sinovlar uni alohida beradi */
+  chegirmaLimitFoiz: '',
   ...o,
 });
 
@@ -152,6 +154,7 @@ describe('§8 — parol', () => {
         rolIdlar: [sotuvchiRolId],
         parol: undefined,
         ishgaKirdi: undefined,
+        chegirmaLimitFoiz: '',
       },
       XODIM,
     );
@@ -176,6 +179,7 @@ describe('§8 — parol', () => {
         rolIdlar: [sotuvchiRolId],
         parol: 'Yangi-Parol-2026',
         ishgaKirdi: undefined,
+        chegirmaLimitFoiz: '',
       },
       XODIM,
     );
