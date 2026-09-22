@@ -153,6 +153,19 @@ export interface QoshimchaMaterial {
   readonly nom: string;
   readonly narx: string | null;
   readonly narxValyuta: string;
+  /**
+   * TZ 5.4 · 6.2 — MIJOZ TURI narxi.
+   *
+   * ⚠️ 2026-09-22 gacha bu yerda YO'Q edi va bu tafovut yaratardi:
+   *    slotdagi matoga ham, aksessuarga ham optom narx qo'llanardi
+   *    (`forma.tsx` — «optomchi mexanizmni ham optom narxda oladi»),
+   *    bot katalogi ham qo'llardi, lekin O'SHA MEXANIZMNI alohida
+   *    sotganda panel chakana narxni olardi.
+   *
+   *    Ya'ni bir xil buyum qaysi oynadan sotilganiga qarab ikki xil
+   *    narxda ketardi. Bu chegirma emas, XATO.
+   */
+  readonly turNarxlari: Record<number, { narx: string; valyuta: string }>;
   readonly boshDona: number;
   /**
    * `DONA` — donalab sotiladi, `RULON` — metrlab kesib sotiladi
@@ -189,7 +202,35 @@ export interface QoshimchaMaterial {
 export async function qoshimchaMateriallar(
   filialId: number,
 ): Promise<QoshimchaMaterial[]> {
-  return ulanishOl()<QoshimchaMaterial[]>`
+  const sql = ulanishOl();
+
+  /**
+   * TZ 6.2 — mijoz turi narxlari BITTA so'rov bilan olinadi va
+   * xaritaga yig'iladi: mijoz tanlanganda ekran serverga qayta
+   * bormaydi. Turlar soni kichik (2–5), xarita ham kichik.
+   *
+   * ⚠️ Bot katalogi (`lib/amal/katalog.ts`) aynan shu naqshni
+   *    ishlatadi — bu yerda takrorlanishining sababi so'rov
+   *    boshqa materiallar to'plami ustida ishlashi
+   *    (`togridan_sotiladi = true`).
+   */
+  const turNarxQatorlari = await sql<
+    { material_id: number; mijoz_turi_id: number; narx: string; valyuta: string }[]
+  >`
+    SELECT n.material_id, n.mijoz_turi_id, n.sotuv_narx::text AS narx, n.valyuta
+      FROM material_tur_narx n
+      JOIN mijoz_turi t ON t.id = n.mijoz_turi_id AND t.faol = true
+      JOIN material m ON m.id = n.material_id
+     WHERE m.faol = true AND m.togridan_sotiladi = true`;
+
+  const turNarxBoyicha = new Map<number, Record<string, { narx: string; valyuta: string }>>();
+  for (const q of turNarxQatorlari) {
+    const bor = turNarxBoyicha.get(q.material_id) ?? {};
+    bor[String(q.mijoz_turi_id)] = { narx: q.narx, valyuta: q.valyuta };
+    turNarxBoyicha.set(q.material_id, bor);
+  }
+
+  const qatorlar = await sql<Omit<QoshimchaMaterial, 'turNarxlari'>[]>`
     SELECT m.id, m.nom,
            COALESCE(fn.sotuv_narx::text, m.sotuv_narx::text) AS narx,
            COALESCE(fn.valyuta, m.sotuv_valyuta) AS "narxValyuta",
@@ -226,6 +267,11 @@ export async function qoshimchaMateriallar(
            ON fn.material_id = m.id AND fn.filial_id = ${filialId}
     WHERE m.faol = true AND m.togridan_sotiladi = true
     ORDER BY m.nom`;
+
+  return qatorlar.map((q) => ({
+    ...q,
+    turNarxlari: turNarxBoyicha.get(q.id) ?? {},
+  }));
 }
 
 /**

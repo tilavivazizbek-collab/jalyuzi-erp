@@ -23,7 +23,7 @@ import { useState } from 'react';
 import { Modal } from '../../modal';
 import { kirishUslubi } from '../../maydon';
 import { pulKorsat, pulMatn, kopaytir, som } from '@/lib/domain/pul';
-import { katalogNarxi } from '@/lib/domain/narx';
+import { aksessuarNarxi, katalogNarxi } from '@/lib/domain/narx';
 import type { Kurs } from '@/lib/domain/pul';
 import {
   pozitsiyaQoidaNarxi,
@@ -37,6 +37,8 @@ export interface QoshimchaMaterial {
   readonly nom: string;
   readonly narx: string | null;
   readonly narxValyuta: string;
+  /** TZ 6.2 — mijoz turi narxi: optomchi optom narxda oladi */
+  readonly turNarxlari: Record<number, { narx: string; valyuta: string }>;
   /** Q-25 — shu filialdagi bo'sh qoldiq */
   readonly boshDona: number;
   /** `DONA` — donalab, `RULON` — metrlab kesib sotiladi */
@@ -95,11 +97,35 @@ export function QoshimchaQoshish({
    * ⚠️ Narx katalogdan keladi va dollarda bo'lsa kursga uriladi
    *    (5.4). Mijoz offseti bu yerda QO'LLANMAYDI — u faqat
    *    matoga tegishli (6.3).
+   *
+   * ⚠️ TUR NARXI esa QO'LLANADI — TZ 6.2 (2026-09-22).
+   *
+   *    Ilgari qo'llanmasdi va shu tafovutni yaratardi: slotdagi
+   *    mato ham, aksessuar ham optom narxda ketardi, bot katalogi
+   *    ham optom narx berardi — lekin O'SHA mexanizmni alohida
+   *    sotganda panel chakana narxni olardi. Bir xil buyum qaysi
+   *    oynadan sotilganiga qarab ikki xil narxda ketardi.
+   *
+   *    Hisobning o'zi `aksessuarNarxi` da (§2.2) — u aynan shu
+   *    savolga javob beradi: «offset yo'q, tur narxi bor».
    */
-  const birlikNarx =
-    tanlangan === undefined || tanlangan.narx === null
-      ? null
-      : katalogNarxi(tanlangan.narx, tanlangan.narxValyuta, kurs);
+  const turNarxi = (() => {
+    if (tanlangan === undefined || mijozTuriId === null) return null;
+    const t = tanlangan.turNarxlari[mijozTuriId];
+    return t === undefined ? null : katalogNarxi(t.narx, t.valyuta, kurs);
+  })();
+
+  const birlikNarx = (() => {
+    if (tanlangan === undefined) return null;
+    const standart =
+      tanlangan.narx === null
+        ? null
+        : katalogNarxi(tanlangan.narx, tanlangan.narxValyuta, kurs);
+
+    /** Standart narx yo'q, lekin tur narxi bor — o'shanisi ishlatiladi */
+    if (standart === null) return turNarxi;
+    return aksessuarNarxi(standart, null, turNarxi);
+  })();
 
   /** Rulon — metrlab kesib sotiladi, dona — shunchaki olinadi */
   const kesiladimi = tanlangan?.hisobTuri === 'RULON';
