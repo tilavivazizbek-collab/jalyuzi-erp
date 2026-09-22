@@ -8,6 +8,7 @@
  */
 
 import { ulanishOl } from '@/lib/db';
+import { kesimOlchami } from '@/lib/domain/kesish';
 
 export interface BuyurtmaQatori {
   readonly id: number;
@@ -743,6 +744,27 @@ export interface BandBolak {
   readonly turi: string;
   readonly eniM: number | null;
   readonly boyiM: number | null;
+  /**
+   * SHU MATODAN KESILADIGAN TO'RTBURCHAK — 2026-09-22.
+   *
+   * ⚠️ NEGA KERAK: «Tugatdim» oynasi qoldiqni MAHSULOT o'lchamidan
+   *    (oyna eni × bo'yi) hisoblardi. Rulon pardada bu tasodifan
+   *    to'g'ri chiqardi, lekin koeffitsient, kesish yo'nalishi yoki
+   *    qat'iy kesim eni bo'lgan turda BUTUNLAY noto'g'ri edi.
+   *
+   *    Dikkeyda: haqiqiy kesim 0.40 × 45 m, ekran esa 2 × 2.5 deb
+   *    hisoblab, rulon qoldig'ini 97.5 m deb taklif qilardi —
+   *    haqiqatda 55 m. Usta tasdiqlasa 42.5 metr mato omborga
+   *    QAYTIB QOLARDI.
+   *
+   * ⚠️ `null` — chiziqli yoki dona material: ularda kesim
+   *    to'rtburchagi yo'q.
+   */
+  readonly kesimEniM: number | null;
+  readonly kesimBoyiM: number | null;
+  /** Usta ko'rishi uchun: qaysi slot va qancha kv.m */
+  readonly slotNomi: string | null;
+  readonly hisoblanganKvM: number | null;
 }
 
 /**
@@ -756,6 +778,11 @@ export async function bandBolaklar(
 ): Promise<readonly BandBolak[]> {
   if (pozitsiyaIdlar.length === 0) return [];
 
+  /**
+   * ⚠️ SLOT SOZLAMALARI HAM OLINADI — kesim to'rtburchagi shulardan
+   *    hisoblanadi (koeffitsient, kesish yo'nalishi, qat'iy kesim eni).
+   *    Ularsiz «Tugatdim» oynasi qoldiqni noto'g'ri taklif qilardi.
+   */
   const q = await ulanishOl()<
     {
       band_id: number;
@@ -765,26 +792,70 @@ export async function bandBolaklar(
       turi: string;
       eni_m: string | null;
       boyi_m: string | null;
+      slot_nomi: string | null;
+      birlik: string | null;
+      hisoblangan_miqdor: string | null;
+      koeffitsient: string | null;
+      kesish_turi: string | null;
+      slot_kesim_eni_m: string | null;
+      poz_boyi_m: string;
+      poz_soni: number;
     }[]
   >`
     SELECT bd.id AS band_id, bd.buyurtma_pozitsiya_id AS pozitsiya_id, bo.kod,
-           m.nom AS material_nom, bo.turi, bo.eni_m::text, bo.boyi_m::text
+           m.nom AS material_nom, bo.turi, bo.eni_m::text, bo.boyi_m::text,
+           ms.nom AS slot_nomi, pm.birlik, pm.hisoblangan_miqdor::text,
+           ms.koeffitsient::text, ms.kesish_turi,
+           ms.kesim_eni_m::text AS slot_kesim_eni_m,
+           p.boyi_m::text AS poz_boyi_m, p.soni AS poz_soni
     FROM band bd
     JOIN bolak bo   ON bo.id = bd.bolak_id
     JOIN material m ON m.id = bo.material_id
+    JOIN buyurtma_pozitsiya p ON p.id = bd.buyurtma_pozitsiya_id
+    LEFT JOIN pozitsiya_material pm ON pm.id = bd.pozitsiya_material_id
+    LEFT JOIN mahsulot_slot ms      ON ms.id = pm.slot_id
     WHERE bd.buyurtma_pozitsiya_id = ANY(${pozitsiyaIdlar as number[]})
       AND bd.holat = 'FAOL'
     ORDER BY bd.id`;
 
-  return q.map((x) => ({
-    bandId: x.band_id,
-    pozitsiyaId: x.pozitsiya_id,
-    kod: x.kod,
-    materialNom: x.material_nom,
-    turi: x.turi,
-    eniM: x.eni_m === null ? null : Number(x.eni_m),
-    boyiM: x.boyi_m === null ? null : Number(x.boyi_m),
-  }));
+  return q.map((x) => {
+    /**
+     * ⚠️ Kesim FAQAT `KV_M` materialda bo'ladi. Chiziqli va dona
+     *    materialda to'rtburchak tushunchasi yo'q.
+     *
+     * ⚠️ Geometriya DOMAINDA (`kesimOlchami`) — bu yerda
+     *    takrorlanmaydi (§2.2). Formuladagi xato butun ekranni
+     *    yiqitmasligi uchun `try` ichida.
+     */
+    let kesim: { eniM: number; boyiM: number } | null = null;
+    if (x.birlik === 'KV_M' && x.hisoblangan_miqdor !== null) {
+      try {
+        kesim = kesimOlchami(x.hisoblangan_miqdor, Number(x.poz_boyi_m), {
+          koeffitsient: x.koeffitsient === null ? 1 : Number(x.koeffitsient),
+          yonalish: x.kesish_turi === "BO'YIGA" ? "BO'YIGA" : 'ENIGA',
+          soni: x.poz_soni,
+          kesimEniM: x.slot_kesim_eni_m === null ? null : Number(x.slot_kesim_eni_m),
+        });
+      } catch {
+        kesim = null;
+      }
+    }
+
+    return {
+      bandId: x.band_id,
+      pozitsiyaId: x.pozitsiya_id,
+      kod: x.kod,
+      materialNom: x.material_nom,
+      turi: x.turi,
+      eniM: x.eni_m === null ? null : Number(x.eni_m),
+      boyiM: x.boyi_m === null ? null : Number(x.boyi_m),
+      kesimEniM: kesim?.eniM ?? null,
+      kesimBoyiM: kesim?.boyiM ?? null,
+      slotNomi: x.slot_nomi,
+      hisoblanganKvM:
+        x.hisoblangan_miqdor === null ? null : Number(x.hisoblangan_miqdor),
+    };
+  });
 }
 
 // ─── 8.7 · Tahrirlash uchun pozitsiya tarkibi ─────────────────────────────

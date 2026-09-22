@@ -17,7 +17,7 @@ import { describe, expect, it } from 'vitest';
 import { formuladanSarf, sarfFormulasi } from '@/lib/domain/sarf-turi';
 import { slotSarfi, soniUchun, standartQiymatlar } from '@/lib/domain/formula';
 import { m } from '@/lib/domain/birlik';
-import { kesimOlchami } from '@/lib/domain/kesish';
+import { kesimOlchami, kesimRejasi } from '@/lib/domain/kesish';
 
 /** Egasining sozlamasi: qadam 0.11 m, tasma eni 0.40 m */
 const QADAM = '0.11';
@@ -128,5 +128,66 @@ describe('TASMALI sarf — egasining dikkey matosi', () => {
     /** Kesim esa BITTA buyum uchun — usta uchta alohida to'plam kesadi */
     const kesim = kesimOlchami(sarf, 2.5, { kesimEniM: 0.4, soni: 3 });
     expect(kesim.boyiM).toBeCloseTo(45, 1);
+  });
+});
+
+// ─── «Tugatdim» oynasi — qoldiq taklifi (2026-09-22) ─────────────────────
+
+describe('Usta ekrani — qoldiq taklifi', () => {
+  const RULON = {
+    id: 1,
+    kod: 'R-1',
+    turi: 'RULON' as const,
+    eniM: 0.4,
+    boyiM: 100,
+    qismanOchilgan: false,
+  };
+
+  /**
+   * ⚠️ PUL TESHIGI EDI — 2026-09-22 da topildi va yopildi.
+   *
+   *    «Tugatdim» oynasi rulon qoldig'ini MAHSULOT o'lchamidan
+   *    (oyna eni × bo'yi) hisoblardi, KESIM o'lchamidan emas.
+   *
+   *    Rulon pardada bu tasodifan to'g'ri chiqardi (kesim ≈ oyna),
+   *    lekin dikkeyda butunlay boshqa raqam berardi va usta uni
+   *    tasdiqlasa mato omborga QAYTIB QOLARDI.
+   *
+   *    Bu test ikkala hisobning FARQINI qayd etadi: agar kimdir
+   *    yana mahsulot o'lchamiga qaytsa, test qizil bo'ladi.
+   */
+  it('EC-TASMA-10: qoldiq KESIM o‘lchamidan hisoblanadi, oyna o‘lchamidan emas', () => {
+    const f = sarfFormulasi('TASMALI', QADAM, '0', TASMA_ENI, 'ROUND');
+    const sarf = slotSarfi(f, standartQiymatlar(m(2), m(2.5), 1), 'KV_M', 1);
+    const kesim = kesimOlchami(sarf, 2.5, { kesimEniM: 0.4, soni: 1 });
+
+    /** TO'G'RI: kesim to'rtburchagi bo'yicha */
+    const togri = kesimRejasi(RULON, kesim);
+    expect(togri.manbaQoldiq?.boyiM).toBeCloseTo(55, 1);
+
+    /** ESKI XATO: oyna o'lchami bo'yicha */
+    const xato = kesimRejasi(RULON, { eniM: 2, boyiM: 2.5 });
+    expect(xato.manbaQoldiq?.boyiM).toBeCloseTo(97.5, 1);
+
+    /** ⚠️ 42.5 metr farq — har buyurtmada omborga qaytib qolardi */
+    const farq = (xato.manbaQoldiq?.boyiM ?? 0) - (togri.manbaQoldiq?.boyiM ?? 0);
+    expect(farq).toBeCloseTo(42.5, 1);
+  });
+
+  /**
+   * ⚠️ Oddiy rulon pardada farq YO'Q — shuning uchun xato ikki yil
+   *    ko'rinmay turishi mumkin edi.
+   */
+  it('EC-TASMA-11: oddiy pardada ikkala hisob bir xil — xato shuning uchun yashiringan', () => {
+    const KENG = { ...RULON, eniM: 3, boyiM: 50 };
+    const sarf = slotSarfi('MAYDON', standartQiymatlar(m(2), m(2.5), 1), 'KV_M', 1);
+    const kesim = kesimOlchami(sarf, 2.5, { soni: 1 });
+
+    expect(kesim.eniM).toBeCloseTo(2, 2);
+    expect(kesim.boyiM).toBeCloseTo(2.5, 2);
+
+    const a = kesimRejasi(KENG, kesim);
+    const b = kesimRejasi(KENG, { eniM: 2, boyiM: 2.5 });
+    expect(a.manbaQoldiq?.boyiM).toBe(b.manbaQoldiq?.boyiM);
   });
 });

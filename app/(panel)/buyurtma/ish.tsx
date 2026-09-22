@@ -105,6 +105,11 @@ export function TugatdimTugmasi({
     turi?: string;
     eniM: number | null;
     boyiM: number | null;
+    /** SHU MATODAN kesiladigan to'rtburchak — 2026-09-22 */
+    kesimEniM: number | null;
+    kesimBoyiM: number | null;
+    slotNomi: string | null;
+    hisoblanganKvM: number | null;
   }[];
   mahsulotEniM: number;
   mahsulotBoyiM: number;
@@ -150,9 +155,33 @@ export function TugatdimTugmasi({
     turi?: string;
     eniM: number | null;
     boyiM: number | null;
+    kesimEniM: number | null;
+    kesimBoyiM: number | null;
   }): Qator => {
     const manba = b.turi === 'RULON' ? 'RULON' : 'OSTATKA';
     if (b.eniM === null || b.boyiM === null) return { ...BOSH_QATOR, manba };
+
+    /**
+     * ⚠️ KESIM O'LCHAMI, mahsulot o'lchami EMAS — 2026-09-22.
+     *
+     *    Ilgari bu yerga `{ eniM: mahsulotEniM, boyiM: mahsulotBoyiM }`
+     *    berilardi, ya'ni OYNANING o'lchami. Rulon pardada bu tasodifan
+     *    to'g'ri chiqardi (kesim ≈ oyna), lekin koeffitsient, kesish
+     *    yo'nalishi yoki qat'iy kesim eni bo'lgan turda butunlay
+     *    noto'g'ri edi.
+     *
+     *    Dikkeyda: haqiqiy kesim 0.40 × 45 m, ekran esa 2 × 2.5 deb
+     *    hisoblab rulon qoldig'ini 97.5 m deb taklif qilardi —
+     *    haqiqatda 55 m. Usta tasdiqlasa 42.5 metr mato (17 kv.m)
+     *    omborga QAYTIB QOLARDI. Har buyurtmada.
+     *
+     * ⚠️ Kesim hisoblanmagan bo'lsa (chiziqli yoki dona material)
+     *    taklif berilmaydi: noto'g'ri raqamdan ko'ra bo'sh katak
+     *    yaxshi — usta o'zi o'lchab yozadi.
+     */
+    if (b.kesimEniM === null || b.kesimBoyiM === null) {
+      return { ...BOSH_QATOR, manba };
+    }
 
     const r = kesimRejasi(
       {
@@ -163,7 +192,7 @@ export function TugatdimTugmasi({
         boyiM: b.boyiM,
         qismanOchilgan: false,
       },
-      { eniM: mahsulotEniM, boyiM: mahsulotBoyiM },
+      { eniM: b.kesimEniM, boyiM: b.kesimBoyiM },
     );
 
     return {
@@ -273,6 +302,9 @@ export function TugatdimTugmasi({
               >
                 <div className="text-[13px] text-matn-ikki">
                   <b className="text-matn">{h.band.materialNom}</b>
+                  {h.band.slotNomi !== null && (
+                    <span className="ml-1 text-matn-kuchsiz">({h.band.slotNomi})</span>
+                  )}
                   {h.manbaKvM !== null && (
                     <span className="raqam ml-1">
                       · {h.band.kod} · {h.band.eniM} × {h.band.boyiM} m ={' '}
@@ -280,6 +312,28 @@ export function TugatdimTugmasi({
                     </span>
                   )}
                 </div>
+
+                {/*
+                  ⚠️ KESIM O'LCHAMI — egasi talabi 2026-09-22:
+                     «usta saytida mato sarfi eni va bo'yi qancha
+                     bo'lishi aniq va ravshan ko'rinib turadi».
+
+                     Ilgari faqat kv.m ko'rinardi. Usta esa kv.m ni
+                     kesmaydi — u eni va bo'yini kesadi.
+                */}
+                {h.band.kesimEniM !== null && h.band.kesimBoyiM !== null && (
+                  <div className="rounded-maydon bg-brend/5 px-3 py-2 text-[13px]">
+                    <span className="text-matn-ikki">Kesiladi:</span>{' '}
+                    <b className="raqam text-brend">
+                      {h.band.kesimEniM.toFixed(2)} × {h.band.kesimBoyiM.toFixed(2)} m
+                    </b>
+                    {h.band.hisoblanganKvM !== null && (
+                      <span className="raqam ml-1 text-matn-kuchsiz">
+                        = {h.band.hisoblanganKvM.toFixed(2)} kv.m
+                      </span>
+                    )}
+                  </div>
+                )}
 
                 {/*
                   ⚠️ Manba TASDIQLANADI (7.6): tizim ostatkani band
