@@ -146,15 +146,65 @@ export async function xodimTahrirla(
       WHERE id = ${id}`;
 
     /**
+     * TZ 2.4 · QISM 1 §8 — PAROL O'ZGARISHI JURNALGA TUSHADI.
+     *
+     * ⚠️ Parolning O'ZI hech qayerga yozilmaydi — faqat
+     *    o'zgartirilgani qayd etiladi. Kim kimning parolini
+     *    almashtirgani javobgarlik savoli: undan keyin o'sha
+     *    hisob bilan kirilgan har ish shu odamga bog'lanadi.
+     */
+    if (hash !== null) {
+      await tx`
+        INSERT INTO audit_jurnal (xodim_id, filial_id, amal, obyekt_turi,
+                                  obyekt_id, izoh)
+        SELECT ${ozgartirdiId}, x.filial_id, 'PAROL_OZGARTIRILDI', 'xodim',
+               ${id}, ${`${kirim.ism} paroli almashtirildi`}
+          FROM xodim x WHERE x.id = ${ozgartirdiId}`;
+    }
+
+    /**
      * ⚠️ Rollar QAYTA yoziladi: eskisi o'chirilib yangisi
      *    qo'yiladi. `xodim_rol` — bog'lanish jadvali, unda tarix
      *    saqlanmaydi.
+     *
+     * ⚠️ AYNAN SHUNING UCHUN AUDIT KERAK (TZ 2.4 · 14.6, 2026-09-22).
+     *    Bog'lanish jadvalida tarix qolmagani uchun «kim kimga
+     *    admin huquqini bergan?» degan savolga javob beradigan
+     *    yagona joy shu yozuv bo'ladi. Ilgari u YO'Q edi.
      */
+    const eskiRollar = await tx<{ id: number; nom: string }[]>`
+      SELECT r.id, r.nom FROM xodim_rol xr
+      JOIN rol r ON r.id = xr.rol_id
+      WHERE xr.xodim_id = ${id}
+      ORDER BY r.id`;
+
     await tx`DELETE FROM xodim_rol WHERE xodim_id = ${id}`;
     for (const rolId of kirim.rolIdlar) {
       await tx`
         INSERT INTO xodim_rol (xodim_id, rol_id, yaratdi_id)
         VALUES (${id}, ${rolId}, ${ozgartirdiId})`;
+    }
+
+    /** ⚠️ O'zgarmagan bo'lsa yozilmaydi — jurnal shovqinga aylanmasin */
+    const eskiIdlar = eskiRollar.map((r) => r.id);
+    const yangiIdlar = [...kirim.rolIdlar].sort((a, b) => a - b);
+
+    if (
+      eskiIdlar.length !== yangiIdlar.length ||
+      eskiIdlar.some((x, i) => x !== yangiIdlar[i])
+    ) {
+      const yangiNomlar = await tx<{ nom: string }[]>`
+        SELECT nom FROM rol WHERE id = ANY(${kirim.rolIdlar}) ORDER BY id`;
+
+      await tx`
+        INSERT INTO audit_jurnal (xodim_id, filial_id, amal, obyekt_turi,
+                                  obyekt_id, eski_qiymat, yangi_qiymat, izoh)
+        SELECT ${ozgartirdiId}, x.filial_id, 'RUXSAT_OZGARDI', 'xodim',
+               ${id},
+               ${tx.json({ rollar: eskiRollar.map((r) => r.nom) })},
+               ${tx.json({ rollar: yangiNomlar.map((r) => r.nom) })},
+               ${`${kirim.ism} rollari o'zgardi`}
+          FROM xodim x WHERE x.id = ${ozgartirdiId}`;
     }
 
     return { id, ism: kirim.ism };

@@ -241,3 +241,74 @@ describe('Yarim bajarilgan amal qolmaydi', () => {
     await expect(nofaolQil(sql, 'material', 2_000_000_000, XODIM)).rejects.toThrow();
   });
 });
+
+/**
+ * TZ 2.4 · QISM 1 §10 (U-08) — O'CHIRISH JURNALGA TUSHADI (2026-09-22).
+ *
+ * ⚠️ 2026-09-22 gacha `nofaolQil()` HECH NARSA YOZMASDI. Ya'ni
+ *    material, mijoz, kassa, filial, xodim — hammasi izsiz
+ *    o'chirilardi. «Bu mijoz qayerga ketdi?» degan savolga javob
+ *    beradigan yagona joy `ozgartirdi_id` ustuni edi, u esa
+ *    keyingi tahrirda ustidan yozilib ketardi.
+ *
+ * ⚠️ QAYTARISH HAM yoziladi. Faqat o'chirish yozilsa jurnal yolg'on
+ *    gapirardi: «o'chirilgan» deb turaverardi, holbuki yozuv
+ *    qaytarilgan bo'lardi.
+ */
+describe('o‘chirish va qaytarish audit jurnaliga tushadi', () => {
+  async function yozuvlar(jadval: string, id: number, amal: string): Promise<number> {
+    const q = await sql<{ n: number }[]>`
+      SELECT COUNT(*)::int AS n FROM audit_jurnal
+       WHERE amal = ${amal} AND obyekt_turi = ${jadval} AND obyekt_id = ${id}`;
+    return q[0]?.n ?? 0;
+  }
+
+  it('material o‘chirilsa jurnalga yoziladi', async () => {
+    const id = await materialYarat(nom('audit'));
+    await nofaolQil(sql, 'material', id, XODIM);
+
+    expect(await yozuvlar('material', id, 'NOFAOL_QILINDI')).toBe(1);
+  });
+
+  it('yozuvda eski va yangi holat ikkalasi ham bor', async () => {
+    const id = await materialYarat(nom('audit qiymat'));
+    await nofaolQil(sql, 'material', id, XODIM);
+
+    const a = await sql<{ eski: unknown; yangi: unknown }[]>`
+      SELECT eski_qiymat AS eski, yangi_qiymat AS yangi FROM audit_jurnal
+       WHERE amal = 'NOFAOL_QILINDI' AND obyekt_turi = 'material'
+         AND obyekt_id = ${id}`;
+
+    expect(JSON.stringify(a[0]?.eski)).toContain('true');
+    expect(JSON.stringify(a[0]?.yangi)).toContain('false');
+  });
+
+  it('⚠️ QAYTARISH ham yoziladi — jurnal yolg‘on gapirmasin', async () => {
+    const id = await materialYarat(nom('audit qaytar'));
+    await nofaolQil(sql, 'material', id, XODIM);
+    await qaytar(sql, 'material', id, XODIM);
+
+    expect(await yozuvlar('material', id, 'QAYTA_FAOLLASHTIRILDI')).toBe(1);
+  });
+
+  it('TO‘SILGAN o‘chirishda jurnalga HECH NARSA yozilmaydi', async () => {
+    /**
+     * ⚠️ Guruhda material bo'lsa o'chirish to'siladi. O'shanda
+     *    jurnalga yozuv tushsa, egasi «o'chirilgan» deb o'ylardi —
+     *    holbuki yozuv joyida turardi.
+     */
+    const g = await sql<{ id: number }[]>`
+      INSERT INTO almashtirish_guruh (nom, yaratdi_id)
+      VALUES (${nom('audit band guruh')}, ${XODIM}) RETURNING id`;
+    const guruhId = g[0]?.id ?? 0;
+
+    const materialId = await materialYarat(nom('audit band material'));
+    await sql`
+      UPDATE material SET almashtirish_guruh_id = ${guruhId} WHERE id = ${materialId}`;
+
+    const n = await nofaolQil(sql, 'guruh', guruhId, XODIM);
+    expect(n.holat).toBe('BAND');
+
+    expect(await yozuvlar('almashtirish_guruh', guruhId, 'NOFAOL_QILINDI')).toBe(0);
+  });
+});

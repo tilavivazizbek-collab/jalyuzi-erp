@@ -20,9 +20,17 @@ export const AUDIT_AMALLARI = {
     band: 'TZ 2.4, 3.11',
     sababMajburiy: false,
   },
-  QARZ_HISOBDAN_CHIQARILDI: {
+  /**
+   * ⚠️ `QARZ_HISOBDAN_CHIQARILDI` EDI (2026-09-22 gacha) va u
+   *    hech qachon yozilmagan: `umidsizQarz()` `UMIDSIZ_QARZ` deb
+   *    yozadi. Ikki xil nom — ta'riflangani o'lik, yozilgani
+   *    ro'yxatda yo'q edi. Haqiqiy nom qoldirildi: bazada
+   *    allaqachon shu nomdagi yozuvlar turibdi va ularni
+   *    o'zgartirish 2.3-invariantni buzardi.
+   */
+  UMIDSIZ_QARZ: {
     nom: 'Qarz hisobdan chiqarildi',
-    band: 'TZ 2.4',
+    band: 'TZ 2.4, 12.1',
     sababMajburiy: true,
   },
   OMBORDAN_CHIQARILDI: {
@@ -43,7 +51,6 @@ export const AUDIT_AMALLARI = {
     band: 'TZ 2.4, 5.3',
     sababMajburiy: true,
   },
-  MIJOZ_NOFAOL: { nom: 'Mijoz nofaol qilindi', band: 'TZ 2.4, 6.7', sababMajburiy: false },
   /**
    * ⚠️ Oldindan to'lov ALOHIDA tranzaksiyada yoziladi (sotuv ekrani).
    *    U yiqilsa buyurtma qoladi, pul esa kassada — tizimda yo'q.
@@ -55,9 +62,136 @@ export const AUDIT_AMALLARI = {
     band: 'TZ 2.4, 12.5',
     sababMajburiy: false,
   },
+  /**
+   * ⚠️ 2026-09-22 — HISOBDAN CHIQARISH endi yoziladi.
+   *
+   *    §10 U-08 «hisobdan chiqarish» ni jurnalga tushishi shart
+   *    deb sanaydi, lekin `nofaolQil()` hech narsa yozmasdi:
+   *    material, mijoz, kassa, filial, xodim — hammasi IZSIZ
+   *    o'chirilardi. `MIJOZ_NOFAOL` esa faqat mijozni nazarda
+   *    tutgani uchun qolganini qoplay olmasdi.
+   */
+  NOFAOL_QILINDI: {
+    nom: 'Ro‘yxatdan olib tashlandi',
+    band: 'TZ 2.4, QISM 1 §10',
+    sababMajburiy: false,
+  },
+  QAYTA_FAOLLASHTIRILDI: {
+    nom: 'Ro‘yxatga qaytarildi',
+    band: 'TZ 2.4, QISM 1 §10',
+    sababMajburiy: false,
+  },
+  /** TZ 12.17 — yopilgan kunni admin qayta ochadi, sabab majburiy */
+  KUN_QAYTA_OCHILDI: {
+    nom: 'Kun qayta ochildi',
+    band: 'TZ 2.4, 12.17',
+    sababMajburiy: true,
+  },
+  KUN_YOPILDI: { nom: 'Kun yopildi', band: 'TZ 2.4, 12.17', sababMajburiy: false },
+  /** Q-03 — material yetmagani BUYURTMA BERILAYOTGANDA bilinadi */
+  SLOT_MATERIALI_YETMADI: {
+    nom: 'Slot materiali yetmadi',
+    band: 'TZ 2.4, 8.12',
+    sababMajburiy: false,
+  },
+  AKSESSUAR_YETMADI: {
+    nom: 'Aksessuar yetmadi',
+    band: 'TZ 2.4, 8.12',
+    sababMajburiy: false,
+  },
+  /** TZ 7.4 — butun rulon ochildi, endi u «ochilgan» hisoblanadi */
+  RULON_OCHILDI: { nom: 'Rulon ochildi', band: 'TZ 2.4, 7.4', sababMajburiy: false },
+
+  // ─── Amalda yoziladigan, lekin 2026-09-22 gacha ro'yxatda bo'lmagan kodlar ──
+  //
+  // ⚠️ Ro'yxat TZ 2.4 dagi 11 amaldan boshlangan va shu holicha
+  //    qolgan edi. Kod esa o'sib borgan: har yangi tranzaksiya
+  //    audit yozuvini ODDIY MATN bilan yozgan. Natijada ro'yxat
+  //    bilan haqiqat ajralib ketdi va terish xatosi hech qanday
+  //    xato bermasdi. `yozilgan-amallar.test.ts` endi buni
+  //    ushlaydi — shuning uchun ro'yxat TO'LIQ bo'lishi shart.
+
+  YARATISH: { nom: 'Yaratildi', band: 'TZ 2.4', sababMajburiy: false },
+  TAHRIRLASH: { nom: 'Tahrirlandi', band: 'TZ 2.4', sababMajburiy: false },
+  BEKOR: { nom: 'Bekor qilindi', band: 'TZ 2.4, 8.8', sababMajburiy: false },
+  TASDIQLASH: { nom: 'Tasdiqlandi', band: 'TZ 2.4, 8.2', sababMajburiy: false },
+
+  // Buyurtma va ishlab chiqarish
+  POZITSIYA_QOSHILDI: {
+    nom: "Pozitsiya qo'shildi",
+    band: 'TZ 2.4, 8.16',
+    sababMajburiy: false,
+  },
+  NARX_OZGARTIRISH: { nom: "Narx o'zgartirildi", band: 'TZ 2.4, 8.16', sababMajburiy: true },
+  HOLAT_QOLDA_TUZATILDI: {
+    nom: "Holat qo'lda tuzatildi",
+    band: 'TZ 2.4, 8.15',
+    sababMajburiy: true,
+  },
+  ISH_OLINDI: { nom: 'Usta ishni oldi', band: 'TZ 2.4, 13.5', sababMajburiy: false },
+  ISH_QAYTARIB_OLINDI: {
+    nom: 'Ish ustadan qaytarib olindi',
+    band: 'TZ 2.4, 13.5',
+    sababMajburiy: true,
+  },
+  TUGATDIM: { nom: 'Usta tugatdi', band: 'TZ 2.4, 13.6', sababMajburiy: false },
+  TOPSHIRISH: { nom: 'Mijozga topshirildi', band: 'TZ 2.4, 8.7', sababMajburiy: false },
+  QAYTARISH: { nom: 'Mijoz qaytardi', band: 'TZ 2.4, 8.13', sababMajburiy: true },
+  RAD_ETISH: { nom: 'Mijoz rad etdi', band: 'TZ 2.4, 8.13', sababMajburiy: true },
+
+  // Qayta kesish (8.17)
+  QAYTA_KESISH_SOROVI: {
+    nom: "Qayta kesish so'raldi",
+    band: 'TZ 2.4, 8.17',
+    sababMajburiy: true,
+  },
+  QAYTA_KESISH_TASDIQ: {
+    nom: 'Qayta kesish tasdiqlandi',
+    band: 'TZ 2.4, 8.17',
+    sababMajburiy: false,
+  },
+  QAYTA_KESISH_RAD: {
+    nom: 'Qayta kesish rad etildi',
+    band: 'TZ 2.4, 8.17',
+    sababMajburiy: true,
+  },
+
+  // Ombor va filiallararo
+  KOCHIRISH_JONATILDI: {
+    nom: "Ko'chirish jo'natildi",
+    band: 'TZ 2.4, 20.7',
+    sababMajburiy: false,
+  },
+  KOCHIRISH_QABUL: {
+    nom: "Ko'chirish qabul qilindi",
+    band: 'TZ 2.4, 20.7',
+    sababMajburiy: false,
+  },
+  KOCHIRISH_BEKOR: {
+    nom: "Ko'chirish bekor qilindi",
+    band: 'TZ 2.4, 20.7',
+    sababMajburiy: true,
+  },
+  YETIB_KELDI: { nom: 'Yetib keldi', band: 'TZ 2.4, 20.8', sababMajburiy: false },
+  YAKUNLASH: { nom: 'Yakunlandi', band: 'TZ 2.4, 7.10', sababMajburiy: false },
+  QARZ_OTKAZISH: {
+    nom: "Filiallararo qarz o'tkazildi",
+    band: 'TZ 2.4, 22.3',
+    sababMajburiy: false,
+  },
+  FILIAL_TOLOV: { nom: "Filiallararo to'lov", band: 'TZ 2.4, 22.3', sababMajburiy: false },
+
+  // Spravochnik va sozlash
+  STAVKA: { nom: 'Usta stavkasi belgilandi', band: 'TZ 2.4, 13.2', sababMajburiy: false },
+  STAVKA_OCHIRISH: {
+    nom: "Usta stavkasi o'chirildi",
+    band: 'TZ 2.4, 13.2',
+    sababMajburiy: false,
+  },
+  DAVO_HAL: { nom: "Yetkazuvchi da'vosi hal qilindi", band: 'TZ 2.4, 9.8', sababMajburiy: false },
+  BOT_BOGLANDI: { nom: "Telegram hisobi bog'landi", band: 'TZ 2.4, 13.4', sababMajburiy: false },
 
   // §10 U-08 — turkum sifatida qo'shilganlar
-  CHEGARADAN_OSHDI: { nom: 'Chegaradan oshish', band: 'QISM 1 §10', sababMajburiy: false },
   SOZLAMA_OZGARDI: { nom: "Sozlama o'zgardi", band: 'QISM 1 §10, TZ 14', sababMajburiy: false },
   CHEK_CHOP: { nom: 'Chek chop etildi', band: 'TZ 8.9', sababMajburiy: false },
   KIRISH_BLOKLANDI: { nom: 'Hisob bloklandi', band: 'QISM 1 §8', sababMajburiy: false },

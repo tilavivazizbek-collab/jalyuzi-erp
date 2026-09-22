@@ -544,6 +544,27 @@ export async function nofaolQil(
     const izoh =
       tavsif.ochirilgandan === undefined ? null : await tavsif.ochirilgandan(tx, id);
 
+    /**
+     * TZ 2.4 · QISM 1 §10 (U-08) — HISOBDAN CHIQARISH JURNALGA TUSHADI.
+     *
+     * ⚠️ 2026-09-22 gacha BU YERDA HECH NARSA YOZILMASDI. Ya'ni
+     *    material, mijoz, kassa, filial, xodim — hammasi izsiz
+     *    o'chirilardi. «Bu mijoz qayerga ketdi?» degan savolga
+     *    javob beradigan yagona joy `ozgartirdi_id` ustuni edi va
+     *    u SANANI ham, KIMLIGINI ham bir qatorda ko'rsatardi:
+     *    keyingi tahrir uni ustidan yozib yuborardi.
+     *
+     * ⚠️ BITTA JOYDA (§2.2). Har tur uchun alohida yozilsa,
+     *    bittasi unutilardi — ilgari shunday bo'lgan.
+     */
+    await tx`
+      INSERT INTO audit_jurnal (xodim_id, filial_id, amal, obyekt_turi,
+                                obyekt_id, eski_qiymat, yangi_qiymat, izoh)
+      SELECT ${xodimId}, x.filial_id, 'NOFAOL_QILINDI', ${tavsif.jadval},
+             ${id}, ${tx.json({ faol: true })}, ${tx.json({ faol: false })},
+             ${izoh ?? `${tavsif.nom} ro'yxatdan olib tashlandi`}
+        FROM xodim x WHERE x.id = ${xodimId}`;
+
     return { holat: 'OCHIRILDI', sabab: null, izoh };
   });
 }
@@ -563,8 +584,25 @@ export async function qaytar(
 ): Promise<void> {
   const tavsif = TUR_TAVSIFI[tur];
 
-  await ulanish`
-    UPDATE ${ulanish(tavsif.jadval)}
-    SET faol = true, ochirildi = NULL, ozgartirdi_id = ${xodimId}
-    WHERE id = ${id}`;
+  /**
+   * ⚠️ QAYTARISH HAM JURNALGA TUSHADI va shu sababli TRANZAKSIYADA.
+   *
+   *    Faqat o'chirish yozilib, qaytarish yozilmasa jurnal
+   *    yolg'on gapirardi: «bu mijoz o'chirilgan» deb turaverardi,
+   *    holbuki u qaytarilgan bo'lardi.
+   */
+  await ulanish.begin(async (tx) => {
+    await tx`
+      UPDATE ${tx(tavsif.jadval)}
+      SET faol = true, ochirildi = NULL, ozgartirdi_id = ${xodimId}
+      WHERE id = ${id}`;
+
+    await tx`
+      INSERT INTO audit_jurnal (xodim_id, filial_id, amal, obyekt_turi,
+                                obyekt_id, eski_qiymat, yangi_qiymat, izoh)
+      SELECT ${xodimId}, x.filial_id, 'QAYTA_FAOLLASHTIRILDI', ${tavsif.jadval},
+             ${id}, ${tx.json({ faol: false })}, ${tx.json({ faol: true })},
+             ${`${tavsif.nom} ro'yxatga qaytarildi`}
+        FROM xodim x WHERE x.id = ${xodimId}`;
+  });
 }

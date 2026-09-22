@@ -186,11 +186,34 @@ function pozitsiyaHisobi(
    *    Bot ham AYNAN shu qoidadan oladi (§2.2): aks holda botda bir
    *    narx, saytda boshqa narx chiqardi.
    */
+  /**
+   * ⚠️ DARAJA MATO SLOTIDAN OLINADI — 2026-09-22.
+   *
+   *    Ilgari «darajasi bor BIRINCHI material» olinardi va bu slot
+   *    TARTIBIGA bog'liq edi: karnizga daraja qo'yilgan bo'lsa,
+   *    jalyuzi narxi karniz darajasidan izlanardi.
+   *
+   *    Sayt va server tekshiruvida bu 2026-09-21 da tuzatilgan edi,
+   *    BOTDA esa eski holicha qolgan — ya'ni bir buyurtma saytda
+   *    bir narxda, botda boshqa narxda chiqishi mumkin edi.
+   *
+   *    2026-09-22 dan daraja karnizga ham qo'yiladi («ko'p olganga
+   *    arzonroq»), shuning uchun bu endi nazariy xato emas.
+   */
+  const darajalar = p.slotlar.map((s) => {
+    const m = tur.slotlar
+      .find((x) => x.id === s.slotId)
+      ?.materiallar.find((y) => y.id === s.materialId);
+    return {
+      narxGuruhId: m?.narxGuruhId ?? null,
+      matomi: m?.sarflashBirligi === 'KV_M',
+    };
+  });
+
   const narxGuruhId =
-    p.slotlar
-      .map((s) => tur.slotlar.find((x) => x.id === s.slotId)
-        ?.materiallar.find((m) => m.id === s.materialId)?.narxGuruhId ?? null)
-      .find((g) => g !== null) ?? null;
+    darajalar.find((d) => d.matomi && d.narxGuruhId !== null)?.narxGuruhId ??
+    darajalar.find((d) => d.narxGuruhId !== null)?.narxGuruhId ??
+    null;
 
   /** TZ 6.2 — mijoz turiga qo'yilgan qoida umumiysidan USTUN */
   const qoidaQatori =

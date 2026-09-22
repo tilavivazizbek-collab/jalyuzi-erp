@@ -66,7 +66,14 @@ export async function kursniBelgila(
     await tx`
       INSERT INTO audit_jurnal (xodim_id, filial_id, amal, obyekt_turi, obyekt_id,
                                 yangi_qiymat, izoh)
-      SELECT ${xodimId}, x.filial_id, 'KURS', 'kurs_tarix', 0,
+      /*
+       * ⚠️ 'KURS' EDI (2026-09-22 gacha), audit ro'yxatida esa
+       *    'KURS_OZGARDI' deb ta'riflangan. Ikki xil nom:
+       *    ta'riflangani hech qachon yozilmagan, yozilgani esa
+       *    hech qayerda ta'riflanmagan. Hisobot ta'riflangan nom
+       *    bo'yicha izlasa — hech narsa topmasdi.
+       */
+      SELECT ${xodimId}, x.filial_id, 'KURS_OZGARDI', 'kurs_tarix', 0,
              ${tx.json({ qiymat })}, 'Kunlik kurs belgilandi'
       FROM xodim x WHERE x.id = ${xodimId}`;
   });

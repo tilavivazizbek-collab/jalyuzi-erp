@@ -11,20 +11,36 @@ import {
   yozuvYasa,
 } from '@/lib/audit/amallar';
 
+/**
+ * ⚠️ IKKI KOD NOMI O'ZGARDI (2026-09-22).
+ *
+ *    Test TZ 2.4 dagi 11 amalni ro'yxatda borligini tekshirardi va
+ *    o'tardi — lekin ikkitasi HECH QACHON YOZILMAGAN nom edi:
+ *
+ *      `QARZ_HISOBDAN_CHIQARILDI` → amalda `UMIDSIZ_QARZ` yoziladi
+ *      `MIJOZ_NOFAOL`             → amalda `NOFAOL_QILINDI` yoziladi
+ *                                    (u faqat mijozni emas, HAR
+ *                                     turdagi o'chirishni qamraydi)
+ *
+ *    Ya'ni test ro'yxatning o'zini tekshirardi, ro'yxat bilan
+ *    HAQIQAT mosligini emas. Endi haqiqiy nomlar tekshiriladi va
+ *    `yozilgan-amallar.test.ts` ikkalasi ajralib ketishiga yo'l
+ *    qo'ymaydi.
+ */
 describe('TZ 2.4 — sanalgan amallarning hammasi bor', () => {
   it("2.4 ro'yxatidagi 11 amal qamrab olingan", () => {
     for (const kod of [
       'STORNO',
       'NARX_QOLDA',
       'CHEGIRMA_LIMITIDAN_OSHDI',
-      'QARZ_HISOBDAN_CHIQARILDI',
+      'UMIDSIZ_QARZ',
       'OMBORDAN_CHIQARILDI',
       'QOLDA_TUZATISH',
       'RUXSAT_OZGARDI',
       'MAHSULOT_TURI_TAHRIRLANDI',
       'KURS_OZGARDI',
       'MATERIAL_BIRLIGI_OZGARDI',
-      'MIJOZ_NOFAOL',
+      'NOFAOL_QILINDI',
     ] as const) {
       expect(AUDIT_AMAL_KODLARI).toContain(kod);
     }
@@ -76,7 +92,7 @@ describe('sabab majburiyligi', () => {
     expect(sababMajburiymi('STORNO')).toBe(true);
     expect(sababMajburiymi('OMBORDAN_CHIQARILDI')).toBe(true);
     expect(sababMajburiymi('QOLDA_TUZATISH')).toBe(true);
-    expect(sababMajburiymi('QARZ_HISOBDAN_CHIQARILDI')).toBe(true);
+    expect(sababMajburiymi('UMIDSIZ_QARZ')).toBe(true);
     expect(sababMajburiymi('MATERIAL_BIRLIGI_OZGARDI')).toBe(true);
   });
 

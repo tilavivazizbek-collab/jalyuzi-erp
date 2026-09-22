@@ -89,7 +89,24 @@ export function TolovFormasi({
     return (
       <p className="rounded-karta bg-belgi-sariq-fon px-4 py-3 text-sm text-belgi-sariq ">
         Sizning kassangiz yo&apos;q — to&apos;lov qabul qilib bo&apos;lmaydi. Admin kassa ochib
-        berishi kerak (12.2).
+        berishi kerak (12.2).{' '}
+        {/*
+          ⚠️ Ilgari bu yerda BOSHI BERK KO'CHA edi: xabar «admin
+             kassa ochsin» derdi, lekin qayerdan ochilishi
+             aytilmasdi. Admin o'zi shu sahifada turgan bo'lsa ham
+             menyudan qidirib ketishiga to'g'ri kelardi.
+
+             Yangi oynada ochiladi — yarim to'ldirilgan to'lov
+             yo'qolmasin (pastdagi «Kassalar ↗» bilan bir xil sabab).
+        */}
+        <a
+          href="/kassa/yangi"
+          target="_blank"
+          rel="noopener"
+          className="fokus underline hover:no-underline"
+        >
+          Kassa ochish ↗
+        </a>
       </p>
     );
   }
