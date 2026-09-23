@@ -749,6 +749,10 @@ export function SotuvFormasi({
           ? null
           : {
               hisoblashUsuli: qoidaQatori.hisoblashUsuli as HisoblashUsuli,
+              /** ⚠️ 0056 — «kamida N kv.m»; usiz ekran serverdan
+               *     boshqa narx ko'rsatardi va har buyurtmada
+               *     «qo'lda narx» belgisi qo'yilardi */
+              minOlchov: qoidaQatori.minOlchov,
               bosqichlar: qoidaQatori.bosqichlar.map((b) => ({
                 dan: b.dan,
                 gacha: b.gacha,

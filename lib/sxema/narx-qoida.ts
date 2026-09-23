@@ -48,6 +48,21 @@ export const narxQoidaSxema = z.object({
    *    bo'lmasligi — ekran qarori, ma'lumot cheklovi emas.
    */
   hisoblashUsuli: z.enum(['MAYDON', 'ENI', "BO'YI", 'DONA', 'MIQDOR']).default('MAYDON'),
+  /**
+   * ENG KAM HISOB O'LCHOVI — 0056 (egasi qarori 2026-09-23).
+   *
+   * ⚠️ «Kamida 1 kv.m dan hisoblanadi». Bo'sh satr → `null`,
+   *    ya'ni tekshirilmaydi — eski qoidalar buzilmaydi.
+   *
+   * ⚠️ `.optional()`, `.default()` EMAS: bu maydonni
+   *    yubormaydigan chaqiruvchilar (bot, testlar) TypeScript da
+   *    yiqilmasin. Shu tuzoq loyihada uch marta ishlagan.
+   */
+  minOlchov: z
+    .union([z.literal(''), z.coerce.number().positive("Eng kam hisob noldan katta bo'lsin")])
+    .transform((v) => (v === '' ? null : v))
+    .nullable()
+    .optional(),
   bosqichlar: z.array(bosqichSxema).min(1, 'Kamida bitta bosqich kiriting'),
 });
 

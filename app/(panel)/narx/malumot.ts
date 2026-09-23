@@ -43,6 +43,8 @@ export interface QoidaQatori {
   readonly mijozTuriId: number | null;
   readonly filialId: number | null;
   readonly hisoblashUsuli: string;
+  /** Eng kam hisob o'lchovi — 0056. `null` — tekshirilmaydi */
+  readonly minOlchov: string | null;
   readonly bosqichlar: readonly BosqichQatori[];
 }
 
@@ -210,11 +212,13 @@ export async function turQoidalariniOl(
       mijozTuriId: number | null;
       filialId: number | null;
       hisoblashUsuli: string;
+      minOlchov: string | null;
     }[]
   >`
     SELECT mn.id, mn.narx_guruh_id AS "narxGuruhId", g.nom AS "narxGuruhNomi",
            mn.mijoz_turi_id AS "mijozTuriId", mn.filial_id AS "filialId",
-           mn.hisoblash_usuli AS "hisoblashUsuli"
+           mn.hisoblash_usuli AS "hisoblashUsuli",
+           mn.min_olchov::text AS "minOlchov"
     FROM mahsulot_narx mn
     JOIN narx_guruh g ON g.id = mn.narx_guruh_id
     WHERE mn.faol = true
@@ -240,6 +244,8 @@ export async function turQoidalariniOl(
     mijozTuriId: q.mijozTuriId,
     filialId: q.filialId,
     hisoblashUsuli: q.hisoblashUsuli,
+    /** 0056 — `numeric` matn bo'lib keladi (P-13), ekranda ham matn */
+    minOlchov: q.minOlchov,
     bosqichlar: bosqichlar
       .filter((b) => b.mahsulotNarxId === q.id)
       .map((b) => ({ dan: b.dan, gacha: b.gacha, narx: b.narx, valyuta: b.valyuta })),

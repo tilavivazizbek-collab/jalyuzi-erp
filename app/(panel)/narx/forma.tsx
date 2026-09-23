@@ -111,6 +111,14 @@ interface QoidaHolati {
   mijozTuriId: number | null;
   filialId: number | null;
   hisoblashUsuli: HisoblashUsuli;
+  /**
+   * ENG KAM HISOB O'LCHOVI — 0056 (egasi qarori 2026-09-23).
+   *
+   * ⚠️ MATN bo'lib turadi: katak BO'SH bo'lishi kerak. `0`
+   *    qo'yilsa «nol yozilgan» bilan «hali yozilmagan» ni
+   *    ajratib bo'lmasdi.
+   */
+  minOlchov: string;
   bosqichlar: BosqichHolati[];
 }
 
@@ -198,6 +206,8 @@ export function NarxFormasi({
       mijozTuriId: q.mijozTuriId,
       filialId: q.filialId,
       hisoblashUsuli: q.hisoblashUsuli as HisoblashUsuli,
+      /** ⚠️ `null` — katak BO'SH turadi, nol emas (0056) */
+      minOlchov: q.minOlchov ?? '',
       bosqichlar: q.bosqichlar.map((b) => ({
         dan: b.dan,
         gacha: b.gacha ?? '',
@@ -319,6 +329,8 @@ export function NarxFormasi({
       mijozTuriId: q.mijozTuriId,
       filialId: q.filialId,
       hisoblashUsuli: q.hisoblashUsuli,
+      /** 0056 — bo'sh satr serverda `null` ga aylanadi */
+      minOlchov: q.minOlchov.trim(),
       bosqichlar: q.bosqichlar.map((b) => ({
         dan: son(b.dan) ?? 0,
         gacha: son(b.gacha),
@@ -388,7 +400,12 @@ export function NarxFormasi({
 
     try {
       const hisob = pozitsiyaQoidaNarxi({
-        qoida: { hisoblashUsuli: q.hisoblashUsuli, bosqichlar: domenBosqichlari(q.bosqichlar) },
+        qoida: {
+          hisoblashUsuli: q.hisoblashUsuli,
+          /** 0056 — tekshirish kalkulyatori ham eng kam hisobni ko'rsin */
+          minOlchov: son(q.minOlchov),
+          bosqichlar: domenBosqichlari(q.bosqichlar),
+        },
         eniM: eni ?? 0,
         boyiM: boyi ?? 0,
         miqdor: sinovSoniAdadi,
@@ -504,6 +521,8 @@ export function NarxFormasi({
                     mijozTuriId: null,
                     filialId: null,
                     hisoblashUsuli: 'MAYDON',
+                    /** 0056 — yangi qatorda BO'SH: egasi o'zi to'ldiradi */
+                    minOlchov: '',
                     bosqichlar: [{ dan: '0', gacha: '', narx: '', valyuta: 'SOM' }],
                   },
                 ]);
@@ -639,6 +658,38 @@ export function NarxFormasi({
                         </option>
                       ))}
                     </select>
+
+                    {/*
+                      ── ENG KAM HISOB — 0056 ──────────────────────
+
+                      Egasi tasdiqladi 2026-09-23: «Ha, kv.m bo'yicha».
+
+                      ⚠️ 0.4 × 0.5 m parda = 0.2 kv.m × 30 000 =
+                         6 000 so'm. Mexanizm o'zi undan qimmat,
+                         ustaning ishi hisobga ham kirmagan.
+
+                      ⚠️ BIRLIK USULGA QARAB o'zgaradi: maydonda
+                         kv.m, enida metr. Yorliqqa «kv.m» deb
+                         qotirib yozilsa u ENI usulida yolg'on
+                         bo'lardi.
+
+                      ⚠️ BO'SH = tekshiruv yo'q.
+                    */}
+                    <label className="flex items-center gap-1.5 text-[12px] text-matn-ikki">
+                      kamida
+                      <input
+                        value={q.minOlchov}
+                        onChange={(e) => {
+                          qoidaYangila(qi, { minOlchov: e.target.value });
+                        }}
+                        inputMode="decimal"
+                        placeholder="—"
+                        aria-label="Eng kam hisob o&#39;lchovi"
+                        disabled={!ozgartiraOladi}
+                        className={`${kichik} raqam w-[70px]`}
+                      />
+                      {birlikNomi(q.hisoblashUsuli)}
+                    </label>
 
                     {/* TZ 6.2 · 20.9 — bo'sh qolsa hammaga tegishli */}
                     <select
@@ -887,6 +938,7 @@ export function NarxFormasi({
                         mijozTuriId: q.mijozTuriId,
                         filialId: q.filialId,
                         hisoblashUsuli: q.hisoblashUsuli as HisoblashUsuli,
+                        minOlchov: q.minOlchov ?? '',
                         bosqichlar: q.bosqichlar.map((b) => ({
                           dan: b.dan,
                           gacha: b.gacha ?? '',

@@ -300,26 +300,21 @@ async function boshGuruhlar(
     );
 }
 
-/**
- * NARX BELGILOVCHI SLOT TANLANMAGAN — ogohlantirish emas, NUQSON.
+/*
+ * ⚠️ NARX BELGILOVCHI SLOT — BLOKLAMAYDI (2026-09-23).
  *
- * ⚠️ Bir nechta mato sloti bo'lsa va birortasi belgilanmagan
- *    bo'lsa, daraja «birinchi mato sloti» qoidasiga tushadi. Uch
- *    slotli turda bu TASODIFGA qolgan tanlov: slot tartibi
- *    o'zgarsa mijoz narxi jimgina o'zgaradi.
+ *    Bir nechta mato sloti bo'lib, birortasi belgilanmagan bo'lsa
+ *    daraja «birinchi mato sloti» qoidasiga tushadi — ya'ni slot
+ *    tartibi o'zgarsa mijoz narxi jimgina o'zgaradi. Bu ARZIYDIGAN
+ *    ogohlantirish, lekin SAQLASHNI TO'XTATMAYDI:
  *
- * ⚠️ Bitta slotli turda savol yo'q — tekshiruv ishlamaydi.
+ *      · egasi faqat BO'SH GURUH uchun «butunlay to'xtatsin» dedi,
+ *        buni emas — uning o'rniga qaror qabul qilish noto'g'ri
+ *      · mavjud turlarning ko'pi belgisiz va ular ishlab turibdi;
+ *        bloklansa ularni tahrirlab ham bo'lmay qolardi
+ *
+ *    Ogohlantirish TUR FORMASIDA, sariq yozuv bo'lib chiqadi.
  */
-function narxBelgilovchiNuqsoni(kirim: MahsulotTurKirimi): readonly string[] {
-  const matoSlotlari = kirim.slotlar.filter((x) => x.almashtirishGuruhId !== null);
-  if (matoSlotlari.length < 2) return [];
-  if (matoSlotlari.some((x) => x.narxBelgilaydi === true)) return [];
-  return [
-    "Mijoz narxini qaysi slot belgilashi tanlanmagan — slotlardan birida " +
-      "«narxni shu slot belgilaydi» ni yoqing. Aks holda daraja birinchi " +
-      'mato slotidan olinadi va slot tartibi o’zgarsa narx ham o’zgaradi.',
-  ];
-}
 
 export async function mahsulotTuriYarat(
   ulanish: postgres.Sql,
@@ -330,7 +325,6 @@ export async function mahsulotTuriYarat(
 ): Promise<KonstruktorNatijasi> {
   const xabarlar = [
     ...domenTekshiruvi(kirim),
-    ...narxBelgilovchiNuqsoni(kirim),
     ...(await boshGuruhlar(ulanish, kirim)),
   ];
   if (xabarlar.length > 0) return { holat: 'NUQSON', xabarlar };
@@ -375,7 +369,6 @@ export async function mahsulotTuriTahrirla(
    *     turni saqlab bo'lmasdi, lekin ishlayotganini buzib bo'lardi */
   const xabarlar = [
     ...domenTekshiruvi(kirim),
-    ...narxBelgilovchiNuqsoni(kirim),
     ...(await boshGuruhlar(ulanish, kirim)),
   ];
   if (xabarlar.length > 0) return { holat: 'NUQSON', xabarlar };

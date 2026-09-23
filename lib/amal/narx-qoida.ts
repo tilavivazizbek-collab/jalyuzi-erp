@@ -184,12 +184,17 @@ export async function turNarxiniSaqla(
     const qator = await tx<{ id: number }[]>`
       INSERT INTO mahsulot_narx (mahsulot_tur_id, hamma_turga, narx_guruh_id,
                                  mijoz_turi_id,
-                                 filial_id, hisoblash_usuli, yaratdi_id)
+                                 filial_id, hisoblash_usuli, min_olchov,
+                                 yaratdi_id)
       VALUES (${tur}, ${hammaTurga}, ${q.narxGuruhId}, ${q.mijozTuriId},
-              ${q.filialId}, ${q.hisoblashUsuli}, ${xodimId})
+              ${q.filialId}, ${q.hisoblashUsuli}, ${q.minOlchov ?? null},
+              ${xodimId})
       ON CONFLICT (coalesce(mahsulot_tur_id, 0), hamma_turga, narx_guruh_id,
                    coalesce(mijoz_turi_id, 0), coalesce(filial_id, 0))
       DO UPDATE SET hisoblash_usuli = EXCLUDED.hisoblash_usuli,
+                    /** ⚠️ 0056 — tiriltirishda ham yangilanadi, aks
+                     *     holda eski eng kam hisob qolib ketardi */
+                    min_olchov = EXCLUDED.min_olchov,
                     faol = true, ochirildi = NULL,
                     ozgartirdi_id = ${xodimId}, ozgartirildi = now()
       RETURNING id`;

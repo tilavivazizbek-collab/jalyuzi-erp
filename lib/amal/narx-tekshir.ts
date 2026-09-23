@@ -220,10 +220,11 @@ export async function narxniTekshir(
       filial_id: number | null;
       hamma_turga: boolean;
       hisoblash_usuli: string;
+      min_olchov: string | null;
     }[]
   >`
     SELECT id, narx_guruh_id, mijoz_turi_id, filial_id, hamma_turga,
-           hisoblash_usuli
+           hisoblash_usuli, min_olchov::text
       FROM mahsulot_narx
      WHERE narx_guruh_id = ${narxGuruhId}
        AND faol = true
@@ -294,6 +295,9 @@ export async function narxniTekshir(
     aksessuarlar: [],
     qoida: {
       hisoblashUsuli: tanlangan.hisoblash_usuli as HisoblashUsuli,
+      /** ⚠️ 0056 — ekrandagi bilan BIR XIL bo'lishi shart */
+      minOlchov:
+        tanlangan.min_olchov === null ? null : Number(tanlangan.min_olchov),
       bosqichlar: bosqichlar.map((b) => ({
         dan: Number(b.dan),
         gacha: b.gacha === null ? null : Number(b.gacha),

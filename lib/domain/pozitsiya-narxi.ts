@@ -46,6 +46,7 @@ import {
 import { offsetQolla, type Offset } from './narx';
 import { slotSarfi, soniUchun, standartQiymatlar, sarflashHisobla } from './formula';
 import {
+  engKamOlchov,
   bosqichniTop,
   olchovi,
   qoidaNarxi,
@@ -201,7 +202,11 @@ export function pozitsiyaNarxiniHisobla(k: NarxKirishi): NarxNatijasi {
 
   let olchov: number;
   try {
-    olchov = olchovi(k.qoida.hisoblashUsuli, k.eniM, k.boyiM);
+    /** ⚠️ Eng kam hisob (0056) — bosqich ham SHUNGA qarab tanlanadi */
+    olchov = engKamOlchov(
+      olchovi(k.qoida.hisoblashUsuli, k.eniM, k.boyiM),
+      k.qoida.minOlchov,
+    );
   } catch (x) {
     return {
       sarf,

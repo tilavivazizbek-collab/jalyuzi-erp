@@ -89,6 +89,8 @@ export interface SotuvNarxQoidasi {
    */
   readonly hammaTurga: boolean;
   readonly hisoblashUsuli: string;
+  /** Eng kam hisob o'lchovi — 0056. `null` — tekshirilmaydi */
+  readonly minOlchov: number | null;
   readonly bosqichlar: readonly {
     readonly dan: number;
     readonly gacha: number | null;
@@ -565,10 +567,11 @@ export async function sotuvTurlari(
       filial_id: number | null;
       hamma_turga: boolean;
       hisoblash_usuli: string;
+      min_olchov: string | null;
     }[]
   >`
     SELECT id, mahsulot_tur_id, narx_guruh_id, mijoz_turi_id, filial_id,
-           hamma_turga, hisoblash_usuli
+           hamma_turga, hisoblash_usuli, min_olchov::text
     FROM mahsulot_narx
     WHERE faol = true
       AND (filial_id IS NULL OR filial_id = ${filialId})
@@ -747,6 +750,8 @@ export async function sotuvTurlari(
         filialId: q.filial_id,
         hammaTurga: q.hamma_turga,
         hisoblashUsuli: q.hisoblash_usuli,
+        /** ⚠️ `numeric` MATN bo'lib keladi (P-13) */
+        minOlchov: q.min_olchov === null ? null : Number(q.min_olchov),
         bosqichlar: bosqichQatorlari
           .filter((b) => b.mahsulot_narx_id === q.id)
           .map((b) => ({

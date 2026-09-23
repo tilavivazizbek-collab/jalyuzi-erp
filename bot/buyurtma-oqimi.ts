@@ -44,6 +44,7 @@ import { darajaliSlotniTop, type HisoblashUsuli } from '@/lib/domain/narx-qoidas
 import { chegaraXabari, olchamniTekshir } from '@/lib/domain/olcham-chegarasi';
 import { amaldagiOffset } from '@/lib/domain/mijoz';
 import type { SarflashBirligi } from '@/lib/domain/birlik';
+import { qoidaniTop } from '@/lib/domain/narx-qoidasi';
 import { kesimOlchami } from '@/lib/domain/kesish';
 import { kurs, pulKorsat, som, type Kurs } from '@/lib/domain/pul';
 import { joriyKurs } from '@/lib/amal/kurs';
@@ -166,6 +167,14 @@ function pozitsiyaHisobi(
   kurs: Kurs | null = null,
   /** TZ 6.2 — mijoz turiga qo'yilgan narx qoidasi uchun */
   mijozTuriId: number | null = null,
+  /**
+   * TZ 20.9 — filialga qo'yilgan narx qoidasi uchun.
+   *
+   * ⚠️ Katalog shu filial uchun yuklangan, lekin ro'yxatda
+   *    filialga aniq qo'yilgani ham, umumiysi ham bor. Tanlashni
+   *    `qoidaniTop()` qiladi va unga filial KERAK.
+   */
+  filialId: number | null = null,
 ) {
   const slotlar = p.slotlar.map((s) => {
     const slot = tur.slotlar.find((x) => x.id === s.slotId);
@@ -214,16 +223,19 @@ function pozitsiyaHisobi(
       }),
     )?.narxGuruhId ?? null;
 
-  /** TZ 6.2 — mijoz turiga qo'yilgan qoida umumiysidan USTUN */
-  const qoidaQatori =
-    narxGuruhId === null
-      ? undefined
-      : (tur.narxQoidalari.find(
-          (q) => q.narxGuruhId === narxGuruhId && q.mijozTuriId === mijozTuriId,
-        ) ??
-        tur.narxQoidalari.find(
-          (q) => q.narxGuruhId === narxGuruhId && q.mijozTuriId === null,
-        ));
+  /*
+   * QAYSI NARX QOIDASI — tanlov DOMAINDA (`qoidaniTop`).
+   *
+   * ⚠️ Bu yerda tanlovning OLTINCHI nusxasi turardi va u
+   *    filialni hisobga olmasdi. 0055 dan keyin esa u darajaga
+   *    qo'yilgan umumiy narxni ham KO'RMASDI: sayt narx
+   *    ko'rsatar, bot esa «narx yo'q» derdi.
+   */
+  const qoidaQatori = qoidaniTop(tur.narxQoidalari, {
+    narxGuruhId,
+    mijozTuriId,
+    filialId,
+  });
 
   // Majburiylar avtomatik, ixtiyoriylardan tanlanganlari (13.4)
   const aksessuarlar = tur.aksessuarlar
@@ -253,6 +265,8 @@ function pozitsiyaHisobi(
         ? null
         : {
             hisoblashUsuli: qoidaQatori.hisoblashUsuli as HisoblashUsuli,
+            /** ⚠️ 0056 — bot ham SHU narxni aytishi shart */
+            minOlchov: qoidaQatori.minOlchov,
             bosqichlar: qoidaQatori.bosqichlar.map((b) => ({
               dan: b.dan,
               gacha: b.gacha,
@@ -277,6 +291,15 @@ function pozitsiyaNarxi(
   tur: SotuvTuri,
   offset: MijozKonteksti['offset'],
   joriyKursi: Kurs | null,
+  /**
+   * ⚠️ BOTDA MIJOZ TURI HOZIRCHA YO'Q — `MijozKonteksti` da u
+   *    umuman saqlanmaydi va shu sababdan optom narxi botda
+   *    ISHLAMAYDI. Bu 0056 dan oldingi kamchilik; shu yerda
+   *    tuzatilmadi, chunki u botdagi narxni o'zgartiradi va
+   *    alohida qaror talab qiladi.
+   */
+  mijozTuriId: number | null = null,
+  filialId: number | null = null,
 ): string {
   /**
    * ⚠️ `null` — narx qo'yilmagan. Botda «0» ko'rsatiladi va
@@ -284,7 +307,7 @@ function pozitsiyaNarxi(
    *    yo'qligini biladi. Bot mijozga bepul deb aytmasligi uchun
    *    qadam matnida ham shu ko'rinadi.
    */
-  return pozitsiyaHisobi(p, tur, offset, joriyKursi).jami ?? '0';
+  return pozitsiyaHisobi(p, tur, offset, joriyKursi, mijozTuriId, filialId).jami ?? '0';
 }
 
 // ─── Qadamni ko'rsatish ───────────────────────────────────────────────────
@@ -457,7 +480,16 @@ async function savatniKorsat(
   toliq.savat.forEach((p, i) => {
     const tur = turlar.find((t) => t.id === p.mahsulotTurId);
     const narx =
-      tur === undefined ? '0' : pozitsiyaNarxi(p, tur, kontekst.offset, kontekst.kurs);
+      tur === undefined
+        ? '0'
+        : pozitsiyaNarxi(
+            p,
+            tur,
+            kontekst.offset,
+            kontekst.kurs,
+            null,
+            kontekst.filialId,
+          );
     jami += Number(narx);
 
     qatorlar.push(
@@ -514,7 +546,14 @@ export async function savatniYubor(
     const hisob =
       tur === undefined
         ? null
-        : pozitsiyaHisobi(p, tur, kontekst.offset, kontekst.kurs);
+        : pozitsiyaHisobi(
+            p,
+            tur,
+            kontekst.offset,
+            kontekst.kurs,
+            null,
+            kontekst.filialId,
+          );
 
     /**
      * ⚠️ Narx qatorlari va buyurtma kirimi AYNI hisobdan quriladi.

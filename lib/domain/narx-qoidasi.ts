@@ -142,6 +142,33 @@ export function bosqichniTop(
 export interface Qoida {
   readonly hisoblashUsuli: HisoblashUsuli;
   readonly bosqichlar: readonly Bosqich[];
+  /**
+   * ENG KAM HISOB O'LCHOVI — 0056.
+   *
+   * ⚠️ «Kamida 1 kv.m dan hisoblanadi». O'lcham shundan kichik
+   *    bo'lsa hisobga SHU qiymat kiradi.
+   *
+   * ⚠️ `null`/berilmagan — tekshirilmaydi (eski xulq).
+   */
+  readonly minOlchov?: number | null;
+}
+
+/**
+ * Eng kam hisobni qo'llaydi — 0056.
+ *
+ * ⚠️ BOSQICH TANLASHDAN OLDIN qo'llanadi. «Kamida 1 kv.m dan
+ *    hisoblanadi» degani 0.2 kv.m li parda 1 kv.m DEK hisoblanishi —
+ *    demak bosqich ham 1 kv.m ga qarab tanlanishi kerak. Keyin
+ *    qo'llansa, 0.2 uchun eng qimmat bosqich olinib, ustiga 1 ga
+ *    ko'paytirilardi: mijoz ikki marta jazolanardi.
+ *
+ * ⚠️ `DONA` usulida ham ishlaydi, lekin u yerda o'lchov doim 1 —
+ *    ya'ni amalda hech narsa o'zgarmaydi.
+ */
+export function engKamOlchov(olchov: number, minOlchov?: number | null): number {
+  if (minOlchov === null || minOlchov === undefined) return olchov;
+  if (!Number.isFinite(minOlchov) || minOlchov <= 0) return olchov;
+  return Math.max(olchov, minOlchov);
 }
 
 /**
@@ -160,7 +187,10 @@ export function qoidaNarxi(
   /** `MIQDOR` usulida bosqich shunga qarab tanlanadi (2026-09-22) */
   miqdor = 1,
 ): Som {
-  const olchov = olchovi(qoida.hisoblashUsuli, eniM, boyiM, miqdor);
+  const olchov = engKamOlchov(
+    olchovi(qoida.hisoblashUsuli, eniM, boyiM, miqdor),
+    qoida.minOlchov,
+  );
   const bosqich = bosqichniTop(qoida.bosqichlar, olchov);
 
   if (bosqich === null) {
@@ -310,7 +340,11 @@ export interface PozitsiyaNatijasi {
  */
 export function pozitsiyaQoidaNarxi(k: PozitsiyaKirishi): PozitsiyaNatijasi {
   const miqdor = k.miqdor ?? 1;
-  const olchov = olchovi(k.qoida.hisoblashUsuli, k.eniM, k.boyiM, miqdor);
+  /** ⚠️ Eng kam hisob BOSQICH TANLASHDAN OLDIN — 0056 */
+  const olchov = engKamOlchov(
+    olchovi(k.qoida.hisoblashUsuli, k.eniM, k.boyiM, miqdor),
+    k.qoida.minOlchov,
+  );
   const bosqich = bosqichniTop(k.qoida.bosqichlar, olchov);
 
   const xom = qoidaNarxi(k.qoida, k.eniM, k.boyiM, k.kurs, miqdor);
