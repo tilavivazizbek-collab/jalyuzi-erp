@@ -129,6 +129,20 @@ export interface PozitsiyaKirimi {
   readonly yorliq?: string | null;
   /** Ichki eslatma — usta uchun (0049). Chekka chiqmaydi */
   readonly izoh?: string | null;
+  /**
+   * Sotuvchi tanlagan variantlar — 0052, SNAPSHOT bilan.
+   *
+   * ⚠️ Ixtiyoriy: tanlovi yo'q tur avvalgidek ishlayveradi va bu
+   *    maydonni bilmaydigan eski chaqiruvchilar buzilmaydi.
+   */
+  readonly tanlovlar?: readonly {
+    readonly mahsulotTanlovId: number;
+    readonly variantId: number;
+    readonly tanlovNomi: string;
+    readonly variantNomi: string;
+    readonly qiymat: number | null;
+    readonly narx: string | null;
+  }[];
   readonly slotlar: readonly SlotKirimi[];
   readonly aksessuarlar: readonly AksessuarKirimi[];
   readonly qoshimchalar?: readonly QoshimchaKirimi[];
@@ -421,6 +435,27 @@ export async function pozitsiyaYozTx(
               ${tx.json({ narx: serverNarxi })},
               ${tx.json({ narx: p.narxSnapshot })},
               ${`Jadval bo'yicha ${serverNarxi ?? '—'}, yozilgani ${p.narxSnapshot}`})`;
+  }
+
+  /**
+   * TANLANGAN VARIANTLAR — 0052.
+   *
+   * ⚠️ NOM VA QIYMAT SNAPSHOT bo'lib yoziladi (2.3-invariant).
+   *    Admin keyin variantni o'chirsa yoki nomini o'zgartirsa,
+   *    eski buyurtma o'zgarmaydi: usta ham, chek ham o'sha kungi
+   *    nomni ko'radi.
+   *
+   * ⚠️ Narx SO'MDA yoziladi — kurs o'zgarsa buyurtma o'zgarmaydi.
+   */
+  for (const t of p.tanlovlar ?? []) {
+    await tx`
+      INSERT INTO pozitsiya_tanlov (buyurtma_pozitsiya_id, mahsulot_tanlov_id,
+                                    variant_id, tanlov_nomi_snapshot,
+                                    variant_nomi_snapshot, qiymat_snapshot,
+                                    narx_snapshot, yaratdi_id)
+      VALUES (${pozitsiyaId}, ${t.mahsulotTanlovId}, ${t.variantId},
+              ${t.tanlovNomi}, ${t.variantNomi}, ${t.qiymat},
+              ${t.narx}, ${xodimId})`;
   }
 
   // Har slot — o'z `pozitsiya_material` qatori (QISM 3 §3.2.1)

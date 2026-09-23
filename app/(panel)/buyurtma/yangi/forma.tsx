@@ -28,6 +28,12 @@ import {
   type QoshimchaUsuli,
 } from '@/lib/domain/narx-qoidasi';
 import { chegaraXabari, olchamniTekshir } from '@/lib/domain/olcham-chegarasi';
+import {
+  aksessuarKeraklimi,
+  tanlovQiymatlari,
+  tanlovYuki,
+  yetishmaganTanlovlar,
+} from '@/lib/domain/tanlov';
 import { amaldagiOffset, limitHolati, offsetQollanmadimi } from '@/lib/domain/mijoz';
 import { chegirmaMatni } from '../../mijoz/guruh/royxat';
 import { biznesXatosimi } from '@/lib/xato';
@@ -89,6 +95,7 @@ interface SavatQatori {
     readonly soni: string;
     readonly yorliq: string;
     readonly izoh: string;
+    readonly tanlanganlar: Record<number, number>;
     readonly parametrlar: Record<string, string>;
     readonly slotlar: Record<number, SlotTanlovi>;
     readonly aksessuarlar: Record<number, AksessuarTanlovi>;
@@ -234,6 +241,15 @@ export function SotuvFormasi({
    *    «zanjir o'ngdan», «yuqori qavat, lift yo'q» og'zaki aytilib
    *    yo'qolardi.
    */
+  /**
+   * TANLANGAN VARIANTLAR — 0052. Kalit: tanlov id, qiymat: variant id.
+   *
+   * Egasi to'rt marta bir xil savol berdi (zebra, dikkey ochilishi,
+   * motorli, burchak oyna) va har safar «ikki alohida tur qiling»
+   * degan javob oldi. Endi bitta turda tanlov bo'ladi.
+   */
+  const [tanlanganlar, tanlanganlarniOzgartir] = useState<Record<number, number>>({});
+
   const [yorliq, yorliqniOzgartir] = useState('');
   const [izoh, izohniOzgartir] = useState('');
   const [slotlar, slotlarniOzgartir] = useState<Record<number, SlotTanlovi>>({});
@@ -412,7 +428,22 @@ export function SotuvFormasi({
       if (q !== null) qiymatlar[p.kod] = q;
     }
 
-    const asos = standartQiymatlar(m(eniM), m(boyiM), buyumSoni, qiymatlar);
+    /**
+     * TANLOV QIYMATLARI FORMULAGA — 0052.
+     *
+     * Tanlovning kodi formulada o'zgaruvchi bo'lib ishlatiladi:
+     * CEIL(ENI / LAMEL_ENI). Mavjud parametr mexanizmi qayta
+     * ishlatiladi — yangi formula tili yozilmaydi.
+     *
+     * Tanlov qiymatlari parametrlardan KEYIN qo'yiladi: kod
+     * to'qnashuvi bazada va sxemada taqiqlangan, lekin eski
+     * ma'lumotda uchrasa tanlov ustun bo'lsin — u sotuvchining
+     * ayni paytdagi tanlovi.
+     */
+    const asos = standartQiymatlar(m(eniM), m(boyiM), buyumSoni, {
+      ...qiymatlar,
+      ...tanlovQiymatlari(tur.tanlovlar, tanlanganlar),
+    });
 
     const qatorlar = tur.slotlar.map((s) => {
       const tanlov = slotlar[s.id];
@@ -487,6 +518,15 @@ export function SotuvFormasi({
 
     const aksQatorlar = tur.aksessuarlar
       .filter((a) => {
+        /**
+         * VARIANTGA BOG'LANGAN AKSESSUAR — 0052.
+         *
+         * Motorli jalyuzida zanjir QO'SHILMAYDI, kabel va quvvat
+         * manbai qo'shiladi. Qo'lda boshqariladiganda teskari.
+         * Bog'lanmagan aksessuar (null) avvalgidek DOIM qo'shiladi.
+         */
+        if (!aksessuarKeraklimi(a.variantId, tanlanganlar)) return false;
+
         const t = aksessuarlar[a.materialId];
         if (t?.ochirilgan === true) return false;
         return a.majburiy || t !== undefined;
@@ -595,14 +635,35 @@ export function SotuvFormasi({
                 valyuta: b.valyuta,
               })),
             },
-      qoshimchalar: tur.qoshimchalar
-        .filter((q) => tanlanganQoshimchalar.includes(q.id))
-        .map((q) => ({
-          nom: q.nom,
-          hisoblashUsuli: q.hisoblashUsuli as QoshimchaUsuli,
-          narx: q.narx,
-          valyuta: q.valyuta,
-        })),
+      qoshimchalar: [
+        ...tur.qoshimchalar
+          .filter((q) => tanlanganQoshimchalar.includes(q.id))
+          .map((q) => ({
+            nom: q.nom,
+            hisoblashUsuli: q.hisoblashUsuli as QoshimchaUsuli,
+            narx: q.narx,
+            valyuta: q.valyuta,
+          })),
+        /**
+         * TANLOV NARXI — 0052.
+         *
+         * Variantning narxi MAVJUD qo'shimcha mexanizmiga qo'shiladi:
+         * `QATIY` usul — o'lchamga bog'liq emas. Yangi narx yo'li
+         * yozilmaydi, ya'ni server tekshiruvi va bot ham o'sha
+         * hisobni ko'radi (§2.2).
+         *
+         * O'lchamga bog'liq narx kerak bo'lsa `qo'shimchalar` ishlatiladi —
+         * u MAYDON/ENI/BO'YI usullarini allaqachon biladi.
+         */
+        ...tanlovYuki(tur.tanlovlar, tanlanganlar)
+          .filter((y) => y.narx !== null)
+          .map((y) => ({
+            nom: `${y.tanlovNomi}: ${y.variantNomi}`,
+            hisoblashUsuli: 'QATIY' as const,
+            narx: y.narx ?? '0',
+            valyuta: 'SOM',
+          })),
+      ],
       offset,
       kurs: kursObyekti,
       xizmatHaqi: tur.xizmatHaqi,
@@ -734,6 +795,8 @@ export function SotuvFormasi({
     narxYaroqli &&
     /** ⚠️ Chegaradan chiqqan o'lcham ham TUSHMAYDI */
     chegaraNuqsonlari.length === 0 &&
+    /** ⚠️ Majburiy tanlov tanlanmagan bo'lsa ham TUSHMAYDI (0052) */
+    yetishmaganTanlovlar(tur.tanlovlar, tanlanganlar).length === 0 &&
     tur.slotlar.filter((s) => s.majburiy).every((s) => (slotlar[s.id]?.materialId ?? '') !== '');
 
   /**
@@ -760,6 +823,24 @@ export function SotuvFormasi({
       /** 0049 — bo'sh bo'lsa `null`, bazadagi cheklov bilan bir xil */
       yorliq: yorliq.trim() === '' ? null : yorliq.trim(),
       izoh: izoh.trim() === '' ? null : izoh.trim(),
+      /**
+       * TANLANGAN VARIANTLAR — 0052, SNAPSHOT bilan.
+       *
+       * Nom va qiymat NUSXA bo'lib ketadi: admin keyin variantni
+       * o'chirsa yoki nomini o'zgartirsa, eski buyurtmada o'sha
+       * kungi nom turadi (2.3-invariant).
+       */
+      tanlovlar: tanlovYuki(tur.tanlovlar, tanlanganlar).map((y) => ({
+        mahsulotTanlovId: y.tanlovId,
+        variantId: y.variantId,
+        tanlovNomi: y.tanlovNomi,
+        variantNomi: y.variantNomi,
+        qiymat:
+          tur.tanlovlar
+            .find((t) => t.id === y.tanlovId)
+            ?.variantlar.find((v) => v.id === y.variantId)?.qiymat ?? null,
+        narx: y.narx,
+      })),
       // TZ 4.10 — konstruktor holati QOTADI
       formulaSnapshot: {
         tur: tur.nom,
@@ -811,6 +892,7 @@ export function SotuvFormasi({
         soni,
         yorliq,
         izoh,
+        tanlanganlar: { ...tanlanganlar },
         parametrlar: { ...parametrlar },
         slotlar: { ...slotlar },
         aksessuarlar: { ...aksessuarlar },
@@ -838,6 +920,7 @@ export function SotuvFormasi({
     soniniOzgartir(t.soni);
     yorliqniOzgartir(t.yorliq);
     izohniOzgartir(t.izoh);
+    tanlanganlarniOzgartir(t.tanlanganlar);
     parametrlarniOzgartir(t.parametrlar);
     tanlanganQoshimchalarniOzgartir([...t.tanlanganQoshimchalar]);
     qoshimchaMaterialiniOzgartir(t.qoshimchaMateriali);
@@ -881,6 +964,11 @@ export function SotuvFormasi({
      */
     yorliqniOzgartir('');
     izohniOzgartir('');
+    /**
+     * Tanlovlar HAM tozalanadi: «markazdan» tanlovi keyingi
+     * oynaga yopishib qolsa, usta noto'g'ri mahsulot qilardi.
+     */
+    tanlanganlarniOzgartir({});
   }
 
   /**
@@ -901,6 +989,7 @@ export function SotuvFormasi({
     qoldaNarxniOzgartir(null);
     yorliqniOzgartir('');
     izohniOzgartir('');
+    tanlanganlarniOzgartir({});
   }
 
   /** Tahrirni bekor qilish — qator o'zgarishsiz qoladi */
@@ -911,6 +1000,7 @@ export function SotuvFormasi({
     qoldaNarxniOzgartir(null);
     yorliqniOzgartir('');
     izohniOzgartir('');
+    tanlanganlarniOzgartir({});
   }
 
   /**
@@ -1224,6 +1314,75 @@ export function SotuvFormasi({
                 </Maydon>
               ))}
             </section>
+
+            {/*
+              TANLOVLAR — 0052, egasi holatlari 2026-09-22.
+
+              O'lchamdan KEYIN turadi: sotuvchi avval o'lchamni
+              oladi, keyin «qaysi tomonga ochilsin» deb so'raydi.
+
+              Majburiy tanlov tanlanmaguncha savatga qo'shib
+              bo'lmaydi — aks holda usta yarim ma'lumot bilan
+              qolardi.
+            */}
+            {tur.tanlovlar.length > 0 && (
+              <section className="flex flex-wrap items-end gap-4">
+                {tur.tanlovlar.map((t) => {
+                  const tanlangan = tanlanganlar[t.id];
+                  const bosh = t.majburiy && tanlangan === undefined;
+
+                  return (
+                    <Maydon
+                      key={t.id}
+                      nom={`tanlov-${String(t.id)}`}
+                      yorliq={t.majburiy ? t.nom : `${t.nom} (ixtiyoriy)`}
+                    >
+                      <select
+                        id={`tanlov-${String(t.id)}`}
+                        value={tanlangan === undefined ? '' : String(tanlangan)}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          tanlanganlarniOzgartir((o) => {
+                            if (v === '') {
+                              /**
+                               * Tanlov bekor qilindi — kalit butunlay
+                               * olib tashlanadi. `undefined` qoldirilsa
+                               * `yetishmaganTanlovlar()` uni «tanlangan»
+                               * deb hisoblab qolishi mumkin edi.
+                               */
+                              return Object.fromEntries(
+                                Object.entries(o).filter(([k]) => Number(k) !== t.id),
+                              );
+                            }
+                            return { ...o, [t.id]: Number(v) };
+                          });
+                        }}
+                        className={`${kirishUslubi(bosh)} w-44`}
+                      >
+                        <option value="">— tanlang —</option>
+                        {t.variantlar.map((v) => (
+                          <option key={v.id} value={String(v.id)}>
+                            {v.nom}
+                            {v.narx === null ? '' : ` (+${pulKorsat(som(v.narx))})`}
+                          </option>
+                        ))}
+                      </select>
+                    </Maydon>
+                  );
+                })}
+              </section>
+            )}
+
+            {/*
+              Majburiy tanlov tanlanmagan bo'lsa sabab AYTILADI.
+              Faqat tugmani o'chirish yetarli emas: sotuvchi nega
+              ishlamayotganini bilmasdi.
+            */}
+            {yetishmaganTanlovlar(tur.tanlovlar, tanlanganlar).length > 0 && (
+              <p role="alert" className="text-[13px] text-belgi-qizil">
+                Tanlanmagan: {yetishmaganTanlovlar(tur.tanlovlar, tanlanganlar).join(', ')}
+              </p>
+            )}
 
             {/*
               ⚠️ O'LCHAM CHEGARASI XABARI — egasi qarori 2026-09-22.

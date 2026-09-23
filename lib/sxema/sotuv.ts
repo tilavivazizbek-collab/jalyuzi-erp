@@ -134,6 +134,32 @@ export const sotuvQoshimchaSxema = z
  *    `buyurtma_pozitsiya_olcham`) — ikki joyda ikki xil qoida
  *    bo'lmasligi uchun.
  */
+/**
+ * POZITSIYAGA TANLANGAN VARIANT — 0052, SNAPSHOT bilan.
+ *
+ * ⚠️ Nom va qiymat NUSXA bo'lib keladi (2.3-invariant): admin keyin
+ *    variantni o'chirsa yoki nomini o'zgartirsa, eski buyurtmada
+ *    o'sha kungi nom turadi.
+ *
+ * ⚠️ Nom SERVERDA qayta o'qilmaydi — brauzerdan kelgani yoziladi.
+ *    Bu ataylab: snapshot AYNI TANLANGAN paytdagi holat bo'lishi
+ *    kerak, keyinroq o'zgargan nom emas.
+ */
+export const sotuvTanlovSxema = z.object({
+  mahsulotTanlovId: z.number().int().positive(),
+  variantId: z.number().int().positive(),
+  tanlovNomi: z.string().trim().min(1).max(100),
+  variantNomi: z.string().trim().min(1).max(100),
+  qiymat: z.number().nullable().default(null),
+  /** So'mda; `null` — narxga tegmaydi */
+  narx: z
+    .string()
+    .trim()
+    .regex(/^\d+(\.\d{1,2})?$/, "Tanlov narxi noto'g'ri")
+    .nullable()
+    .default(null),
+});
+
 export const sotuvPozitsiyaSxema = z
   .object({
     /** Qo'shimcha buyumda `null` */
@@ -197,6 +223,8 @@ export const sotuvPozitsiyaSxema = z
     slotlar: z.array(sotuvSlotSxema).default([]),
     aksessuarlar: z.array(sotuvAksessuarSxema).default([]),
     qoshimchalar: z.array(sotuvQoshimchaSxema).default([]),
+    /** 0052 — sotuvchi tanlagan variantlar */
+    tanlovlar: z.array(sotuvTanlovSxema).default([]),
   })
   // Yo tayyor mahsulot, yo qo'shimcha buyum — ikkalasi ham emas
   .refine(

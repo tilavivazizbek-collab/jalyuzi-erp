@@ -148,6 +148,11 @@ export interface SotuvParametr {
 
 export interface SotuvAksessuar {
   readonly materialId: number;
+  /**
+   * Aksessuar faqat SHU VARIANT tanlanganda qo'shiladi (0052).
+   * `null` — doim qo'shiladi (avvalgi xulq).
+   */
+  readonly variantId: number | null;
   readonly nom: string;
   readonly sarflashBirligi: string;
   readonly formula: string;
@@ -158,10 +163,37 @@ export interface SotuvAksessuar {
   readonly narxValyuta: string;
 }
 
+/** Tanlov varianti — «Chap», «127 mm», «Motorli» (0052) */
+export interface SotuvVariant {
+  readonly id: number;
+  readonly nom: string;
+  /** Formulaga beriladigan son; `null` — sarfga tegmaydi */
+  readonly qiymat: number | null;
+  /** Qat'iy summa; `null` — narxga tegmaydi */
+  readonly narx: string | null;
+  readonly valyuta: string;
+}
+
+/**
+ * Sotuvchi tanlaydigan TANLOV — «Boshqaruv tomoni», «Lamel eni» (0052).
+ *
+ * Qoida `lib/domain/tanlov.ts` da: sotuv ekrani, server va bot
+ * uchalasi ham o'sha funksiyalarni chaqiradi.
+ */
+export interface SotuvTanlov {
+  readonly id: number;
+  readonly kod: string | null;
+  readonly nom: string;
+  readonly majburiy: boolean;
+  readonly variantlar: readonly SotuvVariant[];
+}
+
 export interface SotuvTuri {
   readonly id: number;
   readonly nom: string;
   readonly xizmatHaqi: string | null;
+  /** 0052 — sotuvchi tanlaydigan variantlar */
+  readonly tanlovlar: readonly SotuvTanlov[];
   /**
    * JISMONIY O'LCHAM CHEGARASI — egasi qarori 2026-09-22 (0051).
    *
@@ -298,10 +330,48 @@ export async function sotuvTurlari(
     WHERE mahsulot_tur_id = ANY(${turIdlar}) AND faol = true
     ORDER BY mahsulot_tur_id, kod`;
 
+  /**
+   * TANLOVLAR va VARIANTLAR — 0052.
+   *
+   * Ikkita so'rov: variantlar tanlov bo'yicha guruhlanadi. JOIN bilan
+   * bitta so'rov qilinsa tanlov qatorlari takrorlanardi.
+   */
+  const tanlovlar = await sql<
+    {
+      id: number;
+      mahsulot_tur_id: number;
+      kod: string | null;
+      nom: string;
+      majburiy: boolean;
+    }[]
+  >`
+    SELECT id, mahsulot_tur_id, kod, nom, majburiy FROM mahsulot_tanlov
+    WHERE mahsulot_tur_id = ANY(${turIdlar}) AND faol = true
+    ORDER BY mahsulot_tur_id, tartib, id`;
+
+  const variantlar =
+    tanlovlar.length === 0
+      ? []
+      : await sql<
+          {
+            id: number;
+            tanlov_id: number;
+            nom: string;
+            qiymat: string | null;
+            narx: string | null;
+            valyuta: string;
+          }[]
+        >`
+          SELECT id, tanlov_id, nom, qiymat::text, narx::text, valyuta
+          FROM mahsulot_tanlov_variant
+          WHERE tanlov_id = ANY(${tanlovlar.map((t) => t.id)}) AND faol = true
+          ORDER BY tartib, id`;
+
   const aksessuarlar = await sql<
     {
       mahsulot_tur_id: number;
       material_id: number;
+      variant_id: number | null;
       nom: string;
       sarflash_birligi: string;
       formula: string;
@@ -310,8 +380,8 @@ export async function sotuvTurlari(
       narx_valyuta: string;
     }[]
   >`
-    SELECT ma.mahsulot_tur_id, ma.material_id, m.nom, m.sarflash_birligi,
-           ma.formula, ma.majburiy,
+    SELECT ma.mahsulot_tur_id, ma.material_id, ma.variant_id, m.nom,
+           m.sarflash_birligi, ma.formula, ma.majburiy,
            COALESCE(fn.sotuv_narx::text, m.sotuv_narx::text) AS narx,
            COALESCE(fn.valyuta, m.sotuv_valyuta) AS narx_valyuta
     FROM mahsulot_aksessuar ma
@@ -545,6 +615,24 @@ export async function sotuvTurlari(
           )
           .map(material),
       })),
+    tanlovlar: tanlovlar
+      .filter((x) => x.mahsulot_tur_id === t.id)
+      .map((x) => ({
+        id: x.id,
+        kod: x.kod,
+        nom: x.nom,
+        majburiy: x.majburiy,
+        variantlar: variantlar
+          .filter((v) => v.tanlov_id === x.id)
+          .map((v) => ({
+            id: v.id,
+            nom: v.nom,
+            /** `numeric` MATN bo'lib keladi (P-13) */
+            qiymat: v.qiymat === null ? null : Number(v.qiymat),
+            narx: v.narx,
+            valyuta: v.valyuta,
+          })),
+      })),
     parametrlar: parametrlar
       .filter((p) => p.mahsulot_tur_id === t.id)
       .map((p) => ({ kod: p.kod, nom: p.nom, standartQiymat: p.standart_qiymat })),
@@ -552,6 +640,7 @@ export async function sotuvTurlari(
       .filter((a) => a.mahsulot_tur_id === t.id)
       .map((a) => ({
         materialId: a.material_id,
+        variantId: a.variant_id,
         nom: a.nom,
         sarflashBirligi: a.sarflash_birligi,
         formula: a.formula,

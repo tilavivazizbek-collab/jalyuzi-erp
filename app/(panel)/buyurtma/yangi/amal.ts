@@ -122,6 +122,19 @@ export async function buyurtmaYaratAmali(
     // TZ 3.11 — kelishilgan summadan chiqqan ulush
     chegirmaSumma: pulMatn(chegirmalar[i] ?? som(0)),
     xizmatHaqi: p.xizmatHaqi,
+    /**
+     * ⚠️ YORLIQ va IZOH — 0049. Bular shu ro'yxatga QO'SHILMAGAN
+     *    edi: forma yuborardi, sxema qabul qilardi, server esa
+     *    jimgina tashlab yuborardi. Ya'ni yangi buyurtmada
+     *    saqlanmasdi (tahrirlashda esa ishlardi).
+     *
+     *    Yuqoridagi `qoshimchaMaterialId` izohi aynan shu xato
+     *    haqida ogohlantiradi — u ikkinchi marta takrorlandi.
+     */
+    yorliq: p.yorliq,
+    izoh: p.izoh,
+    /** 0052 — sotuvchi tanlagan variantlar, snapshot bilan */
+    tanlovlar: p.tanlovlar,
     formulaSnapshot: p.formulaSnapshot,
     slotlar: p.slotlar.map((s) => ({
       slotId: s.slotId,
