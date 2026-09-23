@@ -188,20 +188,45 @@ export function Tanlagich({
       if (panelRef.current?.contains(n) === true) return;
       ochVaYopRef.current(false);
     };
-    const yopil = (): void => {
-      ochVaYopRef.current(false);
+
+    /*
+     * ── AYLANTIRISHDA YOPMAYMIZ, JOYINI QAYTA HISOBLAYMIZ ──────
+     *
+     * ⚠️ BU YERDA XATO BOR EDI (egasi 2026-09-24): «dropdown
+     *    sichqoncha bosmasdan yopilib ketayapti».
+     *
+     *    Panel ochilganda faol qatorga `scrollIntoView` qilinadi va
+     *    u panelning O'Z ichida `scroll` hodisasini chiqaradi.
+     *    Tinglovchi `capture: true` bilan o'rnatilgani uchun o'sha
+     *    ichki siljishni ham ushlab, panelni DARHOL yopardi —
+     *    ya'ni ro'yxat ochilishi bilan yopilardi.
+     *
+     * ⚠️ PANEL ICHIDAGI siljish butunlay E'TIBORSIZ qoldiriladi:
+     *    uzun ro'yxatni aylantirish ham hodisa chiqaradi va u ham
+     *    panelni yopib qo'yardi.
+     *
+     * ⚠️ Tashqi siljishda panel YOPILMAYDI, balki tugma bilan
+     *    birga SURILADI. Yopish ilgari «osongina to'g'ri» yechim
+     *    edi, lekin foydalanuvchi uchun u buzilgandek tuyuladi.
+     */
+    const siljidi = (e: Event): void => {
+      const n = e.target as Node | null;
+      if (n !== null && panelRef.current?.contains(n) === true) return;
+      joyniHisobla();
+    };
+    const olchamOzgardi = (): void => {
+      joyniHisobla();
     };
 
     document.addEventListener('pointerdown', tashqariBosildi);
-    /** ⚠️ `capture` — ichki aylantiriladigan blokda ham ushlansin */
-    window.addEventListener('scroll', yopil, true);
-    window.addEventListener('resize', yopil);
+    window.addEventListener('scroll', siljidi, true);
+    window.addEventListener('resize', olchamOzgardi);
     return () => {
       document.removeEventListener('pointerdown', tashqariBosildi);
-      window.removeEventListener('scroll', yopil, true);
-      window.removeEventListener('resize', yopil);
+      window.removeEventListener('scroll', siljidi, true);
+      window.removeEventListener('resize', olchamOzgardi);
     };
-  }, [ochiq]);
+  }, [ochiq, joyniHisobla]);
 
   /**
    * OCHISH — EFFEKT EMAS, oddiy funksiya.
@@ -307,7 +332,13 @@ export function Tanlagich({
     }
   };
 
-  /** Faol qator ko'rinib tursin */
+  /**
+   * Faol qator ko'rinib tursin.
+   *
+   * ⚠️ `scrollIntoView` PANELNING O'Z ichida siljish hodisasini
+   *    chiqaradi. Yuqoridagi tinglovchi uni e'tiborsiz qoldiradi —
+   *    aks holda ro'yxat ochilishi bilan yopilardi.
+   */
   useEffect(() => {
     if (!ochiq) return;
     panelRef.current
