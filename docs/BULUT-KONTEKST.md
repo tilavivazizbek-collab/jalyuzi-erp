@@ -234,6 +234,42 @@ Batafsil: `docs/QAMROV.md` §6e.
 
 ---
 
+## 6f. Ikki ko'rinish — kun va tun (2026-09-23)
+
+Egasi: «butun tizimni ikki xil dizaynli qil, tun va kun».
+To'liq qaror: **`docs/QARORLAR-KOD.md` P-39**.
+
+**Har rang `app/global.css` da `light-dark(kun, tun)` bo'lib ikki
+qiymatli turadi.** Qaysi tomoni olinishini `color-scheme` hal qiladi;
+uni `<html data-korinish="kun|tun">` belgilaydi va bu atributni
+SERVER cookie dan o'qib qo'yadi (shu sabab sahifa ochilganda oq
+chaqnash yo'q).
+
+⚠️ **Ekranlarda `dark:` prefiksi YOZILMAYDI.** 156 ta ekranga
+ikkinchi rang qo'shilsa, ranglar yana ekranlarga tarqalib ketardi
+(CLAUDE.md §3 — «bir mantiq, bir joyda») va yangi ekranda `dark:`
+unutilsa u tunda oq bo'lib qolardi. Shuning uchun bu ish ekranlarning
+birortasini ham o'zgartirmadi — faqat `global.css`.
+
+**Yangi ekran yozayotganda:**
+
+| Yozilmaydi | Yoziladi |
+|---|---|
+| `dark:bg-...` | hech narsa — rang o'zi ikki qiymatli |
+| `text-white` to'ldirilgan tugmada | `text-tugma-matn` (kunda oq, tunda qora) |
+| `bg-matn/40` parda uchun | `bg-parda` / `bg-parda-och` |
+| `bg-white`, `#123456` | `global.css` dagi nom |
+
+Chek va varaqa `color-scheme: light` oladi — tunda ham **oq qog'oz**,
+chop etish ham har doim kunduzgi ranglarda.
+
+⚠️ **Ochiq turgan kamchilik:** kunduzgi `matn-kuchsiz` kontrasti
+**2.56:1** (me'yor 4.5), 713 joyda ishlatiladi. Tungi ko'rinishda
+o'sha rang 4.75. Kunduzgi qiymatga ataylab tegilmadi — u egasi
+ko'rib qabul qilgan ko'rinish. Tuzatish alohida ish.
+
+---
+
 ## 7. Ochiq savollar — javob kutilmoqda
 
 Usta stavkasi **yopildi** (2026-09-10): uchala usul qurilgan, egasi har
