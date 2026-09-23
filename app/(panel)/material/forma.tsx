@@ -100,6 +100,7 @@ export function MaterialFormasi({
   bekor,
   rasmManzili,
   zahiraSoraladi = false,
+  joriyQoldiq,
 }: {
   amal: (holat: FormaHolati, forma: FormData) => Promise<FormaHolati>;
   qiymatlar: MaterialQiymatlari;
@@ -131,6 +132,24 @@ export function MaterialFormasi({
    *    qilib yuborardi.
    */
   zahiraSoraladi?: boolean;
+  /**
+   * OMBORDAGI HAQIQIY QOLDIQ — 2026-09-24.
+   *
+   * ⚠️ Egasi kartochkadagi «eni / bo'yi» kataklarini qoldiq deb
+   *    o'ylagan. Ular kirim formasi uchun ODATDAGI O'LCHAM va
+   *    omborga hech narsa qo'shmaydi — ekran buni aytmasdi.
+   *
+   * ⚠️ Berilmasa blok umuman chiqmaydi (yangi mahsulotda
+   *    qoldiq bo'lishi mumkin emas).
+   */
+  joriyQoldiq?: {
+    readonly materialId: number;
+    readonly miqdor: number;
+    readonly bolakSoni: number;
+    readonly birlik: string;
+    /** Boshlang'ich qoldiq allaqachon kiritilganmi */
+    readonly kiritilgan: boolean;
+  };
   /**
    * TZ 5.4 · 6.2 — mijoz turlari bo'yicha narxlar.
    *
@@ -899,6 +918,67 @@ export function MaterialFormasi({
            (nomi, birligi, narxi), keyin «hozir nechta bor?»
            deb so'raladi. Teskarisi mantiqsiz bo'lardi.
       */}
+      {/*
+        ── OMBORDA HOZIR NECHTA BOR ────────────────────────
+
+        ⚠️ BIRLIGI DOIM YOZILADI. Egasi: «qaysi birlikda kiritish
+           kerak aniq emas». Raqamning yonida «kv.m» yoki «dona»
+           tursa savol tug'ilmaydi.
+
+        ⚠️ Bu blok yuqoridagi «eni / bo'yi» kataklaridan ATAYLAB
+           ajratilgan: ular kirim formasi uchun odatdagi o'lcham,
+           bu esa HAQIQIY qoldiq. Ikkalasi bir joyda tursa yana
+           adashtirardi.
+      */}
+      {joriyQoldiq !== undefined && (
+        <section className="rounded-maydon border border-chegara bg-fon-ikki p-4">
+          <h2 className="text-sm font-semibold text-matn">Omborda hozir</h2>
+          {joriyQoldiq.miqdor > 0 ? (
+            <p className="mt-1 text-sm text-matn-ikki">
+              <b className="raqam text-matn">
+                {joriyQoldiq.miqdor.toFixed(2)} {joriyQoldiq.birlik}
+              </b>{' '}
+              · {joriyQoldiq.bolakSoni} ta bo&apos;lak
+            </p>
+          ) : (
+            <p className="mt-1 text-sm text-belgi-sariq">
+              Omborda yo&apos;q — bu mahsulot sotuvda «material yetmadi»
+              beradi.
+            </p>
+          )}
+
+          {/*
+            ⚠️ KIRITISH HAVOLASI — mavjud ekranga. Bu yerda
+               ikkinchi forma qurilmaydi: zahira mantig'i faqat
+               yaratish amalida va uni ikki joyda saqlash
+               «bir mantiq — bir joyda» ni buzardi.
+          */}
+          {!joriyQoldiq.kiritilgan && (
+            <Link
+              href={`/ombor/boshlangich/${String(joriyQoldiq.materialId)}`}
+              className="mt-2 inline-block rounded-maydon bg-amal px-3 py-1.5 text-[13px] font-medium text-white transition-colors hover:bg-amal-hover"
+            >
+              Ombordagi qoldiqni kiritish
+            </Link>
+          )}
+
+          {joriyQoldiq.kiritilgan && (
+            <p className="mt-2 text-[12px] text-matn-kuchsiz">
+              Boshlang&apos;ich qoldiq allaqachon kiritilgan. Qoldiqni
+              o&apos;zgartirish uchun{' '}
+              <Link href="/ombor/kirim/yangi" className="text-brend hover:underline">
+                kirim
+              </Link>{' '}
+              yoki{' '}
+              <Link href="/ombor/inventarizatsiya" className="text-brend hover:underline">
+                inventarizatsiya
+              </Link>{' '}
+              ishlatiladi.
+            </p>
+          )}
+        </section>
+      )}
+
       {zahiraSoraladi && (
         <ZahiraBolimi
           rulonmi={tavsif?.olchamliMi === true}

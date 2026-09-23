@@ -89,6 +89,48 @@ export default async function MaterialTahrirlash({ params }: { params: Promise<{
     /** TZ 5.4 · 6.2 — mijoz turi bo'yicha narxlar */
   ]);
 
+  /*
+   * ── OMBORDAGI QOLDIQ ─────────────────────────────────
+   *
+   * Egasi (2026-09-24): «mahsulot qo'shish pageda ombordagi
+   * qoldiqni kiritish inputi yo'q, bo'lsa ham qaysi birlikda
+   * kiritish kerak aniq emas».
+   *
+   * ⚠️ Egasi kartochkadagi «eni / bo'yi» kataklarini QOLDIQ deb
+   *    o'ylagan. Ular esa KIRIM FORMASI uchun odatdagi o'lcham va
+   *    omborga hech narsa qo'shmaydi. Ekran buni aytmasdi —
+   *    natijada ikkita rulon materiali omborda NOL bo'lib turardi.
+   *
+   * ⚠️ IKKALA USTUN ham olinadi (maydon va miqdor), qaysi biri
+   *    kerakligini TS hal qiladi. Birlikni SQL ga qo'shish
+   *    so'rovni ikki xil qilib, farqini ko'zdan qochirardi.
+   */
+  const [qoldiq, boshlangich] = await Promise.all([
+    ulanish<{ bosh_kv_m: string | null; bosh_miqdor: string | null; soni: number }[]>`
+      SELECT SUM(COALESCE(b.eni_m, 0) * COALESCE(b.boyi_m, 0))::text AS bosh_kv_m,
+             SUM(COALESCE(b.miqdor, 0))::text AS bosh_miqdor,
+             count(*)::int AS soni
+        FROM bolak b
+       WHERE b.material_id = ${materialId}
+         AND b.filial_id = ${f.filialId}
+         AND b.faol = true
+         AND b.holat = 'BOSH'`,
+    ulanish<{ n: number }[]>`
+      SELECT count(*)::int AS n
+        FROM ombor_harakat oh
+        JOIN bolak b ON b.id = oh.bolak_id
+       WHERE oh.turi = 'BOSHLANGICH' AND oh.filial_id = ${f.filialId}
+         AND b.material_id = ${materialId}`,
+  ]);
+
+  const kvMmi = material.sarflash_birligi === 'KV_M';
+  const qoldiqSoni = Number(
+    (kvMmi ? qoldiq[0]?.bosh_kv_m : qoldiq[0]?.bosh_miqdor) ?? '0',
+  );
+  const bolakSoni = qoldiq[0]?.soni ?? 0;
+  /** ⚠️ Boshlang'ich BIR MARTA kiritiladi — ikkinchisi rad etiladi */
+  const boshlangichKiritilgan = (boshlangich[0]?.n ?? 0) > 0;
+
   // 20.9 — filial narx istisnolari (Q-28)
   const narxOzgartiraOladi = ruxsatBormi(f, 'narx.filial.ozgartir');
   const narxlar = narxOzgartiraOladi ? await filialNarxlari(ulanish, materialId) : [];
@@ -138,6 +180,31 @@ export default async function MaterialTahrirlash({ params }: { params: Promise<{
 
       <div className="rounded-karta border border-chegara bg-sirt p-6">
         <MaterialFormasi
+          /*
+            QOLDIQ — 2026-09-24. Kartochkada HAQIQIY qoldiq
+            birligi bilan ko'rinadi, kiritilmagan bo'lsa shu
+            yerdan kiritiladi.
+          */
+          joriyQoldiq={{
+            materialId,
+            miqdor: qoldiqSoni,
+            bolakSoni,
+            birlik: kvMmi ? 'kv.m' : material.sarflash_birligi === 'M' ? 'm' : 'dona',
+            kiritilgan: boshlangichKiritilgan,
+          }}
+          /*
+           * ⚠️ ZAHIRA BLOKI TAHRIRDA CHIQMAYDI — ataylab.
+           *
+           *    Zahira mantig'i faqat YARATISH amalida
+           *    (`yaratIchki`). Blokni bu yerda ko'rsatsak, forma
+           *    maydonlarni yuborar, server esa ularni JIMGINA
+           *    tashlab yuborardi — 0049 dagi aynan o'sha xato.
+           *
+           *    Uning o'rniga mavjud ekranga havola beriladi:
+           *    u allaqachon narx asosini ham, rulon qatorlarini ham
+           *    biladi (CLAUDE.md §3 — ikkinchi kiritish joyi
+           *    yaratilmaydi).
+           */
           amal={amal}
           qiymatlar={qiymatlar}
           guruhlar={guruhlar}
