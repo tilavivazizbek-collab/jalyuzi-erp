@@ -13,6 +13,8 @@ import { redirect } from 'next/navigation';
 import { ulanishOl } from '@/lib/db';
 import { varaqaOch, varaqaYakunla } from '@/lib/amal/inventarizatsiya';
 import { boshlangichQoldiq } from '@/lib/amal/boshlangich';
+import { rulonKvMTannarxi } from '@/lib/domain/boshlangich-narx';
+import { som } from '@/lib/domain/pul';
 import { ruxsatTalab } from '@/lib/kirish/joriy';
 import {
   boshlangichSxema,
@@ -142,11 +144,50 @@ export async function boshlangichAmali(
 
   const miqdorMatn = matnMaydon(forma, 'miqdor');
 
+  /**
+   * NARX ASOSI — 2026-09-23.
+   *
+   * ⚠️ Ilgari bu forma to'g'ridan-to'g'ri «1 kv.m tannarxi» ni
+   *    so'rardi: egasi «metriga 78 000» deb bilgan raqamni o'zi
+   *    kalkulyator bilan kv.m ga o'girishi kerak edi. Material
+   *    kartochkasidagi zahira bo'limi esa buni O'ZI qilardi —
+   *    ya'ni ikki yo'l ikki xil ishlardi va biri xato berardi.
+   *
+   * ⚠️ Endi ikkalasi ham `rulonKvMTannarxi()` dan o'tadi
+   *    (CLAUDE.md §3 «bir mantiq — bir joyda»).
+   *
+   * ⚠️ Asos berilmasa `KV_M` — eski xulq, ya'ni yozilgan raqam
+   *    to'g'ridan-to'g'ri tannarx deb qabul qilinadi. Bu eski
+   *    havolalar va botni buzmaydi.
+   */
+  const narxAsosi = matnMaydon(forma, 'narxAsosi');
+  const xomBolaklar = jsonOqi(forma, 'bolaklar');
+
+  const tannarxMatn = ((): string => {
+    const xom = matnMaydon(forma, 'tannarxBirlik');
+    if (narxAsosi === '' || narxAsosi === 'KV_M') return xom;
+    if (!Array.isArray(xomBolaklar) || xomBolaklar.length === 0) return xom;
+
+    try {
+      return rulonKvMTannarxi(
+        narxAsosi === 'BIRLIK' ? 'BIRLIK' : 'METR',
+        som(xom),
+        (xomBolaklar as { eniM: number; boyiM: number }[]).map((b) => ({
+          eniM: b.eniM,
+          boyiM: b.boyiM,
+        })),
+      );
+    } catch {
+      /** Xato bo'lsa xom qiymat ketadi — sxema uni tushunarli rad etadi */
+      return xom;
+    }
+  })();
+
   const tekshiruv = boshlangichSxema.safeParse({
     materialId: matnMaydon(forma, 'materialId'),
-    bolaklar: jsonOqi(forma, 'bolaklar'),
+    bolaklar: xomBolaklar,
     miqdor: miqdorMatn === '' ? null : Number(miqdorMatn),
-    tannarxBirlik: matnMaydon(forma, 'tannarxBirlik'),
+    tannarxBirlik: tannarxMatn,
     izoh: matnMaydon(forma, 'izoh'),
   });
 

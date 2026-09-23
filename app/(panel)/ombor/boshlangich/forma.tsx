@@ -15,6 +15,8 @@ import { useActionState, useState } from 'react';
 import Link from 'next/link';
 import { Maydon, kirishUslubi } from '../../maydon';
 import { boshlangichAmali } from '../inventarizatsiya/amal';
+import { rulonKvMTannarxi } from '@/lib/domain/boshlangich-narx';
+import { kopaytir, pulMatn, som } from '@/lib/domain/pul';
 import { BOSH_HOLAT } from '../inventarizatsiya/holat';
 
 type BolakTuri = 'RULON' | 'OCHILGAN' | 'KESMA';
@@ -57,6 +59,7 @@ export function BoshlangichFormasi({
   yangiMahsulot = false,
   boshEni = '',
   boshBoyi = '',
+  boshNarxAsosi = 'METR',
   metrda = false,
 }: {
   materialId: number;
@@ -66,6 +69,11 @@ export function BoshlangichFormasi({
   /** Kartochkadagi odatdagi o'lchamlar — rulon qatorlari shu bilan ochiladi */
   boshEni?: string;
   boshBoyi?: string;
+  /**
+   * Materialning «Kirimda narx qanday hisoblanadi» qiymati — 2026-09-23.
+   * Egasi odatda o'shanday oladi, shuning uchun shu bilan ochiladi.
+   */
+  boshNarxAsosi?: string;
   /**
    * Q-01 — chiziqli mahsulot bazada ham METRDA yuritiladi (2026-09-20).
    *
@@ -83,6 +91,54 @@ export function BoshlangichFormasi({
     { ...yangiOlcham(), eniM: boshEni, boyiM: boshBoyi },
   ]);
   /** Ekranda METR, bazaga SM (Q-01) */
+  /**
+   * Narx qaysi asosda berilgan — 2026-09-23.
+   *
+   * Materialning kartochkasidagi «Kirimda narx qanday hisoblanadi»
+   * qiymati bilan ochiladi: egasi odatda o'shanday oladi.
+   */
+  const [narxAsosi, narxAsosiniOzgartir] = useState(boshNarxAsosi);
+  const [narxMatn, narxMatniniOzgartir] = useState('');
+
+  /**
+   * Kiritilgan zahira JAMI QANCHAGA tushayotgani va 1 kv.m tannarxi.
+   *
+   * Hisob DOMAINDAN — material kartochkasidagi zahira bo'limi bilan
+   * BITTA funksiya (CLAUDE.md §3). Ilgari bu sahifada hisob umuman
+   * yo'q edi va egasi kv.m tannarxini o'zi chiqarishi kerak edi.
+   */
+  const hisob = ((): { tannarx: string; jami: string; formula: string } | null => {
+    if (!rulon || narxMatn.trim() === '') return null;
+
+    const b = olchamlar
+      .map((o) => ({ eniM: Number(o.eniM), boyiM: Number(o.boyiM) }))
+      .filter((o) => o.eniM > 0 && o.boyiM > 0);
+    if (b.length === 0) return null;
+
+    try {
+      const tannarx = rulonKvMTannarxi(
+        narxAsosi === 'KV_M' ? 'KV_M' : narxAsosi === 'BIRLIK' ? 'BIRLIK' : 'METR',
+        som(narxMatn),
+        b,
+      );
+
+      const kvM = b.reduce((y, o) => y + o.eniM * o.boyiM, 0);
+      const metrJami = b.reduce((y, o) => y + o.boyiM, 0);
+
+      /** Formula OCHIQ yoziladi — qaysi usul ishlayotgani ko'rinsin */
+      const formula =
+        narxAsosi === 'KV_M'
+          ? `${kvM.toFixed(2)} kv.m × ${narxMatn}`
+          : narxAsosi === 'BIRLIK'
+            ? `${String(b.length)} rulon × ${narxMatn}`
+            : `${metrJami.toFixed(2)} m × ${narxMatn}`;
+
+      return { tannarx, jami: pulMatn(kopaytir(som(tannarx), kvM)), formula };
+    } catch {
+      return null;
+    }
+  })();
+
   const [metr, metrniOzgartir] = useState('');
 
   const yoz = (i: number, maydon: keyof Olcham, qiymat: string): void => {
@@ -240,20 +296,92 @@ export function BoshlangichFormasi({
         </Maydon>
       )}
 
+      {/*
+        NARX ASOSI — 2026-09-23.
+
+        Ilgari bu forma to'g'ridan-to'g'ri «1 kv.m tannarxi» ni
+        so'rardi va egasi «metriga 78 000» degan raqamni o'zi
+        kalkulyator bilan o'girishi kerak edi. Material
+        kartochkasidagi zahira bo'limi esa buni O'ZI qilardi —
+        ikki yo'l ikki xil ishlardi.
+
+        Endi ikkalasi ham bir xil: asos tanlanadi, hisob ekranda
+        ko'rinadi, o'girishni tizim qiladi.
+      */}
+      {rulon && (
+        <Maydon
+          nom="narxAsosi"
+          yorliq="Narx qanday berilgan"
+          izoh="qanday bilsangiz shunday yozing — o'girishni tizim qiladi"
+        >
+          <select
+            id="narxAsosi"
+            name="narxAsosi"
+            value={narxAsosi}
+            onChange={(e) => {
+              narxAsosiniOzgartir(e.target.value);
+            }}
+            className={kirishUslubi(false)}
+          >
+            <option value="METR">Bo&apos;yiga — 1 metr uchun</option>
+            <option value="KV_M">Maydonga — 1 kv.m uchun</option>
+            <option value="BIRLIK">Butun rulonga</option>
+          </select>
+        </Maydon>
+      )}
+
       <Maydon
         nom="tannarxBirlik"
-        yorliq={`Tannarx — 1 ${rulon ? 'kv.m' : birlikNomi} uchun`}
-        izoh="Sarflash birligi uchun tannarx (P-20)"
+        yorliq={
+          rulon
+            ? `Narx — ${
+                narxAsosi === 'KV_M'
+                  ? '1 kv.m uchun'
+                  : narxAsosi === 'BIRLIK'
+                    ? 'butun rulonga'
+                    : '1 metr uchun'
+              }`
+            : `Tannarx — 1 ${birlikNomi} uchun`
+        }
+        izoh={
+          rulon
+            ? "qanday bilsangiz shunday yozing — 1 kv.m tannarxini tizim hisoblaydi"
+            : 'Sarflash birligi uchun tannarx (P-20)'
+        }
         xato={holat.maydonlar.tannarxBirlik}
       >
         <input
           id="tannarxBirlik"
           name="tannarxBirlik"
+          value={narxMatn}
+          onChange={(e) => {
+            narxMatniniOzgartir(e.target.value);
+          }}
           inputMode="decimal"
           className={kirishUslubi(holat.maydonlar.tannarxBirlik !== undefined)}
           placeholder="masalan 78000"
         />
       </Maydon>
+
+      {/*
+        HISOB EKRANDA — 2026-09-23.
+
+        Egasi «metriga 78 000» deb yozadi, bazaga esa 1 kv.m
+        tannarxi tushadi. U qanday chiqqanini ko'rib turishi kerak,
+        aks holda raqamga ishonmaydi — material kartochkasidagi
+        zahira bo'limida ham xuddi shunday.
+      */}
+      {hisob !== null && (
+        <div className="rounded-maydon bg-fon px-3 py-2.5 text-[13px] text-matn-ikki">
+          <p>
+            1 kv.m tannarxi: <b className="raqam">{hisob.tannarx}</b> so&apos;m
+          </p>
+          <p className="mt-0.5">
+            Jami: <b className="raqam">{hisob.formula}</b> ={' '}
+            <b className="raqam">{hisob.jami}</b> so&apos;m
+          </p>
+        </div>
+      )}
 
       <Maydon nom="izoh" yorliq="Izoh" izoh="Ixtiyoriy" xato={holat.maydonlar.izoh}>
         <input

@@ -452,6 +452,15 @@ export async function materialSarlavhasi(materialId: number): Promise<{
    */
   yaroqsizM: number | null;
   kamIshlatiladiganM: number | null;
+  /**
+   * «Kirimda narx qanday hisoblanadi» — 2026-09-23.
+   *
+   * ⚠️ Boshlang'ich qoldiq formasi narx asosini SHU bilan ochadi:
+   *    egasi odatda o'shanday oladi. Ilgari bu forma narx asosini
+   *    umuman so'ramasdi va to'g'ridan-to'g'ri kv.m tannarxini
+   *    talab qilardi.
+   */
+  kirimNarxAsosi: string;
 } | null> {
   const q = await ulanishOl()<
     {
@@ -462,11 +471,13 @@ export async function materialSarlavhasi(materialId: number): Promise<{
       boyi: string | null;
       yaroqsiz: string | null;
       kam: string | null;
+      kirim_narx_asosi: string;
     }[]
   >`SELECT nom, hisob_turi, sarflash_birligi,
            standart_rulon_eni_m::text AS eni, odatdagi_rulon_boyi_m::text AS boyi,
            yaroqsiz_chegara_m::text AS yaroqsiz,
-           kam_ishlatiladigan_m::text AS kam
+           kam_ishlatiladigan_m::text AS kam,
+           kirim_narx_asosi
     FROM material WHERE id = ${materialId}`;
 
   const m = q[0];
@@ -478,6 +489,7 @@ export async function materialSarlavhasi(materialId: number): Promise<{
         sarflashBirligi: m.sarflash_birligi,
         odatdagiEniM: m.eni,
         odatdagiBoyiM: m.boyi,
+        kirimNarxAsosi: m.kirim_narx_asosi,
         yaroqsizM: m.yaroqsiz === null ? null : Number(m.yaroqsiz),
         kamIshlatiladiganM: m.kam === null ? null : Number(m.kam),
       };

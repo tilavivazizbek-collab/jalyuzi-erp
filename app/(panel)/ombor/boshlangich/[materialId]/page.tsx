@@ -72,6 +72,7 @@ export default async function BoshlangichSahifasi({
           }
           yangiMahsulot={yangi}
           boshEni={m.odatdagiEniM ?? ''}
+          boshNarxAsosi={m.kirimNarxAsosi}
           boshBoyi={m.odatdagiBoyiM ?? ''}
           metrda={m.sarflashBirligi === 'M'}
         />
