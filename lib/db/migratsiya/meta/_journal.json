@@ -386,6 +386,13 @@
       "when": 1790180166251,
       "tag": "0054_ornatish_izlar",
       "breakpoints": true
+    },
+    {
+      "idx": 55,
+      "version": "7",
+      "when": 1790182166251,
+      "tag": "0055_daraja_umumiy_narx",
+      "breakpoints": true
     }
   ]
 }

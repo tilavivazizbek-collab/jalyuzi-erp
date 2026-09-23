@@ -89,9 +89,31 @@ export const turNarxiSxema = z.object({
    *    Mato metrlab sotilganda mahsulot turi yo'q.
    */
   mahsulotTurId: z.number().int().positive().nullable().default(null),
+  /**
+   * DARAJAGA UMUMIY NARX — 0055.
+   *
+   * ⚠️ `true` bo'lsa qatorlar ANIQ TURGA emas, DARAJAGA
+   *    yoziladi va turga alohida qator bo'lmaganda ishlatiladi.
+   *
+   * ⚠️ `mahsulotTurId` bilan BIRGA kelmaydi — pastdagi
+   *    `refine` to'sadi. Bazada ham CHECK bor (§9.4).
+   *
+   * ⚠️ `.optional()`, `.default()` EMAS: eski chaqiruvchilar
+   *    (bot, testlar) buzilmasin.
+   */
+  hammaTurga: z.boolean().optional(),
   qoidalar: z.array(narxQoidaSxema).default([]),
   qoshimchalar: z.array(qoshimchaSxema).default([]),
-});
+})
+  /**
+   * ⚠️ «Falon tur uchun, lekin hamma turga» — ma'nosiz qator.
+   *    Bazadagi CHECK bilan bir xil, lekin bu yerda xato
+   *    TUSHUNARLI jumla bo'lib qaytadi.
+   */
+  .refine((t) => t.hammaTurga !== true || t.mahsulotTurId === null, {
+    path: ['hammaTurga'],
+    message: "Darajaga umumiy narx aniq turga bog'lanmaydi",
+  });
 
 export type BosqichKirimi = z.infer<typeof bosqichSxema>;
 export type NarxQoidaKirimi = z.infer<typeof narxQoidaSxema>;

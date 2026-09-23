@@ -6,6 +6,8 @@ import { NarxMatritsasi } from './matritsa';
 import {
   almashtirishGuruhlariniOl,
   materialQoidalariSoni,
+  darajaQoidalariSoni,
+  darajaQoplaganlar,
   narxMatritsasiniOl,
   filiallarniOl,
   joriyKursniOl,
@@ -46,10 +48,23 @@ export default async function NarxSahifasi({
   const sp = await searchParams;
   const xomTur = sp['tur'];
   const materialTanlandi = xomTur === 'material';
+  /**
+   * `?tur=daraja` — DARAJAGA UMUMIY NARX (0055).
+   *
+   * ⚠️ Egasi: «1 ta narx darajasidan 5 xil yoki 10 xil mahsulot
+   *    turishi mumkin». To'qqiz tur × uch daraja = 27 qator edi;
+   *    bu yerda uchta qator yozilsa hamma tur sotiladigan bo'ladi.
+   *
+   * ⚠️ Muharrirning O'ZI qayta ishlatiladi — bosqichlar,
+   *    valyuta, mijoz turi, filial, tekshirish kalkulyatori
+   *    hammasi bir xil. Ikkinchi muharrir yozilsa ular
+   *    bir-biridan ajralib ketardi (CLAUDE.md §3).
+   */
+  const darajaTanlandi = xomTur === 'daraja';
   const soralgan = typeof xomTur === 'string' ? Number(xomTur) : Number.NaN;
 
   const turlar = await turlarniOl();
-  const tanlangan = materialTanlandi
+  const tanlangan = materialTanlandi || darajaTanlandi
     ? null
     : (turlar.find((t) => t.id === soralgan) ?? turlar[0] ?? null);
 
@@ -62,6 +77,8 @@ export default async function NarxSahifasi({
     kursQiymati,
     materialQoidaSoni,
     matritsa,
+    darajaQoidaSoni,
+    darajaQoplagan,
   ] = await Promise.all([
       narxGuruhlariniOl(),
       materiallarniOl(),
@@ -71,16 +88,19 @@ export default async function NarxSahifasi({
       joriyKursniOl(),
       materialQoidalariSoni(),
       narxMatritsasiniOl(),
+      darajaQoidalariSoni(),
+      darajaQoplaganlar(),
     ]);
 
   /** Materialni o'zi sotishda tur yo'q — `null` beriladi */
-  const tanlanganId = materialTanlandi ? null : (tanlangan?.id ?? null);
+  const tanlanganId = materialTanlandi || darajaTanlandi ? null : (tanlangan?.id ?? null);
 
   const [qoidalar, qoshimchalar] =
-    tanlangan === null && !materialTanlandi
+    tanlangan === null && !materialTanlandi && !darajaTanlandi
       ? [[], []]
       : await Promise.all([
-          turQoidalariniOl(tanlanganId),
+          /** ⚠️ 0055 — daraja rejimida BOSHQA qatorlar olinadi */
+          turQoidalariniOl(tanlanganId, darajaTanlandi),
           turQoshimchalariniOl(tanlanganId),
         ]);
 
@@ -103,7 +123,12 @@ export default async function NarxSahifasi({
            bo'lsin. Ilgari bu savolga javob faqat SOTUV paytida,
            mijoz oldida chiqardi.
       */}
-      <NarxMatritsasi turlar={turlar} guruhlar={guruhlar} kataklar={matritsa} />
+      <NarxMatritsasi
+        turlar={turlar}
+        guruhlar={guruhlar}
+        kataklar={matritsa}
+        darajaQoplagan={darajaQoplagan}
+      />
 
       {turlar.length === 0 ? (
         <p className="rounded-maydon border border-chegara p-4 text-sm text-matn-kuchsiz">
@@ -122,6 +147,41 @@ export default async function NarxSahifasi({
                  shu matodan» desa tur yo'q, narx esa baribir kerak.
                  Bazada bu `mahsulot_tur_id IS NULL` qatorlari.
             */}
+            {/*
+              ── DARAJAGA UMUMIY NARX — 0055 ─────────────────
+
+              Egasi: «1 ta narx darajasidan 5 xil yoki 10 xil
+              mahsulot turishi mumkin».
+
+              ⚠️ BIRINCHI BAND — ataylab. To'qqiz tur × uch daraja
+                 = 27 qator, bu yerda esa UCHTA qator yetadi.
+                 Egasi ishni shu yerdan boshlashi kerak, turdan
+                 emas: turga alohida qator faqat FARQ bo'lganda
+                 yoziladi.
+            */}
+            <Link
+              href="/narx?tur=daraja"
+              className={`flex items-center justify-between rounded-maydon px-3 py-2 text-sm transition-colors ${
+                darajaTanlandi
+                  ? 'bg-brend/10 font-medium text-brend'
+                  : 'text-matn-ikki hover:bg-fon-ikki'
+              }`}
+            >
+              <span className="truncate">Darajaga umumiy narx</span>
+              <span
+                className={`ml-2 shrink-0 text-[11px] ${
+                  darajaQoidaSoni === 0 ? 'text-belgi-sariq' : 'text-matn-kuchsiz'
+                }`}
+                title={
+                  darajaQoidaSoni === 0
+                    ? "Qo'yilmagan — har tur uchun alohida narx kerak bo'ladi"
+                    : `${String(darajaQoidaSoni)} daraja`
+                }
+              >
+                {darajaQoidaSoni === 0 ? '—' : darajaQoidaSoni}
+              </span>
+            </Link>
+
             <Link
               href="/narx?tur=material"
               className={`flex items-center justify-between rounded-maydon px-3 py-2 text-sm transition-colors ${
@@ -194,11 +254,24 @@ export default async function NarxSahifasi({
           </nav>
 
           {/* ─── Tanlangan turning narxi ──────────────────────────────── */}
-          {tanlangan === null && !materialTanlandi ? null : (
+          {tanlangan === null && !materialTanlandi && !darajaTanlandi ? null : (
             <NarxFormasi
-              key={materialTanlandi ? 'material' : String(tanlangan?.id ?? 0)}
-              turId={materialTanlandi ? null : (tanlangan?.id ?? 0)}
-              turNomi={materialTanlandi ? "Materialni o'zi sotish" : (tanlangan?.nom ?? '')}
+              key={
+                darajaTanlandi
+                  ? 'daraja'
+                  : materialTanlandi
+                    ? 'material'
+                    : String(tanlangan?.id ?? 0)
+              }
+              turId={materialTanlandi || darajaTanlandi ? null : (tanlangan?.id ?? 0)}
+              turNomi={
+                darajaTanlandi
+                  ? "Darajaga umumiy narx"
+                  : materialTanlandi
+                    ? "Materialni o'zi sotish"
+                    : (tanlangan?.nom ?? '')
+              }
+              hammaTurga={darajaTanlandi}
               /* ⚠️ Narxi BOR turlar; o'zi chiqariladi — o'zidan nusxa ma'nosiz */
               nusxaTurlari={turlar.filter(
                 (t) => t.qoidaSoni > 0 && t.id !== (tanlangan?.id ?? 0),

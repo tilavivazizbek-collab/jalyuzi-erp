@@ -78,6 +78,16 @@ export interface SotuvNarxQoidasi {
   readonly narxGuruhId: number;
   /** TZ 6.2 — `null` bo'lsa hamma mijoz turiga */
   readonly mijozTuriId: number | null;
+  /** TZ 20.9 — `null` bo'lsa hamma filialga */
+  readonly filialId: number | null;
+  /**
+   * DARAJAGA UMUMIY NARX — 0055.
+   *
+   * ⚠️ `true` bo'lsa bu qator ANIQ TURGA emas, DARAJAGA
+   *    qo'yilgan: turga alohida qator bo'lmasa shu ishlatiladi.
+   *    Tanlashni `qoidaniTop()` qiladi — bu yerda faqat belgi.
+   */
+  readonly hammaTurga: boolean;
   readonly hisoblashUsuli: string;
   readonly bosqichlar: readonly {
     readonly dan: number;
@@ -530,19 +540,39 @@ export async function sotuvTurlari(
    *    ekranda hal bo'ladi — mijoz sotuv paytida tanlanadi va
    *    serverga qayta borish shart emas.
    */
+  /*
+   * ⚠️ IKKI XIL QATOR OLINADI — 0055:
+   *      · shu turlarga qo'yilgani
+   *      · DARAJAGA umumiy qo'yilgani (hamma_turga = true)
+   *
+   *    Ikkinchisi olinmasa darajaga qo'yilgan narx sotuv ekraniga
+   *    umuman yetib bormasdi va «narx qo'yilmagan» chiqaverardi.
+   *
+   * ⚠️ «Materialni o'zi sotish» qatori (tur ham NULL,
+   *    hamma_turga ham false) BU YERGA TUSHMAYDI — u boshqa
+   *    oqimda ishlatiladi.
+   *
+   * ⚠️ IZOH SQL ICHIDA EMAS: shablon satri ichida teskari
+   *    apostrof yozilsa u satrni UZIB YUBORADI va fayl umuman
+   *    yig'ilmaydi (bu xato shu sessiyada IKKI MARTA bo'ldi).
+   */
   const narxQatorlari = await sql<
     {
       id: number;
-      mahsulot_tur_id: number;
+      mahsulot_tur_id: number | null;
       narx_guruh_id: number;
       mijoz_turi_id: number | null;
+      filial_id: number | null;
+      hamma_turga: boolean;
       hisoblash_usuli: string;
     }[]
   >`
-    SELECT id, mahsulot_tur_id, narx_guruh_id, mijoz_turi_id, hisoblash_usuli
+    SELECT id, mahsulot_tur_id, narx_guruh_id, mijoz_turi_id, filial_id,
+           hamma_turga, hisoblash_usuli
     FROM mahsulot_narx
-    WHERE mahsulot_tur_id = ANY(${turIdlar}) AND faol = true
+    WHERE faol = true
       AND (filial_id IS NULL OR filial_id = ${filialId})
+      AND (mahsulot_tur_id = ANY(${turIdlar}) OR hamma_turga = true)
     ORDER BY mahsulot_tur_id, narx_guruh_id, (filial_id IS NULL)`;
 
   const bosqichQatorlari =
@@ -704,11 +734,18 @@ export async function sotuvTurlari(
         narxValyuta: a.narx_valyuta,
         turNarxlari: turNarxBoyicha.get(a.material_id) ?? {},
       })),
+    /**
+     * ⚠️ TURNIKI VA DARAJANIKI BIRGA beriladi — 0055.
+     *    Ajratishni `qoidaniTop()` qiladi. Bu yerda filtrlansa
+     *    darajaga qo'yilgan narx hech qachon ishlatilmasdi.
+     */
     narxQoidalari: narxQatorlari
-      .filter((q) => q.mahsulot_tur_id === t.id)
+      .filter((q) => q.mahsulot_tur_id === t.id || q.hamma_turga)
       .map((q) => ({
         narxGuruhId: q.narx_guruh_id,
         mijozTuriId: q.mijoz_turi_id,
+        filialId: q.filial_id,
+        hammaTurga: q.hamma_turga,
         hisoblashUsuli: q.hisoblash_usuli,
         bosqichlar: bosqichQatorlari
           .filter((b) => b.mahsulot_narx_id === q.id)

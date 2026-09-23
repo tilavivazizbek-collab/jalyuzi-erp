@@ -1026,3 +1026,71 @@ o'zgartirmasa eski holatida saqlanadi».
   o'zgartirilsa `olcham_qolda` qo'yiladi va yozuv yolg'on bo'lib
   qolmaydi
 - Raqamlarni egasi **ustasidan so'rab** to'ldiradi — kataklar bo'sh
+
+
+## 6e. Darajaga umumiy narx — 0055 (2026-09-23)
+
+### Nima yo'q edi
+
+Narx `tur × daraja` juftligiga qo'yilardi. To'qqiz xil jalyuzi va uch
+daraja — **27 qator**; har yangi tur yana uchta, har yangi daraja yana
+to'qqizta qo'shadi.
+
+Bazadagi holat tekshirilganda (2026-09-23): olti materialdan **beshtasi
+sotilmasdi** — «arzon» darajasida to'rt material bor, narx qoidasi esa
+nol. Sotuvchi ularni tanlasa «narx qo'yilmagan» chiqardi.
+
+Egasi: «1 ta narx darajasidan 5 xil yoki 10 xil mahsulot turishi
+mumkin, bunga qanday yechim bersak bo'ladi».
+
+### Qanday ishlaydi
+
+`/narx` sahifasida yangi band: **«Darajaga umumiy narx»**. Har darajaga
+bitta jadval qo'yiladi va u **hamma turga** amal qiladi. Turga alohida
+qator qo'yilsa — u **to'liq almashtiradi** (egasi qarori: qo'shilmaydi,
+ko'paytirilmaydi).
+
+Tanlash tartibi — **sakkiz qadam**, aniqdan umumiyga:
+
+| # | Tur | Mijoz turi | Filial |
+|---|---|---|---|
+| 1–4 | aniq tur | aniq → hammasi | aniq → hammasi |
+| 5–8 | **hamma tur** | aniq → hammasi | aniq → hammasi |
+
+Narx xaritasida yangi rang: **ko'k `≈`** — «darajaning umumiy narxi
+ishlatiladi». Yashildan ajratilgan, chunki narxni tuzatish joyi boshqa.
+
+### Nima qilindi
+
+| Qatlam | Nima |
+|---|---|
+| Baza | **0055** — `mahsulot_narx.hamma_turga`, CHECK, noyoblik indeksi qayta qurildi |
+| Domen | `qoidaniTop()` — butun tizimda bitta tanlov. `narxManbai()` |
+| Amal | `narx-qoida.ts` (saqlash), `katalog.ts`, `narx-tekshir.ts`, `malumot.ts` |
+| Ekran | `/narx?tur=daraja` — muharrirning O'ZI qayta ishlatiladi |
+
+### ⚠️ Yo'l-yo'lakay tuzatilgan uchta nuqson
+
+1. **Tanlash BESH joyda takrorlangan edi** va ular bir xil emasdi:
+   sotuv ekrani va qo'shimcha modali filialni hisobga olmasdi, server
+   esa olardi. Endi hammasi `qoidaniTop()` dan o'tadi.
+2. **`ON CONFLICT` indeks bilan mos kelmay qolgan bo'lardi** — 0055
+   indeksga ustun qo'shdi, `ON CONFLICT` yangilanmasa har narx
+   saqlash xato bilan yiqilardi.
+3. **`mahsulot_tur_id IS NULL` endi IKKI ma'noli** («materialni o'zi
+   sotish» va «darajaga umumiy»). Uchta joyda shart qo'shilmasa
+   ular bir-birini jimgina o'chirib yuborardi.
+
+### Ushlab turadigan testlar
+
+| Test | Nimani ushlaydi |
+|---|---|
+| `test/domain/qoida-tanlash.test.ts` (14 ta) | Sakkiz qadamli tartib; turning umumiy qatori darajaning aniq qatoridan ham ustunligi; eski qatorlar buzilmasligi |
+| `test/integratsiya/daraja-narxi.test.ts` (5 ta) | Ikki ma'noli `NULL` bir-birini o'chirmasligi, `ON CONFLICT` ishlashi, bazadagi CHECK |
+
+### Ochiq qolgani
+
+- Daraja narxi **«materialni o'zi sotish»ga tegmaydi** — u boshqa oqim
+- Turga qo'yilgan narx darajanikini **to'liq** almashtiradi. «+30 000»
+  yoki «×1.2» ko'rinishidagi farq qo'yish qurilmadi (egasi to'liq
+  almashtirishni tanladi)

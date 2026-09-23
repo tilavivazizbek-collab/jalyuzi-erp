@@ -31,6 +31,7 @@ import {
   type HisoblashUsuli,
 } from '@/lib/domain/narx-qoidasi';
 import { biznesXatosimi } from '@/lib/xato';
+import { qoidaniTop } from '@/lib/domain/narx-qoidasi';
 import type { MaterialNarxQoidasi } from './malumot';
 
 export interface QoshimchaMaterial {
@@ -75,6 +76,7 @@ export function QoshimchaQoshish({
   qoshildi,
   qoidalar = [],
   mijozTuriId = null,
+  ozFilialId,
 }: {
   materiallar: readonly QoshimchaMaterial[];
   kurs: Kurs | null;
@@ -83,6 +85,14 @@ export function QoshimchaQoshish({
   qoidalar?: readonly MaterialNarxQoidasi[];
   /** TZ 6.2 — mijoz turiga qo'yilgan qoida umumiysidan ustun */
   mijozTuriId?: number | null;
+  /**
+   * TZ 20.9 — qaysi filial narxi.
+   *
+   * ⚠️ Qoidalar shu filial uchun yuklangan, lekin ro'yxatda
+   *    filialga aniq qo'yilgani ham, umumiysi ham bor. Tanlashni
+   *    `qoidaniTop()` qiladi va unga filial KERAK.
+   */
+  ozFilialId: number;
 }) {
   const [ochiq, ochiqniOzgartir] = useState(false);
   const [materialId, materialniOzgartir] = useState('');
@@ -159,16 +169,13 @@ export function QoshimchaQoshish({
    *
    *    TZ 6.2 — mijoz turiga qo'yilgan qoida umumiysidan ustun.
    */
-  const qoida = (() => {
-    if (tanlangan === undefined) return null;
-    const g = tanlangan.narxGuruhId;
-    if (g === null) return null;
-    return (
-      qoidalar.find((q) => q.narxGuruhId === g && q.mijozTuriId === mijozTuriId) ??
-      qoidalar.find((q) => q.narxGuruhId === g && q.mijozTuriId === null) ??
-      null
-    );
-  })();
+  const qoida =
+    qoidaniTop(qoidalar, {
+      narxGuruhId: tanlangan?.narxGuruhId ?? null,
+      mijozTuriId,
+      /** ⚠️ Qoidalar shu filial uchun yuklangan (TZ 20.9) */
+      filialId: ozFilialId,
+    }) ?? null;
 
   /**
    * MIQDOR BO'YICHA BOSQICH — egasi qarori 2026-09-22.

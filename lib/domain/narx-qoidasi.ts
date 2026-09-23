@@ -440,3 +440,93 @@ export function chegaradaNarxTushadimi(
 
   return natija;
 }
+
+
+// ─── Qoidani tanlash — 0055 ────────────────────────────────
+
+/**
+ * Narx qoidasini tanlash uchun kerakli minimal maydonlar.
+ *
+ * ⚠️ `hammaTurga` IXTIYORIY: uni bilmaydigan eski chaqiruvchilar
+ *    (bot, sinov ma'lumotlari) avvalgidek ishlayveradi — berilmasa
+ *    qator turga bog'langan deb qaraladi.
+ */
+export interface TanlanadiganQoida {
+  readonly narxGuruhId: number;
+  readonly mijozTuriId: number | null;
+  readonly filialId: number | null;
+  readonly hammaTurga?: boolean;
+}
+
+/**
+ * QAYSI NARX QOIDASI ISHLATILADI — butun tizimda BITTA javob.
+ *
+ * ⚠️ NEGA ALOHIDA FUNKSIYA
+ *
+ *    Bu tanlov BESH joyda qo'lda yozilgan edi: sotuv ekrani,
+ *    qo'shimcha mahsulot modali, narx sahifasidagi kalkulyator
+ *    (ikki marta) va server tekshiruvi. Ularning ba'zisi filialni
+ *    hisobga olar, ba'zisi olmasdi — ekranda bir narx, serverda
+ *    boshqasi chiqishi uchun shuning o'zi yetarli edi.
+ *
+ *    0055 da yana bir bosqich qo'shildi (darajaga umumiy narx).
+ *    Uni besh joyga qo'lda yozish xatoning kafolati bo'lardi.
+ *
+ * ⚠️ TARTIB — ANIQDAN UMUMIYGA, sakkiz qadam:
+ *
+ *      1. tur + mijoz turi + filial      ← eng aniq
+ *      2. tur + mijoz turi + hamma filial
+ *      3. tur + hamma mijoz + filial
+ *      4. tur + hamma mijoz + hamma filial
+ *      5. HAMMA TUR + mijoz turi + filial
+ *      6. HAMMA TUR + mijoz turi + hamma filial
+ *      7. HAMMA TUR + hamma mijoz + filial
+ *      8. HAMMA TUR + hamma mijoz + hamma filial
+ *
+ *    TZ 6.2 — mijoz turi filialdan USTUN (egasi bilan kelishilgan
+ *    2026-08-30). Tur esa ikkalasidan ham ustun: egasi qarori
+ *    2026-09-23 — «turga qo'yilgan narx darajanikini TO'LIQ
+ *    almashtirsin».
+ *
+ * ⚠️ `qoidalar` RO'YXATIDA turga tegishli va «hamma tur»
+ *    qatorlari ARALASH kelishi mumkin — funksiya ularni o'zi
+ *    ajratadi. Chaqiruvchi oldindan filtrlamasligi kerak, aks
+ *    holda 5–8-qadamlar hech qachon ishlamasdi.
+ */
+export function qoidaniTop<T extends TanlanadiganQoida>(
+  qoidalar: readonly T[],
+  k: {
+    readonly narxGuruhId: number | null;
+    readonly mijozTuriId: number | null;
+    readonly filialId: number | null;
+  },
+): T | undefined {
+  if (k.narxGuruhId === null) return undefined;
+
+  const mos = qoidalar.filter((q) => q.narxGuruhId === k.narxGuruhId);
+  const turniki = mos.filter((q) => q.hammaTurga !== true);
+  const umumiy = mos.filter((q) => q.hammaTurga === true);
+
+  const tanla = (royxat: readonly T[]): T | undefined =>
+    royxat.find((q) => q.mijozTuriId === k.mijozTuriId && q.filialId === k.filialId) ??
+    royxat.find((q) => q.mijozTuriId === k.mijozTuriId && q.filialId === null) ??
+    royxat.find((q) => q.mijozTuriId === null && q.filialId === k.filialId) ??
+    royxat.find((q) => q.mijozTuriId === null && q.filialId === null);
+
+  return tanla(turniki) ?? tanla(umumiy);
+}
+
+/**
+ * Narx QAYERDAN keldi — ekranda ko'rsatish uchun.
+ *
+ * ⚠️ Egasi «nega bu narx?» degan savolga javob topa olishi
+ *    kerak. Raqamning o'zi yetarli emas: u turga alohida
+ *    qo'yilganmi yoki darajaning umumiy narxidanmi — bu ikki
+ *    boshqa joyda tuzatiladi.
+ */
+export type NarxManbai = 'TUR' | 'DARAJA' | 'YOQ';
+
+export function narxManbai(q: TanlanadiganQoida | undefined): NarxManbai {
+  if (q === undefined) return 'YOQ';
+  return q.hammaTurga === true ? 'DARAJA' : 'TUR';
+}

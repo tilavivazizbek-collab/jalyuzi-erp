@@ -142,6 +142,16 @@ export async function turNarxiniSaqla(
    *    bilan solishtiriladi — noyob indeks ham aynan shunday.
    */
   const tur = kirim.mahsulotTurId;
+  /*
+   * ⚠️ `hamma_turga` NOFAOLLASHTIRISHGA HAM KIRADI — 0055.
+   *
+   *    0055 dan keyin `mahsulot_tur_id IS NULL` IKKI xil qatorni
+   *    bildiradi: «materialni o'zi sotish» va «darajaga umumiy
+   *    narx». Shartsiz qoldirilsa, material narxini saqlash
+   *    darajaga qo'yilgan narxlarni JIMGINA o'chirib yuborardi —
+   *    va aksincha.
+   */
+  const hammaTurga = kirim.hammaTurga === true;
 
   await tx`
     UPDATE mahsulot_narx_bosqich SET faol = false, ozgartirdi_id = ${xodimId},
@@ -149,11 +159,13 @@ export async function turNarxiniSaqla(
      WHERE faol = true
        AND mahsulot_narx_id IN (
          SELECT id FROM mahsulot_narx
-          WHERE coalesce(mahsulot_tur_id, 0) = ${tur ?? 0})`;
+          WHERE coalesce(mahsulot_tur_id, 0) = ${tur ?? 0}
+            AND hamma_turga = ${hammaTurga})`;
 
   await tx`
     UPDATE mahsulot_narx SET faol = false, ozgartirdi_id = ${xodimId}, ozgartirildi = now()
-     WHERE coalesce(mahsulot_tur_id, 0) = ${tur ?? 0} AND faol = true`;
+     WHERE coalesce(mahsulot_tur_id, 0) = ${tur ?? 0}
+       AND hamma_turga = ${hammaTurga} AND faol = true`;
 
   if (tur !== null) {
     await tx`
@@ -170,11 +182,12 @@ export async function turNarxiniSaqla(
      *    aks holda ikkinchi saqlashda «duplicate key» chiqardi.
      */
     const qator = await tx<{ id: number }[]>`
-      INSERT INTO mahsulot_narx (mahsulot_tur_id, narx_guruh_id, mijoz_turi_id,
+      INSERT INTO mahsulot_narx (mahsulot_tur_id, hamma_turga, narx_guruh_id,
+                                 mijoz_turi_id,
                                  filial_id, hisoblash_usuli, yaratdi_id)
-      VALUES (${tur}, ${q.narxGuruhId}, ${q.mijozTuriId},
+      VALUES (${tur}, ${hammaTurga}, ${q.narxGuruhId}, ${q.mijozTuriId},
               ${q.filialId}, ${q.hisoblashUsuli}, ${xodimId})
-      ON CONFLICT (coalesce(mahsulot_tur_id, 0), narx_guruh_id,
+      ON CONFLICT (coalesce(mahsulot_tur_id, 0), hamma_turga, narx_guruh_id,
                    coalesce(mijoz_turi_id, 0), coalesce(filial_id, 0))
       DO UPDATE SET hisoblash_usuli = EXCLUDED.hisoblash_usuli,
                     faol = true, ochirildi = NULL,

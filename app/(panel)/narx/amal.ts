@@ -45,6 +45,13 @@ export async function narxSaqlaAmali(
 
   const tekshiruv = turNarxiSxema.safeParse({
     mahsulotTurId: turMatni === '' ? null : Number(turMatni),
+    /**
+     * ⚠️ 0055 — bu maydon SHU RO'YXATGA qo'shilmasa, forma
+     *    yuborar, sxema qabul qilar, server esa jimgina tashlab
+     *    yuborardi va daraja narxi «materialni o'zi sotish»
+     *    qatori bo'lib yozilardi. Shu xato 0049 da bo'lgan.
+     */
+    hammaTurga: forma.get('hammaTurga') === '1',
     qoidalar: jsonOqi(forma, 'qoidalar'),
     qoshimchalar: jsonOqi(forma, 'qoshimchalar'),
   });

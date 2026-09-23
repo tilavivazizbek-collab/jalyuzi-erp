@@ -116,6 +116,15 @@ export interface MatritsaKatagi {
   readonly holat: 'TOLIQ' | 'QISMAN';
 }
 
+/**
+ * ⚠️ FAQAT TURGA qo'yilgan qatorlar. Darajaga umumiy qo'yilgani
+ *    (0055) bu yerga TUSHMAYDI — u alohida ro'yxatda keladi va
+ *    matritsada boshqa rang bilan ko'rsatiladi.
+ *
+ *    Aralashtirilsa egasi narx QAYERDAN kelayotganini bilmasdi:
+ *    turga qo'yilganmi yoki darajadanmi — bu ikki boshqa joyda
+ *    tuzatiladi.
+ */
 export async function narxMatritsasiniOl(): Promise<MatritsaKatagi[]> {
   return ulanishOl()<MatritsaKatagi[]>`
     SELECT mn.mahsulot_tur_id AS "turId",
@@ -124,9 +133,27 @@ export async function narxMatritsasiniOl(): Promise<MatritsaKatagi[]> {
                 THEN 'TOLIQ' ELSE 'QISMAN' END AS holat
     FROM mahsulot_narx mn
     WHERE mn.faol = true
+      AND mn.hamma_turga = false
       AND EXISTS (SELECT 1 FROM mahsulot_narx_bosqich b
                    WHERE b.mahsulot_narx_id = mn.id AND b.faol = true)
     GROUP BY mn.mahsulot_tur_id, mn.narx_guruh_id`;
+}
+
+/**
+ * Darajaga umumiy narx qo'yilgan darajalar — 0055.
+ *
+ * ⚠️ Matritsada shu darajalarning BUTUN USTUNI qoplangan
+ *    hisoblanadi: turga alohida qator bo'lmasa shu ishlatiladi.
+ */
+export async function darajaQoplaganlar(): Promise<number[]> {
+  const q = await ulanishOl()<{ id: number }[]>`
+    SELECT DISTINCT mn.narx_guruh_id AS id
+      FROM mahsulot_narx mn
+     WHERE mn.faol = true AND mn.hamma_turga = true
+       AND mn.mijoz_turi_id IS NULL AND mn.filial_id IS NULL
+       AND EXISTS (SELECT 1 FROM mahsulot_narx_bosqich b
+                    WHERE b.mahsulot_narx_id = mn.id AND b.faol = true)`;
+  return q.map((x) => x.id);
 }
 
 /** Mato darajalari — «Oddiy», «Premium» … */
@@ -151,7 +178,28 @@ export async function narxGuruhlariniOl(): Promise<NarxGuruhQatori[]> {
  *    esa baribir kerak: `mahsulot_tur_id IS NULL` qatorlari aynan
  *    shu holat uchun.
  */
-export async function turQoidalariniOl(turId: number | null): Promise<QoidaQatori[]> {
+/**
+ * ⚠️ `hammaTurga` — 0055. `mahsulot_tur_id IS NULL` endi IKKI
+ *    xil qatorni bildiradi va ularni ajratmasa bo'lmaydi:
+ *
+ *      hammaTurga = false → «materialni o'zi sotish»
+ *      hammaTurga = true  → «darajaga umumiy narx»
+ *
+ *    Ajratilmasa ikkalasi bitta ro'yxatda aralashib, egasi
+ *    material narxini saqlaganda daraja narxi o'chib ketardi.
+ */
+/** Darajaga umumiy narx qo'yilgan qatorlar soni — chap ustundagi belgi (0055) */
+export async function darajaQoidalariSoni(): Promise<number> {
+  const q = await ulanishOl()<{ n: number }[]>`
+    SELECT count(DISTINCT narx_guruh_id)::int AS n
+      FROM mahsulot_narx WHERE hamma_turga = true AND faol = true`;
+  return q[0]?.n ?? 0;
+}
+
+export async function turQoidalariniOl(
+  turId: number | null,
+  hammaTurga = false,
+): Promise<QoidaQatori[]> {
   const sql = ulanishOl();
 
   const qoidalar = await sql<
@@ -172,6 +220,7 @@ export async function turQoidalariniOl(turId: number | null): Promise<QoidaQator
     WHERE mn.faol = true
       AND (${turId === null} OR mn.mahsulot_tur_id = ${turId ?? 0})
       AND (${turId !== null} OR mn.mahsulot_tur_id IS NULL)
+      AND mn.hamma_turga = ${hammaTurga}
     ORDER BY g.tartib, g.nom`;
 
   if (qoidalar.length === 0) return [];

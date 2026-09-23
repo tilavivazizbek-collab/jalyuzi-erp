@@ -19,8 +19,8 @@
 import Link from 'next/link';
 import type { MatritsaKatagi, NarxGuruhQatori, TurQatori } from './malumot';
 
-/** Katak holati — uchta, ikkita emas (`malumot.ts` izohiga qara) */
-type Holat = 'TOLIQ' | 'QISMAN' | 'YOQ';
+/** Katak holati — to'rtta (0055 da «DARAJA» qo'shildi) */
+type Holat = 'TOLIQ' | 'QISMAN' | 'DARAJA' | 'YOQ';
 
 const KO_RINISH: Record<Holat, { belgi: string; uslub: string; izoh: string }> = {
   TOLIQ: {
@@ -38,6 +38,20 @@ const KO_RINISH: Record<Holat, { belgi: string; uslub: string; izoh: string }> =
     uslub: 'bg-belgi-sariq-fon text-belgi-sariq',
     izoh: "faqat ayrim mijoz turi yoki filialga — boshqasiga sotilmaydi",
   },
+  /**
+   * ⚠️ DARAJADAN OLINGAN — 0055. Turga alohida qator yo'q,
+   *    lekin darajaga umumiy narx qo'yilgan, ya'ni SOTILADI.
+   *
+   *    Yashildan AJRATILADI ataylab: egasi narxni tuzatmoqchi
+   *    bo'lsa qayerga borishini bilishi kerak — turga alohida
+   *    qator qo'yiladigan joy boshqa, darajaning umumiy narxi
+   *    boshqa.
+   */
+  DARAJA: {
+    belgi: '≈',
+    uslub: 'bg-belgi-kok-fon text-belgi-kok',
+    izoh: 'darajaning umumiy narxi ishlatiladi',
+  },
   YOQ: {
     belgi: '—',
     uslub: 'bg-belgi-qizil-fon text-belgi-qizil',
@@ -49,15 +63,35 @@ export function NarxMatritsasi({
   turlar,
   guruhlar,
   kataklar,
+  darajaQoplagan = [],
 }: {
   turlar: readonly TurQatori[];
   guruhlar: readonly NarxGuruhQatori[];
   kataklar: readonly MatritsaKatagi[];
+  /**
+   * Darajaga umumiy narx qo'yilgan darajalar — 0055.
+   *
+   * ⚠️ Bunday darajaning BUTUN USTUNI qoplangan hisoblanadi:
+   *    turga alohida qator bo'lmasa o'sha ishlatiladi.
+   */
+  darajaQoplagan?: readonly number[];
 }) {
   if (guruhlar.length === 0 || turlar.length === 0) return null;
 
-  const holati = (turId: number | null, guruhId: number): Holat =>
-    kataklar.find((k) => k.turId === turId && k.narxGuruhId === guruhId)?.holat ?? 'YOQ';
+  const holati = (turId: number | null, guruhId: number): Holat => {
+    const turniki = kataklar.find(
+      (k) => k.turId === turId && k.narxGuruhId === guruhId,
+    )?.holat;
+    if (turniki !== undefined) return turniki;
+    /*
+     * ⚠️ DARAJA NARXI «MATERIALNI O'ZI SOTISH» QATORIGA
+     *    TEGMAYDI. U tayyor jalyuzi narxi va metrlab kesib
+     *    sotishga aloqasi yo'q — aks holda xarita yolg'on
+     *    tinchlik berardi.
+     */
+    if (turId !== null && darajaQoplagan.includes(guruhId)) return 'DARAJA';
+    return 'YOQ';
+  };
 
   /** ⚠️ «Materialni o'zi sotish» ham qatnashadi — u ham narx talab qiladi */
   const qatorlar: { id: number | null; nom: string; havola: string }[] = [
@@ -65,6 +99,12 @@ export function NarxMatritsasi({
     ...turlar.map((t) => ({ id: t.id, nom: t.nom, havola: `/narx?tur=${String(t.id)}` })),
   ];
 
+  /**
+   * ⚠️ «DARAJA» holati BO'SH HISOBLANMAYDI — u sotiladi.
+   *    Aks holda darajaga umumiy narx qo'yilgandan keyin ham
+   *    sarlavhada qizil raqam turib, egasi nima qilishni
+   *    bilmasdi.
+   */
   const bosh = qatorlar.reduce(
     (n, q) => n + guruhlar.filter((g) => holati(q.id, g.id) === 'YOQ').length,
     0,

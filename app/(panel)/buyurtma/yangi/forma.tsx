@@ -24,6 +24,7 @@ import { aksessuarNarxi, katalogNarxi, matoNarxi } from '@/lib/domain/narx';
 import { pozitsiyaNarxiniHisobla } from '@/lib/domain/pozitsiya-narxi';
 import {
   darajaliSlotniTop,
+  qoidaniTop,
   type HisoblashUsuli,
   type QoshimchaUsuli,
 } from '@/lib/domain/narx-qoidasi';
@@ -709,19 +710,25 @@ export function SotuvFormasi({
     const darajaliMaterial = darajaliQator?.qator.material?.nom ?? null;
 
     /**
-     * TZ 6.2 — mijoz turiga qo'yilgan qoida umumiysidan USTUN.
-     * Yozuv bo'lsa shu narx, bo'lmasa umumiysi.
+     * QAYSI NARX QOIDASI — tanlov DOMAINDA (`qoidaniTop`).
+     *
+     * ⚠️ Bu yerda ilgari IKKI QADAMLI tanlov qo'lda yozilgan
+     *    edi: filial umuman hisobga olinmasdi, u faqat so'rovning
+     *    `ORDER BY` iga tayanardi. Server esa (`narx-tekshir.ts`)
+     *    to'rt qadamli tanlov qilardi — bitta qaror ikki joyda
+     *    ikki xil yozilgan edi.
+     *
+     * ⚠️ 0055 dan keyin yana to'rt bosqich qo'shildi (darajaga
+     *    umumiy narx). Ularni besh joyga qo'lda yozish xatoning
+     *    kafolati bo'lardi (CLAUDE.md §3).
      */
     const mijozTuriId = mijoz?.mijozTuriId ?? null;
-    const qoidaQatori =
-      narxGuruhId === null
-        ? undefined
-        : (tur.narxQoidalari.find(
-            (q) => q.narxGuruhId === narxGuruhId && q.mijozTuriId === mijozTuriId,
-          ) ??
-          tur.narxQoidalari.find(
-            (q) => q.narxGuruhId === narxGuruhId && q.mijozTuriId === null,
-          ));
+    const qoidaQatori = qoidaniTop(tur.narxQoidalari, {
+      narxGuruhId,
+      mijozTuriId,
+      /** ⚠️ Katalog shu filial uchun yuklangan (TZ 20.9) */
+      filialId: ozFilialId,
+    });
 
     /**
      * ⚠️ `slotlar` va `aksessuarlar` BO'SH berilyapti — sarf
@@ -2184,6 +2191,7 @@ export function SotuvFormasi({
               /** Materialni o'zi sotish narxi — egasi qarori 2026-09-20 */
               qoidalar={materialQoidalari}
               mijozTuriId={mijoz?.mijozTuriId ?? null}
+              ozFilialId={ozFilialId}
               qoshildi={(t) => {
                 savatniOzgartir((sv) => [
                   ...sv,

@@ -22,6 +22,7 @@ import {
   bosqichlarniTekshir,
   chegaradaNarxTushadimi,
   pozitsiyaQoidaNarxi,
+  qoidaniTop,
   type Bosqich,
   type HisoblashUsuli,
   type QoshimchaUsuli,
@@ -153,6 +154,7 @@ export function NarxFormasi({
   kursQiymati,
   ozgartiraOladi,
   nusxaTurlari,
+  hammaTurga = false,
 }: {
   /** ⚠️ `null` — «materialni o'zi sotish», mahsulot turi yo'q */
   turId: number | null;
@@ -168,6 +170,13 @@ export function NarxFormasi({
   ozgartiraOladi: boolean;
   /** Narxi bor boshqa turlar — jadvalni nusxalash uchun */
   nusxaTurlari: readonly { readonly id: number; readonly nom: string }[];
+  /**
+   * DARAJAGA UMUMIY NARX rejimi — 0055.
+   *
+   * ⚠️ Bu rejimda qatorlar aniq turga emas, DARAJAGA yoziladi
+   *    va turga alohida qator bo'lmaganda ishlatiladi.
+   */
+  hammaTurga?: boolean;
 }) {
   const [holat, yubor, kutilmoqda] = useActionState<NarxHolati, FormData>(
     narxSaqlaAmali,
@@ -344,11 +353,11 @@ export function NarxFormasi({
      *    tekshiruvning o'zidan ham yomonroq.
      */
     const mos = qoidalar.filter((x) => x.narxGuruhId === sinovGuruh);
-    const q =
-      mos.find((x) => x.mijozTuriId === sinovMijoz && x.filialId === sinovFilial) ??
-      mos.find((x) => x.mijozTuriId === sinovMijoz && x.filialId === null) ??
-      mos.find((x) => x.mijozTuriId === null && x.filialId === sinovFilial) ??
-      mos.find((x) => x.mijozTuriId === null && x.filialId === null);
+    const q = qoidaniTop(mos, {
+      narxGuruhId: sinovGuruh,
+      mijozTuriId: sinovMijoz,
+      filialId: sinovFilial,
+    });
 
     if (q === undefined) {
       return {
@@ -430,19 +439,22 @@ export function NarxFormasi({
    *    raqam UCH BAROBAR ko'rinardi va egasi jadvalni noto'g'ri
    *    deb o'ylardi.
    */
-  const soniAlohidami = (() => {
-    const mos = qoidalar.filter((x) => x.narxGuruhId === sinovGuruh);
-    const q =
-      mos.find((x) => x.mijozTuriId === sinovMijoz && x.filialId === sinovFilial) ??
-      mos.find((x) => x.mijozTuriId === sinovMijoz && x.filialId === null) ??
-      mos.find((x) => x.mijozTuriId === null && x.filialId === sinovFilial) ??
-      mos.find((x) => x.mijozTuriId === null && x.filialId === null);
-    return q?.hisoblashUsuli !== 'MIQDOR';
-  })();
+  /**
+   * ⚠️ BU ham `qoidaniTop` dan o'tadi. Ilgari bu yerda
+   *    tanlovning UCHINCHI nusxasi turardi — bitta faylda ikkita.
+   */
+  const soniAlohidami =
+    qoidaniTop(qoidalar, {
+      narxGuruhId: sinovGuruh,
+      mijozTuriId: sinovMijoz,
+      filialId: sinovFilial,
+    })?.hisoblashUsuli !== 'MIQDOR';
 
   return (
     <form action={yubor} className="flex flex-col gap-5">
       <input type="hidden" name="mahsulotTurId" value={turId ?? ''} />
+      {/* 0055 — darajaga umumiy narx rejimi */}
+      <input type="hidden" name="hammaTurga" value={hammaTurga ? '1' : '0'} />
       <input type="hidden" name="qoidalar" value={JSON.stringify(yuk.qoidalar)} />
       <input type="hidden" name="qoshimchalar" value={JSON.stringify(yuk.qoshimchalar)} />
 

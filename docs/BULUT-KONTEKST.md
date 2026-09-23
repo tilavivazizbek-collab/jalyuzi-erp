@@ -207,6 +207,33 @@ Batafsil: `docs/JALYUZI-TURLARI.md` §9b, `docs/QAMROV.md` §6d.
 
 ---
 
+## 6e. Darajaga umumiy narx — 2026-09-23 (0055)
+
+Narx `tur × daraja` juftligiga qo'yilardi: to'qqiz tur × uch daraja =
+**27 qator**. Tekshirilganda olti materialdan **beshtasi sotilmasdi**.
+
+Endi darajaga **bitta umumiy jadval** qo'yiladi va u hamma turga amal
+qiladi; turga alohida qator qo'yilsa u **to'liq almashtiradi**
+(qo'shilmaydi). Ekran: `/narx?tur=daraja`.
+
+⚠️ **Tanlash mantig'i BITTA joyda** — `qoidaniTop()`
+(`lib/domain/narx-qoidasi.ts`). Ilgari u BESH joyda qo'lda yozilgan
+edi va ular bir xil emasdi: sotuv ekrani filialni hisobga olmasdi,
+server esa olardi. Yangi tanlov qo'shilsa **faqat shu funksiyaga**
+tegiladi.
+
+⚠️ `mahsulot_narx.mahsulot_tur_id IS NULL` endi **ikki ma'noli**:
+
+    hamma_turga = false → «materialni o'zi sotish»
+    hamma_turga = true  → «darajaga umumiy narx»
+
+Shu jadval bilan ishlaydigan har qanday so'rovga `hamma_turga` sharti
+KERAK — aks holda ikkalasi bir-birini jimgina o'chiradi.
+
+Batafsil: `docs/QAMROV.md` §6e.
+
+---
+
 ## 7. Ochiq savollar — javob kutilmoqda
 
 Usta stavkasi **yopildi** (2026-09-10): uchala usul qurilgan, egasi har

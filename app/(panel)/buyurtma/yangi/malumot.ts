@@ -287,6 +287,8 @@ export async function qoshimchaMateriallar(
 export interface MaterialNarxQoidasi {
   readonly narxGuruhId: number;
   readonly mijozTuriId: number | null;
+  /** TZ 20.9 — `null` bo'lsa hamma filialga */
+  readonly filialId: number | null;
   readonly hisoblashUsuli: string;
   readonly bosqichlar: readonly {
     readonly dan: number;
@@ -301,18 +303,29 @@ export async function materialNarxQoidalari(
 ): Promise<MaterialNarxQoidasi[]> {
   const sql = ulanishOl();
 
+  /*
+   * ⚠️ `hamma_turga = false` SHART — 0055.
+   *
+   *    Bu yerda «MATERIALNI O'ZI SOTISH» qoidalari olinadi va
+   *    ular `mahsulot_tur_id IS NULL` bilan belgilanadi. 0055 da
+   *    DARAJAGA umumiy narx qo'shildi va u ham turi NULL qator.
+   *    Shartsiz qoldirilsa darajaga qo'yilgan tayyor jalyuzi narxi
+   *    metrlab sotishga SIZIB o'tardi: mijoz matoni metrlab olsa,
+   *    tayyor parda narxida hisoblanardi.
+   */
   const qoidalar = await sql<
     {
       id: number;
       narxGuruhId: number;
       mijozTuriId: number | null;
+      filialId: number | null;
       hisoblashUsuli: string;
     }[]
   >`
     SELECT id, narx_guruh_id AS "narxGuruhId", mijoz_turi_id AS "mijozTuriId",
-           hisoblash_usuli AS "hisoblashUsuli"
+           filial_id AS "filialId", hisoblash_usuli AS "hisoblashUsuli"
     FROM mahsulot_narx
-    WHERE mahsulot_tur_id IS NULL AND faol = true
+    WHERE mahsulot_tur_id IS NULL AND hamma_turga = false AND faol = true
       AND (filial_id IS NULL OR filial_id = ${filialId})
     ORDER BY narx_guruh_id, (filial_id IS NULL)`;
 
@@ -334,6 +347,7 @@ export async function materialNarxQoidalari(
     ORDER BY dan`;
 
   return qoidalar.map((q) => ({
+    filialId: q.filialId,
     narxGuruhId: q.narxGuruhId,
     mijozTuriId: q.mijozTuriId,
     hisoblashUsuli: q.hisoblashUsuli,

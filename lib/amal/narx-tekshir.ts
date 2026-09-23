@@ -43,6 +43,7 @@ import { kopaytir, kurs as kursYasa, pulMatn, type Kurs } from '@/lib/domain/pul
 import {
   darajaliSlotniTop,
   pozitsiyaQoidaNarxi,
+  qoidaniTop,
   type DarajaliSlot,
   type HisoblashUsuli,
   type QoshimchaUsuli,
@@ -198,31 +199,48 @@ export async function narxniTekshir(
 
   if (narxGuruhId === null) return { qoldami: false, hisoblangan: null };
 
-  /**
-   * QOIDANI TANLASH — sotuv ekranidagi tartib AYNAN takrorlanadi:
-   *   1. mijoz turi + filial   2. mijoz turi   3. filial   4. umumiy
+  /*
+   * QOIDANI TANLASH — tanlov DOMAINDA (`qoidaniTop`).
+   *
+   * ⚠️ Bu tartib ilgari SHU YERDA qo'lda yozilgan edi va
+   *    ekrandagi nusxasi undan farq qilardi. Endi ikkalasi ham
+   *    bitta funksiyani chaqiradi (CLAUDE.md §3) — §9.4 esa
+   *    server baribir QAYTA hisoblashini talab qiladi, shuning
+   *    uchun tekshiruvning o'zi joyida qoladi.
+   *
+   * ⚠️ DARAJAGA UMUMIY QATOR HAM olinadi (0055): turga alohida
+   *    qator bo'lmasa o'sha ishlatiladi. Usiz server «narx yo'q»
+   *    deb, ekran esa darajadan kelgan narxni ko'rsatib turardi.
    */
   const qoidalar = await tx<
     {
       id: number;
+      narx_guruh_id: number;
       mijoz_turi_id: number | null;
       filial_id: number | null;
+      hamma_turga: boolean;
       hisoblash_usuli: string;
     }[]
   >`
-    SELECT id, mijoz_turi_id, filial_id, hisoblash_usuli
+    SELECT id, narx_guruh_id, mijoz_turi_id, filial_id, hamma_turga,
+           hisoblash_usuli
       FROM mahsulot_narx
-     WHERE mahsulot_tur_id = ${k.mahsulotTurId}
-       AND narx_guruh_id = ${narxGuruhId}
+     WHERE narx_guruh_id = ${narxGuruhId}
        AND faol = true
+       AND (mahsulot_tur_id = ${k.mahsulotTurId} OR hamma_turga = true)
        AND (filial_id IS NULL OR filial_id = ${k.filialId})
        AND (mijoz_turi_id IS NULL OR mijoz_turi_id = ${mijozTuriId})`;
 
-  const tanlangan =
-    qoidalar.find((q) => q.mijoz_turi_id === mijozTuriId && q.filial_id === k.filialId) ??
-    qoidalar.find((q) => q.mijoz_turi_id === mijozTuriId && q.filial_id === null) ??
-    qoidalar.find((q) => q.mijoz_turi_id === null && q.filial_id === k.filialId) ??
-    qoidalar.find((q) => q.mijoz_turi_id === null && q.filial_id === null);
+  const tanlangan = qoidaniTop(
+    qoidalar.map((q) => ({
+      ...q,
+      narxGuruhId: q.narx_guruh_id,
+      mijozTuriId: q.mijoz_turi_id,
+      filialId: q.filial_id,
+      hammaTurga: q.hamma_turga,
+    })),
+    { narxGuruhId, mijozTuriId, filialId: k.filialId },
+  );
 
   if (tanlangan === undefined) return { qoldami: false, hisoblangan: null };
 
