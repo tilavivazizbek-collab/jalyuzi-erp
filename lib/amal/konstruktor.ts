@@ -23,10 +23,35 @@ function domenTekshiruvi(kirim: MahsulotTurKirimi): readonly string[] {
   const tur: MahsulotTuri = {
     id: 0,
     nom: kirim.nom,
-    parametrlar: kirim.parametrlar.map((p) => ({
-      nom: p.kod,
-      qiymat: Number(p.standartQiymat),
-    })),
+    /**
+     * ⚠️ TANLOV KODLARI HAM PARAMETR — 0052.
+     *
+     *    Formula tekshiruvi «noma'lum nom» xatosini beradi, agar
+     *    formulada ishlatilgan nom parametrlar ro'yxatida bo'lmasa.
+     *    Tanlov kodi ham formulada ishlatiladi
+     *    (`CEIL(ENI / LAMEL_ENI)`), shuning uchun u ham SHU
+     *    ro'yxatga tushishi kerak.
+     *
+     *    Ulanmasa 3-daraja (tanlov formulaga son beradi) butunlay
+     *    ishlamasdi: tur SAQLANMASDI. Uchidan-uchiga tekshiruvda
+     *    aynan shu chiqdi (2026-09-23).
+     *
+     * ⚠️ Qiymat sifatida BIRINCHI variantning soni olinadi: tekshiruv
+     *    faqat «nom ma'lummi» degan savolga javob beradi, hisobning
+     *    o'zi sotuvda tanlangan variant bilan bo'ladi.
+     */
+    parametrlar: [
+      ...kirim.parametrlar.map((p) => ({
+        nom: p.kod,
+        qiymat: Number(p.standartQiymat),
+      })),
+      ...(kirim.tanlovlar ?? [])
+        .filter((t) => t.kod !== null)
+        .map((t) => ({
+          nom: t.kod ?? '',
+          qiymat: t.variantlar.find((v) => v.qiymat !== null && v.qiymat !== undefined)?.qiymat ?? 0,
+        })),
+    ],
     slotlar: kirim.slotlar.map((s, i) => ({
       id: i + 1,
       nom: s.nom,

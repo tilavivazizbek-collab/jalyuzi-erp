@@ -326,6 +326,19 @@ export default async function BuyurtmaKartochkasi({ params }: { params: Promise<
                   {p.yorliq !== null && (
                     <span className="ml-3 text-sm font-medium text-brend">{p.yorliq}</span>
                   )}
+                  {/*
+                    ⚠️ TANLOVLAR — 0052. Bazaga yozilib, hech kim
+                       ko'rmasa u YO'Q bilan barobar (§13). Usta
+                       kartochkani shu yerdan o'qiydi.
+
+                    ⚠️ Tanlov NOMI ham yoziladi: «O'ng» degan yolg'iz
+                       so'z ustaga hech narsa aytmaydi.
+                  */}
+                  {p.tanlovlar.length > 0 && (
+                    <span className="mt-1 block text-[13px] text-matn-ikki">
+                      {p.tanlovlar.map((t) => `${t.nom}: ${t.variant}`).join(' · ')}
+                    </span>
+                  )}
                   {p.izoh !== null && (
                     <span className="mt-1 block text-[13px] text-matn-ikki">
                       <span className="text-matn-kuchsiz">Izoh:</span> {p.izoh}

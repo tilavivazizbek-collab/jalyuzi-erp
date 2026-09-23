@@ -234,6 +234,14 @@ export interface PozitsiyaTafsili {
   /** Ichki eslatma — usta va montajchi uchun (0049) */
   readonly izoh: string | null;
   /**
+   * Sotuvchi tanlagan variantlar — 0052, SNAPSHOT bilan.
+   *
+   * Bazaga yozilib, hech kim ko'rmasa u YO'Q bilan barobar
+   * (CLAUDE.md §13). Shuning uchun kartochkada, botda va chekda
+   * ko'rinadi.
+   */
+  readonly tanlovlar: readonly { readonly nom: string; readonly variant: string }[];
+  /**
    * Narx jadvaldagidan farq qiladimi (0045).
    *
    * ⚠️ Bu belgi 2026-09-21 dan beri bazaga yozilardi, lekin
@@ -367,6 +375,28 @@ export async function buyurtmaTafsili(
     WHERE p.buyurtma_id = ${buyurtmaId}
     ORDER BY p.tartib`;
 
+  /**
+   * TANLANGAN VARIANTLAR — 0052.
+   *
+   * ⚠️ SNAPSHOT ustunlaridan o'qiladi, `mahsulot_tanlov` dan EMAS:
+   *    admin variantni o'chirsa yoki nomini o'zgartirsa, eski
+   *    buyurtmada o'sha kungi nom turishi kerak (2.3-invariant).
+   */
+  const pozitsiyaTanlovlari =
+    pozitsiyalar.length === 0
+      ? []
+      : await sql<
+          {
+            buyurtma_pozitsiya_id: number;
+            tanlov_nomi_snapshot: string;
+            variant_nomi_snapshot: string;
+          }[]
+        >`
+          SELECT buyurtma_pozitsiya_id, tanlov_nomi_snapshot, variant_nomi_snapshot
+          FROM pozitsiya_tanlov
+          WHERE buyurtma_pozitsiya_id = ANY(${pozitsiyalar.map((x) => x.id)})
+          ORDER BY id`;
+
   if (pozitsiyalar.length === 0) {
     return {
       id: h.id,
@@ -447,6 +477,10 @@ export async function buyurtmaTafsili(
     stornoSana: h.storno_sana,
     pozitsiyalar: pozitsiyalar.map((p) => ({
       id: p.id,
+      /** 0052 — shu pozitsiyaga tanlangan variantlar */
+      tanlovlar: pozitsiyaTanlovlari
+        .filter((t) => t.buyurtma_pozitsiya_id === p.id)
+        .map((t) => ({ nom: t.tanlov_nomi_snapshot, variant: t.variant_nomi_snapshot })),
       tartib: p.tartib,
       turNomi: p.tur_nomi ?? '',
       mahsulotTurId: p.mahsulot_tur_id,

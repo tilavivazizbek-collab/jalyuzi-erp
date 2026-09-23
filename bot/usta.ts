@@ -46,6 +46,8 @@ interface NavbatQatori {
   readonly muddat: string | null;
   readonly matolar: string | null;
   readonly aksessuarlar: string | null;
+  /** Tanlangan variantlar — «Boshqaruv: o'ng · Kasseta: bor» (0052) */
+  readonly tanlovlar: string | null;
   /** «Zal — katta oyna» (0049) */
   readonly yorliq: string | null;
   /** Sotuvchining ustaga eslatmasi (0049) */
@@ -98,7 +100,16 @@ export async function navbat(filialId: number): Promise<readonly NavbatQatori[]>
            (SELECT string_agg(m.nom, ' · ' ORDER BY m.nom)
               FROM pozitsiya_aksessuar pa
               JOIN material m ON m.id = pa.material_id
-             WHERE pa.buyurtma_pozitsiya_id = p.id) AS aksessuarlar
+             WHERE pa.buyurtma_pozitsiya_id = p.id) AS aksessuarlar,
+           /**
+            * TANLANGAN VARIANTLAR — 0052. Usta buni KO'RISHI SHART:
+            * zanjir teskari tomonga qo'yilsa mahsulot BRAK bo'ladi.
+            */
+           (SELECT string_agg(
+                     pt.tanlov_nomi_snapshot || ': ' || pt.variant_nomi_snapshot,
+                     ' · ' ORDER BY pt.id)
+              FROM pozitsiya_tanlov pt
+             WHERE pt.buyurtma_pozitsiya_id = p.id) AS tanlovlar
     FROM buyurtma_pozitsiya p
     JOIN buyurtma b       ON b.id = p.buyurtma_id
     JOIN mahsulot_tur mt  ON mt.id = p.mahsulot_tur_id
@@ -203,10 +214,16 @@ export async function ishlarimniKorsat(
       boyi_m: string;
       yorliq: string | null;
       izoh: string | null;
+      tanlovlar: string | null;
     }[]
   >`
     SELECT p.id AS pozitsiya_id, b.raqam, p.tartib, mt.nom AS tur,
-           p.eni_m::text, p.boyi_m::text, p.yorliq, p.izoh
+           p.eni_m::text, p.boyi_m::text, p.yorliq, p.izoh,
+           (SELECT string_agg(
+                     pt.tanlov_nomi_snapshot || ': ' || pt.variant_nomi_snapshot,
+                     ' · ' ORDER BY pt.id)
+              FROM pozitsiya_tanlov pt
+             WHERE pt.buyurtma_pozitsiya_id = p.id) AS tanlovlar
     FROM buyurtma_pozitsiya p
     JOIN buyurtma b      ON b.id = p.buyurtma_id
     JOIN mahsulot_tur mt ON mt.id = p.mahsulot_tur_id

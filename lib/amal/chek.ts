@@ -138,7 +138,7 @@ async function chekPozitsiyalari(
    *    mijozga savol tug'diradi («nega 3.96?»), javob esa kesish
    *    formulasi — chekning ishi emas.
    */
-  const [materiallar, aksessuarlar, qoshimchalar] = await Promise.all([
+  const [materiallar, aksessuarlar, qoshimchalar, tanlovlar] = await Promise.all([
     ulanish<{ buyurtma_pozitsiya_id: number; nom: string }[]>`
       SELECT pm.buyurtma_pozitsiya_id, m.nom
       FROM pozitsiya_material pm
@@ -169,6 +169,23 @@ async function chekPozitsiyalari(
       FROM pozitsiya_qoshimcha
       WHERE buyurtma_pozitsiya_id = ANY(${idlar})
       ORDER BY id`,
+    /**
+     * TANLANGAN VARIANTLAR — 0052.
+     *
+     * ⚠️ Chekda KO'RINADI: mijoz nima tanlaganini tasdiqlashi kerak.
+     *    «Boshqaruv tomoni: o'ng» — keyin «men chapga aytgandim»
+     *    degan bahs chiqmaydi.
+     *
+     * ⚠️ Narxi ALOHIDA chiqmaydi — u pozitsiya narxiga allaqachon
+     *    kirgan va ikkinchi marta ko'rsatilsa mijoz ikki marta
+     *    to'layotgandek tuyulardi (qo'shimchalardagi kabi).
+     */
+    ulanish<{ buyurtma_pozitsiya_id: number; nom: string }[]>`
+      SELECT buyurtma_pozitsiya_id,
+             tanlov_nomi_snapshot || ': ' || variant_nomi_snapshot AS nom
+      FROM pozitsiya_tanlov
+      WHERE buyurtma_pozitsiya_id = ANY(${idlar})
+      ORDER BY id`,
   ]);
 
   return q.map((p) => ({
@@ -191,6 +208,7 @@ async function chekPozitsiyalari(
           ...materiallar.filter((m) => m.buyurtma_pozitsiya_id === p.id).map((m) => m.nom),
           ...aksessuarlar.filter((a) => a.buyurtma_pozitsiya_id === p.id).map((a) => a.nom),
           ...qoshimchalar.filter((x) => x.buyurtma_pozitsiya_id === p.id).map((x) => x.nom),
+          ...tanlovlar.filter((x) => x.buyurtma_pozitsiya_id === p.id).map((x) => x.nom),
         ]
       : [],
   }));
