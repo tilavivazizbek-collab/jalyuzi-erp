@@ -638,6 +638,21 @@ export function MahsulotFormasi({
                           ...guruhRoyxati.map((g) => ({
                             qiymat: `G:${String(g.id)}`,
                             matn: g.nom,
+                            /*
+                              ⚠️ MATERIAL SONI KO'RINADI — 2026-09-23.
+
+                                 Egasining turi matosi yo'q guruhga
+                                 ulangan edi va sotuv ekranida mato
+                                 ro'yxati bo'sh chiqardi. Ekranda
+                                 «0 ta material» deb tursa bu xato
+                                 tanlash paytidayoq ko'rinadi.
+                            */
+                            izoh:
+                              g.materialSoni === undefined
+                                ? undefined
+                                : g.materialSoni === 0
+                                  ? "⚠ mato yo'q — bu tur sotilmaydi"
+                                  : `${String(g.materialSoni)} ta material`,
                             guruh: 'Guruhlar (sotuvchi tanlaydi)',
                           })),
                           ...materialRoyxati.map((mt) => ({

@@ -252,6 +252,75 @@ async function bolaklarniYoz(
   }
 }
 
+/**
+ * BO'SH GURUHLI SLOT — egasi qarori 2026-09-23 («butunlay to'xtatsin»).
+ *
+ * ⚠️ NEGA BU TEKSHIRUV BOR
+ *
+ *    Egasining turi uchta slotdan iborat edi va UCHALASI HAM matosi
+ *    yo'q guruhga ulangan edi. Natijada sotuv ekranida mato ro'yxati
+ *    bo'sh chiqar, daraja topilmas va ekran «matoga daraja
+ *    qo'yilmagan» deb NOTO'G'RI aybdorni ko'rsatardi. Egasi
+ *    materialga daraja qo'yishga ketar, u yerda esa hammasi joyida
+ *    bo'lardi.
+ *
+ *    Tekshiruv faqat «guruh tanlanmagan» ni ushlardi, «guruhda mato
+ *    yo'q» ni ushlamasdi — ya'ni sotilmaydigan turni saqlashga
+ *    ruxsat berardi.
+ *
+ * ⚠️ DOMENDA EMAS, SHU YERDA: material sonini bilish uchun
+ *    bazaga qarash kerak, domen esa bazaga tegmaydi.
+ */
+async function boshGuruhlar(
+  ulanish: postgres.Sql,
+  kirim: MahsulotTurKirimi,
+): Promise<readonly string[]> {
+  const idlar = [
+    ...new Set(
+      kirim.slotlar
+        .map((x) => x.almashtirishGuruhId)
+        .filter((x): x is number => x !== null),
+    ),
+  ];
+  if (idlar.length === 0) return [];
+
+  const qatorlar = await ulanish<{ id: number; nom: string; soni: number }[]>`
+    SELECT g.id, g.nom,
+           (SELECT count(*)::int FROM material m
+             WHERE m.almashtirish_guruh_id = g.id AND m.faol) AS soni
+      FROM almashtirish_guruh g
+     WHERE g.id = ANY(${idlar})`;
+
+  return qatorlar
+    .filter((g) => g.soni === 0)
+    .map(
+      (g) =>
+        `«${g.nom}» guruhida mato yo'q — sotuv ekranida ro'yxat bo'sh chiqadi ` +
+        'va bu tur sotilmaydi. Avval guruhga material biriktiring.',
+    );
+}
+
+/**
+ * NARX BELGILOVCHI SLOT TANLANMAGAN — ogohlantirish emas, NUQSON.
+ *
+ * ⚠️ Bir nechta mato sloti bo'lsa va birortasi belgilanmagan
+ *    bo'lsa, daraja «birinchi mato sloti» qoidasiga tushadi. Uch
+ *    slotli turda bu TASODIFGA qolgan tanlov: slot tartibi
+ *    o'zgarsa mijoz narxi jimgina o'zgaradi.
+ *
+ * ⚠️ Bitta slotli turda savol yo'q — tekshiruv ishlamaydi.
+ */
+function narxBelgilovchiNuqsoni(kirim: MahsulotTurKirimi): readonly string[] {
+  const matoSlotlari = kirim.slotlar.filter((x) => x.almashtirishGuruhId !== null);
+  if (matoSlotlari.length < 2) return [];
+  if (matoSlotlari.some((x) => x.narxBelgilaydi === true)) return [];
+  return [
+    "Mijoz narxini qaysi slot belgilashi tanlanmagan — slotlardan birida " +
+      "«narxni shu slot belgilaydi» ni yoqing. Aks holda daraja birinchi " +
+      'mato slotidan olinadi va slot tartibi o’zgarsa narx ham o’zgaradi.',
+  ];
+}
+
 export async function mahsulotTuriYarat(
   ulanish: postgres.Sql,
   kirim: MahsulotTurKirimi,
@@ -259,7 +328,11 @@ export async function mahsulotTuriYarat(
   /** Katalog rasmi — TZ 4.2. `null` — yo'q, `'OCHIR'` — olib tashlash */
   rasm: RasmNatijasi | 'OCHIR' | null = null,
 ): Promise<KonstruktorNatijasi> {
-  const xabarlar = domenTekshiruvi(kirim);
+  const xabarlar = [
+    ...domenTekshiruvi(kirim),
+    ...narxBelgilovchiNuqsoni(kirim),
+    ...(await boshGuruhlar(ulanish, kirim)),
+  ];
   if (xabarlar.length > 0) return { holat: 'NUQSON', xabarlar };
 
   return ulanish.begin(async (tx) => {
@@ -298,7 +371,13 @@ export async function mahsulotTuriTahrirla(
   filialId: number,
   rasm: RasmNatijasi | 'OCHIR' | null = null,
 ): Promise<KonstruktorNatijasi> {
-  const xabarlar = domenTekshiruvi(kirim);
+  /** ⚠️ TAHRIRDA HAM bir xil tekshiruv — aks holda sotilmaydigan
+   *     turni saqlab bo'lmasdi, lekin ishlayotganini buzib bo'lardi */
+  const xabarlar = [
+    ...domenTekshiruvi(kirim),
+    ...narxBelgilovchiNuqsoni(kirim),
+    ...(await boshGuruhlar(ulanish, kirim)),
+  ];
   if (xabarlar.length > 0) return { holat: 'NUQSON', xabarlar };
 
   return ulanish.begin(async (tx) => {

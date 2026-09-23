@@ -40,6 +40,13 @@ export interface SlotHolati {
 export interface GuruhMalumoti {
   readonly id: number;
   readonly nom: string;
+  /**
+   * Guruhda nechta faol material bor — 2026-09-23.
+   *
+   * ⚠️ `0` bo'lsa bu guruhli slot bilan tur SOTILMAYDI va
+   *    saqlash to'xtatiladi (egasi qarori).
+   */
+  readonly materialSoni?: number;
   readonly sarflashBirligi: SarflashBirligi;
   /** Guruhdagi materiallardan biri — narx namunasi uchun */
   readonly namunaNarx: string | null;

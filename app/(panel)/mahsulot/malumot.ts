@@ -12,6 +12,8 @@ import type { SarflashBirligi } from '@/lib/domain/birlik';
 interface GuruhQatori {
   readonly id: number;
   readonly nom: string;
+  /** Guruhdagi faol material soni — 2026-09-23 */
+  readonly material_soni: number;
   readonly sarflash_birligi: string | null;
   readonly namuna_narx: string | null;
   readonly namuna_nom: string | null;
@@ -27,6 +29,16 @@ interface GuruhQatori {
 export async function guruhlarniOl(): Promise<GuruhMalumoti[]> {
   const qatorlar = await ulanishOl()<GuruhQatori[]>`
     SELECT g.id, g.nom,
+           /*
+            * ⚠️ MATERIAL SONI — 2026-09-23.
+            *
+            *    Egasining turi matosi YO'Q guruhga ulangan edi va
+            *    buni ekranda bilishning iloji yo'q edi: «material
+            *    dikkey» va «dikkey mato» yonma-yon turardi.
+            *    Endi son yonida ko'rinadi.
+            */
+           (SELECT count(*)::int FROM material m2
+             WHERE m2.almashtirish_guruh_id = g.id AND m2.faol = true) AS material_soni,
            n.sarflash_birligi, n.sotuv_narx AS namuna_narx, n.nom AS namuna_nom
     FROM almashtirish_guruh g
     LEFT JOIN LATERAL (
@@ -42,6 +54,8 @@ export async function guruhlarniOl(): Promise<GuruhMalumoti[]> {
   return qatorlar.map((g) => ({
     id: g.id,
     nom: g.nom,
+    /** ⚠️ `0` — bu guruhli slot bilan tur SOTILMAYDI (2026-09-23) */
+    materialSoni: g.material_soni,
     sarflashBirligi: (g.sarflash_birligi ?? 'KV_M') as SarflashBirligi,
     namunaNarx: g.namuna_narx,
     namunaNom: g.namuna_nom,

@@ -838,6 +838,33 @@ export function SotuvFormasi({
         };
       });
 
+    /*
+     * ── NARX NEGA CHIQMADI — 2026-09-23 ─────────────────────
+     *
+     * ⚠️ Ekran ilgari HAMMA holatda «matoga daraja qo'yilmagan»
+     *    derdi. Egasining holatida esa sabab butunlay boshqa edi:
+     *    slotga ulangan guruhda MATO UMUMAN YO'Q edi va ro'yxat
+     *    bo'sh chiqardi. Egasi materialga daraja qo'yishga ketdi —
+     *    u yerda hammasi joyida edi va sabab topilmadi.
+     *
+     * ⚠️ «Mato hali tanlanmagan» ham XATO EMAS: sotuvchi endi
+     *    tur tanladi, hali hech narsa qilmadi. Qizil ogohlantirish
+     *    o'rniga oddiy yo'l-yo'riq chiqadi.
+     */
+    const matosizSlotlar = qatorlar
+      .filter((q) => q.slot.materiallar.length === 0)
+      .map((q) => q.slot.nom);
+    const tanlanmaganSlotlar = qatorlar
+      .filter((q) => q.slot.materiallar.length > 0 && q.material === null)
+      .map((q) => q.slot.nom);
+
+    const narxSababi: 'MATO_YOQ' | 'TANLANMAGAN' | null =
+      matosizSlotlar.length > 0
+        ? 'MATO_YOQ'
+        : tanlanmaganSlotlar.length > 0
+          ? 'TANLANMAGAN'
+          : null;
+
     return {
       qatorlar,
       aksQatorlar,
@@ -850,6 +877,9 @@ export function SotuvFormasi({
       buyumSoni,
       darajaNomi,
       darajaliMaterial,
+      narxSababi,
+      matosizSlotlar,
+      tanlanmaganSlotlar,
     };
   }, [
     tur,
@@ -2022,7 +2052,45 @@ export function SotuvFormasi({
                  bepulga berish demak edi. Sotuvchi sababni ko'radi
                  va adminga aytadi.
             */}
-            {hisob !== null && hisob.narx.xato !== null && (
+            {/*
+              ── MATO UMUMAN YO'Q — 2026-09-23 ──────────────────
+
+              ⚠️ ENG MUHIM XABAR. Egasining turida uchala slot ham
+                 matosi yo'q guruhga ulangan edi va ekran buni
+                 «daraja qo'yilmagan» deb ko'rsatardi — noto'g'ri
+                 aybdor. Sotuvchi va egasi sababni topolmasdi.
+            */}
+            {hisob !== null && hisob.narxSababi === 'MATO_YOQ' && (
+              <div
+                role="alert"
+                className="rounded-karta border border-belgi-qizil bg-belgi-qizil-fon px-5 py-4 text-sm text-belgi-qizil"
+              >
+                <p className="font-medium">
+                  Bu turda mato yo&apos;q — sotib bo&apos;lmaydi
+                </p>
+                <p className="mt-1 text-xs">
+                  <b>{hisob.matosizSlotlar.join(', ')}</b> slot
+                  {hisob.matosizSlotlar.length > 1 ? 'lari' : 'i'} ulangan guruhda
+                  birorta material yo&apos;q. <b>Mahsulot turi</b> sahifasida
+                  slotga matosi bor guruhni tanlang yoki o&apos;sha guruhga
+                  material biriktiring.
+                </p>
+              </div>
+            )}
+
+            {/*
+              ⚠️ MATO HALI TANLANMAGAN — bu XATO EMAS. Sotuvchi
+                 endigina turni tanladi. Qizil ogohlantirish uni
+                 «nimadir buzilibdi» deb o'ylashga majbur qilardi.
+            */}
+            {hisob !== null && hisob.narxSababi === 'TANLANMAGAN' && (
+              <p className="rounded-karta border border-dashed border-chegara-quyuq px-5 py-4 text-[13px] text-matn-ikki">
+                <b>{hisob.tanlanmaganSlotlar.join(', ')}</b> uchun matoni tanlang —
+                narx shundan keyin chiqadi.
+              </p>
+            )}
+
+            {hisob !== null && hisob.narx.xato !== null && hisob.narxSababi === null && (
               <div
                 role="alert"
                 className="rounded-karta border border-belgi-qizil bg-belgi-qizil-fon px-5 py-4 text-sm text-belgi-qizil"
