@@ -378,7 +378,7 @@ export function Tanlagich({
               maxHeight: PANEL_BALANDLIGI,
               zIndex: 90,
             }}
-            className="flex flex-col overflow-hidden rounded-karta border border-chegara bg-sirt shadow-[0_12px_32px_rgba(15,23,42,0.14)]"
+            className="flex flex-col overflow-hidden rounded-karta border border-chegara bg-sirt shadow-suzuvchi"
           >
             {qidiruvBormi && (
               /*

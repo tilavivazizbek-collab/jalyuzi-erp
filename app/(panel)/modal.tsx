@@ -114,7 +114,7 @@ export function Modal({
         if (e.target === oyna.current) yop();
       }}
       aria-labelledby="modal-sarlavha"
-      className={`w-[92vw] rounded-karta border border-chegara bg-sirt p-0 text-matn shadow-xl backdrop:bg-matn/40 ${
+      className={`w-[92vw] rounded-karta border border-chegara bg-sirt p-0 text-matn shadow-suzuvchi backdrop:bg-parda ${
         keng ? 'max-w-3xl' : 'max-w-lg'
       }`}
     >

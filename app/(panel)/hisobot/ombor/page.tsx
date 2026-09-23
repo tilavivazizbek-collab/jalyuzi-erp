@@ -97,7 +97,7 @@ export default async function OmborHisoboti({
               href={`/hisobot/ombor?davr=${d.kod}`}
               className={
                 d.kod === davrTuri
-                  ? 'rounded-maydon bg-brend px-3 py-1.5 text-sm font-medium text-white'
+                  ? 'rounded-maydon bg-brend px-3 py-1.5 text-sm font-medium text-tugma-matn'
                   : 'rounded-maydon border border-chegara-quyuq px-3 py-1.5 text-sm text-matn-ikki transition-all hover:bg-fon active:scale-[0.98]'
               }
             >

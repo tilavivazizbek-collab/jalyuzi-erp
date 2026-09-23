@@ -47,7 +47,7 @@ export default async function FilialRoyxati({
           {yarataOladi && (
             <Link
               href="/filial/yangi"
-              className="rounded-maydon bg-brend px-3.5 py-2 text-sm font-medium text-white transition-all active:scale-[0.98] hover:bg-brend-quyuq"
+              className="rounded-maydon bg-brend px-3.5 py-2 text-sm font-medium text-tugma-matn transition-all active:scale-[0.98] hover:bg-brend-quyuq"
             >
               Yangi filial
             </Link>
@@ -78,7 +78,7 @@ export default async function FilialRoyxati({
                     {q.nom}
                   </Link>
                   {q.bosh && (
-                    <span className="ml-2 rounded-full bg-brend px-2 py-0.5 text-xs text-white">
+                    <span className="ml-2 rounded-full bg-brend px-2 py-0.5 text-xs text-tugma-matn">
                       bosh
                     </span>
                   )}

@@ -8,7 +8,8 @@ majbur bo'ldi («dropdownlarda qo'shish bo'lsin»). Har safar bitta
 joy tuzatilib «bo'ldi» deyilardi. Teshik ko'rinmagani uchun shunday
 bo'ldi. Endi ko'rinadi.
 
-Oxirgi yangilanish: **2026-09-22** — soha auditi va narx zanjiri tuzatildi
+Oxirgi yangilanish: **2026-09-23** — **KUN va TUN ko'rinishi** (§0=).
+Undan oldin: **2026-09-22** — soha auditi va narx zanjiri tuzatildi
 (§0-). Undan oldin: **2026-09-20** — **BUTUN TIZIM METRGA O'TDI**
 (§0a) + narx modeli butunlay almashtirildi:
 «Narxlar va turlar» sahifasi, bosqichli narx, mato darajasi,
@@ -17,6 +18,42 @@ yopish varaqalari (TZ 8.9 · 15.4); sotuv cheki (TZ 8.9) va korxona
 sozlamalari (TZ 14.3); **modullararo audit — 14 ta tuzatish** (§7);
 yetkazib beruvchi kartochkasi (9.7–9.8), kurs farqi (9.5–9.6),
 buyurtmani tahrirlash (8.7), material statistikasi (7.11)
+
+---
+
+## 0=. KUN va TUN ko'rinishi — 2026-09-23
+
+Egasi: «butun tizimni ikki xil dizaynli qil, tun va kun».
+Texnik qaror: **`docs/QARORLAR-KOD.md` P-39**.
+
+| Nima | Holat |
+|---|---|
+| Kunduzgi ko'rinish | ✅ **o'zgarmadi** — egasi qabul qilgan ko'rinish o'sha holicha |
+| Tungi ko'rinish — barcha 156 ekran | ✅ |
+| Kirish ekrani | ✅ |
+| Almashtirgich (Kun · Tun · Kompyuter sozlamasi) | ✅ sarlavha qatorida va kirish ekranida |
+| Tanlov eslab qolinadi | ✅ cookie, 400 kun |
+| Birinchi kirganda | ✅ kompyuterning o'z sozlamasi bo'yicha |
+| Sahifa ochilganda oq chaqnash | ✅ yo'q — atribut serverdan keladi |
+| Chek va varaqalar | ✅ tunda ham **OQ qog'oz** |
+| Chop etish | ✅ har doim kunduzgi ranglarda |
+| Kontrast me'yori (WCAG AA) | ✅ tungi eng past natija 4.55 |
+
+### Yo'l-yo'lakay tuzatildi
+
+| Nima edi | Nima qilindi |
+|---|---|
+| **`bg-fon-ikki` sakkizta ekranda yozilgan, lekin dizayn tizimida bunday nom YO'Q edi** — o'sha sakkiz bo'lak fonsiz turardi | Nom qo'shildi, bo'laklar ko'rinadigan bo'ldi |
+| Modal va menyu pardasi `matn` rangidan olinardi | `parda` nomi qo'shildi — aks holda tunda parda oq bo'lib qolardi |
+| Soyalar va fokus halqasi qattiq yozilgan qiymatlar edi | Nom bilan turadi |
+
+### Ochiq qolgani
+
+⚠️ **Kunduzgi `matn-kuchsiz` rangi 2.56:1** — me'yor 4.5:1. U 713
+joyda ishlatiladi (jadval izohlari, mayda yozuvlar). Tungi
+ko'rinishda bu rang 4.75:1, ya'ni **tun kunduzdan o'qiladiganroq**.
+Kunduzgi qiymatga ataylab tegilmadi: u egasi ko'rib qabul qilgan
+ko'rinish. Tuzatish alohida ish sifatida taklif qilinadi.
 
 ---
 

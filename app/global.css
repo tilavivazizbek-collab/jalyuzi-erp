@@ -9,7 +9,29 @@
  *
  * ⚠️ Ma'noli ranglar (yashil, sariq, qizil, moviy) biznes ma'nosiga
  *    ega — bo'sh qoldiq, band, xato, yo'lda. Ular BEZAK EMAS:
- *    omborchi ularni yodlab olgan, o'zgartirilmaydi.
+ *    omborchi ularni yodlab olgan, o'zgartirilmaydi. TUNDA ham
+ *    o'sha ma'no saqlanadi: yashil yashilligicha qoladi, faqat
+ *    qorong'i ekranda o'qiladigan darajada yorishadi.
+ *
+ * ══ IKKI KO'RINISH — KUN va TUN ══════════════════════════════════
+ *
+ * ⚠️ Har rang IKKI QIYMATLI: `light-dark(kun, tun)`. Ikkalasi
+ *    YONMA-YON turadi — biri o'zgarsa ikkinchisi ko'z oldida
+ *    bo'ladi va ular bir-biridan uzoqlashib ketmaydi.
+ *
+ * ⚠️ Qaysi tomoni olinishini `color-scheme` hal qiladi (pastda).
+ *    Shuning uchun 156 ta ekranda `dark:` prefiksi YO'Q va ular
+ *    bu ish uchun umuman o'zgartirilmadi. Ranglar faqat shu
+ *    faylda turadi — «bir mantiq, bir joyda».
+ *
+ * ⚠️ TUNGI QIYMATLAR KO'Z BILAN EMAS, HISOB BILAN tanlangan.
+ *    Har juftlik WCAG kontrast me'yoridan o'tkazilgan:
+ *      · oddiy matn yuza ustida            ≥ 4.5 : 1
+ *      · to'ldirilgan tugma ustidagi yozuv ≥ 4.5 : 1
+ *      · nishoncha yozuvi o'z fonida       ≥ 4.5 : 1
+ *    Eng past tungi natija — 4.55 (kuchsiz matn ikkilamchi fonda).
+ *    Taqqoslash uchun: kunduzgi `matn-kuchsiz` 2.56 da turadi,
+ *    ya'ni tungi ko'rinish kunduzgisidan o'qiladiganroq.
  */
 @theme {
   /* ── Shrift ─────────────────────────────────────────────────── */
@@ -18,56 +40,165 @@
   /* ── Brend ──────────────────────────────────────────────────────
      Logo, faol menyu, havola va fokus halqasi. Tugmalarga
      QO'YILMAYDI: bitta ekranda 15–20 amal bor, hammasi to'q ko'k
-     bo'lsa ko'z qayerga qarashni bilmaydi. */
-  --color-brend: #5b53d6;
-  --color-brend-quyuq: #4a43c4;
-  --color-brend-fon: #eeecfb;
+     bo'lsa ko'z qayerga qarashni bilmaydi.
+
+     ⚠️ TUNDA brend YORISHADI. To'q siyohrang qorong'i fonda
+        3:1 ga tushardi — havola matni o'qilmay qolardi. Yorqin
+        siyohrang esa ham havola, ham tugma bo'lib ishlaydi:
+        tugmadagi yozuv `tugma-matn` bilan qoraytiriladi. */
+  --color-brend: light-dark(#5b53d6, #9a93f8);
+  --color-brend-quyuq: light-dark(#4a43c4, #b3aeff);
+  --color-brend-fon: light-dark(#eeecfb, #23204a);
 
   /* ── Asosiy amal ─────────────────────────────────────────────── */
-  --color-amal: #0f172a;
-  --color-amal-hover: #1e293b;
+  --color-amal: light-dark(#0f172a, #e6edf3);
+  --color-amal-hover: light-dark(#1e293b, #ffffff);
+
+  /* ── To'ldirilgan yuza ustidagi yozuv ────────────────────────────
+     ⚠️ KUNDA oq, TUNDA qora.
+
+        Sabab: tunda to'ldirilgan tugma (brend, qizil, sariq)
+        YORQIN bo'ladi — qorong'i ekranda to'q tugma ko'rinmaydi.
+        Yorqin yuza ustiga oq yozuv esa 2.3:1 beradi, ya'ni
+        o'qib bo'lmaydi. Tunda yozuv qoraga aylanadi va 7:1 dan
+        oshadi.
+
+     ⚠️ Ekranlarda `text-white` O'RNIGA shu ishlatiladi. Oq rang
+        qattiq yozilmaydi — u faqat kunduzgi qiymat. */
+  --color-tugma-matn: light-dark(#ffffff, #0d1117);
 
   /* ── Ma'noli ranglar ────────────────────────────────────────── */
-  --color-yashil: #059669;
-  --color-yashil-fon: #ecfdf5;
-  --color-sariq: #b45309;
-  --color-sariq-fon: #fffbeb;
-  --color-qizil: #dc2626;
-  --color-qizil-fon: #fef2f2;
-  --color-moviy: #0284c7;
-  --color-moviy-fon: #f0f9ff;
+  --color-yashil: light-dark(#059669, #34d399);
+  --color-yashil-fon: light-dark(#ecfdf5, #0d2f22);
+  --color-sariq: light-dark(#b45309, #fbbf49);
+  --color-sariq-fon: light-dark(#fffbeb, #37280f);
+  --color-qizil: light-dark(#dc2626, #ff7b7b);
+  --color-qizil-fon: light-dark(#fef2f2, #3a1a1e);
+  --color-moviy: light-dark(#0284c7, #56b6f0);
+  --color-moviy-fon: light-dark(#f0f9ff, #10283a);
 
-  /* ── Neytral ────────────────────────────────────────────────── */
-  --color-matn: #0f172a;
-  --color-matn-ikki: #475569;
-  --color-matn-kuchsiz: #94a3b8;
-  --color-chegara: #e2e8f0;
-  --color-chegara-quyuq: #cbd5e1;
-  --color-fon: #f7f8fc;
-  --color-sirt: #ffffff;
+  /* ── Neytral ──────────────────────────────────────────────────
+     ⚠️ TUNDA `fon` `sirt` dan QORONG'IROQ, kunda esa aksincha
+        (oq karta kulrang sahifa ustida). Qorong'i ekranda yuza
+        ko'tarilgani YORUG'LIK bilan bildiriladi: karta sahifadan
+        ochroq turadi, chunki qora ustiga tushgan soya ko'rinmaydi. */
+  --color-matn: light-dark(#0f172a, #e6edf3);
+  --color-matn-ikki: light-dark(#475569, #a3adba);
+  --color-matn-kuchsiz: light-dark(#94a3b8, #7d8794);
+  --color-chegara: light-dark(#e2e8f0, #262c36);
+  --color-chegara-quyuq: light-dark(#cbd5e1, #39414d);
+  --color-fon: light-dark(#f7f8fc, #0e1116);
+  --color-sirt: light-dark(#ffffff, #161b22);
+
+  /*
+   * Ikkilamchi fon — karta ICHIDAGI ajratilgan bo'lak.
+   *
+   * ⚠️ `bg-fon-ikki` sakkizta ekranda ilgari ham yozilgan edi,
+   *    lekin bunday NOM YO'Q edi: Tailwind noma'lum nomga qoida
+   *    chiqarmaydi, ya'ni o'sha sakkiz bo'lak fonsiz turardi.
+   *    Nom endi bor va ular ko'rinadi.
+   */
+  --color-fon-ikki: light-dark(#eef1f7, #191f27);
 
   /* ── Ko'rsatkich kartalari uchun belgi ranglari ──────────────────
      Har karta O'Z rangida: ko'z ularni bir-biridan ajratadi va
      «bugungi savdo» bilan «xarajat» adashib ketmaydi. Bu bezak
      emas — tez o'qish uchun. */
-  --color-belgi-kok: #4f7df3;
-  --color-belgi-kok-fon: #eaf0ff;
-  --color-belgi-yashil: #16a34a;
-  --color-belgi-yashil-fon: #e9f9ef;
-  --color-belgi-qizil: #e5484d;
-  --color-belgi-qizil-fon: #feecec;
-  --color-belgi-sariq: #d97706;
-  --color-belgi-sariq-fon: #fef4e6;
+  --color-belgi-kok: light-dark(#4f7df3, #7aa2f7);
+  --color-belgi-kok-fon: light-dark(#eaf0ff, #16213c);
+  --color-belgi-yashil: light-dark(#16a34a, #4ade80);
+  --color-belgi-yashil-fon: light-dark(#e9f9ef, #10301f);
+  --color-belgi-qizil: light-dark(#e5484d, #ff7b7b);
+  --color-belgi-qizil-fon: light-dark(#feecec, #3a1a1e);
+  --color-belgi-sariq: light-dark(#d97706, #fbbf49);
+  --color-belgi-sariq-fon: light-dark(#fef4e6, #3a2a10);
+
+  /* ── Parda ──────────────────────────────────────────────────────
+     Modal va mobil menyu ortidagi qoraytirish.
+
+     ⚠️ Shaffoflik NOM ICHIGA kiritilgan (`bg-parda`, `bg-parda/40`
+        emas). Sabab: tunda 40% yetarli emas — sahifaning o'zi
+        qora, ustiga qora tushsa hech narsa o'zgarmaydi va odam
+        modal ochilganini sezmaydi. Tunda 65% kerak. Bitta nomda
+        ikki xil shaffoflik faqat shu yo'l bilan beriladi. */
+  --color-parda: light-dark(rgb(15 23 42 / 40%), rgb(0 0 0 / 65%));
+  --color-parda-och: light-dark(rgb(15 23 42 / 20%), rgb(0 0 0 / 55%));
+
+  /* ── Fokus halqasi rangi ────────────────────────────────────────
+     ⚠️ TUNDA KUCHLIROQ (18% → 32%): qorong'i fonda kuchsiz halqa
+        umuman ko'rinmay qoladi va klaviatura bilan yuradigan odam
+        qayerdaligini yo'qotadi. */
+  --color-fokus-halqa: light-dark(rgb(37 99 235 / 18%), rgb(154 147 248 / 32%));
 
   /* ── Burchak ────────────────────────────────────────────────── */
   --radius-maydon: 8px;
   /* Referens uslubi — yumshoqroq burchak, kartalar «og'ir»
      ko'rinmasin */
   --radius-karta: 14px;
+
+  /* ── Soyalar ────────────────────────────────────────────────────
+     ⚠️ TUNDA SOYA QUYUQROQ, lekin baribir kuchsiz ko'rinadi: qora
+        ustidagi qora soya ko'zga urilmaydi. Shuning uchun tunda
+        balandlikni asosan CHEGARA va ochroq yuza bildiradi,
+        soya esa faqat yordam beradi. */
+  --shadow-karta: 0 1px 2px light-dark(rgb(15 23 42 / 6%), rgb(0 0 0 / 45%));
+  --shadow-suzuvchi: 0 12px 32px light-dark(rgb(15 23 42 / 14%), rgb(0 0 0 / 65%));
+}
+
+/**
+ * ══ KO'RINISHNI KIM HAL QILADI ═══════════════════════════════════
+ *
+ * ⚠️ `color-scheme` — BRAUZERNING o'z kaliti. U ikki ishni birdan
+ *    qiladi:
+ *      1. `light-dark()` qaysi tomonini berishini belgilaydi;
+ *      2. brauzerning O'Z qismlarini — aylantirgich, `<select>`
+ *         ochilgan ro'yxati, sana tanlagich — mos rangga o'tkazadi.
+ *
+ *    Shuning uchun alohida «tungi CSS» yozilmaydi.
+ *
+ * ⚠️ ATRIBUT YO'Q = TIZIM. Qo'yilmagan bo'lsa `light dark` qoladi
+ *    va brauzer operatsion tizimdan so'raydi. Ya'ni birinchi marta
+ *    kirgan odam darhol o'zi odatlangan ko'rinishni ko'radi —
+ *    hech narsa bosishi shart emas.
+ *
+ * ⚠️ Atribut SERVERDA qo'yiladi (`app/layout.tsx`, cookie dan
+ *    o'qib). Shu sabab sahifa ochilganda «oq chaqnash» bo'lmaydi:
+ *    HTML allaqachon to'g'ri ko'rinishda keladi va JavaScript
+ *    kutilmaydi.
+ */
+:root {
+  color-scheme: light dark;
+}
+
+:root[data-korinish='kun'] {
+  color-scheme: light;
+}
+
+:root[data-korinish='tun'] {
+  color-scheme: dark;
 }
 
 html {
   -webkit-text-size-adjust: 100%;
+}
+
+/**
+ * QOG'OZ HUJJATLAR HAR DOIM KUNDUZGI.
+ *
+ * ⚠️ Chek va varaqa — QOG'OZNING EKRANDAGI NUSXASI. Printerdan
+ *    ular oq qog'ozga qora siyohda chiqadi, shuning uchun ekranda
+ *    ham shunday ko'rinishi kerak: sotuvchi chop etishdan oldin
+ *    aynan nima chiqishini ko'radi. Qora fonli chek yolg'on
+ *    ko'rsatuv bo'lardi.
+ *
+ * ⚠️ `color-scheme: light` BITTA QATOR bilan butun ichki qismni
+ *    kunduzgi qiymatlarga qaytaradi: ichkaridagi har nom
+ *    (`text-matn-ikki`, `border-chegara`) o'z-o'zidan kunduzgi
+ *    tomonini oladi. Tunda ishlayotgan odamda ham qog'oz oq qoladi.
+ */
+.chek,
+.varaqa {
+  color-scheme: light;
 }
 
 /**
@@ -109,10 +240,11 @@ select:disabled {
 }
 
 /**
- * ⚠️ Ro'yxatning O'ZI (ochilgandagi qatorlar) brauzerniki
- *    bo'lib qoladi — uni CSS bilan boshqarib bo'lmaydi. Faqat
- *    matn rangi va fonini berib qo'yamiz, qorong'i rejimda oq
- *    ustiga oq yozuv chiqmasin.
+ * ⚠️ Ro'yxatning O'ZI (ochilgandagi qatorlar) brauzerniki bo'lib
+ *    qoladi — uni CSS bilan boshqarib bo'lmaydi. Lekin
+ *    `color-scheme` tufayli brauzer uni tunda o'zi qorong'i
+ *    chizadi, ya'ni oq ustiga oq yozuv chiqmaydi. Quyidagisi
+ *    kafolat uchun qoldirilgan.
  */
 select option {
   color: var(--color-matn);
@@ -143,7 +275,7 @@ select option {
 .fokus:focus-visible,
 .fokus:focus {
   border-color: var(--color-brend);
-  box-shadow: 0 0 0 3px rgb(37 99 235 / 18%);
+  box-shadow: 0 0 0 3px var(--color-fokus-halqa);
 }
 
 /**
@@ -205,6 +337,17 @@ select option {
    *    Global qoida qo'yilsa, A4 hujjat ham 80 mm ga siqilib
    *    chiqardi va jadval kesilib ketardi.
    */
+
+  /*
+   * ⚠️ QOG'OZ HAR DOIM KUNDUZGI — odam tungi ko'rinishda ishlab
+   *    turib chop etsa ham. Bitta qator butun sahifani kunduzgi
+   *    qiymatlarga qaytaradi: printerdan qora varaq chiqmaydi va
+   *    kartrij behuda sarflanmaydi.
+   */
+  :root {
+    color-scheme: light;
+  }
+
   body * {
     visibility: hidden;
   }

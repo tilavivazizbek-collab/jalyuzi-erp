@@ -222,7 +222,7 @@ export function KassaYaratFormasi({
         <button
           type="submit"
           disabled={kutilmoqda}
-          className="rounded-maydon bg-brend px-4 py-2.5 text-sm font-medium text-white transition-all hover:bg-brend-quyuq active:scale-[0.98] disabled:opacity-60"
+          className="rounded-maydon bg-brend px-4 py-2.5 text-sm font-medium text-tugma-matn transition-all hover:bg-brend-quyuq active:scale-[0.98] disabled:opacity-60"
         >
           {kutilmoqda ? 'Saqlanmoqda…' : 'Kassa ochish'}
         </button>

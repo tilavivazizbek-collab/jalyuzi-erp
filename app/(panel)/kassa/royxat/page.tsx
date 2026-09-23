@@ -50,7 +50,7 @@ export default async function KassaRoyxati({
           {boshqaraOladi && (
             <Link
               href="/kassa/yangi"
-            className="rounded-maydon bg-brend px-3.5 py-2 text-sm font-medium text-white transition-all hover:bg-brend-quyuq active:scale-[0.98]"
+            className="rounded-maydon bg-brend px-3.5 py-2 text-sm font-medium text-tugma-matn transition-all hover:bg-brend-quyuq active:scale-[0.98]"
           >
               + Yangi kassa
             </Link>

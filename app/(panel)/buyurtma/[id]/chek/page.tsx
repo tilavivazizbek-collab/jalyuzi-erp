@@ -274,7 +274,7 @@ function ChekYoq({ buyurtmaId, sabab }: { buyurtmaId: number; sabab: string }) {
       {/* ⚠️ Faqat tushuntirish yetarli emas — hujjatga HAVOLA kerak */}
       <Link
         href={`/buyurtma/${String(buyurtmaId)}/kvitansiya`}
-        className="fokus inline-block w-fit rounded-maydon bg-brend px-4 py-2.5 text-sm font-medium text-white transition-all hover:bg-brend-quyuq active:scale-[0.98]"
+        className="fokus inline-block w-fit rounded-maydon bg-brend px-4 py-2.5 text-sm font-medium text-tugma-matn transition-all hover:bg-brend-quyuq active:scale-[0.98]"
       >
         Kvitansiya chiqarish
       </Link>

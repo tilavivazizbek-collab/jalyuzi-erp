@@ -113,7 +113,7 @@ export function KirimTahrirFormasi({
         <button
           type="submit"
           disabled={kutilmoqda}
-          className="fokus rounded-maydon bg-brend px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
+          className="fokus rounded-maydon bg-brend px-4 py-2 text-sm font-medium text-tugma-matn disabled:opacity-60"
         >
           {kutilmoqda ? 'Hisoblanmoqda…' : 'Qayta hisoblash'}
         </button>

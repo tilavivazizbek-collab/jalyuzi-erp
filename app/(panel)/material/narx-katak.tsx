@@ -209,7 +209,7 @@ export function NarxKatagi({
             aria-pressed={yaxlitlangan}
             className={`fokus rounded-maydon px-2 py-0.5 text-[12px] font-medium transition-colors ${
               yaxlitlangan
-                ? 'bg-brend text-white'
+                ? 'bg-brend text-tugma-matn'
                 : 'text-brend hover:bg-brend/10 hover:underline'
             }`}
           >

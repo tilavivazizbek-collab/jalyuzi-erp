@@ -112,7 +112,7 @@ export function OchirTugma({
           type="button"
           disabled={kutilmoqda}
           onClick={ochir}
-          className="fokus rounded-maydon bg-belgi-qizil px-2.5 py-1 text-[12px] font-medium text-white transition-all hover:brightness-95 active:scale-[0.98] disabled:opacity-60"
+          className="fokus rounded-maydon bg-belgi-qizil px-2.5 py-1 text-[12px] font-medium text-tugma-matn transition-all hover:brightness-95 active:scale-[0.98] disabled:opacity-60"
         >
           {kutilmoqda ? "O'chirilmoqda…" : 'Ha'}
         </button>

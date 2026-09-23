@@ -89,7 +89,7 @@ export function DavoTugmalari({
         <button
           type="submit"
           disabled={kutilmoqda}
-          className="fokus rounded-maydon bg-brend px-3 py-1 text-[12px] font-medium text-white disabled:opacity-60"
+          className="fokus rounded-maydon bg-brend px-3 py-1 text-[12px] font-medium text-tugma-matn disabled:opacity-60"
         >
           {kutilmoqda ? '…' : 'Tasdiqlash'}
         </button>

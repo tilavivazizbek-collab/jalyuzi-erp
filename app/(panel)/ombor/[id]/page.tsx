@@ -158,7 +158,7 @@ export default async function MaterialKartochkasi({ params }: { params: Promise<
           {kirimQilaOladi && (
             <Link
               href={`/ombor/kirim/yangi?material=${String(materialId)}`}
-              className="inline-block rounded-maydon bg-brend px-3 py-1.5 text-sm font-medium text-white transition-all hover:bg-brend-quyuq active:scale-[0.98]"
+              className="inline-block rounded-maydon bg-brend px-3 py-1.5 text-sm font-medium text-tugma-matn transition-all hover:bg-brend-quyuq active:scale-[0.98]"
             >
               Kirim qilish
             </Link>

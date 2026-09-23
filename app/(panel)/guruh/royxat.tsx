@@ -105,7 +105,7 @@ function Qator({
                 type="button"
                 disabled={kutilmoqda}
                 onClick={saqla}
-                className="fokus rounded-maydon bg-brend px-2.5 py-1 text-[12px] font-medium text-white transition-all hover:bg-brend-quyuq active:scale-[0.98] disabled:opacity-60"
+                className="fokus rounded-maydon bg-brend px-2.5 py-1 text-[12px] font-medium text-tugma-matn transition-all hover:bg-brend-quyuq active:scale-[0.98] disabled:opacity-60"
               >
                 {kutilmoqda ? 'Saqlanmoqda…' : 'Saqlash'}
               </button>

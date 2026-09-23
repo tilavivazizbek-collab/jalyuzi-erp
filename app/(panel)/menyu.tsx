@@ -66,7 +66,7 @@ export function Menyu({ guruhlar }: { guruhlar: readonly MenyuGuruhi[] }) {
           onClick={() => {
             ochiqniOzgartir(false);
           }}
-          className="fixed inset-0 z-30 bg-matn/20 lg:hidden"
+          className="fixed inset-0 z-30 bg-parda-och lg:hidden"
         />
       )}
 

@@ -52,7 +52,7 @@ export default async function MahsulotRoyxati({
           {yarataOladi && (
             <Link
               href="/mahsulot/yangi"
-              className="rounded-maydon bg-brend px-3.5 py-2 text-sm font-medium text-white transition-all active:scale-[0.98] hover:bg-brend-quyuq"
+              className="rounded-maydon bg-brend px-3.5 py-2 text-sm font-medium text-tugma-matn transition-all active:scale-[0.98] hover:bg-brend-quyuq"
             >
               Tur yaratish
             </Link>

@@ -369,7 +369,7 @@ export function KirimFormasi({
           </p>
           <Link
             href="/ombor"
-            className="mt-3 inline-block rounded-maydon bg-belgi-sariq px-3 py-1.5 text-xs font-medium text-white"
+            className="mt-3 inline-block rounded-maydon bg-belgi-sariq px-3 py-1.5 text-xs font-medium text-tugma-matn"
           >
             Omborga o&apos;tish
           </Link>
@@ -1017,7 +1017,7 @@ export function KirimFormasi({
           <button
             type="submit"
             disabled={kutilmoqda || qatorlar.length === 0}
-            className="rounded-maydon bg-brend px-4 py-2.5 text-sm font-medium text-white transition-all active:scale-[0.98] hover:bg-brend-quyuq disabled:opacity-60"
+            className="rounded-maydon bg-brend px-4 py-2.5 text-sm font-medium text-tugma-matn transition-all active:scale-[0.98] hover:bg-brend-quyuq disabled:opacity-60"
           >
             {kutilmoqda ? 'Saqlanmoqda…' : 'Kirim qilish'}
           </button>

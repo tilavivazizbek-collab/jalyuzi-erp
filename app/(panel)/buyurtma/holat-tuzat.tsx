@@ -74,7 +74,7 @@ export function HolatTuzatishTugmasi({
                 onClick={() => {
                   ochiqniOzgartir(false);
                 }}
-                className="fokus self-start rounded-maydon bg-brend px-4 py-2.5 text-sm font-medium text-white transition-all hover:bg-brend-quyuq active:scale-[0.98]"
+                className="fokus self-start rounded-maydon bg-brend px-4 py-2.5 text-sm font-medium text-tugma-matn transition-all hover:bg-brend-quyuq active:scale-[0.98]"
               >
                 Yopish
               </button>
@@ -141,7 +141,7 @@ export function HolatTuzatishTugmasi({
                 <button
                   type="submit"
                   disabled={kutilmoqda}
-                  className="fokus rounded-maydon bg-belgi-sariq px-4 py-2.5 text-sm font-medium text-white transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-60"
+                  className="fokus rounded-maydon bg-belgi-sariq px-4 py-2.5 text-sm font-medium text-tugma-matn transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-60"
                 >
                   {kutilmoqda ? 'Bajarilmoqda…' : "To'g'rilash"}
                 </button>

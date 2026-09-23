@@ -1,10 +1,13 @@
 import type { ReactNode } from 'react';
+import { cookies } from 'next/headers';
 import { kirganBolishiShart } from '@/lib/kirish/joriy';
 import { ruxsatBormi } from '@/lib/ruxsat/tekshir';
 import type { RuxsatKod } from '@/lib/ruxsat/kodlar';
 import { chiqishAmali } from './chiqish/amal';
 import { Menyu, type MenyuGuruhi } from './menyu';
 import { BrendBelgisi } from '../kirish/belgi';
+import { KorinishTugmasi } from '../korinish-tugma';
+import { KORINISH_COOKIE, korinishTekshir } from '../korinish';
 
 export const dynamic = 'force-dynamic';
 
@@ -146,6 +149,15 @@ export default async function PanelQatlami({ children }: { children: ReactNode }
   const foydalanuvchi = await kirganBolishiShart();
   const rollar = foydalanuvchi.rollar.map((r) => r.nom).join(' · ');
 
+  /*
+   * ⚠️ Ko'rinish tanlovi cookie da turadi, bazada emas. Sabab: u
+   *    xodimning EMAS, kompyuterning xususiyati. Bir xodim kunduzi
+   *    savdo do'konidagi yorug' ekranda, kechqurun uydagi noutbukda
+   *    ishlashi mumkin va ikkalasida boshqacha ko'rinish kerak
+   *    bo'ladi. Bazaga yozilsa tanlov ikkalasiga birdan tegardi.
+   */
+  const korinish = korinishTekshir((await cookies()).get(KORINISH_COOKIE)?.value);
+
   /**
    * Ruxsati yo'q band menyuga umuman kelmaydi (§9.4).
    *
@@ -184,6 +196,16 @@ export default async function PanelQatlami({ children }: { children: ReactNode }
               <span className="hidden text-[13px] text-matn-ikki sm:inline">
                 {rollar === '' ? 'rolsiz' : rollar}
               </span>
+
+              {/*
+                ⚠️ Almashtirgich SARLAVHADA, sozlamalar ichida emas.
+                   Ko'rinish kun davomida o'zgaradi — ertalab yorug'
+                   xonada kunduzgi, kechqurun tungi. Sozlamalar
+                   ichiga ko'milsa uni har safar izlashga to'g'ri
+                   kelardi va odam almashtirmay qo'yardi.
+              */}
+              <KorinishTugmasi joriy={korinish} />
+
               <form action={chiqishAmali}>
                 <button
                   type="submit"

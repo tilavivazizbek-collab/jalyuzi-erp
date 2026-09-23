@@ -16,7 +16,7 @@ export function OddiyChopTugmasi({ matn = 'Chop etish' }: { matn?: string }) {
       onClick={() => {
         window.print();
       }}
-      className="fokus rounded-maydon bg-brend px-4 py-2.5 text-sm font-medium text-white transition-all hover:bg-brend-quyuq active:scale-[0.98]"
+      className="fokus rounded-maydon bg-brend px-4 py-2.5 text-sm font-medium text-tugma-matn transition-all hover:bg-brend-quyuq active:scale-[0.98]"
     >
       {matn}
     </button>

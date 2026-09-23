@@ -79,7 +79,7 @@ export default async function BuyurtmalarRoyxati({
         {sotaOladi && (
           <Link
             href="/buyurtma/yangi"
-            className="fokus rounded-maydon bg-brend px-4 py-2.5 text-[13px] font-medium text-white transition-all active:scale-[0.98] hover:bg-brend-quyuq"
+            className="fokus rounded-maydon bg-brend px-4 py-2.5 text-[13px] font-medium text-tugma-matn transition-all active:scale-[0.98] hover:bg-brend-quyuq"
           >
             Yangi buyurtma
           </Link>
@@ -95,7 +95,7 @@ export default async function BuyurtmalarRoyxati({
             aria-current={x === joriy ? 'page' : undefined}
             className={`rounded-full px-3.5 py-1.5 text-[13px] font-medium transition-colors ${
               x === joriy
-                ? 'bg-brend text-white'
+                ? 'bg-brend text-tugma-matn'
                 : 'border border-chegara bg-sirt text-matn-ikki hover:border-chegara-quyuq hover:text-matn'
             }`}
           >

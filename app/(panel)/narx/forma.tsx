@@ -574,7 +574,7 @@ export function NarxFormasi({
                     onClick={() => {
                       setGuruhModali(true);
                     }}
-                    className="mt-4 rounded-maydon bg-brend px-4 py-2.5 text-sm font-medium text-white transition-all hover:bg-brend-quyuq active:scale-[0.98]"
+                    className="mt-4 rounded-maydon bg-brend px-4 py-2.5 text-sm font-medium text-tugma-matn transition-all hover:bg-brend-quyuq active:scale-[0.98]"
                   >
                     + Yangi daraja yaratish
                   </button>
@@ -1397,7 +1397,7 @@ export function NarxFormasi({
           <button
             type="submit"
             disabled={kutilmoqda || takrorlar.size > 0}
-            className="rounded-maydon bg-brend px-4 py-2.5 text-sm font-medium text-white transition-all hover:bg-brend-quyuq active:scale-[0.98] disabled:opacity-60"
+            className="rounded-maydon bg-brend px-4 py-2.5 text-sm font-medium text-tugma-matn transition-all hover:bg-brend-quyuq active:scale-[0.98] disabled:opacity-60"
           >
             {kutilmoqda ? 'Saqlanmoqda…' : 'Saqlash'}
           </button>

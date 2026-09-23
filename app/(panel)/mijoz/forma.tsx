@@ -153,7 +153,7 @@ export function MijozFormasi({
             {saqlandi === undefined ? (
               <Link
                 href={`/mijoz/${String(holat.dublikat.id)}`}
-                className="rounded-maydon bg-belgi-sariq px-3 py-1.5 text-xs font-medium text-white"
+                className="rounded-maydon bg-belgi-sariq px-3 py-1.5 text-xs font-medium text-tugma-matn"
               >
                 Mavjud mijozni ochish
               </Link>
@@ -164,7 +164,7 @@ export function MijozFormasi({
                   if (holat.dublikat === null) return;
                   saqlandi({ id: holat.dublikat.id, ism: holat.dublikat.ism });
                 }}
-                className="fokus rounded-maydon bg-belgi-sariq px-3 py-1.5 text-xs font-medium text-white"
+                className="fokus rounded-maydon bg-belgi-sariq px-3 py-1.5 text-xs font-medium text-tugma-matn"
               >
                 Shu mijozni tanlash
               </button>
@@ -409,7 +409,7 @@ export function MijozFormasi({
         <button
           type="submit"
           disabled={kutilmoqda}
-          className="rounded-maydon bg-brend px-4 py-2.5 text-sm font-medium text-white transition-all active:scale-[0.98] hover:bg-brend-quyuq disabled:opacity-60"
+          className="rounded-maydon bg-brend px-4 py-2.5 text-sm font-medium text-tugma-matn transition-all active:scale-[0.98] hover:bg-brend-quyuq disabled:opacity-60"
         >
           {kutilmoqda ? 'Saqlanmoqda…' : tugmaMatni}
         </button>

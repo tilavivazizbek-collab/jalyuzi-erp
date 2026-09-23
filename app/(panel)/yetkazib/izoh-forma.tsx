@@ -31,7 +31,7 @@ export function IzohFormasi({ yetkazibBeruvchiId }: { yetkazibBeruvchiId: number
       <button
         type="submit"
         disabled={kutilmoqda}
-        className="fokus self-start rounded-maydon bg-brend px-3 py-1.5 text-[13px] font-medium text-white disabled:opacity-60"
+        className="fokus self-start rounded-maydon bg-brend px-3 py-1.5 text-[13px] font-medium text-tugma-matn disabled:opacity-60"
       >
         {kutilmoqda ? 'Saqlanmoqda…' : "Izoh qo'shish"}
       </button>

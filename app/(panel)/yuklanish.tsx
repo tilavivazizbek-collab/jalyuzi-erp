@@ -68,7 +68,7 @@ export function MenyuHavolasi({
       aria-current={faol ? 'page' : undefined}
       className={`fokus rounded-maydon px-2.5 py-[7px] text-[13px] transition-colors ${
         faol
-          ? 'bg-brend font-medium text-white'
+          ? 'bg-brend font-medium text-tugma-matn'
           : 'text-matn-ikki hover:bg-brend-fon hover:text-brend'
       }`}
     >

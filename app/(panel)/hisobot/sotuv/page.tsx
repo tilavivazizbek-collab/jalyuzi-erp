@@ -100,7 +100,7 @@ export default async function SotuvHisoboti({
             href={`/hisobot/sotuv?davr=${d.kod}`}
             className={`fokus rounded-maydon border px-3 py-1.5 text-[13px] transition-colors ${
               d.kod === davrTuri
-                ? 'border-brend bg-brend text-white'
+                ? 'border-brend bg-brend text-tugma-matn'
                 : 'border-chegara bg-sirt text-matn-ikki hover:text-matn'
             }`}
           >

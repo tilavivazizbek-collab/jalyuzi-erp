@@ -48,6 +48,7 @@ ko'chiriladi. Tasdiqlanmagani `⏳` bilan belgilanadi.
 | P-36 | Filial narx istisnosi O'CHIRILADI, nol qo'yilmaydi | ⏳ tasdiq kutilmoqda |
 | P-37 | Dollarli filial harakatida kurs `kurs_tarix` dan olinadi | ⏳ tasdiq kutilmoqda |
 | P-38 | Bot buyurtmasini BOSH filial sotgan hisoblanadi | ⏳ tasdiq kutilmoqda |
+| P-39 | Kun/tun ko'rinishi `light-dark()` bilan, `dark:` prefiksisiz | ⏳ tasdiq kutilmoqda |
 
 ---
 
@@ -1834,3 +1835,95 @@ korxonaning ichki tuzilishini bilmaydi va bilishi ham shart emas.
 ⚠️ Egasi bir nechta do'kon ochganda bu qaror qayta ko'riladi:
    o'shanda «qaysi do'kondan olasiz?» savoli mantiqiy bo'lishi
    mumkin.
+
+---
+
+## P-39 — Kun va tun ko'rinishi
+
+**Fayl:** `app/global.css` · `app/layout.tsx` · `app/korinish.tsx`
+**Manba:** egasi topshirig'i 2026-09-23 — «butun tizimni ikki xil
+dizaynli qil, tun va kun»
+
+### Qaror
+
+| Nima | Yechim |
+|---|---|
+| Rang qayerda turadi | `app/global.css` dagi bitta ro'yxatda, har biri `light-dark(kun, tun)` bo'lib |
+| Ekranlarda nima o'zgardi | **Hech narsa** — `dark:` prefiksi ishlatilmaydi |
+| Kim tanlaydi | `color-scheme` — brauzerning o'z kaliti |
+| Tanlov qayerda saqlanadi | `jalyuzi_korinish` cookie: `kun` · `tun` · (yo'q = tizim) |
+| Atributni kim qo'yadi | SERVER, `<html data-korinish>` bo'lib |
+
+### Nega `dark:` prefiksi emas
+
+Odatdagi yo'l — har ekranda `bg-white dark:bg-slate-900` yozish.
+Bu yerda 156 ta ekran bor. Har biriga ikkinchi rang qo'shilsa:
+
+- ranglar yana **ekranlarga tarqalib ketardi** — CLAUDE.md §3
+  «bir mantiq, bir joyda» qoidasining buzilishi;
+- birov yangi ekran yozib `dark:` ni **unutsa**, o'sha ekran tunda
+  oq bo'lib qolardi va buni faqat ko'z bilan topish mumkin edi.
+
+`light-dark()` da rang **nomi** o'zgarmaydi, faqat qiymati ikkitaga
+aylanadi. Shuning uchun bu ish 156 ta ekranning birortasini ham
+o'zgartirmadi.
+
+### Nega serverda, skript bilan emas
+
+Tanlovni brauzerdagi skript qo'yganda sahifa avval **kunduzgi**
+chizilib, keyin tunga o'tadi — har ochilganda ko'zni uradigan oq
+chaqnash. Cookie serverda o'qilgani uchun `<html>` allaqachon
+to'g'ri atribut bilan keladi.
+
+⚠️ Buning evaziga **butun sayt `dynamic`** bo'ldi (`cookies()` ildiz
+qatlamda o'qiladi). Panel qatlami allaqachon `force-dynamic` edi,
+kirish sahifasi ham — ya'ni amalda yo'qotish yo'q.
+
+### Cookie `httpOnly` EMAS — P-14 dan istisno
+
+P-14 «cookie faqat server amalida yoziladi» deydi. Ko'rinish cookie si
+**brauzerda** yoziladi.
+
+Sabab: server amaliga borish masofadagi bazaga ulanish demak, ya'ni
+tugma bosilgandan keyin 2–3 soniya hech narsa o'zgarmasdi. Bu yerda
+himoya qilinadigan narsa yo'q — cookie da faqat `kun` yoki `tun`
+so'zi turadi va u hech qanday huquq bermaydi. Noma'lum qiymat
+`tizim` ga tushadi.
+
+### Yangi nomlar
+
+| Nom | Nima uchun kerak bo'ldi |
+|---|---|
+| `tugma-matn` | To'ldirilgan tugma ustidagi yozuv. **Kunda oq, tunda qora**: tunda tugmalar yorqin bo'ladi va oq yozuv 2.3:1 ga tushardi. Ekranlardagi 116 ta `text-white` shunga almashtirildi |
+| `parda` · `parda-och` | Modal va menyu ortidagi qoraytirish. Ilgari `bg-matn/40` edi — `matn` tunda oqarib ketadi, ya'ni parda OQ bo'lib qolardi |
+| `fon-ikki` | Karta ichidagi ajratilgan bo'lak. **Bu nom sakkizta ekranda ilgari ham yozilgan, lekin dizayn tizimida YO'Q edi** — Tailwind noma'lum nomga qoida chiqarmaydi, ya'ni o'sha sakkiz bo'lak fonsiz turardi |
+| `fokus-halqa` · `shadow-karta` · `shadow-suzuvchi` | Ilgari qattiq yozilgan qiymatlar edi |
+
+### Qog'oz hujjatlar tundan chetda
+
+Chek va varaqa — qog'ozning ekrandagi nusxasi. Ular `color-scheme:
+light` oladi va **tunda ham oq qoladi**: sotuvchi chop etishdan
+oldin aynan nima chiqishini ko'radi. Chop etishda ham xuddi shu
+qoida — printerdan qora varaq chiqmaydi.
+
+### Tungi ranglar qanday tanlandi
+
+Ko'z bilan emas — har juftlik WCAG kontrast me'yoridan o'tkazildi
+(oddiy matn ≥ 4.5:1, tugma yozuvi ≥ 4.5:1, nishoncha ≥ 4.5:1).
+Eng past tungi natija **4.55**.
+
+⚠️ **Kunduzgi ko'rinishda `matn-kuchsiz` 2.56:1 da turadi** va u
+713 joyda ishlatiladi — me'yordan ancha past. Tungi ko'rinish
+shu jihatdan kunduzgisidan o'qiladiganroq chiqdi. Kunduzgi qiymat
+**ataylab tegilmadi**: u egasi ko'rib qabul qilgan ko'rinish.
+Tuzatish kerak bo'lsa alohida ish sifatida qilinadi.
+
+### Nima qilinmadi
+
+- **Bazaga yozilmadi.** Ko'rinish xodimning emas, KOMPYUTERNING
+  xususiyati: bir xodim kunduzi do'kondagi yorug' ekranda,
+  kechqurun uydagi noutbukda ishlashi mumkin.
+- **Fokus halqasi rangi tuzatilmadi.** Izohda «halqa brend rangida»
+  deyilgan, qiymati esa ko'k (`rgb(37 99 235)`). Kunduzgi ko'rinishga
+  tegmaslik uchun shundayligicha qoldirildi — tunda halqa brend
+  rangida va kuchliroq.

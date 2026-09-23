@@ -1,13 +1,23 @@
 import { redirect } from 'next/navigation';
+import { cookies } from 'next/headers';
 import { joriyFoydalanuvchi } from '@/lib/kirish/joriy';
 import { KirishFormasi } from './forma';
 import { BrendBelgisi } from './belgi';
+import { KorinishTugmasi } from '../korinish-tugma';
+import { KORINISH_COOKIE, korinishTekshir } from '../korinish';
 
 export const dynamic = 'force-dynamic';
 
 export default async function KirishSahifasi() {
   // Kirgan odam kirish sahifasini ko'rmasin
   if ((await joriyFoydalanuvchi()) !== null) redirect('/boshqaruv');
+
+  /*
+   * ⚠️ Almashtirgich KIRISHDAN OLDIN ham kerak. Tungi smenadagi
+   *    sotuvchi kunduzgi oq ekranga qarab parol terishi shart
+   *    emas — ko'rinish tanlovi hisobga bog'liq emas.
+   */
+  const korinish = korinishTekshir((await cookies()).get(KORINISH_COOKIE)?.value);
 
   return (
     <main className="flex min-h-screen flex-col bg-fon">
@@ -28,8 +38,12 @@ export default async function KirishSahifasi() {
             </div>
           </div>
 
-          <div className="rounded-[10px] border border-chegara bg-sirt p-6 shadow-[0_1px_2px_rgba(15,23,42,0.06)]">
+          <div className="rounded-[10px] border border-chegara bg-sirt p-6 shadow-karta">
             <KirishFormasi />
+          </div>
+
+          <div className="mt-6 flex justify-center">
+            <KorinishTugmasi joriy={korinish} />
           </div>
         </div>
       </div>

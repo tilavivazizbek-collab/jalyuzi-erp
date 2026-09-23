@@ -150,7 +150,7 @@ export function TopshirishFormasi({
         <button
           type="submit"
           disabled={kutilmoqda || nishonId === ''}
-          className="rounded-maydon bg-brend px-3 py-1.5 text-xs font-medium text-white transition-all active:scale-[0.98] hover:bg-brend-quyuq disabled:opacity-60"
+          className="rounded-maydon bg-brend px-3 py-1.5 text-xs font-medium text-tugma-matn transition-all active:scale-[0.98] hover:bg-brend-quyuq disabled:opacity-60"
         >
           {kutilmoqda ? 'Yuborilmoqda…' : 'Topshirdim'}
         </button>

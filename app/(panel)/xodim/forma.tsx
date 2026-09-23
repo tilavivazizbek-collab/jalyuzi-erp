@@ -192,7 +192,7 @@ export function XodimFormasi({
                 aria-pressed={belgilangan}
                 className={`fokus rounded-full px-3.5 py-1.5 text-[13px] font-medium transition-colors ${
                   belgilangan
-                    ? 'bg-brend text-white'
+                    ? 'bg-brend text-tugma-matn'
                     : 'border border-chegara bg-sirt text-matn-ikki hover:border-chegara-quyuq hover:text-matn'
                 }`}
               >
@@ -237,7 +237,7 @@ export function XodimFormasi({
         <button
           type="submit"
           disabled={kutilmoqda}
-          className="rounded-maydon bg-brend px-4 py-2.5 text-sm font-medium text-white transition-all hover:bg-brend-quyuq active:scale-[0.98] disabled:opacity-60"
+          className="rounded-maydon bg-brend px-4 py-2.5 text-sm font-medium text-tugma-matn transition-all hover:bg-brend-quyuq active:scale-[0.98] disabled:opacity-60"
         >
           {kutilmoqda ? 'Saqlanmoqda…' : tugmaMatni}
         </button>

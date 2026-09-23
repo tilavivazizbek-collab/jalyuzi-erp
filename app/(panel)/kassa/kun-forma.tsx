@@ -152,7 +152,7 @@ export function KunYopishFormasi({
       <button
         type="submit"
         disabled={kutilmoqda || s === null}
-        className="rounded-maydon bg-brend px-4 py-2 text-sm font-medium text-white transition-all active:scale-[0.98] hover:bg-brend-quyuq disabled:opacity-50"
+        className="rounded-maydon bg-brend px-4 py-2 text-sm font-medium text-tugma-matn transition-all active:scale-[0.98] hover:bg-brend-quyuq disabled:opacity-50"
       >
         {kutilmoqda ? 'Yopilmoqda…' : 'Kunni yopish'}
       </button>
@@ -229,7 +229,7 @@ function QaytaOchish({ kunId }: { kunId: number }) {
         <button
           type="submit"
           disabled={kutilmoqda || sabab.trim() === ''}
-          className="rounded-maydon bg-brend px-4 py-2 text-sm font-medium text-white transition-all hover:bg-brend-quyuq active:scale-[0.98] disabled:opacity-50"
+          className="rounded-maydon bg-brend px-4 py-2 text-sm font-medium text-tugma-matn transition-all hover:bg-brend-quyuq active:scale-[0.98] disabled:opacity-50"
         >
           {kutilmoqda ? 'Ochilmoqda…' : 'Qayta ochish'}
         </button>

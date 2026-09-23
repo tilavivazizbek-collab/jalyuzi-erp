@@ -68,7 +68,7 @@ export function IshniBoshlashTugmasi({
         <button
           type="submit"
           disabled={kutilmoqda}
-          className="fokus rounded-maydon bg-brend px-3 py-1.5 text-[13px] font-medium text-white transition-all hover:bg-brend-quyuq active:scale-[0.98] disabled:opacity-60"
+          className="fokus rounded-maydon bg-brend px-3 py-1.5 text-[13px] font-medium text-tugma-matn transition-all hover:bg-brend-quyuq active:scale-[0.98] disabled:opacity-60"
         >
           {kutilmoqda ? 'Boshlanmoqda…' : 'Ishni boshlash'}
         </button>
@@ -348,7 +348,7 @@ export function TugatdimTugmasi({
         onClick={() => {
           ochiqniOzgartir(true);
         }}
-        className="fokus rounded-maydon bg-belgi-yashil px-3 py-1.5 text-[13px] font-medium text-white transition-all hover:opacity-90 active:scale-[0.98]"
+        className="fokus rounded-maydon bg-belgi-yashil px-3 py-1.5 text-[13px] font-medium text-tugma-matn transition-all hover:opacity-90 active:scale-[0.98]"
       >
         Tugatdim
       </button>
@@ -593,7 +593,7 @@ export function TugatdimTugmasi({
               <button
                 type="submit"
                 disabled={kutilmoqda || xatolik || toldirilmagan || bandlar.length === 0}
-                className="fokus rounded-maydon bg-brend px-4 py-2.5 text-sm font-medium text-white transition-all hover:bg-brend-quyuq active:scale-[0.98] disabled:opacity-60"
+                className="fokus rounded-maydon bg-brend px-4 py-2.5 text-sm font-medium text-tugma-matn transition-all hover:bg-brend-quyuq active:scale-[0.98] disabled:opacity-60"
               >
                 {kutilmoqda ? 'Yakunlanmoqda…' : 'Ishni yakunlash'}
               </button>

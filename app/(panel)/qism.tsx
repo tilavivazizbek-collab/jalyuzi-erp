@@ -66,7 +66,7 @@ export function BirlamchiTugma({
   return (
     <button
       {...qolgan}
-      className={`${TUGMA_ASOS} ${TUGMA_OLCHAM} bg-brend text-white hover:bg-brend-quyuq`}
+      className={`${TUGMA_ASOS} ${TUGMA_OLCHAM} bg-brend text-tugma-matn hover:bg-brend-quyuq`}
     >
       {children}
     </button>
@@ -101,7 +101,7 @@ export function XatarliTugma({
   return (
     <button
       {...qolgan}
-      className={`${TUGMA_ASOS} ${TUGMA_OLCHAM} bg-belgi-qizil text-white hover:brightness-95`}
+      className={`${TUGMA_ASOS} ${TUGMA_OLCHAM} bg-belgi-qizil text-tugma-matn hover:brightness-95`}
     >
       {children}
     </button>
@@ -113,7 +113,7 @@ export function BirlamchiHavola({ href, children }: { href: string; children: Re
   return (
     <Link
       href={href}
-      className={`${TUGMA_ASOS} ${TUGMA_OLCHAM} bg-brend text-white hover:bg-brend-quyuq`}
+      className={`${TUGMA_ASOS} ${TUGMA_OLCHAM} bg-brend text-tugma-matn hover:bg-brend-quyuq`}
     >
       {children}
     </Link>
@@ -348,7 +348,7 @@ export function FiltrTugmasi({
       aria-current={faol ? 'page' : undefined}
       className={`fokus rounded-full px-3.5 py-1.5 text-[13px] font-medium transition-colors ${
         faol
-          ? 'bg-brend text-white'
+          ? 'bg-brend text-tugma-matn'
           : 'border border-chegara bg-sirt text-matn-ikki hover:border-chegara-quyuq hover:text-matn'
       }`}
     >

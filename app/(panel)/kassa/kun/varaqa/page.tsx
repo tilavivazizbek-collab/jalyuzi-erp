@@ -80,7 +80,7 @@ export default async function KunlikVaraqa({
               href={`/kassa/kun/varaqa?kassa=${String(k.id)}&sana=${sana}`}
               className={`fokus rounded-maydon border px-3 py-1.5 text-[13px] transition-colors ${
                 k.id === kassa.id
-                  ? 'border-brend bg-brend text-white'
+                  ? 'border-brend bg-brend text-tugma-matn'
                   : 'border-chegara bg-sirt text-matn-ikki hover:text-matn'
               }`}
             >

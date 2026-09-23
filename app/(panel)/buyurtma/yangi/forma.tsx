@@ -1388,7 +1388,7 @@ export function SotuvFormasi({
                    */
                   className={`rounded-full px-2.5 py-1 text-[12px] font-medium transition-colors ${
                     t.id === turId
-                      ? 'bg-brend text-white'
+                      ? 'bg-brend text-tugma-matn'
                       : 'border border-chegara bg-sirt text-matn-ikki hover:border-chegara-quyuq hover:text-matn'
                   } ${turYuklanmoqda ? 'opacity-60' : ''}`}
                 >
@@ -2218,7 +2218,7 @@ export function SotuvFormasi({
                   type="button"
                   disabled={!savatgaQoshilsinmi}
                   onClick={savatgaQosh}
-                  className="rounded-maydon bg-brend px-4 py-2.5 text-[13px] font-medium text-white transition-all active:scale-[0.98] hover:bg-brend-quyuq disabled:opacity-50"
+                  className="rounded-maydon bg-brend px-4 py-2.5 text-[13px] font-medium text-tugma-matn transition-all active:scale-[0.98] hover:bg-brend-quyuq disabled:opacity-50"
                 >
                   Savatga qo&apos;shish
                 </button>
@@ -2235,7 +2235,7 @@ export function SotuvFormasi({
                     type="button"
                     disabled={!savatgaQoshilsinmi}
                     onClick={tahrirniSaqla}
-                    className="rounded-maydon bg-brend px-4 py-2.5 text-[13px] font-medium text-white transition-all active:scale-[0.98] hover:bg-brend-quyuq disabled:opacity-50"
+                    className="rounded-maydon bg-brend px-4 py-2.5 text-[13px] font-medium text-tugma-matn transition-all active:scale-[0.98] hover:bg-brend-quyuq disabled:opacity-50"
                   >
                     O&apos;zgarishni saqlash
                   </button>
@@ -2622,7 +2622,7 @@ export function SotuvFormasi({
           <button
             type="submit"
             disabled={kutilmoqda || savat.length === 0 || mijozKerak}
-            className="fokus w-full rounded-maydon bg-brend px-5 py-3 text-[14px] font-medium text-white transition-all active:scale-[0.98] hover:bg-brend-quyuq disabled:opacity-50"
+            className="fokus w-full rounded-maydon bg-brend px-5 py-3 text-[14px] font-medium text-tugma-matn transition-all active:scale-[0.98] hover:bg-brend-quyuq disabled:opacity-50"
           >
             {kutilmoqda
               ? 'Saqlanmoqda…'
