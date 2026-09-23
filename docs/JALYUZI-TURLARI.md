@@ -249,6 +249,48 @@ Plisse bilan bir xil tuzilma, mato ikki qavat uyali.
 
 ---
 
+## 9a. TANLOVLAR — 0052 (2026-09-23)
+
+Mahsulot turida «Tanlovlar» bo'limi bor. Har tanlovda nom, ixtiyoriy
+kod va variantlar; har variantda nom, son va narx.
+
+| To'ldirilgani | Ta'siri | Misol |
+|---|---|---|
+| faqat nom | ustaga yozuv boradi | Boshqaruv tomoni: Chap / O'ng |
+| narx | summaga qo'shiladi | Kasseta: Bor (+50 000) |
+| kod + son | **formulaga tushadi** | Lamel eni: 89 mm (0.089) |
+
+**Formulada ishlatish:** tanlovga `LAMEL_ENI` kodi berilsa, slot
+formulasida shunday yoziladi:
+
+```
+CEIL(ENI / LAMEL_ENI)
+```
+
+⚠️ `ENI`, `BO'YI`, `MAYDON`, `SONI` kodlari **taqiqlangan** — ular
+tizimning o'z o'zgaruvchilari. Bosib ketilsa formula oynaning enini
+emas, tanlovning sonini olardi.
+
+**Aksessuarni variantga bog'lash:** `mahsulot_aksessuar.variant_id`
+to'ldirilsa, aksessuar faqat o'sha variant tanlanganda qo'shiladi.
+Motorli jalyuzida zanjir qo'shilmaydi, kabel va quvvat manbai
+qo'shiladi.
+
+### Dikkey ochilishi — egasining holati
+
+«Bir tomonga» va «Markazdan» endi **bitta turda**:
+
+| Tanlov | Kod | Variant | Son |
+|---|---|---|---|
+| Ochilish | `QOSHIMCHA_TASMA` | Bir tomonga | `0` |
+| | | Markazdan | `-1` |
+
+Slot formulasi: `(ROUND(ENI / 0.11) + QOSHIMCHA_TASMA) * 0.4 * BO'YI`
+
+2 × 2.5 m oynada: bir tomonga **18.00 kv.m**, markazdan **17.00 kv.m**.
+
+---
+
 ## 10. Kiritish tartibi
 
 Ekranda (`Mahsulot turi → Yangi`) har slot uchun uch narsa belgilanadi:

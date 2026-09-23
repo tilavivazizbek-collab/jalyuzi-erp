@@ -176,11 +176,58 @@ hisobga olishi shart.
 
 9 test (EC-TASMA-01…09) · `docs/JALYUZI-TURLARI.md` §5a.
 
+### TANLOV MODELI — 2026-09-23 (0052) · ILDIZ SABAB YOPILDI
+
+Egasi to'rt marta bir xil savol berdi (zebra, dikkey ochilishi,
+motorli, burchak oyna) va har safar «ikki alohida tur qiling» degan
+javob oldi. Endi bitta turda tanlov bo'ladi.
+
+**UCH DARAJALI TA'SIR, har biri ixtiyoriy:**
+
+| Nima to'ldiriladi | Nima bo'ladi | Misol |
+|---|---|---|
+| faqat nomi | yozuv — buyurtmada qoladi, **ustaga boradi** | zanjir chapdan |
+| **narx** | summaga qo'shiladi | kasseta +50 000 |
+| **kod** + variant soni | **formulaga tushadi** | `CEIL(ENI / LAMEL_ENI)` |
+
+3-daraja mavjud mexanizmni qayta ishlatadi: `lib/domain/formula.ts`
+nomli parametrlarni allaqachon biladi. Tanlov — qiymati ro'yxatdan
+tanlanadigan parametr. **Yangi formula tili yozilmadi.**
+
+**Aksessuarni variantga bog'lash:** motorli tanlansa zanjir
+qo'shilmaydi, kabel va quvvat manbai qo'shiladi. Bog'lanmagan
+aksessuar avvalgidek doim qo'shiladi — mavjud turlar buzilmaydi.
+
+**Qayerda ko'rinadi** (§13 uchta savol):
+
+| Joy | Holat |
+|---|---|
+| Mahsulot turi — «Tanlovlar» bo'limi | ✅ |
+| Sotuv ekrani — dropdown, narx ro'yxatda | ✅ |
+| Majburiy tanlanmasa savatga tushmaydi, sababi aytiladi | ✅ |
+| Buyurtma kartochkasi | ✅ |
+| Bot — usta navbati va «ishlarim» | ✅ 🔧 belgisi bilan |
+| Chek va kvitansiya | ✅ narxsiz, tarkib qatorida |
+
+⚠️ **UCHIDAN-UCHIGA TEKSHIRUV IKKI TESHIK TOPDI** — ikkalasi ham
+fikrlab emas, ishlatib ko'rilganda chiqdi:
+
+1. Formula tekshiruvi tanlov kodlarini bilmas ekan → tur butunlay
+   saqlanmasdi, ya'ni 3-daraja umuman ishlamasdi
+2. `yorliq` va `izoh` (0049) buyurtma amalida ko'chirilmay qolgan —
+   forma yuborardi, server jimgina tashlab yuborardi. Yangi
+   buyurtmada saqlanmasdi (tahrirlashda ishlardi)
+
+Sinov bazasidagi natija: bir tomonga **18.00 kv.m**, markazdan
+**17.00 kv.m** — tanlov sarfni o'zgartirdi.
+
+24 test (EC-TANL-01…24).
+
 ### Ochiq qolgani
 
 | Nima | Holat |
 |---|---|
-| **TANLOV modeli umuman yo'q** — zanjir tomoni, o'rnatish turi, lamel eni, kasseta. Tizim o'lchov va materialni modellashtiradi, tanlovni esa yo'q | ❌ egasidan tanlovlar ro'yxati kutiladi. ⚠️ Vaqtinchalik yo'l: `izoh` katagiga qo'lda yozish mumkin (0049) |
+| ~~TANLOV modeli umuman yo'q~~ | ✅ **BAJARILDI 2026-09-23** (0052) — yuqoriga qarang |
 | **Ishlab chiqarish varaqasi** (usta uchun chop etish) | ❌ |
 | O'lcham chegarasi — **mexanizm qurildi**, egasi raqamlarni to'ldiradi | ⚠️ ustadan so'raladi |
 | Material izohi · yetkazib beruvchi · joylashuv | ❌ taklif qilindi, egasi hozircha rad etdi |

@@ -152,6 +152,29 @@ ekrani, `narx-tekshir.ts`, bot). 2026-09-22 da `lib/domain/narx-qoidasi.ts`
 
 ---
 
+## 6c. Tanlov modeli qurildi — 2026-09-23 (0052)
+
+⚠️ 6b dagi «eng katta topilma» YOPILDI. Tizim endi uch narsani
+modellashtira oladi: o'lchov, material va **TANLOV**.
+
+Uch darajali ta'sir, har biri ixtiyoriy:
+
+- faqat nom → yozuv, ustaga boradi
+- narx → summaga qo'shiladi
+- kod + variant soni → **formulaga tushadi** (`CEIL(ENI / LAMEL_ENI)`)
+
+3-daraja mavjud parametr mexanizmini qayta ishlatadi — yangi formula
+tili yozilmadi. Aksessuarni variantga bog'lash ham bor: motorli
+tanlansa zanjir qo'shilmaydi.
+
+⚠️ **Yangi jalyuzi xususiyati so'ralsa, avval «tanlov bilan
+yechiladimi» deb qarang. «Ikki alohida tur qiling» deb TAKLIF
+QILMANG** — CLAUDE.md §14a shuni taqiqlaydi.
+
+Batafsil: `docs/JALYUZI-TURLARI.md` §9a, `docs/QAMROV.md`.
+
+---
+
 ## 7. Ochiq savollar — javob kutilmoqda
 
 Usta stavkasi **yopildi** (2026-09-10): uchala usul qurilgan, egasi har

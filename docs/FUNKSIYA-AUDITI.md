@@ -90,7 +90,7 @@ Tizim ikki narsani modellashtira oladi:
 |---|---|---|
 | **O'lchov** — son | eni, bo'yi, soni | ✅ mukammal |
 | **Material** — ombordan yeyiladigan narsa | mato, karniz, kronshteyn | ✅ mukammal |
-| **TANLOV** — na pul, na material, lekin mahsulotni belgilaydi | zanjir chapdanmi yoki o'ngdan · shiftga yoki devorga · kasseta bormi · lamel 89 yoki 127 mm | ❌ **UMUMAN YO'Q** |
+| **TANLOV** — na pul, na material, lekin mahsulotni belgilaydi | zanjir chapdanmi yoki o'ngdan · shiftga yoki devorga · kasseta bormi · lamel 89 yoki 127 mm | ✅ **QURILDI 2026-09-23** (0052) |
 
 Jalyuzida yetishmayotgan funksiyalarning **deyarli hammasi** shu bitta
 bo'shliqdan chiqadi. Shuning uchun ularni bittalab qo'shib bo'lmaydi: har
@@ -120,7 +120,7 @@ qat'iy kesim eni) · aksessuarlar · formula kalkulyatori.
 
 | Nima | Element | Nega kerak (sohada) | Hozir | Tavsiyam |
 |---|---|---|---|---|
-| Tanlov ro'yxatlari | «Tanlovlar» bo'limi: nom + variantlar, har variantga narx ustamasi va material ta'siri | Boshqaruv tomoni, o'rnatish turi, lamel eni, kasseta — jalyuzining yarmi shu. Yozilmasa usta o'zicha qiladi; teskari chiqsa BRAK, mato ham, ish haqi ham qaytadan ketadi | ❌ | **KERAK — birinchi navbatda** |
+| Tanlov ro'yxatlari | «Tanlovlar» bo'limi: nom + variantlar, har variantga narx va formula soni | Boshqaruv tomoni, o'rnatish turi, lamel eni, kasseta — jalyuzining yarmi shu | ✅ **2026-09-23** | Bajarildi (0052) |
 | Narxni belgilovchi slot | slot qatorida belgi | Zebrada ikki mato — qaysi biri narxni belgilashi hozir tasodif | ✅ **2026-09-22** | Bajarildi (0048) |
 | Eng kichik / eng katta eni va bo'yi | 4 ta raqam katagi | Mexanizm chegarasi: 3 m dan keng rulonda val egiladi. Sotuvchi bilmasdan sotadi, usta qila olmaydi | ❌ | **KERAK** |
 | ~~Minimal hisob maydoni~~ | — | Egasi 2026-09-22 da rad etdi: narx bosqichga ko'paytirilaveradi | — | Yopildi |
