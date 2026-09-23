@@ -13,6 +13,7 @@ import {
   BOSH_QIYMATLAR as MATERIAL_BOSH_QIYMATLAR,
 } from '../material/forma';
 import { materialModalYaratAmali } from '../material/amal';
+import { tanlovNuqsonlari } from '@/lib/domain/tanlov';
 import {
   SARF_TAVSIFI,
   SARF_TURLARI,
@@ -61,6 +62,27 @@ export interface AksessuarQatori {
   majburiy: boolean;
 }
 
+/**
+ * TANLOV VARIANTI — «Chap», «127 mm», «Motorli» (0052).
+ *
+ * ⚠️ `qiymat` va `narx` IKKALASI ham ixtiyoriy: variant faqat yozuv
+ *    bo'lishi mumkin, faqat narx qo'shishi mumkin, yoki formulaga
+ *    son berishi mumkin.
+ */
+export interface VariantQatori {
+  nom: string;
+  qiymat: string;
+  narx: string;
+}
+
+/** TANLOV — «Boshqaruv tomoni», «Lamel eni» (0052) */
+export interface TanlovQatori {
+  kod: string;
+  nom: string;
+  majburiy: boolean;
+  variantlar: VariantQatori[];
+}
+
 export interface MahsulotQiymatlari {
   readonly nom: string;
   readonly xizmatHaqi: string;
@@ -78,6 +100,8 @@ export interface MahsulotQiymatlari {
   readonly slotlar: readonly SlotQatori[];
   readonly parametrlar: readonly ParametrQatori[];
   readonly aksessuarlar: readonly AksessuarQatori[];
+  /** 0052 — mahsulot turining tanlovlari */
+  readonly tanlovlar: readonly TanlovQatori[];
 }
 
 export const BOSH_QIYMATLAR: MahsulotQiymatlari = {
@@ -91,6 +115,7 @@ export const BOSH_QIYMATLAR: MahsulotQiymatlari = {
   oynadaKorinadi: true,
   botdaKorinadi: true,
   slotlar: [],
+  tanlovlar: [],
   parametrlar: [],
   aksessuarlar: [],
 };
@@ -264,6 +289,37 @@ export function MahsulotFormasi({
    */
   const [parametrlar] = useState<readonly ParametrQatori[]>(qiymatlar.parametrlar);
 
+  /**
+   * TANLOVLAR — 0052.
+   *
+   * ⚠️ Egasi to'rt marta bir xil savol berdi (zebra, dikkey
+   *    ochilishi, motorli, burchak oyna) va har safar «ikki alohida
+   *    tur qiling» degan javob oldi. Endi bitta turda tanlov bo'ladi.
+   */
+  const [tanlovlar, tanlovlarniOzgartir] = useState<readonly TanlovQatori[]>(
+    qiymatlar.tanlovlar,
+  );
+
+  const tanlovniYangila = (i: number, yangi: Partial<TanlovQatori>): void => {
+    tanlovlarniOzgartir((o) =>
+      o.map((t, j) => (j === i ? { ...t, ...yangi } : t)),
+    );
+  };
+
+  const variantniYangila = (
+    ti: number,
+    vi: number,
+    yangi: Partial<VariantQatori>,
+  ): void => {
+    tanlovlarniOzgartir((o) =>
+      o.map((t, j) =>
+        j === ti
+          ? { ...t, variantlar: t.variantlar.map((v, k) => (k === vi ? { ...v, ...yangi } : v)) }
+          : t,
+      ),
+    );
+  };
+
   const [guruhModali, guruhModaliniOzgartir] = useState(false);
   const [materialModali, materialModaliniOzgartir] = useState(false);
 
@@ -307,6 +363,27 @@ export function MahsulotFormasi({
       <form action={yubor} onKeyDown={enterYuborilmasin} className="flex flex-col gap-6">
         {/* Dinamik qatorlar JSON bo'lib yuboriladi — tartibi ham saqlanadi */}
         <input type="hidden" name="slotlar" value={JSON.stringify(slotlar)} />
+        {/*
+          ⚠️ TANLOVLAR — 0052. Bo'sh qiymatli variantlar `null` ga
+             aylantiriladi: bo'sh satr bazadagi cheklovga tushmaydi.
+        */}
+        <input
+          type="hidden"
+          name="tanlovlar"
+          value={JSON.stringify(
+            tanlovlar.map((t) => ({
+              kod: t.kod.trim(),
+              nom: t.nom.trim(),
+              majburiy: t.majburiy,
+              variantlar: t.variantlar.map((v) => ({
+                nom: v.nom.trim(),
+                qiymat: v.qiymat.trim(),
+                narx: v.narx.trim(),
+                valyuta: 'SOM',
+              })),
+            })),
+          )}
+        />
         <input type="hidden" name="parametrlar" value={JSON.stringify(parametrlar)} />
         <input type="hidden" name="aksessuarlar" value={JSON.stringify(aksessuarlar)} />
 
@@ -1055,6 +1132,203 @@ export function MahsulotFormasi({
               />
             }
           />
+        </section>
+
+        {/*
+          TANLOVLAR — 0052, egasi holatlari 2026-09-22.
+
+          Tizim o'lchov va materialni modellashtira olardi, TANLOVNI
+          esa yo'q: zanjir chapdanmi yoki o'ngdan, kasseta bormi,
+          lamel 89 yoki 127 mm, bir tomonga yoki markazdan ochiladi,
+          qo'lda yoki motorli.
+
+          Egasi TO'RT MARTA bir xil savol berdi va har safar «ikki
+          alohida tur qiling» degan javob oldi.
+
+          UCH DARAJA, har biri ixtiyoriy:
+            kod bo'sh + narx bo'sh  → faqat yozuv, ustaga boradi
+            narx to'ldirilgan       → narxga qo'shadi
+            kod to'ldirilgan        → formulaga son beradi
+        */}
+        <section className="rounded-karta border border-chegara bg-sirt p-5">
+          <h2 className="mb-1 text-sm font-semibold">Tanlovlar</h2>
+          <p className="mb-4 text-xs text-matn-kuchsiz">
+            Sotuvchi buyurtma berayotganda tanlaydigan narsalar: boshqaruv
+            tomoni, kasseta, lamel eni. Tanlov <b>yozuv</b> bo&apos;lishi
+            (ustaga boradi), <b>narx</b> qo&apos;shishi yoki{' '}
+            <b>formulaga son berishi</b> mumkin.
+          </p>
+
+          {tanlovlar.length === 0 ? (
+            <p className="mb-3 text-sm text-matn-kuchsiz">
+              Hali tanlov qo&apos;shilmagan. Tanlovi yo&apos;q tur avvalgidek
+              ishlayveradi.
+            </p>
+          ) : (
+            <div className="mb-3 flex flex-col gap-3">
+              {tanlovlar.map((t, ti) => (
+                <div key={ti} className="rounded-maydon border border-chegara p-3">
+                  <div className="grid gap-2 sm:grid-cols-[1fr_140px_auto_auto]">
+                    <input
+                      value={t.nom}
+                      onChange={(e) => {
+                        tanlovniYangila(ti, { nom: e.target.value });
+                      }}
+                      placeholder="Boshqaruv tomoni"
+                      aria-label="Tanlov nomi"
+                      className={kichik}
+                    />
+                    {/*
+                      KOD faqat formulaga son beradigan tanlovga kerak.
+                      Bo'sh qoldirilsa tanlov formulaga umuman bormaydi.
+
+                      ENI, BO'YI, MAYDON, SONI — TAQIQLANGAN: bosib
+                      ketilsa formula oynaning enini emas, tanlovning
+                      sonini olardi.
+                    */}
+                    <input
+                      value={t.kod}
+                      onChange={(e) => {
+                        tanlovniYangila(ti, { kod: e.target.value.toUpperCase() });
+                      }}
+                      placeholder="kod (ixtiyoriy)"
+                      aria-label="Formula kodi"
+                      title="Formulada ishlatiladi: LAMEL_ENI. Bo'sh — formulaga tegmaydi"
+                      className={`${kichik} font-mono`}
+                    />
+                    <label className="flex items-center gap-1.5 text-xs text-matn-ikki">
+                      <input
+                        type="checkbox"
+                        checked={t.majburiy}
+                        onChange={(e) => {
+                          tanlovniYangila(ti, { majburiy: e.target.checked });
+                        }}
+                        className="size-3.5"
+                      />
+                      majburiy
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        tanlovlarniOzgartir(tanlovlar.filter((_, j) => j !== ti));
+                      }}
+                      aria-label="Tanlovni o'chirish"
+                      className="fokus rounded-maydon px-1.5 text-matn-kuchsiz hover:bg-belgi-qizil-fon hover:text-belgi-qizil"
+                    >
+                      &times;
+                    </button>
+                  </div>
+
+                  <div className="mt-2 flex flex-col gap-1.5 pl-3">
+                    {t.variantlar.map((v, vi) => (
+                      <div
+                        key={vi}
+                        className="grid gap-1.5 sm:grid-cols-[1fr_110px_130px_auto]"
+                      >
+                        <input
+                          value={v.nom}
+                          onChange={(e) => {
+                            variantniYangila(ti, vi, { nom: e.target.value });
+                          }}
+                          placeholder="Chap"
+                          aria-label="Variant nomi"
+                          className={kichik}
+                        />
+                        <input
+                          value={v.qiymat}
+                          onChange={(e) => {
+                            variantniYangila(ti, vi, { qiymat: e.target.value });
+                          }}
+                          inputMode="decimal"
+                          placeholder="son"
+                          aria-label="Formulaga beriladigan son"
+                          title="Kod to'ldirilgan bo'lsa shu son formulaga tushadi"
+                          className={kichik}
+                        />
+                        <input
+                          value={v.narx}
+                          onChange={(e) => {
+                            variantniYangila(ti, vi, { narx: e.target.value });
+                          }}
+                          inputMode="decimal"
+                          placeholder="narx (so'm)"
+                          aria-label="Variant narxi"
+                          className={kichik}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            tanlovniYangila(ti, {
+                              variantlar: t.variantlar.filter((_, k) => k !== vi),
+                            });
+                          }}
+                          aria-label="Variantni o'chirish"
+                          className="fokus rounded-maydon px-1.5 text-matn-kuchsiz hover:bg-belgi-qizil-fon hover:text-belgi-qizil"
+                        >
+                          &times;
+                        </button>
+                      </div>
+                    ))}
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        tanlovniYangila(ti, {
+                          variantlar: [...t.variantlar, { nom: '', qiymat: '', narx: '' }],
+                        });
+                      }}
+                      className="fokus self-start rounded-maydon px-1 py-0.5 text-[11px] font-medium text-brend transition-colors hover:underline"
+                    >
+                      + Variant
+                    </button>
+                  </div>
+
+                  {/*
+                    Nuqsonlar SAQLASHDAN OLDIN ko'rsatiladi: aks holda
+                    sabab faqat birinchi mijoz oldida ma'lum bo'lardi.
+                  */}
+                  {tanlovNuqsonlari({
+                    id: ti,
+                    kod: t.kod.trim() === '' ? null : t.kod.trim(),
+                    nom: t.nom.trim() === '' ? `${String(ti + 1)}-tanlov` : t.nom.trim(),
+                    majburiy: t.majburiy,
+                    variantlar: t.variantlar.map((v, vi) => ({
+                      id: vi,
+                      nom: v.nom,
+                      qiymat: v.qiymat.trim() === '' ? null : Number(v.qiymat),
+                      narx: v.narx.trim() === '' ? null : v.narx,
+                    })),
+                  }).map((x) => (
+                    <p key={x} className="mt-1.5 text-[11px] text-belgi-qizil">
+                      {x}
+                    </p>
+                  ))}
+                </div>
+              ))}
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={() => {
+              tanlovlarniOzgartir([
+                ...tanlovlar,
+                {
+                  kod: '',
+                  nom: '',
+                  majburiy: true,
+                  /* Ikkita bo'sh variant bilan ochiladi — kamida ikkitasi shart */
+                  variantlar: [
+                    { nom: '', qiymat: '', narx: '' },
+                    { nom: '', qiymat: '', narx: '' },
+                  ],
+                },
+              ]);
+            }}
+            className="fokus rounded-maydon border border-chegara-quyuq px-3 py-1.5 text-xs font-medium transition-colors hover:bg-fon"
+          >
+            + Tanlov
+          </button>
         </section>
 
         <div className="flex items-center gap-3">

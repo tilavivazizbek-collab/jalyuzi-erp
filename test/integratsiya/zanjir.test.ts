@@ -148,7 +148,16 @@ describe('2. Kartochkada to‘ldirilgani saqlanadi', () => {
       FROM material WHERE id = ${matoId}`;
 
     expect(q[0]?.almashtirish_guruh_id).toBe(guruhId);
-    expect(Number(q[0]?.sotuv_narx)).toBe(120000);
+    /**
+     * ⚠️ SOTUV NARXI BU YERDA TEKSHIRILMAYDI — egasi qarori
+     *    2026-09-22: u material kartochkasidan boshqarilmaydi,
+     *    «Narxlar va turlar» jadvalidan keladi. `sotuv_narx`
+     *    ustuni bazada qoldi, lekin `materialTahrirla` unga
+     *    TEGMAYDI (eski qiymatlar zaxira bo'lib turadi).
+     *
+     *    Katalog uni hamon olib chiqishini 5-bo'limdagi test
+     *    tekshiradi.
+     */
     /** ⚠️ Kutilayotgan narx — kirimni to'ldirish uchun, tannarx emas */
     expect(Number(q[0]?.kutilayotgan_kelish_narx)).toBe(78000);
     expect(Number(q[0]?.standart_rulon_eni_m)).toBe(3);

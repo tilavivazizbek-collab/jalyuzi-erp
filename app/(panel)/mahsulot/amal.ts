@@ -48,6 +48,8 @@ function formadanOqi(forma: FormData): unknown {
     slotlar: jsonOqi('slotlar'),
     parametrlar: jsonOqi('parametrlar'),
     aksessuarlar: jsonOqi('aksessuarlar'),
+    /** 0052 — mahsulot turining tanlovlari */
+    tanlovlar: jsonOqi('tanlovlar'),
   };
 }
 

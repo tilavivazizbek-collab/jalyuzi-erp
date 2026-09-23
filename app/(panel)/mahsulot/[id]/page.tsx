@@ -11,6 +11,8 @@ import {
   type MahsulotQiymatlari,
   type ParametrQatori,
   type SlotQatori,
+  type TanlovQatori,
+  type VariantQatori,
 } from '../forma';
 import { guruhlarniOl, materiallarniOl } from '../malumot';
 
@@ -52,7 +54,8 @@ export default async function MahsulotTahrirlash({ params }: { params: Promise<{
   const tur = turlar[0];
   if (tur === undefined) notFound();
 
-  const [slotlar, parametrlar, aksessuarlar, guruhlar, materiallar] = await Promise.all([
+  const [slotlar, parametrlar, aksessuarlar, guruhlar, materiallar, tanlovQatorlari, variantQatorlari] =
+    await Promise.all([
     ulanish<
       { nom: string; formula: string; majburiy: boolean; almashtirish_guruh_id: number | null;
         koeffitsient: string; kesish_turi: string;
@@ -71,6 +74,31 @@ export default async function MahsulotTahrirlash({ params }: { params: Promise<{
       WHERE mahsulot_tur_id = ${turId} AND faol = true ORDER BY id`,
     guruhlarniOl(),
     materiallarniOl(),
+    /**
+     * TANLOVLAR va VARIANTLAR — 0052.
+     *
+     * ⚠️ Ikkita alohida so'rov: variantlar tanlov bo'yicha
+     *    guruhlanadi. `JOIN` bilan bitta so'rov qilinsa tanlov
+     *    qatorlari takrorlanardi va ularni qayta yig'ish kerak
+     *    bo'lardi — o'sha ishning o'zi.
+     */
+    ulanish<
+      { id: number; kod: string | null; nom: string; majburiy: boolean }[]
+    >`SELECT id, kod, nom, majburiy FROM mahsulot_tanlov
+      WHERE mahsulot_tur_id = ${turId} AND faol = true
+      ORDER BY tartib, id`,
+    ulanish<
+      {
+        tanlov_id: number;
+        nom: string;
+        qiymat: string | null;
+        narx: string | null;
+      }[]
+    >`SELECT v.tanlov_id, v.nom, v.qiymat::text, v.narx::text
+      FROM mahsulot_tanlov_variant v
+      JOIN mahsulot_tanlov t ON t.id = v.tanlov_id
+      WHERE t.mahsulot_tur_id = ${turId} AND t.faol = true AND v.faol = true
+      ORDER BY v.tartib, v.id`,
   ]);
 
   const qiymatlar: MahsulotQiymatlari = {
@@ -100,6 +128,20 @@ export default async function MahsulotTahrirlash({ params }: { params: Promise<{
       kod: p.kod,
       nom: p.nom,
       standartQiymat: p.standart_qiymat ?? '0',
+    })),
+    /** 0052 — tanlovlar variantlari bilan birga yig'iladi */
+    tanlovlar: tanlovQatorlari.map((t): TanlovQatori => ({
+      kod: t.kod ?? '',
+      nom: t.nom,
+      majburiy: t.majburiy,
+      variantlar: variantQatorlari
+        .filter((v) => v.tanlov_id === t.id)
+        .map((v): VariantQatori => ({
+          nom: v.nom,
+          /** ⚠️ `null` — katak BO'SH turadi, nol emas */
+          qiymat: v.qiymat ?? '',
+          narx: v.narx ?? '',
+        })),
     })),
     aksessuarlar: aksessuarlar.map((a): AksessuarQatori => ({
       materialId: a.material_id,
