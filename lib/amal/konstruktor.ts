@@ -80,6 +80,62 @@ async function bolaklarniYoz(
   await tx`UPDATE mahsulot_aksessuar SET faol = false, ozgartirdi_id = ${xodimId},
            ozgartirildi = now() WHERE mahsulot_tur_id = ${turId} AND faol = true`;
 
+  /**
+   * ⚠️ TANLOVLAR HAM NOFAOL QILINADI, o'chirilmaydi (0052).
+   *
+   *    `pozitsiya_tanlov` ularga havola qiladi: eski buyurtmada
+   *    qaysi variant tanlangani ko'rinib turishi kerak. O'chirilsa
+   *    tashqi kalit yiqilardi.
+   *
+   * ⚠️ Variantlar TANLOV ORQALI nofaol qilinadi — alohida so'rov
+   *    bilan emas: tanlov nofaol bo'lsa uning variantlari ham
+   *    ishlatilmaydi va ikkita so'rov bir-biridan ayrilib qolishi
+   *    mumkin edi.
+   */
+  await tx`
+    UPDATE mahsulot_tanlov_variant SET faol = false, ozgartirdi_id = ${xodimId},
+           ozgartirildi = now()
+     WHERE faol = true
+       AND tanlov_id IN (SELECT id FROM mahsulot_tanlov
+                          WHERE mahsulot_tur_id = ${turId} AND faol = true)`;
+  await tx`UPDATE mahsulot_tanlov SET faol = false, ozgartirdi_id = ${xodimId},
+           ozgartirildi = now() WHERE mahsulot_tur_id = ${turId} AND faol = true`;
+
+  /**
+   * ⚠️ TANLOVLAR AKSESSUARLARDAN OLDIN yoziladi: aksessuar
+   *    `variant_id` orqali variantga havola qilishi mumkin va
+   *    variant hali yozilmagan bo'lsa tashqi kalit yiqilardi.
+   *
+   * ⚠️ Ekrandagi TARTIB raqami variant `id` siga aylantiriladi:
+   *    yangi tur saqlanayotganda hali `id` yo'q, shuning uchun
+   *    forma tartib bo'yicha havola qiladi.
+   */
+  const variantIdlari = new Map<string, number>();
+
+  for (const [ti, t] of (kirim.tanlovlar ?? []).entries()) {
+    const tq = await tx<{ id: number }[]>`
+      INSERT INTO mahsulot_tanlov (mahsulot_tur_id, kod, nom, majburiy, tartib,
+                                   yaratdi_id)
+      VALUES (${turId}, ${t.kod}, ${t.nom}, ${t.majburiy}, ${ti}, ${xodimId})
+      RETURNING id`;
+
+    const tanlovId = tq[0]?.id;
+    if (tanlovId === undefined) throw new BiznesXato('MAHSULOT_SAQLANMADI', 'tanlov');
+
+    for (const [vi, v] of t.variantlar.entries()) {
+      const vq = await tx<{ id: number }[]>`
+        INSERT INTO mahsulot_tanlov_variant (tanlov_id, nom, qiymat, narx, valyuta,
+                                             tartib, yaratdi_id)
+        VALUES (${tanlovId}, ${v.nom}, ${v.qiymat ?? null}, ${v.narx ?? null},
+                ${v.valyuta}, ${vi}, ${xodimId})
+        RETURNING id`;
+
+      const variantId = vq[0]?.id;
+      if (variantId === undefined) throw new BiznesXato('MAHSULOT_SAQLANMADI', 'variant');
+      variantIdlari.set(`${String(ti)}:${String(vi)}`, variantId);
+    }
+  }
+
   for (const [i, s] of kirim.slotlar.entries()) {
     await tx`
       INSERT INTO mahsulot_slot (mahsulot_tur_id, nom, tartib, majburiy,

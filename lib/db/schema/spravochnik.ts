@@ -501,6 +501,91 @@ export const mahsulotParametr = pgTable(
   ],
 );
 
+// ─── 2.6a · mahsulot_tanlov — egasi holatlari 2026-09-22 (0052) ───────────
+
+/**
+ * Mahsulot turining TANLOVI — «Boshqaruv tomoni», «Lamel eni».
+ *
+ * ⚠️ NEGA KERAK: tizim o'lchov va materialni modellashtira olardi,
+ *    TANLOVNI esa yo'q. Egasi to'rt marta bir xil savol berdi
+ *    (zebra, dikkey ochilishi, motorli, burchak oyna) va har safar
+ *    «ikki alohida tur qiling» degan javob oldi.
+ *
+ * ⚠️ `kod` — formulada ishlatiladigan nom. `null` bo'lsa tanlov
+ *    sarfga tegmaydi va faqat yozuv yoki narx uchun bo'ladi.
+ *    Shakl `mahsulot_parametr.kod` bilan BIR XIL.
+ *
+ * ⚠️ `ENI`, `BO'YI`, `MAYDON`, `SONI` kodlari TAQIQLANGAN: ular
+ *    tizimning o'z o'zgaruvchilari va bosib ketilsa butun hisob
+ *    jimgina buzilardi.
+ *
+ * ⚠️ Qoida `lib/domain/tanlov.ts` da — bu yerda faqat ma'lumot.
+ */
+export const mahsulotTanlov = pgTable(
+  'mahsulot_tanlov',
+  {
+    id: id(),
+    mahsulotTurId: bigint('mahsulot_tur_id', { mode: 'number' })
+      .notNull()
+      .references(() => mahsulotTur.id),
+    kod: text('kod'),
+    nom: text('nom').notNull(),
+    majburiy: boolean('majburiy').notNull().default(true),
+    tartib: integer('tartib').notNull().default(0),
+    ...ochirilmaydi,
+    ...izlar,
+  },
+  (t) => [
+    check('tanlov_nom', sql`length(btrim(${t.nom})) > 0`),
+    check('tanlov_kod_shakli', sql`${t.kod} IS NULL OR ${t.kod} ~ '^[A-Z][A-Z0-9_'']*$'`),
+    check(
+      'tanlov_kod_band_emas',
+      sql`${t.kod} IS NULL OR ${t.kod} NOT IN ('ENI', 'BO''YI', 'MAYDON', 'SONI')`,
+    ),
+    uniqueIndex('tanlov_kod_bitta')
+      .on(t.mahsulotTurId, t.kod)
+      .where(sql`${t.kod} IS NOT NULL AND ${t.faol}`),
+    index('tanlov_tur').on(t.mahsulotTurId, t.tartib),
+  ],
+);
+
+/**
+ * Tanlovning varianti — «Chap», «127 mm», «Motorli».
+ *
+ * ⚠️ `qiymat` — formulaga beriladigan son. `null` bo'lsa bu variant
+ *    sarfga tegmaydi.
+ *
+ * ⚠️ `narx` — QAT'IY summa. O'lchamga bog'liq narx `mahsulot_qoshimcha`
+ *    da: u MAYDON/ENI/BO'YI usullarini allaqachon biladi va ikkinchi
+ *    marta yozish «bir mantiq — bir joyda» ni buzardi.
+ */
+export const mahsulotTanlovVariant = pgTable(
+  'mahsulot_tanlov_variant',
+  {
+    id: id(),
+    tanlovId: bigint('tanlov_id', { mode: 'number' })
+      .notNull()
+      .references(() => mahsulotTanlov.id),
+    nom: text('nom').notNull(),
+    qiymat: numeric('qiymat', { precision: 10, scale: 4 }),
+    narx: numeric('narx', { precision: 14, scale: 2 }),
+    valyuta: text('valyuta').notNull().default('SOM'),
+    tartib: integer('tartib').notNull().default(0),
+    ...ochirilmaydi,
+    ...izlar,
+  },
+  (t) => [
+    check('variant_nom', sql`length(btrim(${t.nom})) > 0`),
+    check('variant_narx', sql`${t.narx} IS NULL OR ${t.narx} >= 0`),
+    check('variant_valyuta', sql`${t.valyuta} IN ('SOM','USD')`),
+    /** ⚠️ Bir xil nomli ikki variant — sotuvchi qaysi birini tanlaganini bilmasdi */
+    uniqueIndex('variant_nom_bitta')
+      .on(t.tanlovId, sql`lower(btrim(${t.nom}))`)
+      .where(sql`${t.faol}`),
+    index('variant_tanlov').on(t.tanlovId, t.tartib),
+  ],
+);
+
 // ─── 2.7 · mahsulot_aksessuar — TZ 4.6 ────────────────────────────────────
 
 /**
@@ -525,6 +610,18 @@ export const mahsulotAksessuar = pgTable(
     formula: text('formula').notNull(),
     /** TZ 4.6 — «Ixtiyoriy aksessuar sotuvda avtomatik kelmaydi» */
     majburiy: boolean('majburiy').notNull().default(true),
+    /**
+     * Aksessuar faqat SHU VARIANT tanlanganda qo'shiladi (0052).
+     *
+     * ⚠️ Motorli jalyuzida zanjir qo'shilmaydi, kabel va quvvat
+     *    manbai qo'shiladi. Qo'lda boshqariladiganda teskari.
+     *
+     * ⚠️ `null` — aksessuar HAR DOIM kerak (avvalgi xulq). Shu
+     *    sababli mavjud aksessuarlarning birortasi ham o'zgarmaydi.
+     */
+    variantId: bigint('variant_id', { mode: 'number' }).references(
+      () => mahsulotTanlovVariant.id,
+    ),
     ...ochirilmaydi,
     ...izlar,
   },

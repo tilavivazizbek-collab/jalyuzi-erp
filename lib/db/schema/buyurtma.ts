@@ -28,7 +28,14 @@ import {
 } from 'drizzle-orm/pg-core';
 import { id, izlar } from './ustunlar';
 import { filial, xodim } from './asos';
-import { mahsulotSlot, mahsulotTur, material, mijoz } from './spravochnik';
+import {
+  mahsulotSlot,
+  mahsulotTanlov,
+  mahsulotTanlovVariant,
+  mahsulotTur,
+  material,
+  mijoz,
+} from './spravochnik';
 
 // ─── 4.1 · buyurtma — TZ 8 · 20.4 · Q-12 · Q-23 ───────────────────────────
 
@@ -346,6 +353,53 @@ export const buyurtmaPozitsiya = pgTable(
  *    mijoz bilan 1.00 kv.m ga kelishadi, ombordan esa haqiqiy 0.66
  *    yechiladi.
  */
+/**
+ * POZITSIYAGA TANLANGAN VARIANT — snapshot bilan (0052).
+ *
+ * ⚠️ NOM VA QIYMAT NUSXA bo'lib yoziladi (2.3-invariant). Admin keyin
+ *    variantni o'chirsa yoki nomini o'zgartirsa, eski buyurtma
+ *    o'zgarmaydi: usta ham, chek ham o'sha kungi nomni ko'radi.
+ *
+ * ⚠️ `qiymat_snapshot` — variant formulaga bergan soni.
+ *    `formula_snapshot` bilan birga saqlanadi, shuning uchun eski
+ *    buyurtmani qayta hisoblash mumkin bo'ladi.
+ */
+export const pozitsiyaTanlov = pgTable(
+  'pozitsiya_tanlov',
+  {
+    id: id(),
+    buyurtmaPozitsiyaId: bigint('buyurtma_pozitsiya_id', { mode: 'number' })
+      .notNull()
+      .references(() => buyurtmaPozitsiya.id),
+    mahsulotTanlovId: bigint('mahsulot_tanlov_id', { mode: 'number' })
+      .notNull()
+      .references(() => mahsulotTanlov.id),
+    variantId: bigint('variant_id', { mode: 'number' })
+      .notNull()
+      .references(() => mahsulotTanlovVariant.id),
+
+    tanlovNomiSnapshot: text('tanlov_nomi_snapshot').notNull(),
+    variantNomiSnapshot: text('variant_nomi_snapshot').notNull(),
+    qiymatSnapshot: numeric('qiymat_snapshot', { precision: 10, scale: 4 }),
+    /** So'mga o'girilgan holda — kurs o'zgarsa buyurtma o'zgarmaydi */
+    narxSnapshot: numeric('narx_snapshot', { precision: 14, scale: 2 }),
+
+    ...izlar,
+  },
+  (t) => [
+    check(
+      'pozitsiya_tanlov_narx',
+      sql`${t.narxSnapshot} IS NULL OR ${t.narxSnapshot} >= 0`,
+    ),
+    /**
+     * ⚠️ Bitta pozitsiyada bitta tanlov BIR MARTA: ikkita javob
+     *    bo'lsa formula qaysi sonni olishini hech kim bilmasdi.
+     */
+    uniqueIndex('pozitsiya_tanlov_bitta').on(t.buyurtmaPozitsiyaId, t.mahsulotTanlovId),
+    index('pozitsiya_tanlov_poz').on(t.buyurtmaPozitsiyaId),
+  ],
+);
+
 export const pozitsiyaMaterial = pgTable(
   'pozitsiya_material',
   {

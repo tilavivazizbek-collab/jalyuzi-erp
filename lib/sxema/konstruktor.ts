@@ -7,6 +7,7 @@
  */
 
 import { z } from 'zod';
+import { royxat } from './umumiy';
 
 /** Formula tahlilchisi faqat shu shakldagi nomni taniydi (lib/domain/formula.ts). */
 const PARAMETR_KODI = /^[A-Z][A-Z0-9_']*$/;
@@ -103,6 +104,75 @@ const chegaraSoni = (xabar: string) =>
      */
     .optional();
 
+/**
+ * TANLOV VARIANTI — «Chap», «127 mm», «Motorli» (0052).
+ *
+ * ⚠️ `qiymat` va `narx` IKKALASI HAM ixtiyoriy: variant faqat yozuv
+ *    bo'lishi mumkin (zanjir chapdan), faqat narx qo'shishi mumkin
+ *    (kasseta), yoki formulaga son berishi mumkin (lamel eni).
+ */
+export const tanlovVariantSxema = z.object({
+  id: z.number().int().nonnegative().optional(),
+  nom: z.string().trim().min(1, 'Variant nomini kiriting').max(100),
+  qiymat: z
+    .union([z.literal(''), z.coerce.number()])
+    .transform((v) => (v === '' ? null : v))
+    .nullable()
+    .optional(),
+  narx: z
+    .union([z.literal(''), z.coerce.number().nonnegative("Narx manfiy bo'lmasin")])
+    .transform((v) => (v === '' ? null : v))
+    .nullable()
+    .optional(),
+  valyuta: royxat(['SOM', 'USD'], 'SOM'),
+});
+
+/**
+ * TANLOV — «Boshqaruv tomoni», «Lamel eni» (0052).
+ *
+ * ⚠️ Kod formulada o'zgaruvchi bo'lib ishlatiladi, shuning uchun
+ *    `mahsulot_parametr.kod` bilan BIR XIL shaklda. Tizimning o'z
+ *    o'zgaruvchilari (`ENI`, `BO'YI`, `MAYDON`, `SONI`) TAQIQLANGAN:
+ *    bosib ketilsa butun hisob jimgina buzilardi.
+ */
+export const tanlovSxema = z
+  .object({
+    id: z.number().int().nonnegative().optional(),
+    kod: z
+      .string()
+      .trim()
+      .toUpperCase()
+      .transform((v) => (v === '' ? null : v))
+      .nullable()
+      .refine(
+        (v) => v === null || /^[A-Z][A-Z0-9_']*$/.test(v),
+        "Kod katta harf bilan boshlanib, faqat katta harf va raqamdan iborat bo'lsin",
+      )
+      .refine(
+        (v) => v === null || !['ENI', "BO'YI", 'MAYDON', 'SONI'].includes(v),
+        "Bu kod tizimda band — boshqa nom bering",
+      ),
+    nom: z.string().trim().min(1, 'Tanlov nomini kiriting').max(100),
+    majburiy: z.boolean().default(true),
+    variantlar: z.array(tanlovVariantSxema).default([]),
+  })
+  /**
+   * ⚠️ Bitta variantli tanlovning ma'nosi yo'q — sotuvchiga tanlash
+   *    uchun hech narsa qolmaydi.
+   */
+  .refine((t) => t.variantlar.length >= 2, {
+    path: ['variantlar'],
+    message: "Kamida ikkita variant kerak",
+  })
+  /**
+   * ⚠️ Kod bor, lekin birorta variantda son yo'q — formula
+   *    «noma'lum o'zgaruvchi» xatosini beradi va SOTUV TO'XTAYDI.
+   */
+  .refine(
+    (t) => t.kod === null || t.variantlar.some((v) => v.qiymat !== null && v.qiymat !== undefined),
+    { path: ['kod'], message: "Kod berilgan, lekin birorta variantda son yo'q" },
+  );
+
 export const mahsulotTurSxema = z.object({
   nom: z.string().trim().min(1, 'Nomini kiriting').max(200),
   xizmatHaqi: z
@@ -139,6 +209,18 @@ export const mahsulotTurSxema = z.object({
   slotlar: z.array(slotSxema).min(1, "Kamida bitta mato sloti bo'lishi kerak"),
   parametrlar: z.array(parametrSxema),
   aksessuarlar: z.array(aksessuarSxema),
+  /**
+   * TANLOVLAR — 0052.
+   *
+   * ⚠️ IXTIYORIY, `default([])` emas. `default` chiqish turini
+   *    MAJBURIY qiladi va tanlovni bilmaydigan har bir eski
+   *    chaqiruvchi (tuzatish skriptlari, integratsiya testlari)
+   *    buziladi. Bu sessiyada shu tuzoqqa UCH MARTA tushildi
+   *    (`narxBelgilaydi`, o'lcham chegarasi, tanlovlar).
+   *
+   *    Ma'no ham to'g'ri chiqadi: maydon yo'q = tanlov yo'q.
+   */
+  tanlovlar: z.array(tanlovSxema).optional(),
 })
   /**
    * ⚠️ TESKARI CHEGARA SAQLASHDAN OLDIN USHLANADI — 0051.
