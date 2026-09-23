@@ -9,6 +9,7 @@
  */
 
 import type postgres from 'postgres';
+import Decimal from 'decimal.js';
 import { farqniAjrat, ozgarishBormi, type Qiymatlar } from '@/lib/audit/amallar';
 import type { MaterialKirimi } from '@/lib/sxema/material';
 import type { RasmNatijasi } from '@/lib/domain/rasm';
@@ -195,11 +196,32 @@ export async function materialTahrirla(
       throw new BiznesXato('MATERIAL_TOPILMADI', String(materialId));
     }
 
+    /*
+     * ── BIRLIK O'ZGARDIMI ────────────────────────────────
+     *
+     * ⚠️ KOEFFITSIENT SON BO'YICHA solishtiriladi, MATN bo'yicha
+     *    EMAS — 2026-09-23 da topilgan xato.
+     *
+     *    `koeffitsient` ustuni `numeric(10,4)` va postgres.js uni
+     *    MATN qilib qaytaradi: «1.0000». Forma esa «1» yuboradi
+     *    (`birlikKoeffitsienti` standart birlikda aynan shu satrni
+     *    beradi). Matn solishtiruvida «1.0000» ≠ «1» — ya'ni
+     *    KOEFFITSIENT HECH QACHON O'ZGARMAGAN bo'lsa ham «o'zgardi»
+     *    deb hisoblanardi.
+     *
+     *    Natija: omborda qoldig'i bor HAR QANDAY materialni
+     *    tahrirlab bo'lmasdi — nomini o'zgartirish ham
+     *    «birliklarni o'zgartirib bo'lmaydi» xatosi bilan rad
+     *    etilardi. Egasi aynan shunga duch keldi.
+     *
+     * ⚠️ Qolgan uchtasi MATN ustunlari (enum) — ular matn
+     *    bo'yicha solishtiriladi va bu to'g'ri.
+     */
     const birlikOzgardi =
       eski.hisob_turi !== kirim.hisobTuri ||
       eski.kirim_birligi !== kirim.kirimBirligi ||
       eski.sarflash_birligi !== kirim.sarflashBirligi ||
-      eski.koeffitsient !== kirim.koeffitsient;
+      !new Decimal(eski.koeffitsient).equals(new Decimal(kirim.koeffitsient));
 
     if (birlikOzgardi) {
       const qoldiq = await qoldiqSoni(tx, materialId);
