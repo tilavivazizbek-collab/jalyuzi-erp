@@ -200,6 +200,46 @@ export const buyurtmaPozitsiya = pgTable(
     eniM: numeric('eni_m', { precision: 8, scale: 2 }).notNull(),
     boyiM: numeric('boyi_m', { precision: 8, scale: 2 }).notNull(),
     soni: integer('soni').notNull().default(1),
+
+    /*
+     * ─── OYNA O'LCHAMI VA O'RNATISH TURI — 0053 ──────────────
+     *
+     * ⚠️ YUQORIDAGI `eni_m` / `boyi_m` NIMA EKANI O'ZGARMADI:
+     *    ular DOIM tayyor jalyuzi o'lchami. Narx, formula, kesim,
+     *    band qilish — hammasi o'sha-o'sha ishlaydi.
+     *
+     *    Quyidagilar QO'SHIMCHA yozuv: hisobga KIRMAYDI, faqat
+     *    saqlanadi va ko'rsatiladi. Shu sababdan eski buyurtmalar
+     *    ham, o'rnatish turi belgilanmagan turlar ham buzilmaydi.
+     */
+
+    /** Zamerchi o'lchagan OYNA o'lchami. `null` — tayyor o'lcham to'g'ridan yozilgan */
+    oynaEniM: numeric('oyna_eni_m', { precision: 6, scale: 2 }),
+    oynaBoyiM: numeric('oyna_boyi_m', { precision: 6, scale: 2 }),
+
+    ornatishId: bigint('ornatish_id', { mode: 'number' }),
+    /**
+     * ⚠️ SNAPSHOT (2.3-invariant) — nom ham, ikkala qo'shimcha ham.
+     *
+     *    O'rnatish turi ertaga tahrirlansa yoki faolsizlantirilsa,
+     *    BU buyurtma qaysi qoida bilan hisoblangani o'zgarmasin:
+     *    aks holda «nega tayyor o'lcham oynadan 10 sm katta?» degan
+     *    savolga javob topib bo'lmasdi.
+     */
+    ornatishNom: text('ornatish_nom'),
+    ornatishEniM: numeric('ornatish_eni_m', { precision: 6, scale: 2 }),
+    ornatishBoyiM: numeric('ornatish_boyi_m', { precision: 6, scale: 2 }),
+    /**
+     * Tayyor o'lcham QO'LDA yozilgan — egasining o'z gapi:
+     * «usta xohishicha o'zgartiraveradi inputni, o'zgartirmasa eski
+     *  holatida saqlanadi».
+     *
+     * ⚠️ `true` bo'lsa oyna o'lchami yoki o'rnatish turi keyin
+     *    o'zgarsa ham tayyor o'lcham QAYTA HISOBLANMAYDI. Ustaning
+     *    qo'li bilan yozilgan raqam ustidan yozish — uning ishini
+     *    bekor qilish degani.
+     */
+    olchamQolda: boolean('olcham_qolda').notNull().default(false),
     /**
      * O'lchov bilan sotilgan miqdor, METR — T-16 (2026-09-21).
      *

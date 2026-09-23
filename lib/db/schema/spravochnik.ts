@@ -586,6 +586,58 @@ export const mahsulotTanlovVariant = pgTable(
   ],
 );
 
+// ─── 2.6a · mahsulot_ornatish — 0053 ───────────────────────────
+
+/**
+ * OYNA o'lchamidan TAYYOR JALYUZI o'lchamiga o'tish qoidasi.
+ *
+ * ⚠️ Zamerchi oynani o'lchaydi, tizim esa tayyor buyum o'lchamini
+ *    kutadi. Ular hech qachon teng emas: devorga o'rnatishda eni
+ *    10 sm kattaroq, proyomga o'rnatishda 1 sm kichikroq. Shu
+ *    paytgacha farqni sotuvchi boshida hisoblardi — peredelkaning
+ *    birinchi sababi.
+ *
+ * ⚠️ Qo'shimchalar MANFIY bo'lishi mumkin (proyom), shuning uchun
+ *    bazada `>= 0` tekshiruvi YO'Q. Faqat natija — tayyor o'lcham —
+ *    noldan katta bo'lishi `lib/domain/olcham-qoidasi.ts` da
+ *    tekshiriladi.
+ *
+ * ⚠️ Ro'yxat bo'sh bo'lsa tur AVVALGIDEK ishlaydi: sotuvchi tayyor
+ *    o'lchamni o'zi yozadi.
+ */
+export const mahsulotOrnatish = pgTable(
+  'mahsulot_ornatish',
+  {
+    id: id(),
+    mahsulotTurId: bigint('mahsulot_tur_id', { mode: 'number' })
+      .notNull()
+      .references(() => mahsulotTur.id),
+    nom: text('nom').notNull(),
+    eniQoshimchaM: numeric('eni_qoshimcha_m', { precision: 6, scale: 2 })
+      .notNull()
+      .default('0'),
+    boyiQoshimchaM: numeric('boyi_qoshimcha_m', { precision: 6, scale: 2 })
+      .notNull()
+      .default('0'),
+    standartmi: boolean('standartmi').notNull().default(false),
+    tartib: integer('tartib').notNull().default(0),
+    ...ochirilmaydi,
+    ...izlar,
+  },
+  (t) => [
+    check('ornatish_nom', sql`length(btrim(${t.nom})) > 0`),
+    /**
+     * ⚠️ BITTA STANDART. Ikkitasi bo'lsa sotuv ekrani qaysi biri
+     *    bilan ochilishi SO'ROV TARTIBIGA qarab o'zgarardi — ya'ni
+     *    bugun bir xil, ertaga boshqa.
+     */
+    uniqueIndex('mahsulot_ornatish_standart_uniq')
+      .on(t.mahsulotTurId)
+      .where(sql`${t.standartmi} AND ${t.faol}`),
+    index('mahsulot_ornatish_tur_idx').on(t.mahsulotTurId).where(sql`${t.faol}`),
+  ],
+);
+
 // ─── 2.7 · mahsulot_aksessuar — TZ 4.6 ────────────────────────────────────
 
 /**

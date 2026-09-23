@@ -138,6 +138,15 @@ export const XATO_BAND = {
    *    bu o'lchamda esa mahsulot jismonan qilinmaydi.
    */
   OLCHAM_CHEGARADAN: 'Egasi qarori 2026-09-22',
+  /**
+   * Oyna o'lchamidan tayyor o'lchamga o'tishda natija ma'nosiz
+   * chiqdi — egasi holati 2026-09-23 (0053).
+   *
+   * ⚠️ Masalan 0.20 m li oynaga «proyomga −0.30» qoidasi. Bunday
+   *    o'lcham bilan davom etilsa keyingi hamma hisob ma'nosiz
+   *    bo'lardi, shuning uchun shu yerda to'xtatiladi.
+   */
+  OLCHAM_NOTOGRI: 'Egasi holati 2026-09-23',
   /** Tanlov kodi tizimning o'z o'zgaruvchisi bilan to'qnashdi (2026-09-22) */
   TANLOV_KODI_BAND: 'Egasi qarori 2026-09-22',
   /** Majburiy tanlov tanlanmagan */
