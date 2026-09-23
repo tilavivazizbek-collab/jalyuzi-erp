@@ -1,7 +1,8 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { slotSarfi, standartQiymatlar } from '@/lib/domain/formula';
+import { slotSarfi, soniUchun, standartQiymatlar } from '@/lib/domain/formula';
+import { kesimOlchami } from '@/lib/domain/kesish';
 import { m, type SarflashBirligi } from '@/lib/domain/birlik';
 import { pulKorsat, som, kopaytir, qosh, nolSom } from '@/lib/domain/pul';
 import { biznesXatosimi } from '@/lib/xato';
@@ -24,6 +25,16 @@ export interface SlotHolati {
   readonly guruhId: number | null;
   /** AUDIT 1-topilma — sarf koeffitsienti */
   readonly koeffitsient: number;
+  /**
+   * Kesish yo'nalishi va qat'iy kesim eni — 2026-09-23.
+   *
+   * ⚠️ Bularsiz kalkulyator faqat KV.M ko'rsatardi, egasi esa
+   *    rulondan NECHA METR tortilishini bilmasdi. «8 kv.m» degan
+   *    raqam dikkeyda «0.40 × 20.00» degani — ya'ni 20 metr. Bu
+   *    ikkisi bir xil emas va omborda aynan ikkinchisi yechiladi.
+   */
+  readonly kesishTuri: 'ENIGA' | "BO'YIGA";
+  readonly kesimEniM: string;
 }
 
 export interface GuruhMalumoti {
@@ -49,6 +60,8 @@ const BIRLIK_MATNI: Record<SarflashBirligi, string> = {
 interface Qator {
   readonly nom: string;
   readonly natija: string;
+  /** «0.40 × 20.00 m» — rulondan aynan shu to'rtburchak kesiladi */
+  readonly kesim: string | null;
   readonly summa: string | null;
   readonly xato: string | null;
 }
@@ -86,9 +99,16 @@ export function TestKalkulyatori({
       if (p.kod !== '' && Number.isFinite(q)) qoshimcha[p.kod] = q;
     }
 
+    /**
+     * Soni — butun va kamida 1. `kesimOlchami` butun son talab
+     * qiladi («3.5 ta parda» degan narsa yo'q), shuning uchun bir
+     * joyda tozalanadi va ikkala hisobga ham SHU beriladi.
+     */
+    const sonAdadi = Number.isFinite(s) && s >= 1 ? Math.floor(s) : 1;
+
     let qiymatlar;
     try {
-      qiymatlar = standartQiymatlar(m(e), m(b), Number.isFinite(s) ? s : 1, qoshimcha);
+      qiymatlar = standartQiymatlar(m(e), m(b), sonAdadi, qoshimcha);
     } catch {
       return { qatorlar: [], jami: null, umumiy: null };
     }
@@ -101,7 +121,48 @@ export function TestKalkulyatori({
       const birlik: SarflashBirligi = guruh?.sarflashBirligi ?? 'KV_M';
 
       try {
-        const miqdor = slotSarfi(slot.formula, qiymatlar, birlik, slot.koeffitsient);
+        const bir = slotSarfi(slot.formula, qiymatlar, birlik, slot.koeffitsient);
+        /**
+         * ⚠️ SONI ga KO'PAYTIRISH — 2026-09-23 da qo'shildi.
+         *
+         *    Bu yerda `soniUchun` yo'q edi: «Soni 3» yozilsa ham
+         *    kalkulyator BITTA pardaning sarfini ko'rsatardi, sotuv
+         *    esa uchtasini yechardi (`pozitsiya-narxi.ts:143`).
+         *    Ya'ni «bu yerda ko'rgan raqamingiz keyin ham shu
+         *    chiqadi» degan va'da uchta buyumda buzilardi.
+         */
+        const miqdor = soniUchun(slot.formula, bir, sonAdadi);
+
+        /**
+         * KESIM TO'RTBURCHAGI — egasi so'rovi 2026-09-23:
+         * «mato sarfi ham kv.da ham eni va bo'yida ko'rsatilsin».
+         *
+         * ⚠️ Hisob DOMAINDAN (`kesimOlchami`) — band qilish, ustaning
+         *    «Tugatdim» ekrani va bot ham AYNAN shu funksiyani
+         *    chaqiradi (CLAUDE.md §3). Bu yerda alohida hisoblansa
+         *    ekrandagi raqam ombordagidan farq qilib qolardi.
+         */
+        let kesim: string | null = null;
+        if (birlik === 'KV_M') {
+          const qatiy = slot.kesimEniM.trim();
+          const qatiySon = qatiy === '' ? null : Number(qatiy);
+          try {
+            const k = kesimOlchami(miqdor, b, {
+              koeffitsient: slot.koeffitsient,
+              yonalish: slot.kesishTuri,
+              /** T-12 — to'rtburchak BITTA buyum uchun, jami emas */
+              soni: sonAdadi,
+              kesimEniM:
+                qatiySon !== null && Number.isFinite(qatiySon) && qatiySon > 0
+                  ? qatiySon
+                  : null,
+            });
+            kesim = `${k.eniM.toFixed(2)} × ${k.boyiM.toFixed(2)} m`;
+          } catch {
+            /** O'lcham mumkin bo'lmasa kv.m baribir ko'rsatiladi */
+            kesim = null;
+          }
+        }
 
         // TZ 5.4 — chiziqli materialning narxi 1 METR uchun (Q-01)
         let summa: string | null = null;
@@ -121,6 +182,7 @@ export function TestKalkulyatori({
         return {
           nom: slot.nom === '' ? '(nomsiz slot)' : slot.nom,
           natija: `${String(miqdor)} ${BIRLIK_MATNI[birlik]}`,
+          kesim,
           summa,
           xato: null,
         };
@@ -128,6 +190,7 @@ export function TestKalkulyatori({
         return {
           nom: slot.nom === '' ? '(nomsiz slot)' : slot.nom,
           natija: '—',
+          kesim: null,
           summa: null,
           xato: biznesXatosimi(x) ? x.message : "formulani hisoblab bo'lmadi",
         };
@@ -200,6 +263,7 @@ export function TestKalkulyatori({
             <tr>
               <th className="pb-2 font-medium">Slot</th>
               <th className="pb-2 font-medium">Sarflanadi</th>
+              <th className="pb-2 font-medium">Kesim (eni × bo&apos;yi)</th>
               <th className="pb-2 text-right font-medium">Summa</th>
             </tr>
           </thead>
@@ -214,6 +278,17 @@ export function TestKalkulyatori({
                     <span className="text-belgi-qizil">{q.xato}</span>
                   )}
                 </td>
+                {/*
+                  KESIM ALOHIDA USTUN — egasi so'rovi 2026-09-23.
+
+                  «8 kv.m» dan rulondan necha metr ketishi
+                  KO'RINMAYDI: dikkeyda u «0.40 × 20.00», ya'ni
+                  yigirma metr. Ombordan aynan shu to'rtburchak
+                  yechiladi, kv.m esa faqat narx uchun.
+                */}
+                <td className="raqam py-2 text-[12px] text-matn-ikki">
+                  {q.kesim ?? <span className="text-matn-kuchsiz">—</span>}
+                </td>
                 <td className="raqam py-2">
                   {q.summa ?? <span className="text-matn-kuchsiz">—</span>}
                 </td>
@@ -223,7 +298,7 @@ export function TestKalkulyatori({
           {natija.umumiy !== null && (
             <tfoot className="border-t border-chegara">
               <tr>
-                <td className="pt-2 text-xs text-matn-kuchsiz" colSpan={2}>
+                <td className="pt-2 text-xs text-matn-kuchsiz" colSpan={3}>
                   Namuna narxlar bo&apos;yicha taxminiy summa
                   {Number(xizmatHaqi) > 0 ? ' (xizmat haqi bilan)' : ''}
                 </td>
@@ -235,6 +310,11 @@ export function TestKalkulyatori({
       )}
 
       <p className="mt-3 text-xs text-matn-kuchsiz">
+        <b>Kesim</b> — rulondan kesib olinadigan to&apos;rtburchak, BITTA
+        buyum uchun. Ombordan aynan shu o&apos;lcham yechiladi: qat&apos;iy kesim
+        eni berilgan slotda (dikkey lameli) eni o&apos;zgarmaydi, bo&apos;yi esa
+        maydondan chiqadi.
+        <br />
         Summa guruhdagi namuna materialning narxi bo&apos;yicha. Haqiqiy narx sotuvda tanlangan
         matoga qarab chiqadi (3.8).
       </p>

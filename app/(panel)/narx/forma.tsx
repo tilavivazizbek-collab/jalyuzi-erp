@@ -358,6 +358,7 @@ export function NarxFormasi({
               ? 'Yuqoridagi ro‘yxatdan darajani tanlang'
               : 'Bu daraja shu mijoz turi va filialga ochilmagan — sotuvda ham narx topilmaydi',
         hisob: null,
+        usul: null,
       };
     }
 
@@ -372,7 +373,7 @@ export function NarxFormasi({
     const eni = miqdorlimi ? 0 : son(sinovEni);
     const boyi = miqdorlimi ? 0 : son(sinovBoyi);
     if (!miqdorlimi && (eni === null || boyi === null || eni <= 0 || boyi <= 0)) {
-      return { xato: "O'lcham kiriting", hisob: null };
+      return { xato: "O'lcham kiriting", hisob: null, usul: null };
     }
 
     try {
@@ -392,9 +393,22 @@ export function NarxFormasi({
         offset: null,
         kurs: kursObyekti,
       });
-      return { xato: null, hisob };
+      /**
+       * USUL natijaga qo'shiladi — egasi so'rovi 2026-09-23:
+       * «o'lchov ham kv.m da, ham eni va bo'yida ko'rinsin».
+       *
+       * ⚠️ Ilgari bu yerda yalang’och «2.9400» turardi: birligi
+       *    ham, qayerdan chiqqani ham yozilmagan. Maydonmi, metrmi,
+       *    donami — egasi taxmin qilishi kerak edi va «ENI»
+       *    qoidasida 2.10 ni maydon deb o'qib ketish oson edi.
+       */
+      return { xato: null, hisob, usul: q.hisoblashUsuli };
     } catch (x) {
-      return { xato: biznesXatosimi(x) ? x.message : 'Hisoblab bo‘lmadi', hisob: null };
+      return {
+        xato: biznesXatosimi(x) ? x.message : 'Hisoblab bo‘lmadi',
+        hisob: null,
+        usul: null,
+      };
     }
   }, [
     qoidalar,
@@ -1233,10 +1247,33 @@ export function NarxFormasi({
             <p className="text-belgi-qizil">{natija.xato}</p>
           ) : (
             <dl className="flex flex-col gap-1">
+              {/*
+                O'LCHOV BIRLIGI BILAN + QAYERDAN CHIQQANI — 2026-09-23.
+
+                Egasi: «o'lchov ham kv.da, ham eni va bo'yida
+                ko'rsatilsin». Ilgari bu yerda yalang'och «2.9400»
+                turardi — maydonmi, metrmi, donami degan savolga
+                javob yo'q edi. Endi birligi ham, uni bergan
+                to'rtburchak ham yonida turadi.
+              */}
               <div className="flex justify-between">
                 <dt className="text-matn-ikki">O‘lchov</dt>
-                <dd className="tabular-nums">{natija.hisob.olchov.toFixed(4)}</dd>
+                <dd className="tabular-nums">
+                  {natija.hisob.olchov.toFixed(4)}{' '}
+                  <span className="text-matn-kuchsiz">
+                    {natija.usul === null ? '' : birlikNomi(natija.usul)}
+                  </span>
+                </dd>
               </div>
+              {soniAlohidami && (
+                <div className="flex justify-between text-[12px] text-matn-kuchsiz">
+                  <dt>O‘lcham</dt>
+                  <dd className="tabular-nums">
+                    {sinovEni} × {sinovBoyi} m
+                    {sinovSoniAdadi > 1 ? ` × ${String(sinovSoniAdadi)} dona` : ''}
+                  </dd>
+                </div>
+              )}
               <div className="flex justify-between">
                 <dt className="text-matn-ikki">Bosqich</dt>
                 <dd className="tabular-nums">

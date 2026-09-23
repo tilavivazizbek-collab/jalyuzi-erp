@@ -1352,6 +1352,15 @@ export function MahsulotFormasi({
             formula: s.formula,
             guruhId: s.almashtirishGuruhId,
             koeffitsient: s.koeffitsient,
+            /**
+             * Kesish sozlamasi KALKULYATORGA ham beriladi (2026-09-23).
+             *
+             * ⚠️ Usiz kalkulyator faqat kv.m ko'rsatardi va egasi
+             *    rulondan necha metr ketishini bilmasdi — dikkeyda
+             *    8 kv.m degani 20 metr degani.
+             */
+            kesishTuri: s.kesishTuri,
+            kesimEniM: s.kesimEniM,
           }))}
           parametrlar={parametrlar.map((p) => ({ kod: p.kod, qiymat: p.standartQiymat }))}
           guruhlar={guruhRoyxati}
