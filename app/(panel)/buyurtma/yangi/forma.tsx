@@ -45,6 +45,7 @@ import { amaldagiOffset, limitHolati, offsetQollanmadimi } from '@/lib/domain/mi
 import { chegirmaMatni } from '../../mijoz/guruh/royxat';
 import { biznesXatosimi } from '@/lib/xato';
 import { Maydon, kirishUslubi } from '../../maydon';
+import { Tanlagich } from '../../tanlagich';
 import { Modal } from '../../modal';
 import { RasmKorish } from '../../rasm-korish';
 import {
@@ -1449,22 +1450,21 @@ export function SotuvFormasi({
                     />
                   </Maydon>
                   <Maydon nom="ornatish" yorliq="O'rnatish">
-                    <select
+                    <Tanlagich
                       id="ornatish"
-                      value={ornatishId ?? ''}
-                      onChange={(e) => {
-                        ornatishIdniOzgartir(
-                          e.target.value === '' ? null : Number(e.target.value),
-                        );
+                      sinf="w-56"
+                      qiymat={ornatishId === null ? '' : String(ornatishId)}
+                      ozgartir={(v) => {
+                        ornatishIdniOzgartir(v === '' ? null : Number(v));
                       }}
-                      className={`${kirishUslubi(false)} w-auto`}
-                    >
-                      {tur.ornatishlar.map((o) => (
-                        <option key={o.id} value={o.id}>
-                          {o.nom} ({qoshimchaMatni(o)})
-                        </option>
-                      ))}
-                    </select>
+                      ariaYorliq="O&#39;rnatish turi"
+                      yozuvlar={tur.ornatishlar.map((o) => ({
+                        qiymat: String(o.id),
+                        matn: o.nom,
+                        /** Qo'shimcha IKKINCHI QATORDA — nom bilan aralashmasin */
+                        izoh: qoshimchaMatni(o),
+                      }))}
+                    />
                   </Maydon>
                 </div>
 
@@ -1696,38 +1696,50 @@ export function SotuvFormasi({
                           )}
                         </td>
                         <td className="px-3 py-2">
-                          <select
-                            value={slotlar[q.slot.id]?.materialId ?? ''}
-                            onChange={(e) => {
+                          {/*
+                            QIDIRUVLI RO'YXAT — 2026-09-23.
+
+                            ⚠️ Bu tizimdagi ENG UZUN ro'yxat: omborda
+                               yuzta mato bo'lishi mumkin. Brauzerning
+                               o'z ro'yxatida qidiruv yo'q edi va
+                               sotuvchi mijoz oldida aylanib izlardi.
+
+                            ⚠️ QOLDIQ endi IKKINCHI QATORDA. Ilgari u
+                               nom bilan bir qatorda edi va uzun nomli
+                               matoda ekranga sig'may qirqilardi —
+                               ya'ni eng kerakli raqam ko'rinmasdi.
+                          */}
+                          <Tanlagich
+                            sinf="w-56"
+                            qiymat={slotlar[q.slot.id]?.materialId ?? ''}
+                            ozgartir={(v) => {
                               slotlarniOzgartir((o) => ({
                                 ...o,
                                 [q.slot.id]: {
-                                  materialId: e.target.value,
+                                  materialId: v,
                                   tuzatilgan: o[q.slot.id]?.tuzatilgan ?? '',
                                 },
                               }));
                             }}
-                            className={`${kirishUslubi(false)} w-56`}
-                          >
-                            <option value="">— tanlang —</option>
-                            {q.slot.materiallar.map((m) => (
-                              <option key={m.id} value={m.id}>
-                                {m.nom}
-                                {/*
-                                  ⚠️ BIRLIK YOZILADI — 2026-09-21.
-                                     Ilgari bu yerda shunchaki «· 8»
-                                     turardi: metrmi, donami — bilib
-                                     bo'lmasdi. Chiziqli materialning
-                                     qoldig'i METRDA yotadi.
-                                */}
-                                {m.sarflashBirligi === 'KV_M'
-                                  ? ` · ${m.boshKvM.toFixed(2)} kv.m`
-                                  : m.sarflashBirligi === 'M'
-                                    ? ` · ${m.boshDona.toFixed(2)} m`
-                                    : ` · ${String(m.boshDona)} dona`}
-                              </option>
-                            ))}
-                          </select>
+                            boshQator="— tanlang —"
+                            joyBelgisi="— tanlang —"
+                            ariaYorliq={`${q.slot.nom} materiali`}
+                            yozuvlar={q.slot.materiallar.map((mt) => ({
+                              qiymat: String(mt.id),
+                              matn: mt.nom,
+                              /**
+                               * ⚠️ BIRLIK YOZILADI — 2026-09-21.
+                               *    Ilgari shunchaki «· 8» turardi:
+                               *    metrmi, donami — bilib bo'lmasdi.
+                               */
+                              izoh:
+                                mt.sarflashBirligi === 'KV_M'
+                                  ? `qoldiq ${mt.boshKvM.toFixed(2)} kv.m`
+                                  : mt.sarflashBirligi === 'M'
+                                    ? `qoldiq ${mt.boshDona.toFixed(2)} m`
+                                    : `qoldiq ${String(mt.boshDona)} dona`,
+                            }))}
+                          />
 
                           {/*
                             ⚠️ TZ 3.3 — «mijozga ekranni burib
@@ -1963,24 +1975,23 @@ export function SotuvFormasi({
                              ko'rib turishi kerak.
                         */}
                         {tanlandimi && q.materiallar.length > 0 && (
-                          <select
-                            value={qoshimchaMateriali[q.id] ?? ''}
-                            onChange={(e) => {
+                          <Tanlagich
+                            sinf="w-52"
+                            qiymat={qoshimchaMateriali[q.id] ?? ''}
+                            ozgartir={(v) => {
                               qoshimchaMaterialiniOzgartir((o) => ({
                                 ...o,
-                                [q.id]: e.target.value,
+                                [q.id]: v,
                               }));
                             }}
-                            aria-label={`${q.nom} materiali`}
-                            className={`${kirishUslubi(false)} w-52`}
-                          >
-                            <option value="">— material tanlang —</option>
-                            {q.materiallar.map((m) => (
-                              <option key={m.id} value={m.id}>
-                                {m.nom}
-                              </option>
-                            ))}
-                          </select>
+                            ariaYorliq={`${q.nom} materiali`}
+                            boshQator="— material tanlang —"
+                            joyBelgisi="— material tanlang —"
+                            yozuvlar={q.materiallar.map((mt) => ({
+                              qiymat: String(mt.id),
+                              matn: mt.nom,
+                            }))}
+                          />
                         )}
 
                         {tanlandimi &&

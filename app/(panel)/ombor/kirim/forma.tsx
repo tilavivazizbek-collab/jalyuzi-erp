@@ -4,6 +4,7 @@ import { enterYuborilmasin } from '../../forma-yordamchi';
 import { useActionState, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Maydon, kirishUslubi } from '../../maydon';
+import { Tanlagich } from '../../tanlagich';
 import { kirimYaratAmali } from './amal';
 import { BOSH_HOLAT } from './holat';
 import Decimal from 'decimal.js';
@@ -587,10 +588,12 @@ export function KirimFormasi({
                        ko'rmagan: «narx inputi yo'q» degan.
                   */}
                   <div className="grid gap-2 sm:grid-cols-[1fr_100px_230px_32px]">
-                    <select
-                      value={q.materialId}
-                      onChange={(e) => {
-                        const yangiId = Number(e.target.value);
+                    {/* ⚠️ Qidiruvli ro'yxat — 2026-09-23 */}
+                    <Tanlagich
+                      kichik
+                      qiymat={String(q.materialId)}
+                      ozgartir={(v) => {
+                        const yangiId = Number(v);
                         const yangiM = materiallar.find((z) => z.id === yangiId);
                         /**
                          * ⚠️ Material almashsa rulon qatorlari YANGI
@@ -621,14 +624,12 @@ export function KirimFormasi({
                           narxAsosi: yangiM === undefined ? 'BIRLIK' : qatorAsosi(yangiM),
                         });
                       }}
-                      className={kichik}
-                    >
-                      {materiallar.map((x) => (
-                        <option key={x.id} value={x.id}>
-                          {x.nom}
-                        </option>
-                      ))}
-                    </select>
+                      ariaYorliq="Mahsulot"
+                      yozuvlar={materiallar.map((x) => ({
+                        qiymat: String(x.id),
+                        matn: x.nom,
+                      }))}
+                    />
 
                     {/*
                       ⚠️ BIRLIK KATAK YONIDA TURADI, faqat

@@ -71,6 +71,55 @@ html {
 }
 
 /**
+ * DROPDOWN KO'RINISHI — egasi so'rovi 2026-09-23.
+ *
+ * ⚠️ NEGA KERAK: brauzerning o'z `<select>` i har tizimda
+ *    BOSHQACHA chiziladi. Windowsda kulrang qutili, Androidda
+ *    ko'k, macOSda yumaloq — bitta ekranda uch xil uslub va
+ *    ularning hech biri qolgan kataklarga o'xshamasdi.
+ *
+ * ⚠️ `appearance: none` o'z strelkasini ham olib tashlaydi,
+ *    shuning uchun strelka fon rasmi bo'lib qaytariladi. Usiz
+ *    katak oddiy inputdan farq qilmay qolardi va bosish
+ *    mumkinligi bilinmasdi.
+ *
+ * ⚠️ O'NG TOMONDA JOY: `padding-right` strelka ostiga uzun
+ *    matn kirib ketmasligi uchun. «Kun-tun (zebra) parda»
+ *    strelkaning tagidan chiqib turardi.
+ *
+ * ⚠️ Uzun ro'yxatlarda `<select>` o'rniga qidiruvli
+ *    `Tanlagich` ishlatiladi (`app/(panel)/tanlagich.tsx`).
+ *    Bu uslub qolgan qisqa ro'yxatlar uchun.
+ */
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-color: var(--color-sirt);
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2 4.5 6 8.5 10 4.5' fill='none' stroke='%2394a3b8' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.625rem center;
+  background-size: 0.75rem;
+  padding-right: 2rem;
+  cursor: pointer;
+}
+
+select:disabled {
+  cursor: not-allowed;
+  background-color: var(--color-fon);
+}
+
+/**
+ * ⚠️ Ro'yxatning O'ZI (ochilgandagi qatorlar) brauzerniki
+ *    bo'lib qoladi — uni CSS bilan boshqarib bo'lmaydi. Faqat
+ *    matn rangi va fonini berib qo'yamiz, qorong'i rejimda oq
+ *    ustiga oq yozuv chiqmasin.
+ */
+select option {
+  color: var(--color-matn);
+  background-color: var(--color-sirt);
+}
+
+/**
  * Pul va o'lcham ustunlari TIK turishi uchun.
  *
  * ⚠️ Bularsiz `1 234 567` va `999 999` ustunda siljib ketadi va

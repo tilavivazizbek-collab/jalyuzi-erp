@@ -22,6 +22,7 @@
 import { useState } from 'react';
 import { Modal } from '../../modal';
 import { kirishUslubi } from '../../maydon';
+import { Tanlagich } from '../../tanlagich';
 import { pulKorsat, pulMatn, kopaytir, som } from '@/lib/domain/pul';
 import { aksessuarNarxi, katalogNarxi } from '@/lib/domain/narx';
 import type { Kurs } from '@/lib/domain/pul';
@@ -397,26 +398,31 @@ export function QoshimchaQoshish({
 
             <label className="flex flex-col gap-1">
               <span className="text-sm font-medium text-matn-ikki">Mahsulot</span>
-              <select
-                value={materialId}
-                onChange={(e) => {
-                  materialniOzgartir(e.target.value);
+              {/*
+                ⚠️ Qidiruvli ro'yxat — 2026-09-23. Omborda yuzta
+                   mahsulot bo'lishi mumkin; qoldiq endi ikkinchi
+                   qatorda va uzun nom uni qirqib yubormaydi.
+              */}
+              <Tanlagich
+                qiymat={materialId}
+                ozgartir={(v) => {
+                  materialniOzgartir(v);
                   xatoniOzgartir(null);
                 }}
-                className={kirishUslubi(false)}
-              >
-                <option value="">— tanlang —</option>
-                {materiallar.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.nom} ·{' '}
-                    {m.hisobTuri === 'RULON'
-                      ? `omborda ${m.boshKvM.toFixed(1)} kv.m`
-                      : m.sarflashBirligi === 'M'
-                        ? `omborda ${m.boshDona.toFixed(2)} metr`
-                        : `omborda ${String(m.boshDona)} dona`}
-                  </option>
-                ))}
-              </select>
+                boshQator="— tanlang —"
+                joyBelgisi="— tanlang —"
+                ariaYorliq="Mahsulot"
+                yozuvlar={materiallar.map((mt) => ({
+                  qiymat: String(mt.id),
+                  matn: mt.nom,
+                  izoh:
+                    mt.hisobTuri === 'RULON'
+                      ? `omborda ${mt.boshKvM.toFixed(1)} kv.m`
+                      : mt.sarflashBirligi === 'M'
+                        ? `omborda ${mt.boshDona.toFixed(2)} metr`
+                        : `omborda ${String(mt.boshDona)} dona`,
+                }))}
+              />
               {/*
                 ⚠️ RO'YXAT BO'SH BO'LSA SABABI AYTILADI. Ilgari
                    sotuvchi bo'sh dropdownni ko'rib «tizim buzilibdi»

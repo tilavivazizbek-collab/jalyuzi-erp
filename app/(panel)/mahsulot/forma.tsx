@@ -5,6 +5,7 @@ import { useActionState, useState } from 'react';
 import Link from 'next/link';
 import { BOSH_HOLAT, type KonstruktorHolati } from './holat';
 import { TestKalkulyatori, type GuruhMalumoti } from './kalkulyator';
+import { Tanlagich } from '../tanlagich';
 import { Modal } from '../modal';
 import { RasmYuklash } from '../rasm-yuklash';
 import { GuruhFormasi } from '../guruh-forma';
@@ -611,10 +612,16 @@ export function MahsulotFormasi({
                           : 'sm:grid-cols-[1fr_150px_110px]'
                       }`}
                     >
-                      <select
-                        value={qatorQiymati(q)}
-                        onChange={(e) => {
-                          const v = e.target.value;
+                      {/*
+                        ⚠️ QIDIRUVLI RO'YXAT — 2026-09-23. Bu yerda guruhlar
+                           va materiallar BIRGA turadi: omborda yuzta mato
+                           bo'lsa brauzerning o'z ro'yxatidan sichqoncha
+                           bilan izlash kerak edi.
+                      */}
+                      <Tanlagich
+                        kichik
+                        qiymat={qatorQiymati(q)}
+                        ozgartir={(v) => {
                           if (v === '') {
                             yangila(i, { id: null });
                             return;
@@ -624,24 +631,22 @@ export function MahsulotFormasi({
                             id: Number(v.slice(2)),
                           });
                         }}
-                        className={kichik}
-                      >
-                        <option value="">— tanlang —</option>
-                        <optgroup label="Guruhlar (sotuvchi tanlaydi)">
-                          {guruhRoyxati.map((g) => (
-                            <option key={`G${String(g.id)}`} value={`G:${String(g.id)}`}>
-                              {g.nom}
-                            </option>
-                          ))}
-                        </optgroup>
-                        <optgroup label="Aniq mahsulot">
-                          {materialRoyxati.map((m) => (
-                            <option key={`M${String(m.id)}`} value={`M:${String(m.id)}`}>
-                              {m.nom}
-                            </option>
-                          ))}
-                        </optgroup>
-                      </select>
+                        boshQator="— tanlang —"
+                        joyBelgisi="— tanlang —"
+                        ariaYorliq="Guruh yoki material"
+                        yozuvlar={[
+                          ...guruhRoyxati.map((g) => ({
+                            qiymat: `G:${String(g.id)}`,
+                            matn: g.nom,
+                            guruh: 'Guruhlar (sotuvchi tanlaydi)',
+                          })),
+                          ...materialRoyxati.map((mt) => ({
+                            qiymat: `M:${String(mt.id)}`,
+                            matn: mt.nom,
+                            guruh: 'Aniq mahsulot',
+                          })),
+                        ]}
+                      />
 
                       <select
                         value={q.sarfTuri}

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { Tanlagich } from '../../tanlagich';
 import { sahifaRuxsati } from '@/lib/kirish/joriy';
 import { pulKorsat, som } from '@/lib/domain/pul';
 import {
@@ -139,18 +140,23 @@ export default async function OmborTarixi({
 
         <label className="flex flex-col gap-1">
           <span className="text-[12px] text-matn-kuchsiz">Mahsulot</span>
-          <select
-            name="material"
-            defaultValue={filtr.materialId === null ? '' : String(filtr.materialId)}
-            className="fokus rounded-maydon border border-chegara bg-fon px-2.5 py-1.5 text-sm"
-          >
-            <option value="">— hammasi —</option>
-            {materiallar.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.nom}
-              </option>
-            ))}
-          </select>
+          {/*
+            ⚠️ Qidiruvli ro'yxat — 2026-09-23. Boshqarilmagan
+               ishlatish: qiymat yashirin `input[name=material]` da
+               ketadi, ya'ni forma avvalgidek yuboriladi.
+          */}
+          <Tanlagich
+            kichik
+            nom="material"
+            boshQiymat={filtr.materialId === null ? '' : String(filtr.materialId)}
+            boshQator="— hammasi —"
+            joyBelgisi="— hammasi —"
+            ariaYorliq="Mahsulot"
+            yozuvlar={materiallar.map((m) => ({
+              qiymat: String(m.id),
+              matn: m.nom,
+            }))}
+          />
         </label>
 
         <label className="flex flex-col gap-1">

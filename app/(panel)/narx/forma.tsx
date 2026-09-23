@@ -28,6 +28,7 @@ import {
 } from '@/lib/domain/narx-qoidasi';
 import { kopaytir, kurs as kursYasa, pulKorsat, som } from '@/lib/domain/pul';
 import { biznesXatosimi } from '@/lib/xato';
+import { Tanlagich } from '../tanlagich';
 import { Modal } from '../modal';
 import { NarxGuruhFormasi } from './guruh-forma';
 import { BOSH_HOLAT, type NarxHolati } from './holat';
@@ -1018,16 +1019,17 @@ export function NarxFormasi({
                   </div>
 
                   <div className="mt-2 grid gap-2 sm:grid-cols-[1fr_1fr] sm:items-center">
-                    <select
-                      value={
+                    {/* ⚠️ Qidiruvli ro'yxat — 2026-09-23 (omborda yuzta material) */}
+                    <Tanlagich
+                      kichik
+                      qiymat={
                         q.materialId !== null
                           ? `M:${String(q.materialId)}`
                           : q.almashtirishGuruhId !== null
                             ? `G:${String(q.almashtirishGuruhId)}`
                             : ''
                       }
-                      onChange={(e) => {
-                        const v = e.target.value;
+                      ozgartir={(v) => {
                         if (v === '') {
                           yangila({ materialId: null, almashtirishGuruhId: null, formula: '' });
                         } else if (v.startsWith('M')) {
@@ -1036,26 +1038,23 @@ export function NarxFormasi({
                           yangila({ almashtirishGuruhId: Number(v.slice(2)), materialId: null });
                         }
                       }}
-                      aria-label="Qo‘shimcha materiali"
-                      className={kichik}
-                      disabled={!ozgartiraOladi}
-                    >
-                      <option value="">Material yo‘q — faqat narx</option>
-                      <optgroup label="Guruh (sotuvchi tanlaydi)">
-                        {almashtirishGuruhlari.map((g) => (
-                          <option key={`G${String(g.id)}`} value={`G:${String(g.id)}`}>
-                            {g.nom}
-                          </option>
-                        ))}
-                      </optgroup>
-                      <optgroup label="Aniq material">
-                        {materiallar.map((m) => (
-                          <option key={`M${String(m.id)}`} value={`M:${String(m.id)}`}>
-                            {m.nom}
-                          </option>
-                        ))}
-                      </optgroup>
-                    </select>
+                      ariaYorliq="Qo‘shimcha materiali"
+                      ochirilgan={!ozgartiraOladi}
+                      boshQator="Material yo‘q — faqat narx"
+                      joyBelgisi="Material yo‘q — faqat narx"
+                      yozuvlar={[
+                        ...almashtirishGuruhlari.map((g) => ({
+                          qiymat: `G:${String(g.id)}`,
+                          matn: g.nom,
+                          guruh: 'Guruh (sotuvchi tanlaydi)',
+                        })),
+                        ...materiallar.map((mt) => ({
+                          qiymat: `M:${String(mt.id)}`,
+                          matn: mt.nom,
+                          guruh: 'Aniq material',
+                        })),
+                      ]}
+                    />
 
                     {materialBor && (
                       <input
