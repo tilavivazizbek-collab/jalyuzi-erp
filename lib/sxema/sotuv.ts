@@ -219,6 +219,30 @@ export const sotuvPozitsiyaSxema = z
       .transform((v) => (v === '' ? null : v))
       .nullable()
       .default(null),
+    /*
+     * ─── OYNA O'LCHAMI VA O'RNATISH TURI — 0053 ────────────
+     *
+     * ⚠️ HAMMASI IXTIYORIY va `.optional()` — `.default()` EMAS.
+     *    `.default()` CHIQISH turini majburiy qiladi va bu
+     *    maydonlarni yubormaydigan chaqiruvchilar (bot, eski
+     *    savat, testlar) TypeScript da yiqilardi. Shu tuzoq
+     *    loyihada uch marta ishlagan.
+     *
+     * ⚠️ Yuqoridagi `eniM`/`boyiM` o'sha-o'sha TAYYOR o'lcham —
+     *    narx ham, formula ham, kesim ham ularga tayanadi.
+     *    Quyidagilar faqat YOZUV: qaysi oynadan, qaysi qoida bilan
+     *    chiqqani.
+     */
+    oynaEniM: z.number().positive().nullable().optional(),
+    oynaBoyiM: z.number().positive().nullable().optional(),
+    ornatishId: z.number().int().positive().nullable().optional(),
+    /** SNAPSHOT (2.3-invariant) — qoida keyin o'zgarsa ham qotib qoladi */
+    ornatishNom: z.string().trim().max(100).nullable().optional(),
+    /** ⚠️ MANFIY bo'ladi — proyomga o'rnatishda o'lcham kichrayadi */
+    ornatishEniM: z.number().min(-1).max(1).nullable().optional(),
+    ornatishBoyiM: z.number().min(-1).max(1).nullable().optional(),
+    /** Usta tayyor o'lchamni qo'lda yozganmi — qayta hisoblanmaydi */
+    olchamQolda: z.boolean().optional(),
     formulaSnapshot: z.unknown(),
     slotlar: z.array(sotuvSlotSxema).default([]),
     aksessuarlar: z.array(sotuvAksessuarSxema).default([]),

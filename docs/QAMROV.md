@@ -972,3 +972,57 @@ Stavka **faqat so'mda**. TZ 10.8 misolida dollar bor («1 $, 2 $, 3 $»),
 lekin `xodim_harakat` ga haq hamma joyda `'SOM'` bo'lib yoziladi —
 bu modul o'zgartirmagan mavjud xatti-harakat. Egasi dollarda stavka
 qo'ymoqchi bo'lsa alohida ish kerak.
+
+
+## 6d. O'rnatish turi — oyna o'lchamidan tayyor o'lchamga (0053·0054, 2026-09-23)
+
+### Nima yo'q edi
+
+Zamerchi **oynani** o'lchaydi, tizim esa **tayyor jalyuzi** o'lchamini
+kutadi (`eni_m` / `boyi_m`). Ular hech qachon teng emas: devorga
+o'rnatishda eni 10 sm kattaroq, proyomga o'rnatishda 1 sm kichikroq.
+
+Farqni **sotuvchi boshida hisoblardi**. U yerda tekshiruv ham, iz ham
+yo'q: ikki santimetr xato mato ham, mexanizm ham kesilgandan **keyin**
+bilinadi. 0051 o'lcham chegarasi ham o'tkazib yuboradi — ikki
+santimetr chegarani buzmaydi.
+
+Usta ish varag'ida faqat tayyor o'lchamni ko'rardi: «oyna qancha edi?»
+degan savolni tekshirib bo'lmasdi.
+
+### Nima qilindi
+
+| Qatlam | Nima |
+|---|---|
+| Baza | **0053** — `mahsulot_ornatish` jadvali, pozitsiyada `oyna_eni_m`, `oyna_boyi_m`, `ornatish_id` + snapshot, `olcham_qolda`. **0054** — iz ustunlari (0053 andozadan chetga chiqqan edi) |
+| Domen | `lib/domain/olcham-qoidasi.ts` — `tayyorOlcham()`, `oynaOlchami()`, `standartOrnatish()`, `ornatishYuki()`, `ornatishNuqsonlari()` |
+| Amal | `konstruktor.ts` (yozish + nofaollash), `katalog.ts` (sotuvga uzatish), `buyurtma.ts` (INSERT), `buyurtma-tahrir.ts` (`olcham_qolda` bayrog'i) |
+| Ekran | Tur formasida «O'rnatish turi» bo'limi · sotuv ekranida oyna kataklari va dropdown · buyurtma kartochkasida ikkala o'lcham |
+
+### Qanday ishlaydi
+
+1. Turga qoidalar yoziladi: nom + eniga qo'shiladigan + bo'yiga
+   qo'shiladigan (manfiy ham bo'ladi), bittasi **standart**
+2. Sotuvchi **oyna** o'lchamini yozadi va o'rnatish turini tanlaydi
+3. Tizim **tayyor** o'lchamni o'zi chiqaradi va katakka qo'yadi
+4. Katak **tahrirlanadi**: o'zgartirilsa `olcham_qolda = true` bo'ladi
+   va qayta hisoblanmaydi
+
+Egasining gapi: «usta xohishicha o'zgartiraveradi inputni, agar
+o'zgartirmasa eski holatida saqlanadi».
+
+### Ushlab turadigan testlar
+
+| Test | Nimani ushlaydi |
+|---|---|
+| `test/domain/olcham-qoidasi.test.ts` (26 ta) | Manfiy qo'shimcha, ikkilik kasr, nolga tushish, standart tanlash, 1 sm aniqlik uchta joyda bir xil |
+| `test/integratsiya/olcham-qoidasi.test.ts` (7 ta) | **Qatlamlar orasidagi halqa**: konstruktor → katalog → buyurtma → qayta saqlash. 0049 dagi «server jimgina tashlab yuboradi» xatosining takrorlanmasligi |
+
+### Ochiq qolgani
+
+- **Bot** oyna o'lchamini so'ramaydi — u tayyor o'lchamni to'g'ridan
+  yozadi (eski xulq, hech narsa buzilmaydi)
+- **Tahrir ekranida** oyna o'lchami so'ralmaydi: tayyor o'lcham
+  o'zgartirilsa `olcham_qolda` qo'yiladi va yozuv yolg'on bo'lib
+  qolmaydi
+- Raqamlarni egasi **ustasidan so'rab** to'ldiradi — kataklar bo'sh

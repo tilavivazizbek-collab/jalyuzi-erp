@@ -50,6 +50,15 @@ function formadanOqi(forma: FormData): unknown {
     aksessuarlar: jsonOqi('aksessuarlar'),
     /** 0052 — mahsulot turining tanlovlari */
     tanlovlar: jsonOqi('tanlovlar'),
+    /**
+     * 0053 — oyna o'lchamidan tayyor o'lchamga o'tish qoidalari.
+     *
+     * ⚠️ Bu yerga QO'SHILMASA forma yuborar, sxema qabul qilar,
+     *    server esa JIMGINA TASHLAB YUBORARDI — 0049 da aynan
+     *    shunday bo'lgan: `yorliq` va `izoh` yangi buyurtmada
+     *    saqlanmasdi, tahrirda esa saqlanardi.
+     */
+    ornatishlar: jsonOqi('ornatishlar'),
   };
 }
 

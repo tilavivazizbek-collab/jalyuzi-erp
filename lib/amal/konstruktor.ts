@@ -12,6 +12,7 @@ import type postgres from 'postgres';
 import { konstruktorTekshir, type MahsulotTuri } from '@/lib/domain/konstruktor';
 import type { MahsulotTurKirimi } from '@/lib/sxema/konstruktor';
 import type { RasmNatijasi } from '@/lib/domain/rasm';
+import { ornatishNuqsonlari } from '@/lib/domain/olcham-qoidasi';
 import { BiznesXato } from '@/lib/xato';
 
 export type KonstruktorNatijasi =
@@ -70,7 +71,27 @@ function domenTekshiruvi(kirim: MahsulotTurKirimi): readonly string[] {
     faol: true,
   };
 
-  return konstruktorTekshir(tur).nuqsonlar.map((n) => {
+  /**
+   * ⚠️ O'RNATISH TURLARI HAM SHU YERDA TEKSHIRILADI — 0053.
+   *
+   *    Bazada ham UNIQUE indeks bor (§9.4 — server qayta
+   *    tekshiradi), lekin u «duplicate key value violates unique
+   *    constraint» deb chiqadi va egasi undan hech narsa
+   *    tushunmaydi. Bu yerdagisi tushunarli jumla beradi.
+   */
+  const ornatishXatolari = ornatishNuqsonlari(
+    (kirim.ornatishlar ?? []).map((o, i) => ({
+      id: i,
+      nom: o.nom,
+      eniQoshimchaM: o.eniQoshimchaM,
+      boyiQoshimchaM: o.boyiQoshimchaM,
+      standartmi: o.standartmi ?? false,
+    })),
+  );
+
+  return [
+    ...ornatishXatolari,
+    ...konstruktorTekshir(tur).nuqsonlar.map((n) => {
     switch (n.tur) {
       case 'SLOT_YOQ':
         return "Kamida bitta mato sloti bo'lishi kerak — matosiz tur sotuvda ishlamaydi";
@@ -87,7 +108,8 @@ function domenTekshiruvi(kirim: MahsulotTurKirimi): readonly string[] {
       case 'KOMPLEKT_QATORI_BOSH':
         return `«${n.nom}» qatorida soni yoki formula yozilmagan`;
     }
-  });
+    }),
+  ];
 }
 
 async function bolaklarniYoz(
@@ -127,6 +149,21 @@ async function bolaklarniYoz(
            ozgartirildi = now() WHERE mahsulot_tur_id = ${turId} AND faol = true`;
 
   /**
+   * ⚠️ O'RNATISH TURLARI HAM NOFAOL QILINADI, o'chirilmaydi (0053).
+   *
+   *    `buyurtma_pozitsiya.ornatish_id` ularga havola qiladi: eski
+   *    buyurtmada tayyor o'lcham QAYSI QOIDA bilan chiqqani
+   *    ko'rinib turishi kerak. O'chirilsa tashqi kalit yiqilardi.
+   *
+   * ⚠️ `ochirildi` ham qo'yiladi: `standartmi` ustidagi UNIQUE
+   *    indeks `faol` ga qaraydi, ya'ni nofaol qator yangi
+   *    standartga xalaqit qilmaydi.
+   */
+  await tx`UPDATE mahsulot_ornatish SET faol = false, ochirildi = now(),
+           ozgartirdi_id = ${xodimId}, ozgartirildi = now()
+           WHERE mahsulot_tur_id = ${turId} AND faol = true`;
+
+  /**
    * ⚠️ TANLOVLAR AKSESSUARLARDAN OLDIN yoziladi: aksessuar
    *    `variant_id` orqali variantga havola qilishi mumkin va
    *    variant hali yozilmagan bo'lsa tashqi kalit yiqilardi.
@@ -159,6 +196,27 @@ async function bolaklarniYoz(
       if (variantId === undefined) throw new BiznesXato('MAHSULOT_SAQLANMADI', 'variant');
       variantIdlari.set(`${String(ti)}:${String(vi)}`, variantId);
     }
+  }
+
+  /**
+   * ⚠️ STANDART BITTA bo'lishi BAZADA ham to'siladi (unique
+   *    indeks). Bu yerda esa forma ikkita standart yuborgan
+   *    bo'lsa — birinchisi olinadi va qolganlari tushiriladi:
+   *    domen tekshiruvi buni allaqachon nuqson deb qaytargan,
+   *    demak bu yerga kelishning o'zi bo'lmasligi kerak. Shunga
+   *    qaramay himoya turadi — baza xatosi bilan yiqilgandan
+   *    ko'ra tushunarli xabar yaxshi.
+   */
+  let standartBerildi = false;
+  for (const [i, o] of (kirim.ornatishlar ?? []).entries()) {
+    const standart = (o.standartmi ?? false) && !standartBerildi;
+    if (standart) standartBerildi = true;
+    await tx`
+      INSERT INTO mahsulot_ornatish (mahsulot_tur_id, nom, eni_qoshimcha_m,
+                                     boyi_qoshimcha_m, standartmi, tartib,
+                                     yaratdi_id)
+      VALUES (${turId}, ${o.nom}, ${o.eniQoshimchaM}, ${o.boyiQoshimchaM},
+              ${standart}, ${i}, ${xodimId})`;
   }
 
   for (const [i, s] of kirim.slotlar.entries()) {

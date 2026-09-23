@@ -129,6 +129,27 @@ export interface PozitsiyaKirimi {
   readonly yorliq?: string | null;
   /** Ichki eslatma — usta uchun (0049). Chekka chiqmaydi */
   readonly izoh?: string | null;
+  /*
+   * OYNA O'LCHAMI VA O'RNATISH QOIDASI — 0053.
+   *
+   * ⚠️ `eniM`/`boyiM` o'sha-o'sha TAYYOR jalyuzi o'lchami: narx,
+   *    formula, kesim va band qilish faqat ularga tayanadi. Bu
+   *    yerdagilar HISOBGA KIRMAYDI — ular yozuv: zamerchi qaysi
+   *    oynani o'lchagani va qaysi qoida bilan tayyor o'lchamga
+   *    o'tilgani.
+   *
+   * ⚠️ Hammasi ixtiyoriy: o'rnatish qoidasi yo'q tur va bot
+   *    avvalgidek ishlayveradi.
+   */
+  readonly oynaEniM?: number | null;
+  readonly oynaBoyiM?: number | null;
+  readonly ornatishId?: number | null;
+  /** SNAPSHOT (2.3-invariant) — qoida keyin tahrirlansa ham qotadi */
+  readonly ornatishNom?: string | null;
+  readonly ornatishEniM?: number | null;
+  readonly ornatishBoyiM?: number | null;
+  /** Tayyor o'lcham qo'lda yozilgan — qayta hisoblanmaydi */
+  readonly olchamQolda?: boolean;
   /**
    * Sotuvchi tanlagan variantlar — 0052, SNAPSHOT bilan.
    *
@@ -394,13 +415,30 @@ export async function pozitsiyaYozTx(
     serverNarxi = tekshiruv.hisoblangan;
   }
 
+  /*
+   * 0053 — oyna o'lchami va o'rnatish qoidasining nusxasi ham
+   * shu INSERT ga tushadi.
+   *
+   * ⚠️ USTUNLAR QO'SHILMASA, forma yuborar, sxema qabul qilar,
+   *    server esa JIMGINA TASHLAB YUBORARDI. 0049 da (yorliq va
+   *    izoh) aynan shunday bo'lgan va xato faqat tasodifan
+   *    topilgan edi.
+   *
+   * ⚠️ IZOH SHU YERDA, SQL ICHIDA EMAS: shablon satri ichida
+   *    teskari apostrof yozilsa u satrni UZIB YUBORADI va fayl
+   *    umuman yig'ilmaydi.
+   */
   const q = await tx<{ id: number }[]>`
     INSERT INTO buyurtma_pozitsiya (buyurtma_id, tartib, mahsulot_tur_id,
                                     qoshimcha_material_id,
                                     eni_m, boyi_m, soni, miqdor, narx_snapshot,
                                     chegirma_summa, xizmat_haqi,
                                     formula_snapshot, holat, qolda_narx,
-                                    yorliq, izoh, yaratdi_id)
+                                    yorliq, izoh,
+                                    oyna_eni_m, oyna_boyi_m, ornatish_id,
+                                    ornatish_nom, ornatish_eni_m,
+                                    ornatish_boyi_m, olcham_qolda,
+                                    yaratdi_id)
     VALUES (${k.buyurtmaId}, ${k.tartib}, ${p.mahsulotTurId},
             ${p.qoshimchaMaterialId ?? null}, ${p.eniM}, ${p.boyiM},
             ${p.soni}, ${p.miqdor ?? null},
@@ -408,6 +446,10 @@ export async function pozitsiyaYozTx(
             ${tx.json(p.formulaSnapshot as never)},
             ${k.tasdiqlangan ? k.tasdiqHolati : k.boshHolati}, ${qoldaNarx},
             ${p.yorliq ?? null}, ${p.izoh ?? null},
+            ${p.oynaEniM ?? null}, ${p.oynaBoyiM ?? null},
+            ${p.ornatishId ?? null}, ${p.ornatishNom ?? null},
+            ${p.ornatishEniM ?? null}, ${p.ornatishBoyiM ?? null},
+            ${p.olchamQolda ?? false},
             ${xodimId})
     RETURNING id`;
 

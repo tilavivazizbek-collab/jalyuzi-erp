@@ -233,6 +233,22 @@ export interface PozitsiyaTafsili {
   readonly yorliq: string | null;
   /** Ichki eslatma — usta va montajchi uchun (0049) */
   readonly izoh: string | null;
+  /*
+   * OYNA O'LCHAMI VA O'RNATISH QOIDASI — 0053.
+   *
+   * ⚠️ `eniM`/`boyiM` — TAYYOR jalyuzi o'lchami (o'sha-o'sha).
+   *    Bular esa zamerchi o'lchagan OYNA va o'tish qoidasi.
+   *    Usta ikkalasini ham ko'rishi kerak: xato aynan ularning
+   *    orasida tug'iladi va faqat tayyor o'lcham ko'rinsa
+   *    «oyna qancha edi?» degan savolni tekshirib bo'lmasdi.
+   *
+   * ⚠️ `null` — qoidasiz turda yoki 0053 dan oldingi
+   *    buyurtmada. Ekranda shunchaki ko'rinmaydi.
+   */
+  readonly oynaEniM: number | null;
+  readonly oynaBoyiM: number | null;
+  readonly ornatishNom: string | null;
+  readonly olchamQolda: boolean;
   /**
    * Sotuvchi tanlagan variantlar — 0052, SNAPSHOT bilan.
    *
@@ -351,6 +367,11 @@ export async function buyurtmaTafsili(
       yorliq: string | null;
       izoh: string | null;
       qolda_narx: boolean;
+      /** 0053 — oyna o'lchami va o'rnatish qoidasi */
+      oyna_eni_m: string | null;
+      oyna_boyi_m: string | null;
+      ornatish_nom: string | null;
+      olcham_qolda: boolean;
       holat: string;
       usta_ismi: string | null;
     }[]
@@ -367,7 +388,9 @@ export async function buyurtmaTafsili(
            p.mahsulot_tur_id, p.qoshimcha_material_id,
            p.eni_m::text, p.boyi_m::text, p.soni, p.miqdor::text,
            p.narx_snapshot, p.chegirma_summa, p.holat, u.ism AS usta_ismi,
-           p.yorliq, p.izoh, p.qolda_narx
+           p.yorliq, p.izoh, p.qolda_narx,
+           p.oyna_eni_m::text, p.oyna_boyi_m::text,
+           p.ornatish_nom, p.olcham_qolda
     FROM buyurtma_pozitsiya p
     LEFT JOIN mahsulot_tur t ON t.id = p.mahsulot_tur_id
     LEFT JOIN material qm     ON qm.id = p.qoshimcha_material_id
@@ -496,6 +519,11 @@ export async function buyurtmaTafsili(
       yorliq: p.yorliq,
       izoh: p.izoh,
       qoldaNarx: p.qolda_narx,
+      /** 0053 — `numeric` matn bo'lib keladi (P-13) */
+      oynaEniM: p.oyna_eni_m === null ? null : Number(p.oyna_eni_m),
+      oynaBoyiM: p.oyna_boyi_m === null ? null : Number(p.oyna_boyi_m),
+      ornatishNom: p.ornatish_nom,
+      olchamQolda: p.olcham_qolda,
       holat: p.holat,
       ustaIsmi: p.usta_ismi,
       materiallar: materiallar

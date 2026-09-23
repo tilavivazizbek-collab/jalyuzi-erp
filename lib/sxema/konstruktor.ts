@@ -128,6 +128,33 @@ export const tanlovVariantSxema = z.object({
 });
 
 /**
+ * O'RNATISH TURI — «Oyna ustiga», «Proyomga» (0053).
+ *
+ * ⚠️ Qo'shimchalar MANFIY bo'lishi SHART — proyomga o'rnatishda
+ *    tayyor jalyuzi oynadan KICHIK bo'ladi. Shu sababdan bu yerda
+ *    `nonnegative()` YO'Q. Natijaning o'zi (tayyor o'lcham) noldan
+ *    katta ekani `lib/domain/olcham-qoidasi.ts` da tekshiriladi.
+ *
+ * ⚠️ Chegara ±1 metr: bundan kattasi deyarli har doim
+ *    metr o'rniga SANTIMETR yozilgani bo'ladi («10» deb yozilsa
+ *    10 sm emas, 10 METR qo'shilardi va buyurtma jimgina ulkan
+ *    bo'lib ketardi).
+ */
+export const ornatishSxema = z.object({
+  id: z.number().int().nonnegative().optional(),
+  nom: z.string().trim().min(1, "O'rnatish turining nomini kiriting").max(100),
+  eniQoshimchaM: z.coerce
+    .number()
+    .min(-1, "Qo'shimcha −1 metrdan kichik bo'lmasin — metrda yozing")
+    .max(1, "Qo'shimcha 1 metrdan katta bo'lmasin — metrda yozing"),
+  boyiQoshimchaM: z.coerce
+    .number()
+    .min(-1, "Qo'shimcha −1 metrdan kichik bo'lmasin — metrda yozing")
+    .max(1, "Qo'shimcha 1 metrdan katta bo'lmasin — metrda yozing"),
+  standartmi: z.boolean().optional(),
+});
+
+/**
  * TANLOV — «Boshqaruv tomoni», «Lamel eni» (0052).
  *
  * ⚠️ Kod formulada o'zgaruvchi bo'lib ishlatiladi, shuning uchun
@@ -221,6 +248,13 @@ export const mahsulotTurSxema = z.object({
    *    Ma'no ham to'g'ri chiqadi: maydon yo'q = tanlov yo'q.
    */
   tanlovlar: z.array(tanlovSxema).optional(),
+  /**
+   * ⚠️ `.optional()`, `.default([])` EMAS — bu tuzoq shu
+   *    loyihada UCH MARTA ishladi. `.default()` CHIQISH turini
+   *    MAJBURIY qiladi va maydonni yubormaydigan eski chaqiruvchilar
+   *    (bot, tahrir amali, testlar) TypeScript da yiqiladi.
+   */
+  ornatishlar: z.array(ornatishSxema).optional(),
 })
   /**
    * ⚠️ TESKARI CHEGARA SAQLASHDAN OLDIN USHLANADI — 0051.

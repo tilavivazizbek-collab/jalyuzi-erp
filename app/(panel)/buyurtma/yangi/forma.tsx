@@ -29,6 +29,13 @@ import {
 } from '@/lib/domain/narx-qoidasi';
 import { chegaraXabari, olchamniTekshir } from '@/lib/domain/olcham-chegarasi';
 import {
+  ornatishYuki,
+  ornatishniTop,
+  standartOrnatish,
+  tayyorOlcham,
+  qoshimchaMatni,
+} from '@/lib/domain/olcham-qoidasi';
+import {
   aksessuarKeraklimi,
   tanlovQiymatlari,
   tanlovYuki,
@@ -93,6 +100,17 @@ interface SavatQatori {
     readonly eni: string;
     readonly boyi: string;
     readonly soni: string;
+    /**
+     * 0053 — oyna o'lchami va o'rnatish turi.
+     *
+     * ⚠️ IXTIYORIY: brauzer xotirasida eski shakldagi savat
+     *    turgan bo'lishi mumkin va u sotuvchining ishini
+     *    to'xtatmasligi kerak.
+     */
+    readonly oynaEni?: string;
+    readonly oynaBoyi?: string;
+    readonly ornatishId?: number | null;
+    readonly olchamQolda?: boolean;
     readonly yorliq: string;
     readonly izoh: string;
     readonly tanlanganlar: Record<number, number>;
@@ -233,6 +251,36 @@ export function SotuvFormasi({
    *    edi. Ya'ni uchta bir xil parda uch marta savatga solinardi.
    */
   const [soni, soniniOzgartir] = useState('1');
+
+  /*
+   * ─── OYNA O'LCHAMI VA O'RNATISH TURI — 0053 ────────────────
+   *
+   * Zamerchi OYNANI o'lchaydi, tizim esa TAYYOR jalyuzi o'lchamini
+   * kutadi. Farqni shu paytgacha sotuvchi boshida hisoblardi.
+   *
+   * ⚠️ Yuqoridagi `eni`/`boyi` MA'NOSI O'ZGARMADI — ular doim
+   *    TAYYOR o'lcham va butun hisob o'shalarga tayanadi. Bu
+   *    yerdagilar ularni TO'LDIRADI, o'rnini bosmaydi.
+   */
+  const [oynaEni, oynaEniniOzgartir] = useState('');
+  const [oynaBoyi, oynaBoyiniOzgartir] = useState('');
+  const [ornatishId, ornatishIdniOzgartir] = useState<number | null>(
+    /** ⚠️ Birinchi tur ham standart bilan ochilsin — bo'sh
+     *     dropdown sotuvchini tanlashni unuttirardi */
+    standartOrnatish(birinchiTur?.ornatishlar ?? [])?.id ?? null,
+  );
+  /**
+   * Tayyor o'lcham QO'LDA yozildimi — egasining o'z gapi:
+   * «usta xohishicha o'zgartiraveradi inputni, agar o'zgartirmasa
+   *  eski holatida saqlanadi».
+   *
+   * ⚠️ `true` bo'lgach oyna o'lchami yoki o'rnatish turi
+   *    o'zgarsa ham tayyor o'lcham QAYTA HISOBLANMAYDI. Qo'lda
+   *    yozilgan raqam ustidan yozish — odamning ishini bekor
+   *    qilish degani.
+   */
+  const [olchamQolda, olchamQoldaniOzgartir] = useState(false);
+
   const [parametrlar, parametrlarniOzgartir] = useState<Record<string, string>>({});
   /**
    * QAYSI OYNA va ICHKI IZOH — soha auditi 2026-09-22 (0049).
@@ -273,6 +321,71 @@ export function SotuvFormasi({
   const SAVAT_KALITI = 'sotuv:savat';
 
   const [savat, savatniOzgartir] = useState<readonly SavatQatori[]>([]);
+
+  /*
+   * ─── OYNA → TAYYOR O'LCHAM — 0053 ──────────────────────
+   *
+   * ⚠️ Hisob DOMAINDAN (`tayyorOlcham`) — server, ustaning
+   *    ekrani va bot ham AYNAN shu funksiyani chaqiradi
+   *    (CLAUDE.md §3). Bu yerda alohida qo'shish yozilsa, ekrandagi
+   *    raqam saqlangandan keyingisidan farq qilib qolardi.
+   */
+  const ornatishQoidasi = tur === null ? null : ornatishniTop(tur.ornatishlar, ornatishId);
+  const ornatishBormi = tur !== null && tur.ornatishlar.length > 0;
+
+  const oynadanHisob = useMemo((): {
+    olcham: { eniM: number; boyiM: number } | null;
+    xato: string | null;
+  } => {
+    if (!ornatishBormi) return { olcham: null, xato: null };
+    const oe = son(oynaEni);
+    const ob = son(oynaBoyi);
+    if (oe === null || ob === null || oe <= 0 || ob <= 0) {
+      return { olcham: null, xato: null };
+    }
+    try {
+      return { olcham: tayyorOlcham({ eniM: oe, boyiM: ob }, ornatishQoidasi), xato: null };
+    } catch (x) {
+      return { olcham: null, xato: biznesXatosimi(x) ? x.message : "O'lchamni hisoblab bo'lmadi" };
+    }
+  }, [ornatishBormi, oynaEni, oynaBoyi, ornatishQoidasi]);
+
+  /**
+   * Tur almashganda o'rnatish turi STANDARTGA qaytadi.
+   *
+   * ⚠️ BU EFFEKT EMAS, oddiy funksiya — ataylab.
+   *
+   *    `useEffect(..., [tur])` qilinsa, savatdan qaytarishda
+   *    poyga chiqardi: `qatorniTahrirla` saqlangan o'rnatish
+   *    turini qo'yadi, effekt esa turdan keyin ishlab uni
+   *    STANDARTGA qaytarib tashlardi — sotuvchi qaytargan
+   *    qatorda boshqa qoida ko'rardi.
+   *
+   *    Endi chaqiruv joyi ANIQ: tur tugmasi bosilganda standart,
+   *    savatdan qaytarishda saqlangani.
+   */
+  const ornatishniTiklash = (t: SotuvTuri | null): void => {
+    ornatishIdniOzgartir(t === null ? null : (standartOrnatish(t.ornatishlar)?.id ?? null));
+    olchamQoldaniOzgartir(false);
+    oynaEniniOzgartir('');
+    oynaBoyiniOzgartir('');
+  };
+
+  /**
+   * Hisoblangan tayyor o'lcham kataklarga TUSHADI.
+   *
+   * ⚠️ `olchamQolda` bo'lsa TEGILMAYDI — egasining gapi:
+   *    «agar o'zgartirmasa eski holatida saqlanadi». Qo'lda
+   *    yozilgan raqam ustidan yozish odamning ishini bekor qilish
+   *    degani.
+   */
+  useEffect(() => {
+    if (olchamQolda) return;
+    const o = oynadanHisob.olcham;
+    if (o === null) return;
+    eniniOzgartir(o.eniM.toFixed(2));
+    boyiniOzgartir(o.boyiM.toFixed(2));
+  }, [oynadanHisob, olchamQolda]);
 
   /** Sahifa ochilganda tiklash — bir marta */
   useEffect(() => {
@@ -814,6 +927,25 @@ export function SotuvFormasi({
       mahsulotTurId: tur.id,
       eniM: hisob.eniM,
       boyiM: hisob.boyiM,
+      /*
+       * OYNA O'LCHAMI VA O'RNATISH QOIDASI — 0053.
+       *
+       * ⚠️ Yuqoridagi `eniM`/`boyiM` o'sha-o'sha TAYYOR o'lcham.
+       *    Quyidagilar QO'SHIMCHA yozuv: usta ish varag'ida
+       *    «oyna 1.50 → tayyor 1.60» ni ko'rsin va «oyna qancha
+       *    edi?» degan savolni tekshirib bo'lsin.
+       *
+       * ⚠️ Oyna o'lchami YOZILMAGAN bo'lsa hammasi `null` —
+       *    qoidasiz turda yolg'on ma'lumot saqlanmaydi.
+       */
+      ...(ornatishBormi && oynadanHisob.olcham !== null
+        ? {
+            oynaEniM: son(oynaEni),
+            oynaBoyiM: son(oynaBoyi),
+            olchamQolda,
+            ...(ornatishYuki(ornatishQoidasi) ?? {}),
+          }
+        : {}),
       /** ⚠️ Ekrandan keladi (2026-09-21); ilgari 1 qotirilgan edi */
       soni: hisob.buyumSoni,
       /** ⚠️ Sotuvchi tuzatgan bo'lsa — o'sha raqam, aks holda hisoblangani */
@@ -890,6 +1022,11 @@ export function SotuvFormasi({
         eni,
         boyi,
         soni,
+        /** 0053 — savatdan qaytarilganda oyna katagi ham tiklanadi */
+        oynaEni,
+        oynaBoyi,
+        ornatishId,
+        olchamQolda,
         yorliq,
         izoh,
         tanlanganlar: { ...tanlanganlar },
@@ -918,6 +1055,20 @@ export function SotuvFormasi({
     eniniOzgartir(t.eni);
     boyiniOzgartir(t.boyi);
     soniniOzgartir(t.soni);
+    /**
+     * 0053 — oyna o'lchami va o'rnatish turi ham qaytariladi.
+     *
+     * ⚠️ `olchamQolda` OXIRIDA emas, SHU YERDA: hisob effekti
+     *    uni ko'rib turishi kerak, aks holda qaytarilgan qator
+     *    ustidan qayta hisoblangan o'lcham yozilib ketardi.
+     *
+     * ⚠️ Eski shakldagi savat yozuvida bu maydonlar yo'q —
+     *    `?? ''` bilan bo'sh qoladi va eski xulq saqlanadi.
+     */
+    oynaEniniOzgartir(t.oynaEni ?? '');
+    oynaBoyiniOzgartir(t.oynaBoyi ?? '');
+    ornatishIdniOzgartir(t.ornatishId ?? null);
+    olchamQoldaniOzgartir(t.olchamQolda ?? false);
     yorliqniOzgartir(t.yorliq);
     izohniOzgartir(t.izoh);
     tanlanganlarniOzgartir(t.tanlanganlar);
@@ -1174,6 +1325,8 @@ export function SotuvFormasi({
                     void turTafsiliAmali(t.id)
                       .then((x) => {
                         turniYukla(x);
+                        /** 0053 — yangi turning standart qoidasi */
+                        ornatishniTiklash(x);
                       })
                       .finally(() => {
                         yuklanishniOzgartir(false);
@@ -1257,25 +1410,121 @@ export function SotuvFormasi({
               </Maydon>
             </section>
 
+            {/*
+              ── OYNA O'LCHAMI — 0053 ────────────────────────
+
+              Zamerchi OYNANI o'lchaydi, tizim TAYYOR jalyuzi
+              o'lchamini kutadi. Farqni shu paytgacha sotuvchi
+              boshida hisoblardi — peredelkaning birinchi sababi.
+
+              ⚠️ Bu blok FAQAT turda o'rnatish qoidasi bo'lsa
+                 chiqadi. Qoidasiz turda pastdagi «Eni/Bo'yi»
+                 avvalgidek to'g'ridan-to'g'ri yoziladi.
+            */}
+            {ornatishBormi && (
+              <section className="rounded-maydon border border-chegara bg-fon-ikki p-3">
+                <div className="flex flex-wrap items-end gap-3">
+                  <Maydon nom="oynaEni" yorliq="Oyna eni (m)">
+                    <input
+                      id="oynaEni"
+                      value={oynaEni}
+                      onChange={(e) => {
+                        oynaEniniOzgartir(e.target.value);
+                      }}
+                      inputMode="decimal"
+                      placeholder="1.50"
+                      className={`${kirishUslubi(false)} w-28`}
+                    />
+                  </Maydon>
+                  <Maydon nom="oynaBoyi" yorliq="Oyna bo'yi (m)">
+                    <input
+                      id="oynaBoyi"
+                      value={oynaBoyi}
+                      onChange={(e) => {
+                        oynaBoyiniOzgartir(e.target.value);
+                      }}
+                      inputMode="decimal"
+                      placeholder="2.00"
+                      className={`${kirishUslubi(false)} w-28`}
+                    />
+                  </Maydon>
+                  <Maydon nom="ornatish" yorliq="O'rnatish">
+                    <select
+                      id="ornatish"
+                      value={ornatishId ?? ''}
+                      onChange={(e) => {
+                        ornatishIdniOzgartir(
+                          e.target.value === '' ? null : Number(e.target.value),
+                        );
+                      }}
+                      className={`${kirishUslubi(false)} w-auto`}
+                    >
+                      {tur.ornatishlar.map((o) => (
+                        <option key={o.id} value={o.id}>
+                          {o.nom} ({qoshimchaMatni(o)})
+                        </option>
+                      ))}
+                    </select>
+                  </Maydon>
+                </div>
+
+                {oynadanHisob.xato !== null && (
+                  <p role="alert" className="mt-2 text-[13px] text-belgi-qizil">
+                    {oynadanHisob.xato}
+                  </p>
+                )}
+
+                {/*
+                  ⚠️ QO'LDA YOZILGANI OCHIQ AYTILADI. Aks holda
+                     sotuvchi oyna o'lchamini o'zgartirib, pastdagi
+                     raqam nega yangilanmayotganini tushunmasdi.
+                */}
+                {olchamQolda && (
+                  <p className="mt-2 flex flex-wrap items-center gap-2 text-[13px] text-belgi-sariq">
+                    Tayyor o&apos;lcham qo&apos;lda yozilgan — oyna
+                    o&apos;lchamidan qayta hisoblanmaydi.
+                    <button
+                      type="button"
+                      onClick={() => {
+                        olchamQoldaniOzgartir(false);
+                      }}
+                      className="text-brend hover:underline"
+                    >
+                      qoidaga qaytar
+                    </button>
+                  </p>
+                )}
+              </section>
+            )}
+
             {/* ── 3.4 · O'lcham ── */}
             <section className="flex flex-wrap items-end gap-4">
-              <Maydon nom="eni" yorliq="Eni (m)">
+              <Maydon nom="eni" yorliq={ornatishBormi ? 'Tayyor eni (m)' : 'Eni (m)'}>
+                {/*
+                  ⚠️ BU KATAK DOIM TAHRIRLANADI — egasining o'z
+                     gapi: «usta xohishicha o'zgartiraveradi inputni,
+                     agar o'zgartirmasa eski holatida saqlanadi».
+                     Faqat o'qiladigan qilib qo'yilsa qoida hayotdagi
+                     istisnolarni ko'tara olmasdi.
+                */}
                 <input
                   id="eni"
                   value={eni}
                   onChange={(e) => {
                     eniniOzgartir(e.target.value);
+                    if (ornatishBormi) olchamQoldaniOzgartir(true);
                   }}
                   inputMode="decimal"
                   className={`${kirishUslubi(false)} w-28`}
                 />
               </Maydon>
-              <Maydon nom="boyi" yorliq="Bo'yi (m)">
+              <Maydon nom="boyi" yorliq={ornatishBormi ? "Tayyor bo'yi (m)" : "Bo'yi (m)"}>
                 <input
                   id="boyi"
                   value={boyi}
                   onChange={(e) => {
                     boyiniOzgartir(e.target.value);
+                    if (ornatishBormi) olchamQoldaniOzgartir(true);
                   }}
                   inputMode="decimal"
                   className={`${kirishUslubi(false)} w-28`}

@@ -12,6 +12,7 @@ import {
   type ParametrQatori,
   type SlotQatori,
   type TanlovQatori,
+  type OrnatishQatori,
   type VariantQatori,
 } from '../forma';
 import { guruhlarniOl, materiallarniOl } from '../malumot';
@@ -54,8 +55,16 @@ export default async function MahsulotTahrirlash({ params }: { params: Promise<{
   const tur = turlar[0];
   if (tur === undefined) notFound();
 
-  const [slotlar, parametrlar, aksessuarlar, guruhlar, materiallar, tanlovQatorlari, variantQatorlari] =
-    await Promise.all([
+  const [
+    slotlar,
+    parametrlar,
+    aksessuarlar,
+    guruhlar,
+    materiallar,
+    tanlovQatorlari,
+    variantQatorlari,
+    ornatishQatorlari,
+  ] = await Promise.all([
     ulanish<
       { nom: string; formula: string; majburiy: boolean; almashtirish_guruh_id: number | null;
         koeffitsient: string; kesish_turi: string;
@@ -99,6 +108,23 @@ export default async function MahsulotTahrirlash({ params }: { params: Promise<{
       JOIN mahsulot_tanlov t ON t.id = v.tanlov_id
       WHERE t.mahsulot_tur_id = ${turId} AND t.faol = true AND v.faol = true
       ORDER BY v.tartib, v.id`,
+    /**
+     * O'RNATISH TURLARI — 0053.
+     *
+     * ⚠️ `::text` — `numeric` postgres.js dan MATN bo'lib keladi
+     *    (P-13). `Number()` ni forma o'zi qiladi.
+     */
+    ulanish<
+      {
+        nom: string;
+        eni_qoshimcha_m: string;
+        boyi_qoshimcha_m: string;
+        standartmi: boolean;
+      }[]
+    >`SELECT nom, eni_qoshimcha_m::text, boyi_qoshimcha_m::text, standartmi
+      FROM mahsulot_ornatish
+      WHERE mahsulot_tur_id = ${turId} AND faol = true
+      ORDER BY tartib, id`,
   ]);
 
   const qiymatlar: MahsulotQiymatlari = {
@@ -128,6 +154,13 @@ export default async function MahsulotTahrirlash({ params }: { params: Promise<{
       kod: p.kod,
       nom: p.nom,
       standartQiymat: p.standart_qiymat ?? '0',
+    })),
+    /** 0053 — oyna o'lchamidan tayyor o'lchamga o'tish qoidalari */
+    ornatishlar: ornatishQatorlari.map((o): OrnatishQatori => ({
+      nom: o.nom,
+      eniQoshimchaM: o.eni_qoshimcha_m,
+      boyiQoshimchaM: o.boyi_qoshimcha_m,
+      standartmi: o.standartmi,
     })),
     /** 0052 — tanlovlar variantlari bilan birga yig'iladi */
     tanlovlar: tanlovQatorlari.map((t): TanlovQatori => ({

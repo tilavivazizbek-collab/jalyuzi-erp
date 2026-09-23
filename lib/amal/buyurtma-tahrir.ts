@@ -36,6 +36,7 @@ import {
 } from './buyurtma';
 import { parametrlarniOqi, sarflashniTekshir } from './sarflash';
 import { narxniTekshir } from './narx-tekshir';
+import { tayyorOlcham } from '@/lib/domain/olcham-qoidasi';
 import { BiznesXato } from '@/lib/xato';
 
 export interface PozitsiyaTahriri {
@@ -90,6 +91,17 @@ interface EskiQator {
   readonly narx_snapshot: string;
   readonly chegirma_summa: string | null;
   readonly xizmat_haqi: string | null;
+  /**
+   * 0053 — oyna o'lchami va o'rnatish qoidasining nusxasi.
+   *
+   * ⚠️ `null` — qoidasiz tur yoki 0053 dan oldingi buyurtma.
+   */
+  readonly oyna_eni_m: string | null;
+  readonly oyna_boyi_m: string | null;
+  readonly ornatish_nom: string | null;
+  readonly ornatish_eni_m: string | null;
+  readonly ornatish_boyi_m: string | null;
+  readonly olcham_qolda: boolean;
   readonly mijoz_id: number | null;
   readonly sotgan_filial_id: number;
   readonly ishlab_chiqaruvchi_filial_id: number;
@@ -121,6 +133,9 @@ export async function pozitsiyaniTahrirla(
       SELECT p.id, p.holat, p.buyurtma_id, p.mahsulot_tur_id,
              p.qoshimcha_material_id, p.eni_m::text, p.boyi_m::text, p.soni,
              p.narx_snapshot::text, p.chegirma_summa::text, p.xizmat_haqi::text,
+             p.oyna_eni_m::text, p.oyna_boyi_m::text,
+             p.ornatish_nom, p.ornatish_eni_m::text, p.ornatish_boyi_m::text,
+             p.olcham_qolda,
              b.mijoz_id, b.sotgan_filial_id, b.ishlab_chiqaruvchi_filial_id,
              b.valyuta, b.kurs_snapshot::text, b.raqam
       FROM buyurtma_pozitsiya p
@@ -291,6 +306,47 @@ export async function pozitsiyaniTahrirla(
                 ${`Tahrirda: jadval bo'yicha ${serverNarxi ?? '—'}, yozilgani ${kirim.narxSnapshot}`})`;
     }
 
+    /*
+     * ── O'LCHAM QOIDADAN CHIQDIMI — 0053 ──────────────────
+     *
+     * Tahrirda tayyor o'lcham o'zgarishi mumkin, oyna o'lchami esa
+     * bu ekranda umuman so'ralmaydi. Agar yangi tayyor o'lcham
+     * «oyna + qoida» dan chiqmasa — demak u QO'LDA qo'yilgan va
+     * kartochkada shunday ko'rinishi kerak.
+     *
+     * ⚠️ Bayroq qo'yilmasa yozuv YOLG'ON bo'lib qolardi:
+     *    «oyna 1.50, qoida +0.10, tayyor 1.80» — uchalasi bir
+     *    vaqtda to'g'ri bo'lolmaydi va uni ko'rgan odam qaysi
+     *    biriga ishonishni bilmasdi.
+     *
+     * ⚠️ Hisob DOMAINDAN (`tayyorOlcham`) — qo'shishni bu yerda
+     *    qaytadan yozish §3 ni buzardi.
+     *
+     * ⚠️ Oyna o'lchami yo'q bo'lsa (qoidasiz tur yoki 0053 dan
+     *    oldingi buyurtma) bayroq O'ZGARMAY qoladi.
+     */
+    const olchamQolda = ((): boolean => {
+      if (eski.oyna_eni_m === null || eski.oyna_boyi_m === null) {
+        return eski.olcham_qolda;
+      }
+      try {
+        const kutilgan = tayyorOlcham(
+          { eniM: Number(eski.oyna_eni_m), boyiM: Number(eski.oyna_boyi_m) },
+          {
+            id: 0,
+            nom: eski.ornatish_nom ?? '',
+            eniQoshimchaM: Number(eski.ornatish_eni_m ?? 0),
+            boyiQoshimchaM: Number(eski.ornatish_boyi_m ?? 0),
+            standartmi: false,
+          },
+        );
+        return kutilgan.eniM !== kirim.eniM || kutilgan.boyiM !== kirim.boyiM;
+      } catch {
+        /** Qoida bilan hisoblab bo'lmasa — demak o'lcham qo'lda */
+        return true;
+      }
+    })();
+
     // ── Pozitsiyaning o'zi ──
     await tx`
       UPDATE buyurtma_pozitsiya
@@ -300,6 +356,7 @@ export async function pozitsiyaniTahrirla(
           xizmat_haqi = ${kirim.xizmatHaqi},
           yorliq = ${kirim.yorliq ?? null}, izoh = ${kirim.izoh ?? null},
           qolda_narx = ${qoldaNarx},
+          olcham_qolda = ${olchamQolda},
           formula_snapshot = ${tx.json(kirim.formulaSnapshot as never)},
           ozgartirildi = now(), ozgartirdi_id = ${xodimId}
       WHERE id = ${kirim.pozitsiyaId}`;

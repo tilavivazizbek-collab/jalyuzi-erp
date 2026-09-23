@@ -83,6 +83,20 @@ export interface TanlovQatori {
   variantlar: VariantQatori[];
 }
 
+/**
+ * O'RNATISH TURI — oyna o'lchamidan tayyor o'lchamga o'tish (0053).
+ *
+ * ⚠️ Qo'shimchalar MATN bo'lib turadi: katak BO'SH bo'lishi
+ *    kerak. `0` qo'yilsa egasi «nol yozilgan» bilan «hali
+ *    yozilmagan» ni ajrata olmasdi.
+ */
+export interface OrnatishQatori {
+  nom: string;
+  eniQoshimchaM: string;
+  boyiQoshimchaM: string;
+  standartmi: boolean;
+}
+
 export interface MahsulotQiymatlari {
   readonly nom: string;
   readonly xizmatHaqi: string;
@@ -102,6 +116,8 @@ export interface MahsulotQiymatlari {
   readonly aksessuarlar: readonly AksessuarQatori[];
   /** 0052 — mahsulot turining tanlovlari */
   readonly tanlovlar: readonly TanlovQatori[];
+  /** 0053 — oyna o'lchamidan tayyor o'lchamga o'tish qoidalari */
+  readonly ornatishlar: readonly OrnatishQatori[];
 }
 
 export const BOSH_QIYMATLAR: MahsulotQiymatlari = {
@@ -116,6 +132,7 @@ export const BOSH_QIYMATLAR: MahsulotQiymatlari = {
   botdaKorinadi: true,
   slotlar: [],
   tanlovlar: [],
+  ornatishlar: [],
   parametrlar: [],
   aksessuarlar: [],
 };
@@ -320,6 +337,32 @@ export function MahsulotFormasi({
     );
   };
 
+  /**
+   * O'RNATISH TURLARI — 0053.
+   *
+   * ⚠️ Ro'yxat BO'SH bo'lsa tur avvalgidek ishlaydi: sotuvchi
+   *    tayyor o'lchamni o'zi yozadi. Ya'ni bu bo'lim eski
+   *    turlarning birortasini ham buzmaydi.
+   */
+  const [ornatishlar, ornatishlarniOzgartir] = useState<readonly OrnatishQatori[]>(
+    qiymatlar.ornatishlar,
+  );
+
+  const ornatishniYangila = (i: number, yangi: Partial<OrnatishQatori>): void => {
+    ornatishlarniOzgartir((o) => o.map((x, j) => (j === i ? { ...x, ...yangi } : x)));
+  };
+
+  /**
+   * ⚠️ STANDART BITTA. Boshqasi belgilansa avvalgisi O'ZI
+   *    yechiladi — bazada ham UNIQUE indeks bor va ikkitasi
+   *    yuborilsa saqlash yiqilardi. Egasiga «avval eskisini
+   *    yeching» deyish — uni tizimning ichki cheklovi bilan
+   *    kurashtirish degani.
+   */
+  const standartniBelgila = (i: number): void => {
+    ornatishlarniOzgartir((o) => o.map((x, j) => ({ ...x, standartmi: j === i })));
+  };
+
   const [guruhModali, guruhModaliniOzgartir] = useState(false);
   const [materialModali, materialModaliniOzgartir] = useState(false);
 
@@ -382,6 +425,28 @@ export function MahsulotFormasi({
                 valyuta: 'SOM',
               })),
             })),
+          )}
+        />
+        {/*
+          ⚠️ O'RNATISH TURLARI — 0053. Bo'sh qatorlar (nomi
+             yozilmagan) TASHLANADI: egasi qator qo'shib, to'ldirmay
+             qoldirsa ham saqlash to'xtamasin.
+
+          ⚠️ Bo'sh qo'shimcha `0` bo'lib ketadi — «shu o'lchovga
+             tegmaydi» degani.
+        */}
+        <input
+          type="hidden"
+          name="ornatishlar"
+          value={JSON.stringify(
+            ornatishlar
+              .filter((o) => o.nom.trim() !== '')
+              .map((o) => ({
+                nom: o.nom.trim(),
+                eniQoshimchaM: o.eniQoshimchaM.trim() === '' ? 0 : o.eniQoshimchaM.trim(),
+                boyiQoshimchaM: o.boyiQoshimchaM.trim() === '' ? 0 : o.boyiQoshimchaM.trim(),
+                standartmi: o.standartmi,
+              })),
           )}
         />
         <input type="hidden" name="parametrlar" value={JSON.stringify(parametrlar)} />
@@ -1150,6 +1215,144 @@ export function MahsulotFormasi({
             narx to'ldirilgan       → narxga qo'shadi
             kod to'ldirilgan        → formulaga son beradi
         */}
+        {/*
+          ─── O'RNATISH TURI — 0053 ──────────────────────────
+
+          Zamerchi OYNANI o'lchaydi, tizim esa TAYYOR jalyuzi
+          o'lchamini kutadi. Bu ikkisi hech qachon teng emas va
+          farqni shu paytgacha sotuvchi boshida hisoblardi —
+          jalyuzi biznesida peredelkaning birinchi sababi.
+
+          ⚠️ Ro'yxat BO'SH qoldirilsa tur avvalgidek ishlaydi.
+             Ya'ni bu bo'lim birorta eski turni buzmaydi.
+        */}
+        <section className="rounded-karta border border-chegara bg-sirt p-5">
+          <h2 className="mb-1 text-sm font-semibold">O&apos;rnatish turi</h2>
+          <p className="mb-4 text-xs text-matn-kuchsiz">
+            Sotuvchi <b>oyna</b> o&apos;lchamini yozadi, tizim{' '}
+            <b>tayyor jalyuzi</b> o&apos;lchamini o&apos;zi chiqaradi. Devorga
+            o&apos;rnatishda o&apos;lcham kattalashadi, proyomga
+            o&apos;rnatishda kichrayadi — shuning uchun qo&apos;shimcha{' '}
+            <b>manfiy</b> ham bo&apos;ladi. Bo&apos;sh qoldirilsa sotuvchi
+            tayyor o&apos;lchamni o&apos;zi yozadi.
+          </p>
+
+          {ornatishlar.length === 0 ? (
+            <p className="mb-3 text-sm text-matn-kuchsiz">
+              Hali qoida qo&apos;shilmagan.
+            </p>
+          ) : (
+            <div className="mb-3 flex flex-col gap-2">
+              <div className="hidden gap-2 px-1 text-[11px] uppercase tracking-wide text-matn-kuchsiz sm:grid sm:grid-cols-[1fr_120px_120px_90px_auto]">
+                <span>Nomi</span>
+                <span>Eniga (m)</span>
+                <span>Bo&apos;yiga (m)</span>
+                <span>Standart</span>
+                <span />
+              </div>
+
+              {ornatishlar.map((o, i) => (
+                <div
+                  key={i}
+                  className="grid gap-2 sm:grid-cols-[1fr_120px_120px_90px_auto] sm:items-center"
+                >
+                  <input
+                    value={o.nom}
+                    onChange={(e) => {
+                      ornatishniYangila(i, { nom: e.target.value });
+                    }}
+                    placeholder="Oyna ustiga"
+                    aria-label="O&apos;rnatish turining nomi"
+                    className={kichik}
+                  />
+                  {/*
+                    ⚠️ `inputMode="text"` — `decimal` EMAS. Telefonda
+                       `decimal` klaviaturasida MINUS belgisi yo'q va
+                       proyom qoidasini kiritib bo'lmasdi.
+                  */}
+                  <input
+                    value={o.eniQoshimchaM}
+                    onChange={(e) => {
+                      ornatishniYangila(i, { eniQoshimchaM: e.target.value });
+                    }}
+                    placeholder="+0.10"
+                    aria-label="Eniga qo&apos;shiladi, metr"
+                    className={`${kichik} raqam`}
+                  />
+                  <input
+                    value={o.boyiQoshimchaM}
+                    onChange={(e) => {
+                      ornatishniYangila(i, { boyiQoshimchaM: e.target.value });
+                    }}
+                    placeholder="+0.15"
+                    aria-label="Bo&apos;yiga qo&apos;shiladi, metr"
+                    className={`${kichik} raqam`}
+                  />
+                  {/*
+                    ⚠️ RADIO, checkbox EMAS: standart BITTA bo'lishi
+                       shart (bazada UNIQUE indeks). Checkbox bo'lsa
+                       ikkitasini belgilab, saqlashda xato olardi.
+                  */}
+                  <label className="flex items-center gap-1.5 text-[13px] text-matn-ikki">
+                    <input
+                      type="radio"
+                      name="ornatishStandart"
+                      checked={o.standartmi}
+                      onChange={() => {
+                        standartniBelgila(i);
+                      }}
+                      className="size-4"
+                    />
+                    standart
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      ornatishlarniOzgartir((x) => x.filter((_, j) => j !== i));
+                    }}
+                    className="text-[13px] text-belgi-qizil hover:underline"
+                  >
+                    o&apos;chirish
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={() => {
+              ornatishlarniOzgartir((x) => [
+                ...x,
+                {
+                  nom: '',
+                  eniQoshimchaM: '',
+                  boyiQoshimchaM: '',
+                  /** Birinchi qator O'ZI standart bo'ladi — sotuv
+                   *  ekrani bo'sh dropdown bilan ochilmasin */
+                  standartmi: x.length === 0,
+                },
+              ]);
+            }}
+            className="text-sm text-brend hover:underline"
+          >
+            + O&apos;rnatish turi
+          </button>
+
+          {/*
+            TAYYOR MISOLLAR — egasi raqamlarni ustasidan so'rab
+            to'ldiradi, lekin bo'sh ekrandan boshlash qiyin.
+          */}
+          {ornatishlar.length === 0 && (
+            <p className="mt-3 rounded-maydon bg-fon px-3 py-2 text-[12px] text-matn-ikki">
+              Odatdagi qoidalar: <b>oyna ustiga</b> — eniga +0.10,
+              bo&apos;yiga +0.15 · <b>proyomga</b> — eniga −0.01,
+              bo&apos;yiga −0.01 · <b>poldan</b> — bo&apos;yiga −0.02.
+              Aniq raqamlarni ustangiz aytadi.
+            </p>
+          )}
+        </section>
+
         <section className="rounded-karta border border-chegara bg-sirt p-5">
           <h2 className="mb-1 text-sm font-semibold">Tanlovlar</h2>
           <p className="mb-4 text-xs text-matn-kuchsiz">

@@ -291,6 +291,70 @@ Slot formulasi: `(ROUND(ENI / 0.11) + QOSHIMCHA_TASMA) * 0.4 * BO'YI`
 
 ---
 
+## 9b. O'RNATISH TURI — oyna o'lchamidan tayyor o'lchamga (0053)
+
+Mahsulot turida **«O'rnatish turi»** bo'limi bor. Har qatorda: nom,
+eniga qo'shiladigan, bo'yiga qo'shiladigan, standartmi.
+
+### Nega kerak
+
+Zamerchi **oynani** o'lchaydi. Tizim esa **tayyor jalyuzi**
+o'lchamini kutadi (`eni_m` / `boyi_m`). Ular hech qachon teng emas:
+
+| O'rnatish | Eniga | Bo'yiga |
+|---|---|---|
+| Oyna ustiga (devorga) | +0.10 | +0.15 |
+| Oyna ichiga (proyomga) | −0.01 | −0.01 |
+| Poldan (dikkey) | 0 | −0.02 |
+
+Shu paytgacha bu farqni **sotuvchi boshida hisoblardi**. Jalyuzi
+biznesida peredelkaning birinchi sababi shu: ikki santimetr xato
+= mato ham, mexanizm ham kesilgan, usta bir kun ishlagan.
+
+⚠️ Xato **hech qayerda ushlanmasdi**: 0051 o'lcham chegarasi ham
+o'tkazib yuboradi, chunki ikki santimetr chegarani buzmaydi.
+
+### Qoidalar
+
+- Qo'shimcha **manfiy** bo'ladi (proyom) — bazada `>= 0` tekshiruvi yo'q
+- Chegara ±1 metr: bundan kattasi deyarli har doim metr o'rniga
+  **santimetr** yozilgani bo'ladi
+- Turga **bitta standart** — unique indeks bilan to'siladi. Sotuv
+  ekrani shu bilan ochiladi; standart belgilanmagan bo'lsa
+  **birinchisi** olinadi (`null` emas: bo'sh dropdown bilan
+  ochilsa sotuvchi tanlashni unutar va oyna o'lchami tayyor
+  o'lcham bo'lib ketardi)
+- **Aniqlik — 1 sm.** Tizimda o'lcham hamma joyda `numeric(_,2)`.
+  «Pol − 1.5 sm» yozilsa ekranda −0.01, bazada −0.02 ko'rinardi —
+  endi qo'shimcha kirishda darhol 1 sm ga keltiriladi va ekran,
+  hisob, snapshot uchalasi bir xil
+- Ro'yxat **bo'sh** bo'lsa tur avvalgidek ishlaydi: sotuvchi tayyor
+  o'lchamni o'zi yozadi
+
+### Usta oxirgi so'zni aytadi
+
+Egasining gapi: «usta xohishicha o'zgartiraveradi inputni, agar
+o'zgartirmasa eski holatida saqlanadi».
+
+`buyurtma_pozitsiya.olcham_qolda` — tayyor o'lcham qo'lda yozilgan
+bo'lsa `true`. Shunda oyna o'lchami yoki o'rnatish turi keyin
+o'zgarsa ham tayyor o'lcham **qayta hisoblanmaydi**.
+
+### Nima o'zgarmadi
+
+`eni_m` / `boyi_m` ma'nosi **o'sha-o'sha**: doim tayyor jalyuzi
+o'lchami. Narx, formula, kesim, band qilish — hammasi tegilmagan.
+Oyna o'lchami qo'shimcha yozuv: hisobga kirmaydi, faqat saqlanadi
+va ko'rsatiladi (`oyna_eni_m`, `oyna_boyi_m` + snapshot
+`ornatish_nom`, `ornatish_eni_m`, `ornatish_boyi_m`).
+
+Shuning uchun eski buyurtmalar ham, o'rnatish turi belgilanmagan
+turlar ham buzilmadi.
+
+Domen: `lib/domain/olcham-qoidasi.ts` · testlar: EC-OLQ-01…26.
+
+---
+
 ## 10. Kiritish tartibi
 
 Ekranda (`Mahsulot turi → Yangi`) har slot uchun uch narsa belgilanadi:

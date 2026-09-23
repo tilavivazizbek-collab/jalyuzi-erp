@@ -188,12 +188,35 @@ export interface SotuvTanlov {
   readonly variantlar: readonly SotuvVariant[];
 }
 
+/**
+ * O'RNATISH TURI — oyna o'lchamidan tayyor o'lchamga (0053).
+ *
+ * ⚠️ Hisobning O'ZI `lib/domain/olcham-qoidasi.ts` da: sotuv
+ *    ekrani, server, ustaning ekrani va bot — to'rtalasi ham
+ *    o'sha bitta funksiyani chaqiradi.
+ */
+export interface SotuvOrnatish {
+  readonly id: number;
+  readonly nom: string;
+  readonly eniQoshimchaM: number;
+  readonly boyiQoshimchaM: number;
+  readonly standartmi: boolean;
+}
+
 export interface SotuvTuri {
   readonly id: number;
   readonly nom: string;
   readonly xizmatHaqi: string | null;
   /** 0052 — sotuvchi tanlaydigan variantlar */
   readonly tanlovlar: readonly SotuvTanlov[];
+  /**
+   * 0053 — oyna o'lchamidan tayyor o'lchamga o'tish qoidalari.
+   *
+   * ⚠️ BO'SH bo'lsa tur avvalgidek ishlaydi: sotuvchi tayyor
+   *    o'lchamni o'zi yozadi. Eski turlarning birortasi ham
+   *    buzilmaydi.
+   */
+  readonly ornatishlar: readonly SotuvOrnatish[];
   /**
    * JISMONIY O'LCHAM CHEGARASI — egasi qarori 2026-09-22 (0051).
    *
@@ -366,6 +389,28 @@ export async function sotuvTurlari(
           FROM mahsulot_tanlov_variant
           WHERE tanlov_id = ANY(${tanlovlar.map((t) => t.id)}) AND faol = true
           ORDER BY tartib, id`;
+
+  /**
+   * O'RNATISH TURLARI — 0053.
+   *
+   * ⚠️ `::text` — `numeric` postgres.js dan MATN bo'lib keladi
+   *    (P-13). Pastda `Number()` bilan songa aylantiriladi.
+   */
+  const ornatishlar = await sql<
+    {
+      id: number;
+      mahsulot_tur_id: number;
+      nom: string;
+      eni_qoshimcha_m: string;
+      boyi_qoshimcha_m: string;
+      standartmi: boolean;
+    }[]
+  >`
+    SELECT id, mahsulot_tur_id, nom, eni_qoshimcha_m::text,
+           boyi_qoshimcha_m::text, standartmi
+      FROM mahsulot_ornatish
+     WHERE mahsulot_tur_id = ANY(${turIdlar}) AND faol = true
+     ORDER BY mahsulot_tur_id, tartib, id`;
 
   const aksessuarlar = await sql<
     {
@@ -585,6 +630,16 @@ export async function sotuvTurlari(
     id: t.id,
     nom: t.nom,
     xizmatHaqi: t.xizmat_haqi,
+    /** 0053 — oyna o'lchamidan tayyor o'lchamga o'tish qoidalari */
+    ornatishlar: ornatishlar
+      .filter((o) => o.mahsulot_tur_id === t.id)
+      .map((o) => ({
+        id: o.id,
+        nom: o.nom,
+        eniQoshimchaM: Number(o.eni_qoshimcha_m),
+        boyiQoshimchaM: Number(o.boyi_qoshimcha_m),
+        standartmi: o.standartmi,
+      })),
     /** ⚠️ `numeric` MATN bo'lib keladi (P-13) — `Number()` shart */
     chegara: {
       minEniM: t.min_eni_m === null ? null : Number(t.min_eni_m),

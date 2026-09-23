@@ -313,6 +313,26 @@ export default async function BuyurtmaKartochkasi({ params }: { params: Promise<
                     <span className="raqam ml-2 text-sm text-matn-kuchsiz">× {p.soni}</span>
                   )}
                   {/*
+                    OYNA O'LCHAMI — 0053.
+
+                    ⚠️ Yuqoridagi raqam TAYYOR jalyuzi o'lchami. Usta
+                       va montajchi OYNA o'lchamini ham ko'rishi
+                       kerak: xato aynan ikkisining orasida
+                       tug'iladi va faqat tayyor o'lcham
+                       ko'rinsa «oyna qancha edi?» degan savolni
+                       tekshirib bo'lmasdi.
+
+                    ⚠️ QO'LDA yozilgani ham aytiladi: u qoidadan
+                       chetga chiqish va uni ko'rib turish kerak.
+                  */}
+                  {p.oynaEniM !== null && p.oynaBoyiM !== null && (
+                    <span className="raqam ml-3 text-[12px] text-matn-kuchsiz">
+                      oyna {p.oynaEniM.toFixed(2)} × {p.oynaBoyiM.toFixed(2)}
+                      {p.ornatishNom === null ? '' : ` · ${p.ornatishNom}`}
+                      {p.olchamQolda ? " · o'lcham qo'lda" : ''}
+                    </span>
+                  )}
+                  {/*
                     ⚠️ YORLIQ va IZOH — soha auditi 2026-09-22 (0049).
 
                        Usta va montajchi kartochkani shu yerdan

@@ -133,6 +133,21 @@ export async function buyurtmaYaratAmali(
      */
     yorliq: p.yorliq,
     izoh: p.izoh,
+    /*
+     * 0053 — oyna o'lchami va o'rnatish qoidasi.
+     *
+     * ⚠️ YUQORIDAGI IKKI IZOH SHU XATO HAQIDA: maydon bu
+     *    ro'yxatga qo'shilmasa forma yuboradi, sxema qabul qiladi,
+     *    server esa jimgina tashlab yuboradi. Uch marta takrorlangan
+     *    xato — to'rtinchisiga yo'l qo'yilmaydi.
+     */
+    oynaEniM: p.oynaEniM,
+    oynaBoyiM: p.oynaBoyiM,
+    ornatishId: p.ornatishId,
+    ornatishNom: p.ornatishNom,
+    ornatishEniM: p.ornatishEniM,
+    ornatishBoyiM: p.ornatishBoyiM,
+    olchamQolda: p.olchamQolda,
     /** 0052 — sotuvchi tanlagan variantlar, snapshot bilan */
     tanlovlar: p.tanlovlar,
     formulaSnapshot: p.formulaSnapshot,

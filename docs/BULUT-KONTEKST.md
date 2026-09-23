@@ -175,6 +175,38 @@ Batafsil: `docs/JALYUZI-TURLARI.md` §9a, `docs/QAMROV.md`.
 
 ---
 
+## 6d. O'rnatish turi va «hisoblangan input» naqshi — 2026-09-23 (0053·0054)
+
+Zamerchi **oynani** o'lchaydi, tizim **tayyor jalyuzi** o'lchamini
+kutadi. Farqni sotuvchi boshida hisoblardi — peredelkaning birinchi
+sababi, va u hech qayerda ushlanmasdi (2 sm 0051 chegarasini buzmaydi).
+
+Endi turda **o'rnatish turlari** ro'yxati bor: nom + eniga
+qo'shiladigan + bo'yiga qo'shiladigan (manfiy ham bo'ladi) + standart.
+
+⚠️ **`eni_m` / `boyi_m` MA'NOSI O'ZGARMADI** — ular doim tayyor
+jalyuzi o'lchami. Narx, formula, kesim, band qilish tegilmadi. Oyna
+o'lchami qo'shimcha yozuv.
+
+### «Hisoblangan input» naqshi — egasi ikki marta aytdi
+
+> «usta xohishicha o'zgartiraveradi inputni, agar o'zgartirmasa eski
+>  holatida saqlanadi»
+
+Hisoblangan qiymat — **boshlang'ich qiymat, yakuniy emas**:
+
+1. tizim hisoblab katakka **qo'yib beradi** (bo'sh katak emas)
+2. katak **tahrirlanadi** (faqat o'qiladigan emas)
+3. qo'lda yozilsa **bayroq** qo'yiladi va keyingi hisob uni bosmaydi
+   (`olcham_qolda`, `qolda_narx` bilan bir naqsh)
+
+⚠️ Yangi hisoblanadigan qiymat qo'shilsa — darrov shu uch shartni
+bajaring, so'ramay. Bayroqsiz qilinsa yozuv YOLG'ON bo'lib qoladi.
+
+Batafsil: `docs/JALYUZI-TURLARI.md` §9b, `docs/QAMROV.md` §6d.
+
+---
+
 ## 7. Ochiq savollar — javob kutilmoqda
 
 Usta stavkasi **yopildi** (2026-09-10): uchala usul qurilgan, egasi har
