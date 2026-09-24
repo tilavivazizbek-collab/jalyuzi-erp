@@ -27,6 +27,7 @@ export const SARF_TURLARI = [
   'ENI',
   "BO'YI",
   'ENI_BOYI',
+  'ENIGA_BOLINADI',
   'TASMALI',
   'DONA',
   'MURAKKAB',
@@ -71,6 +72,11 @@ export interface SarfTavsifi {
    * soniga qo'shimcha. Faqat `TASMALI` da `true`.
    */
   readonly tasmali?: boolean;
+  /**
+   * Materialning ENI so'raladimi — buyurtma eni shunga bo'linadi.
+   * Faqat `ENIGA_BOLINADI` da `true`.
+   */
+  readonly bolinadi?: boolean;
 }
 
 export const SARF_TAVSIFI: Record<SarfTuri, SarfTavsifi> = {
@@ -97,6 +103,38 @@ export const SARF_TAVSIFI: Record<SarfTuri, SarfTavsifi> = {
     izoh: 'eniga ham, bo‘yiga ham ketadi — profil ramka',
     raqamli: true,
     ikkiQiymat: true,
+  },
+  /**
+   * ENIGA BO'LINADI — egasi so'rovi 2026-09-24.
+   *
+   * ⚠️ NEGA ALOHIDA TUR
+   *
+   *    Egasi: «mato eni kichik, 1 metrda 9 ta mato ketadi… aniq
+   *    formula: buyurtma eni / mahsulot eni × bo'yi».
+   *
+   *    Ya'ni material buyurtma ENI bo'ylab yonma-yon TERILADI:
+   *    necha bo'lak kerakligini eni aytadi, har bo'lak esa BO'YI
+   *    qadar uzunlikda ketadi.
+   *
+   * ⚠️ «Tasmalab» dan FARQI — bu ikkisi ikki xil son beradi:
+   *
+   *      Tasmalab       → soni × tasma eni × bo'yi  = KV.M (maydon)
+   *      Eniga bo'linadi → soni × bo'yi            = UZUNLIK
+   *
+   *    Tasmalab lamel uchun: rulondan tortilgan tasmaning maydoni
+   *    hisoblanadi. Bu yerda esa bo'laklar SONI uzunlikka
+   *    ko'paytiriladi — chiziqli o'lchanadigan material uchun.
+   *
+   * ⚠️ SONI YAXLITLANADI. Yarim bo'lak degan narsa yo'q:
+   *    2.3 ta bo'lak kerak bo'lsa 3 tasi kesiladi. Standart
+   *    YUQORIGA, lekin tanlov egasida — `TASMALI` dagi kabi.
+   */
+  ENIGA_BOLINADI: {
+    nom: 'Eniga bo‘linadi',
+    izoh: 'buyurtma eni materialning eniga bo‘linadi, har bo‘lak bo‘yi qadar',
+    raqamli: true,
+    ikkiQiymat: false,
+    bolinadi: true,
   },
   /**
    * TASMALI — lamel, vertikal, to'lqinsimon parda (2026-09-22).
@@ -190,11 +228,25 @@ export interface TasmaSozlamasi {
   readonly zapasM: string;
 }
 
+/**
+ * `ENIGA_BOLINADI` turining sozlamasi — egasi so'rovi 2026-09-24.
+ *
+ * ⚠️ OBYEKT, pozitsion argument EMAS — `TasmaSozlamasi` bilan
+ *    bir xil sabab: ketma-ket matn argumentlari adashib ketadi.
+ */
+export interface BolinishSozlamasi {
+  /** Materialning o'z eni, metrda. Buyurtma eni SHUNGA bo'linadi */
+  readonly materialEniM: string;
+  /** Bo'laklar soni qanday yaxlitlanadi — standart YUQORIGA */
+  readonly yaxlitlash: Yaxlitlash;
+}
+
 export function sarfFormulasi(
   turi: SarfTuri,
   qiymat: string,
   qiymat2 = '',
   tasma?: TasmaSozlamasi,
+  bolinish?: BolinishSozlamasi,
 ): string {
   if (turi === 'MURAKKAB') {
     const t = qiymat.trim();
@@ -216,6 +268,28 @@ export function sarfFormulasi(
    */
   if (turi === 'ENI_BOYI') {
     return `ENI * ${sonMatni(qiymat)} + BO'YI * ${sonMatni(qiymat2)}`;
+  }
+
+  /**
+   * ENIGA BO'LINADI — `CEIL(ENI / materialEni) * BO'YI`
+   *
+   * ⚠️ Natija UZUNLIK beradi (bo'laklar soni × bo'yi), maydon
+   *    EMAS. Egasining o'z formulasi shunday:
+   *    «buyurtma eni / mahsulot eni × bo'yi».
+   *
+   *    Maydon kerak bo'lsa «Tasmalab» turi ishlatiladi — u
+   *    natijani material eniga ham ko'paytiradi.
+   *
+   * ⚠️ BO'LINUVCHI NOL BO'LMASLIGI `sonMatni` da ushlanadi:
+   *    nolga bo'lish butun hisobni cheksizlikka olib ketardi va
+   *    xato faqat sotuvda ko'rinardi.
+   */
+  if (turi === 'ENIGA_BOLINADI') {
+    if (bolinish === undefined) {
+      throw new BiznesXato('SARF_NOTOGRI', 'Material eni kiritilmagan');
+    }
+    const eni = sonMatni(bolinish.materialEniM);
+    return `${bolinish.yaxlitlash}(ENI / ${eni}) * BO'YI`;
   }
 
   /**
@@ -298,6 +372,8 @@ export interface SarfHolati {
   readonly yaxlitlash?: Yaxlitlash;
   /** Faqat `TASMALI` — HAR TASMAGA qo'shiladigan zapas, metrda */
   readonly zapasM?: string;
+  /** Faqat `ENIGA_BOLINADI` — materialning o'z eni, metrda */
+  readonly materialEniM?: string;
 }
 
 /**
@@ -324,6 +400,36 @@ export function formuladanSarf(formula: string): SarfHolati {
     const boyiSoni = ikkalasi[2];
     if (eniSoni !== undefined && boyiSoni !== undefined) {
       return { turi: 'ENI_BOYI', qiymat: eniSoni, qiymat2: boyiSoni };
+    }
+  }
+
+  /**
+   * ENIGA BO'LINADI — `CEIL(ENI / 0.11) * BO'YI`
+   *
+   * ⚠️ TASMALI dan OLDIN tekshiriladi va uning shakliga
+   *    o'xshaydi, lekin ORASIDA ko'paytuvchi YO'Q. TASMALI
+   *    qolipi `... * son * BO'YI` ni talab qiladi, shuning
+   *    uchun ikkisi chalkashmaydi.
+   *
+   * ⚠️ BU QOLIP BO'LMASA saqlangan tur tahrirda «Murakkab»
+   *    bo'lib ochilardi va egasi kataklarini boshqatdan
+   *    to'ldirishga majbur bo'lardi — formula esa o'zgarmasdan
+   *    qolib, ikkalasi bir-biriga zid ko'rinardi.
+   */
+  const bolinadi = /^(ROUND|CEIL|FLOOR)\s*\(\s*ENI\s*\/\s*(\d+(?:\.\d+)?)\s*\)\s*\*\s*BO'YI$/.exec(
+    t,
+  );
+  if (bolinadi !== null) {
+    const fn = bolinadi[1];
+    const eni = bolinadi[2];
+    if (fn !== undefined && eni !== undefined) {
+      return {
+        turi: 'ENIGA_BOLINADI',
+        qiymat: '',
+        qiymat2: '',
+        materialEniM: eni,
+        yaxlitlash: fn as Yaxlitlash,
+      };
     }
   }
 

@@ -256,13 +256,26 @@ function xavfsizFormula(q: {
   zapasM: string;
 }): string {
   try {
-    return sarfFormulasi(q.sarfTuri, q.sarfQiymat, q.sarfQiymat2, {
-      qadam: q.sarfQiymat,
-      tasmaEniM: q.kesimEniM,
-      yaxlitlash: q.yaxlitlash,
-      qoshimchaSoni: q.sarfQiymat2,
-      zapasM: q.zapasM,
-    });
+    return sarfFormulasi(
+      q.sarfTuri,
+      q.sarfQiymat,
+      q.sarfQiymat2,
+      {
+        qadam: q.sarfQiymat,
+        tasmaEniM: q.kesimEniM,
+        yaxlitlash: q.yaxlitlash,
+        qoshimchaSoni: q.sarfQiymat2,
+        zapasM: q.zapasM,
+      },
+      /*
+        ⚠️ «ENIGA BO'LINADI» ham `kesimEniM` ni ishlatadi —
+           `TASMALI` dagi kabi BITTA katak ikki joyga: formulaga
+           ham, qat'iy kesim eniga ham. Ikki alohida katak bo'lsa
+           ular bir-biridan farq qilib qolar va ombor noto'g'ri
+           yechardi.
+      */
+      { materialEniM: q.kesimEniM, yaxlitlash: q.yaxlitlash },
+    );
   } catch {
     return '';
   }
@@ -793,6 +806,56 @@ export function MahsulotFormasi({
                               className={`${kichik} min-w-0`}
                             />
                           </label>
+                        </div>
+                      ) : tavsif.bolinadi === true ? (
+                        /*
+                          ── ENIGA BO'LINADI — egasi so'rovi 2026-09-24 ───
+
+                          Egasi: «mato eni kichik, 1 metrda 9 ta mato
+                          ketadi… buyurtma eni / mahsulot eni × bo'yi».
+
+                          ⚠️ IKKI KATAK YETARLI: materialning eni va
+                             bo'laklar soni qanday yaxlitlanishi.
+                             «Tasmalab» dagi qadam/qo'shimcha/zapas bu
+                             yerda ma'nosiz — material yonma-yon
+                             teriladi, tasma bo'lib tortilmaydi.
+
+                          ⚠️ Katak «mato eni» — MATERIALNIKI, buyurtmaniki
+                             emas. Buyurtma eni formulada `ENI` bo'lib
+                             keladi va u sotuvda kiritiladi.
+                        */
+                        <div className="grid grid-cols-2 gap-1.5">
+                          <label className="flex min-w-0 items-center gap-1">
+                            <span className="shrink-0 text-[11px] text-matn-kuchsiz">
+                              mato eni
+                            </span>
+                            <input
+                              value={q.kesimEniM}
+                              onChange={(e) => {
+                                yangila(i, { kesimEniM: e.target.value });
+                              }}
+                              inputMode="decimal"
+                              placeholder="0.11"
+                              aria-label="Materialning eni, metrda"
+                              title="Materialning O'Z eni, metrda. Buyurtma eni shunga bo'linadi (11 sm → 0.11)"
+                              className={`${kichik} min-w-0`}
+                            />
+                          </label>
+                          <select
+                            value={q.yaxlitlash}
+                            onChange={(e) => {
+                              yangila(i, { yaxlitlash: e.target.value as Yaxlitlash });
+                            }}
+                            aria-label="Bo'laklar soni yaxlitlanishi"
+                            title="9.2 ta bo'lak nechta bo'ladi — yarim bo'lak degan narsa yo'q"
+                            className={kichik}
+                          >
+                            {YAXLITLASHLAR.map((y) => (
+                              <option key={y} value={y}>
+                                {YAXLITLASH_NOMI[y]}
+                              </option>
+                            ))}
+                          </select>
                         </div>
                       ) : tavsif.ikkiQiymat ? (
                         /*

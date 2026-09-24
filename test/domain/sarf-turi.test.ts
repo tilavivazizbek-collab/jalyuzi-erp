@@ -81,7 +81,18 @@ describe('sarfFormulasi — natija formula qatlamida ishlaydi', () => {
                 qoshimchaSoni: '0',
                 zapasM: '',
               })
-            : sarfFormulasi(t, '2', '2');
+            : /**
+               * ⚠️ `ENIGA_BOLINADI` ga ham QO'SHIMCHA qiymat kerak:
+               *    materialning eni. Usiz formula yasalmaydi — bu
+               *    ataylab, chunki nolga bo'lish butun hisobni
+               *    cheksizlikka olib ketardi.
+               */
+              t === 'ENIGA_BOLINADI'
+              ? sarfFormulasi(t, '', '', undefined, {
+                  materialEniM: '0.11',
+                  yaxlitlash: 'CEIL',
+                })
+              : sarfFormulasi(t, '2', '2');
       expect(formulaTekshir(f, []).yaroqli).toBe(true);
     }
   });
@@ -152,12 +163,17 @@ describe('formuladanSarf — saqlangan formulani ekranga qaytarish', () => {
 
 describe('Borib-kelish qiymatni buzmaydi', () => {
   it('har raqamli tur formulaga aylanib, qaytib o‘ziga keladi', () => {
-    /** ⚠️ `TASMALI` alohida sinaladi — unga to'rtta qiymat kerak */
+    /**
+     * ⚠️ `TASMALI` va `ENIGA_BOLINADI` alohida sinaladi —
+     *    ularga qo'shimcha sozlama kerak va natijasi bitta
+     *    songa qaytmaydi.
+     */
     const raqamlilar = SARF_TURLARI.filter(
       (t) =>
         SARF_TAVSIFI[t].raqamli &&
         !SARF_TAVSIFI[t].ikkiQiymat &&
-        SARF_TAVSIFI[t].tasmali !== true,
+        SARF_TAVSIFI[t].tasmali !== true &&
+        SARF_TAVSIFI[t].bolinadi !== true,
     );
 
     for (const t of raqamlilar) {
