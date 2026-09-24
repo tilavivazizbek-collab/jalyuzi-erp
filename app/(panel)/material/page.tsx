@@ -275,8 +275,31 @@ export default async function MaterialRoyxati({
                     {m.guruh_nomi ?? <span className="text-belgi-sariq">— yo&apos;q —</span>}
                   </td>
                   <td className="raqam px-4 py-2.5 text-right">
+                    {/*
+                      ⚠️ NOL O'RNIGA YO'L KO'RSATILADI — egasi, 2026-09-24.
+
+                         Egasi «rulonda qoldiq 0 turibdi, eni va bo'yini
+                         belgilasam ham» dedi. Tekshirildi: hisob TO'G'RI,
+                         o'sha ikki rulonga umuman qoldiq kiritilmagan.
+
+                         Chalkashlik sababi — kartochkadagi «standart rulon
+                         eni» va «odatdagi bo'yi». Ular KELGUSI kirim uchun
+                         standart, ombordagi qoldiq emas. Yalang'och «0»
+                         buni aytmasdi, shuning uchun qoldiq kiritish
+                         havolasi qo'yildi.
+                    */}
                     {m.bosh_qoldiq === null || Number(m.bosh_qoldiq) === 0 ? (
-                      <span className="text-matn-kuchsiz">0</span>
+                      ozgartiraOladi ? (
+                        <Link
+                          href={`/ombor/boshlangich/${String(m.id)}`}
+                          className="text-[12px] text-belgi-sariq hover:underline"
+                          title="Omborda qoldiq yo'q — kiritish uchun bosing"
+                        >
+                          qoldiq yo&apos;q
+                        </Link>
+                      ) : (
+                        <span className="text-matn-kuchsiz">0</span>
+                      )
                     ) : (
                       <>
                         {Number(m.bosh_qoldiq).toFixed(2)}
