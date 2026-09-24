@@ -24,8 +24,6 @@ interface Qator {
   readonly sarflash_birligi: string;
   readonly koeffitsient: string;
   readonly guruh_nomi: string | null;
-  /** Mato darajasi — endi mijoz narxini AYNAN shu belgilaydi */
-  readonly daraja_nomi: string | null;
   /**
    * Shu filialdagi BO'SH qoldiq — band qilinganlari sanalmaydi.
    *
@@ -110,11 +108,10 @@ export default async function MaterialRoyxati({
     SELECT m.id, m.nom, m.kod, m.hisob_turi, m.kirim_birligi, m.sarflash_birligi,
            m.koeffitsient, m.faol,
            (m.rasm IS NOT NULL) AS rasm_bormi, m.ozgartirildi,
-           g.nom AS guruh_nomi, d.nom AS daraja_nomi,
+           g.nom AS guruh_nomi,
            qoldiq.bosh::text AS bosh_qoldiq
     FROM material m
     LEFT JOIN almashtirish_guruh g ON g.id = m.almashtirish_guruh_id
-    LEFT JOIN narx_guruh d ON d.id = m.narx_guruh_id
     LEFT JOIN LATERAL (
       SELECT CASE WHEN m.sarflash_birligi = 'KV_M'
                   THEN SUM(b.eni_m * b.boyi_m)
@@ -232,15 +229,16 @@ export default async function MaterialRoyxati({
                 <th className="px-4 py-2.5 font-medium">Hisob turi</th>
                 <th className="px-4 py-2.5 font-medium">Guruh</th>
                 {/*
-                  ⚠️ «Sotuv narxi» ustuni DARAJA va QOLDIQ ga
-                     almashtirildi (egasi, 2026-09-22).
+                  ⚠️ «Sotuv narxi» ustuni QOLDIQ ga almashtirildi
+                     (egasi, 2026-09-22). Narx endi bu yerdan
+                     boshqarilmaydi, ustun esa ko'pincha bo'sh
+                     turardi. O'rnida kunlik ishda kerak bo'ladigan
+                     javob turadi: «omborda bormi».
 
-                     Narx endi bu yerdan boshqarilmaydi, ustun esa
-                     ko'pincha bo'sh turardi. Uning o'rnida kunlik
-                     ishda kerak bo'ladigan ikki javob turadi:
-                     «bu matoning darajasi qaysi» va «omborda bormi».
+                     0057 — yonidagi «Daraja» ustuni ham olib
+                     tashlandi: narx darajasi butun tizimdan
+                     chiqarildi.
                 */}
-                <th className="px-4 py-2.5 font-medium">Daraja</th>
                 <th className="px-4 py-2.5 text-right font-medium">Bo&apos;sh qoldiq</th>
                 <th className="px-4 py-2.5 font-medium">Birliklar</th>
                 {ozgartiraOladi && <th className="px-4 py-2.5" />}
@@ -275,18 +273,6 @@ export default async function MaterialRoyxati({
                   </td>
                   <td className="px-4 py-2.5">
                     {m.guruh_nomi ?? <span className="text-belgi-sariq">— yo&apos;q —</span>}
-                  </td>
-                  {/*
-                    ⚠️ DARAJASI YO'Q mato sotuvda NARXSIZ qoladi —
-                       shuning uchun bo'shligi qizil bilan aytiladi,
-                       xira chiziqcha bilan emas.
-                  */}
-                  <td className="px-4 py-2.5">
-                    {m.daraja_nomi ?? (
-                      <span className="text-belgi-qizil" title="Narx darajasi tanlanmagan — sotuvda narxi topilmaydi">
-                        — yo&apos;q —
-                      </span>
-                    )}
                   </td>
                   <td className="raqam px-4 py-2.5 text-right">
                     {m.bosh_qoldiq === null || Number(m.bosh_qoldiq) === 0 ? (

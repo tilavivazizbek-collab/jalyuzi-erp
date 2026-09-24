@@ -41,10 +41,8 @@ import { amaldagiOffset } from '@/lib/domain/mijoz';
 import { katalogNarxi } from '@/lib/domain/narx';
 import { kopaytir, kurs as kursYasa, pulMatn, type Kurs } from '@/lib/domain/pul';
 import {
-  darajaliSlotniTop,
   pozitsiyaQoidaNarxi,
   qoidaniTop,
-  type DarajaliSlot,
   type HisoblashUsuli,
   type QoshimchaUsuli,
 } from '@/lib/domain/narx-qoidasi';
@@ -63,14 +61,15 @@ export interface TekshirilayotganNarx {
   readonly filialId: number;
   readonly kursSnapshot: string | null;
   /**
-   * Slotlarga tanlangan materiallar — daraja shulardan topiladi.
+   * Slotlarga tanlangan materiallar.
    *
-   * ⚠️ `slotId` KERAK: qaysi slot narxni belgilashi admin tomonidan
-   *    `mahsulot_slot.narx_belgilaydi` da belgilanadi (0048). Faqat
-   *    material id lari bilan buni bilib bo'lmaydi.
+   * ⚠️ 0057 DAN KEYIN NARXGA TA'SIR QILMAYDI. Ilgari daraja shu
+   *    yerdan topilardi; endi narx faqat MAHSULOT TURIGA bog'liq.
    *
-   * ⚠️ `slotId` `null` bo'lishi mumkin — qo'lda qo'shilgan qator.
-   *    Bunday qatorda belgi yo'q deb qaraladi.
+   *    Maydon ATAYLAB QOLDIRILDI: sarf va bo'lak tanlash hali shu
+   *    ro'yxatga tayanadi va chaqiruvchilar uni baribir uzatadi.
+   *    Olib tashlansa ikki amal (`buyurtma`, `buyurtma-tahrir`)
+   *    ham o'zgarardi — narx bilan aloqasi yo'q joyda.
    */
   readonly slotlar: readonly { readonly slotId: number | null; readonly materialId: number }[];
   /** Mijoz tanlagan qo'shimchalar (`pozitsiya_qoshimcha` ga tushadigan) */
@@ -136,69 +135,19 @@ export async function narxniTekshir(
 
   const mijozTuriId = mijoz?.mijoz_turi_id ?? null;
 
-  /**
-   * DARAJA — qaysi slotdan olinishi `darajaliSlotniTop()` da.
+  /*
+   * ⚠️ DARAJA (narx guruhi) 0057 DA BUTUNLAY OLIB TASHLANDI —
+   *    egasi qarori 2026-09-24.
    *
-   * ⚠️ 2026-09-22: qoida SHU YERDAN OLIB TASHLANDI. Ilgari u sotuv
-   *    ekranida, bu yerda va botda uch marta yozilgan edi — biri
-   *    o'zgarsa uchtasi uch xil narx berardi (CLAUDE.md §3).
+   *    Ilgari bu yerda tanlangan matoning DARAJASI izlanardi va
+   *    narx o'shanga qarab topilardi. Endi narx faqat MAHSULOT
+   *    TURIGA bog'liq: bir turdagi hamma mato bir xil narxda
+   *    sotiladi.
    *
-   * ⚠️ Tartib MUHIM: `k.slotlar` ekrandan qanday kelsa shunday
-   *    qoladi, chunki belgi qo'yilmagan turda «birinchi mato»
-   *    qoidasi ishlaydi va u tartibga tayanadi.
+   *    Shu bilan birga `darajaliSlotniTop()`, `narx_belgilaydi`
+   *    belgisi va material darajasi ham ketdi (0058) — ular faqat
+   *    shu izlash uchun bor edi.
    */
-  const materialIdlar = k.slotlar.map((s) => s.materialId);
-  const darajalar =
-    materialIdlar.length === 0
-      ? []
-      : await tx<
-          { id: number; narx_guruh_id: number | null; sarflash_birligi: string }[]
-        >`
-          SELECT id, narx_guruh_id, sarflash_birligi FROM material
-           WHERE id = ANY(${materialIdlar})`;
-
-  /**
-   * ⚠️ BELGILANGAN SLOT TURDAN O'QILADI, kelgan qatorlardan EMAS.
-   *
-   *    Sotuv ekrani materiali TANLANMAGAN slotni yubormaydi
-   *    (`forma.tsx` → `.filter((q) => q.material !== null)`). Agar
-   *    belgini faqat kelgan qatorlardan izlasak, mijoz belgilangan
-   *    slotga mato tanlamagan holatda server belgini KO'RMAY qolardi
-   *    va boshqa slotning darajasidan narx hisoblardi — ekran esa
-   *    «narx topilmadi» derdi. Ikki xil natija, ya'ni biz endigina
-   *    yopgan teshikning o'zi.
-   */
-  const belgilangan = await tx<{ id: number }[]>`
-    SELECT id FROM mahsulot_slot
-     WHERE mahsulot_tur_id = ${k.mahsulotTurId} AND faol = true
-       AND narx_belgilaydi
-     LIMIT 1`;
-  const belgilanganSlotId = belgilangan[0]?.id ?? null;
-
-  const daraja = (materialId: number | undefined) => {
-    const m = darajalar.find((d) => d.id === materialId);
-    return {
-      matomi: m?.sarflash_birligi === 'KV_M',
-      narxGuruhId: m?.narx_guruh_id ?? null,
-    };
-  };
-
-  const narxGuruhId =
-    darajaliSlotniTop<DarajaliSlot>(
-      belgilanganSlotId === null
-        ? k.slotlar.map((s) => ({ narxBelgilaydi: false, ...daraja(s.materialId) }))
-        : [
-            {
-              narxBelgilaydi: true,
-              ...daraja(
-                k.slotlar.find((s) => s.slotId === belgilanganSlotId)?.materialId,
-              ),
-            },
-          ],
-    )?.narxGuruhId ?? null;
-
-  if (narxGuruhId === null) return { qoldami: false, hisoblangan: null };
-
   /*
    * QOIDANI TANLASH — tanlov DOMAINDA (`qoidaniTop`).
    *
@@ -215,7 +164,6 @@ export async function narxniTekshir(
   const qoidalar = await tx<
     {
       id: number;
-      narx_guruh_id: number;
       mijoz_turi_id: number | null;
       filial_id: number | null;
       hamma_turga: boolean;
@@ -223,11 +171,10 @@ export async function narxniTekshir(
       min_olchov: string | null;
     }[]
   >`
-    SELECT id, narx_guruh_id, mijoz_turi_id, filial_id, hamma_turga,
+    SELECT id, mijoz_turi_id, filial_id, hamma_turga,
            hisoblash_usuli, min_olchov::text
       FROM mahsulot_narx
-     WHERE narx_guruh_id = ${narxGuruhId}
-       AND faol = true
+     WHERE faol = true
        AND (mahsulot_tur_id = ${k.mahsulotTurId} OR hamma_turga = true)
        AND (filial_id IS NULL OR filial_id = ${k.filialId})
        AND (mijoz_turi_id IS NULL OR mijoz_turi_id = ${mijozTuriId})`;
@@ -235,12 +182,11 @@ export async function narxniTekshir(
   const tanlangan = qoidaniTop(
     qoidalar.map((q) => ({
       ...q,
-      narxGuruhId: q.narx_guruh_id,
       mijozTuriId: q.mijoz_turi_id,
       filialId: q.filial_id,
       hammaTurga: q.hamma_turga,
     })),
-    { narxGuruhId, mijozTuriId, filialId: k.filialId },
+    { mijozTuriId, filialId: k.filialId },
   );
 
   if (tanlangan === undefined) return { qoldami: false, hisoblangan: null };
@@ -361,9 +307,9 @@ export interface TekshirilayotganQoshimcha {
  *
  * ⚠️ EKRAN BILAN BIR XIL TARTIB (`qoshimcha.tsx`):
  *
- *      1. RULON + daraja bor    → kesim qoidasi (maydon/eni/bo'yi)
- *      2. daraja + MIQDOR qoida → miqdor bosqichi
- *      3. qolgan holatda        → material narxi × miqdor
+ *      1. RULON + qoida bor   → kesim qoidasi (maydon/eni/bo'yi)
+ *      2. MIQDOR qoidasi      → miqdor bosqichi
+ *      3. qolgan holatda      → material narxi × miqdor
  *
  *    Tartib farq qilsa tekshiruvning o'zi yolg'on ogohlantirish
  *    berardi va egasi ro'yxatni o'qimay qo'yardi.
@@ -378,12 +324,11 @@ export async function qoshimchaNarxiniTekshir(
     await tx<
       {
         hisob_turi: string;
-        narx_guruh_id: number | null;
         narx: string | null;
         valyuta: string;
       }[]
     >`
-      SELECT m.hisob_turi, m.narx_guruh_id,
+      SELECT m.hisob_turi,
              COALESCE(tn.sotuv_narx::text, fn.sotuv_narx::text, m.sotuv_narx::text)
                AS narx,
              COALESCE(tn.valyuta, fn.valyuta, m.sotuv_valyuta) AS valyuta
@@ -404,25 +349,33 @@ export async function qoshimchaNarxiniTekshir(
 
   const kesiladimi = m.hisob_turi === 'RULON';
 
-  /** Daraja qoidasi — mijoz turiga qo'yilgani umumiysidan ustun (6.2) */
-  const qoida =
-    m.narx_guruh_id === null
-      ? undefined
-      : (
-          await tx<
-            { id: number; mijoz_turi_id: number | null; hisoblash_usuli: string }[]
-          >`
-            SELECT id, mijoz_turi_id, hisoblash_usuli
-              FROM mahsulot_narx
-             WHERE mahsulot_tur_id IS NULL
-               AND narx_guruh_id = ${m.narx_guruh_id}
-               AND faol = true
-               AND (filial_id IS NULL OR filial_id = ${k.filialId})
-               AND (mijoz_turi_id IS NULL
-                    OR mijoz_turi_id = (
-                      SELECT mijoz_turi_id FROM mijoz WHERE id = ${k.mijozId}))
-             ORDER BY (mijoz_turi_id IS NULL), (filial_id IS NULL)`
-        )[0];
+  /**
+   * «Materialni o'zi sotish» qoidasi — mijoz turiga qo'yilgani
+   * umumiysidan ustun (6.2).
+   *
+   * ⚠️ 0057 — ILGARI BU QATOR MATO DARAJASIGA BOG'LIQ EDI.
+   *    Materialga daraja qo'yilmagan bo'lsa qoida umuman
+   *    izlanmasdi va sotuv jimgina material narxiga tushardi.
+   *    Endi qator BITTA: `mahsulot_tur_id IS NULL`.
+   *
+   * ⚠️ `hamma_turga = false` SHART. `mahsulot_tur_id IS NULL`
+   *    ikki xil qatorni bildiradi (0055): bu yerda kerakligi —
+   *    alohida sotuv, ikkinchisi esa tayyor jalyuziga qo'yilgan
+   *    umumiy narx. Shartsiz qoldirilsa ular aralashardi.
+   */
+  const qoida = (
+    await tx<{ id: number; mijoz_turi_id: number | null; hisoblash_usuli: string }[]>`
+      SELECT id, mijoz_turi_id, hisoblash_usuli
+        FROM mahsulot_narx
+       WHERE mahsulot_tur_id IS NULL
+         AND hamma_turga = false
+         AND faol = true
+         AND (filial_id IS NULL OR filial_id = ${k.filialId})
+         AND (mijoz_turi_id IS NULL
+              OR mijoz_turi_id = (
+                SELECT mijoz_turi_id FROM mijoz WHERE id = ${k.mijozId}))
+       ORDER BY (mijoz_turi_id IS NULL), (filial_id IS NULL)`
+  )[0];
 
   if (qoida !== undefined && (kesiladimi || qoida.hisoblash_usuli === 'MIQDOR')) {
     const bosqichlar = await tx<

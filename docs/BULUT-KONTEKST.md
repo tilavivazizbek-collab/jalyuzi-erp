@@ -207,14 +207,15 @@ Batafsil: `docs/JALYUZI-TURLARI.md` §9b, `docs/QAMROV.md` §6d.
 
 ---
 
-## 6e. Darajaga umumiy narx — 2026-09-23 (0055)
+## 6e. Hamma turga standart narx — 2026-09-23 (0055), 0057 da qayta nomlandi
 
 Narx `tur × daraja` juftligiga qo'yilardi: to'qqiz tur × uch daraja =
 **27 qator**. Tekshirilganda olti materialdan **beshtasi sotilmasdi**.
 
-Endi darajaga **bitta umumiy jadval** qo'yiladi va u hamma turga amal
-qiladi; turga alohida qator qo'yilsa u **to'liq almashtiradi**
-(qo'shilmaydi). Ekran: `/narx?tur=daraja`.
+Endi **bitta umumiy jadval** qo'yiladi va u hamma turga amal qiladi;
+turga alohida qator qo'yilsa u **to'liq almashtiradi**
+(qo'shilmaydi). Ekran: **`/narx?tur=umumiy`** (0057 gacha `?tur=daraja`
+edi — daraja bilan birga nomi ham o'zgardi).
 
 ⚠️ **Tanlash mantig'i BITTA joyda** — `qoidaniTop()`
 (`lib/domain/narx-qoidasi.ts`). Ilgari u BESH joyda qo'lda yozilgan
@@ -225,7 +226,7 @@ tegiladi.
 ⚠️ `mahsulot_narx.mahsulot_tur_id IS NULL` endi **ikki ma'noli**:
 
     hamma_turga = false → «materialni o'zi sotish»
-    hamma_turga = true  → «darajaga umumiy narx»
+    hamma_turga = true  → «hamma tur uchun standart narx»
 
 Shu jadval bilan ishlaydigan har qanday so'rovga `hamma_turga` sharti
 KERAK — aks holda ikkalasi bir-birini jimgina o'chiradi.
@@ -234,7 +235,38 @@ Batafsil: `docs/QAMROV.md` §6e.
 
 ---
 
-## 6f. Ikki ko'rinish — kun va tun (2026-09-23)
+## 6f. Narx darajasi BUTUNLAY olib tashlandi — 2026-09-24 (0057·0058)
+
+Egasi: «btun tizimda narx guruhi degan narsa kerak emas, tulqi uchirib
+tashla». Men qoldirishni tavsiya qilgandim va raqam bilan ko'rsatdim;
+egasi shuni ko'rib turib **«Butunlay o'chirasan»** dedi.
+
+Natija — biznes qarori: **bir turdagi hamma mato bir xil narxda
+sotiladi**. Matoning qimmat-arzonligi mijoz narxiga ta'sir qilmaydi.
+
+Ketgani: `narx_guruh` jadvali, `material.narx_guruh_id`,
+`mahsulot_narx.narx_guruh_id`, `mahsulot_slot.narx_belgilaydi`,
+`darajaliSlotniTop()`, `/daraja` ekrani.
+
+⚠️ **IKKI QADAMLI MIGRATSIYA, tartibi muhim:**
+
+    0057  ustun IXTIYORIY bo'ladi   → eski kod ham ishlayveradi
+    push  → Render deploy tugasin
+    0058  ustunlar TASHLANADI       → yangi kod jonli bo'lgach
+
+Teskari tartibda jonli sayt yiqiladi.
+
+⚠️ **Noyoblik indeksi endi QISMAN — `WHERE faol`.** Ustun tashlangach
+nofaol TARIX qatorlari bir-biriga to'qnashadi (sinov bazasida 16 ta
+guruh, 48 qator; egasinikida 0 ta). Shu sababli kodda ham
+`ON CONFLICT ... WHERE faol` yozilgan — predikatsiz Postgres qisman
+indeksni tanimaydi va har saqlash yiqiladi.
+
+Batafsil: `docs/QAMROV.md` §6f.
+
+---
+
+## 6g. Ikki ko'rinish — kun va tun (2026-09-23)
 
 Egasi: «butun tizimni ikki xil dizaynli qil, tun va kun».
 To'liq qaror: **`docs/QARORLAR-KOD.md` P-39**.
@@ -278,6 +310,13 @@ mahsulot turi uchun `/stavka` ekranidan tanlaydi.
 ⚠️ **Kutilayotgan yagona narsa — 0038 migratsiyasini qo'llash ruxsati.**
 Kod `chegara_kv_m` ustunini o'qiydi; migratsiyasiz deploy qilinsa
 «Ishni oldim» yiqiladi (CLAUDE.md'dagi 0026 hodisasining aynan o'zi).
+
+⚠️ **2026-09-24 — «ko'p olganga arzonroq» jadvali endi UMUMIY.**
+Daraja olib tashlangach «Materialni o'zi sotish» jadvali bitta bo'lib
+qoldi va to'g'ridan sotiladigan HAMMA materialga tegishli: karniz ham,
+pult ham bir xil bosqichdan narx oladi. Har materialga alohida jadval
+kerak bo'lsa qator **materialga** bog'lanishi shart
+(`mahsulot_narx.material_id`) — migratsiya va ruxsat kerak.
 
 2026-09-03 dan javobsiz qolgan savollar (batafsil: `docs/QAMROV.md` §6c):
 

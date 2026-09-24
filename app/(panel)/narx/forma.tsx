@@ -30,13 +30,10 @@ import {
 import { kopaytir, kurs as kursYasa, pulKorsat, som } from '@/lib/domain/pul';
 import { biznesXatosimi } from '@/lib/xato';
 import { Tanlagich } from '../tanlagich';
-import { Modal } from '../modal';
-import { NarxGuruhFormasi } from './guruh-forma';
 import { BOSH_HOLAT, type NarxHolati } from './holat';
 import { narxSaqlaAmali } from './amal';
 import { turNarxlariniNusxalaAmali } from './amal';
 import type {
-  NarxGuruhQatori,
   QoidaQatori,
   QoshimchaQatori,
   TanlovQatori,
@@ -106,8 +103,6 @@ interface QoidaHolati {
    *    — TZ 6.2 va 20.9 yarim qurilgan holda qolgan edi.
    */
   kalit: number;
-  narxGuruhId: number;
-  narxGuruhNomi: string;
   mijozTuriId: number | null;
   filialId: number | null;
   hisoblashUsuli: HisoblashUsuli;
@@ -152,7 +147,6 @@ function domenBosqichlari(b: readonly BosqichHolati[]): Bosqich[] {
 export function NarxFormasi({
   turId,
   turNomi,
-  guruhlar: boshGuruhlar,
   qoidalar: boshQoidalar,
   qoshimchalar: boshQoshimchalar,
   materiallar,
@@ -167,7 +161,6 @@ export function NarxFormasi({
   /** ⚠️ `null` — «materialni o'zi sotish», mahsulot turi yo'q */
   turId: number | null;
   turNomi: string;
-  guruhlar: readonly NarxGuruhQatori[];
   qoidalar: readonly QoidaQatori[];
   qoshimchalar: readonly QoshimchaQatori[];
   materiallar: readonly TanlovQatori[];
@@ -191,18 +184,14 @@ export function NarxFormasi({
     BOSH_HOLAT,
   );
 
-  const [guruhlar, setGuruhlar] = useState<readonly NarxGuruhQatori[]>(boshGuruhlar);
   /** Yangi qatorga beriladigan kalit — hech qachon takrorlanmaydi */
   const [keyingiKalit, setKeyingiKalit] = useState(boshQoidalar.length + 1);
-  const [guruhModali, setGuruhModali] = useState(false);
   const [nusxaXatosi, setNusxaXatosi] = useState<string | null>(null);
   const [nusxaKutilmoqda, setNusxaKutilmoqda] = useState(false);
 
   const [qoidalar, setQoidalar] = useState<QoidaHolati[]>(() =>
     boshQoidalar.map((q, i) => ({
       kalit: i + 1,
-      narxGuruhId: q.narxGuruhId,
-      narxGuruhNomi: q.narxGuruhNomi,
       mijozTuriId: q.mijozTuriId,
       filialId: q.filialId,
       hisoblashUsuli: q.hisoblashUsuli as HisoblashUsuli,
@@ -241,9 +230,6 @@ export function NarxFormasi({
    */
   const [sinovEni, setSinovEni] = useState('2.10');
   const [sinovBoyi, setSinovBoyi] = useState('1.40');
-  const [sinovGuruh, setSinovGuruh] = useState<number | null>(
-    boshQoidalar[0]?.narxGuruhId ?? null,
-  );
   /**
    * Kalkulyator MIJOZ TURI va FILIALNI ham hisobga oladi — 2026-09-21.
    *
@@ -287,20 +273,6 @@ export function NarxFormasi({
     );
   };
 
-  /**
-   * ⚠️ HAMMA DARAJA ro'yxatda turadi — 2026-09-21.
-   *
-   *    Ilgari bu yerda «hali ishlatilmagan darajalar» filtri turardi
-   *    va shu sababli bir darajaga IKKINCHI qator qo'shib bo'lmasdi.
-   *    Egasi «Oddiy» ga umumiy narx qo'ysa, optomchiga alohida narx
-   *    qo'ya olmasdi; optomchiga qo'ysa esa oddiy mijozga narx
-   *    UMUMAN qolmas va sotuv bloklanardi.
-   *
-   *    Endi bir daraja bir necha marta qo'shiladi, har biri o'z
-   *    mijoz turi va filiali bilan. Aynan takrorlanishni quyidagi
-   *    `takrorlar` ushlaydi.
-   */
-  const darajaQoshishRoyxati = guruhlar;
 
   /**
    * AYNAN BIR XIL qamrov ikki marta yozilganmi.
@@ -311,7 +283,7 @@ export function NarxFormasi({
    *    narx kiritib, bittasi saqlanmaganini bilmay qolardi.
    */
   const takrorKaliti = (q: QoidaHolati): string =>
-    `${String(q.narxGuruhId)}|${String(q.mijozTuriId ?? 0)}|${String(q.filialId ?? 0)}`;
+    `${String(q.mijozTuriId ?? 0)}|${String(q.filialId ?? 0)}`;
 
   const takrorlar = useMemo(() => {
     const sanoq = new Map<string, number>();
@@ -325,7 +297,6 @@ export function NarxFormasi({
   // ─── Yuborishga tayyorlash ──────────────────────────────────────────────
   const yuk = {
     qoidalar: qoidalar.map((q) => ({
-      narxGuruhId: q.narxGuruhId,
       mijozTuriId: q.mijozTuriId,
       filialId: q.filialId,
       hisoblashUsuli: q.hisoblashUsuli,
@@ -364,9 +335,7 @@ export function NarxFormasi({
      *    bir narxni ko'rsatib, sotuv boshqasini chiqarardi — bu
      *    tekshiruvning o'zidan ham yomonroq.
      */
-    const mos = qoidalar.filter((x) => x.narxGuruhId === sinovGuruh);
-    const q = qoidaniTop(mos, {
-      narxGuruhId: sinovGuruh,
+    const q = qoidaniTop(qoidalar, {
       mijozTuriId: sinovMijoz,
       filialId: sinovFilial,
     });
@@ -376,9 +345,7 @@ export function NarxFormasi({
         xato:
           qoidalar.length === 0
             ? "Avval yuqorida narx jadvalini to'ldiring"
-            : mos.length === 0
-              ? 'Yuqoridagi ro‘yxatdan darajani tanlang'
-              : 'Bu daraja shu mijoz turi va filialga ochilmagan — sotuvda ham narx topilmaydi',
+            : 'Bu mijoz turi va filialga qator ochilmagan — sotuvda ham narx topilmaydi',
         hisob: null,
         usul: null,
       };
@@ -443,7 +410,6 @@ export function NarxFormasi({
     sinovEni,
     sinovBoyi,
     sinovSoniAdadi,
-    sinovGuruh,
     sinovMijoz,
     sinovFilial,
     tanlangan,
@@ -462,7 +428,6 @@ export function NarxFormasi({
    */
   const soniAlohidami =
     qoidaniTop(qoidalar, {
-      narxGuruhId: sinovGuruh,
       mijozTuriId: sinovMijoz,
       filialId: sinovFilial,
     })?.hisoblashUsuli !== 'MIQDOR';
@@ -503,21 +468,24 @@ export function NarxFormasi({
           <div>
             <h2 className="text-[15px] font-semibold text-matn">Narx jadvali</h2>
             <p className="mt-0.5 text-[12px] text-matn-ikki">
-              {turNomi} — har narx darajasi uchun alohida
+              {turNomi} — o'lcham bo'yicha bosqichli
             </p>
           </div>
-          {ozgartiraOladi && darajaQoshishRoyxati.length > 0 && (
-            <select
-              value=""
-              onChange={(e) => {
-                const g = guruhlar.find((x) => x.id === Number(e.target.value));
-                if (g === undefined) return;
+          {ozgartiraOladi && (
+            /*
+              ⚠️ 0057 — ilgari bu yerda «+ daraja qo'shish» dropdowni
+                 turardi: har qator BITTA darajaga tegishli edi.
+                 Daraja olib tashlangach qator faqat mijoz turi va
+                 filial bilan ajraladi, shuning uchun oddiy tugma
+                 yetarli.
+            */
+            <button
+              type="button"
+              onClick={() => {
                 setQoidalar((eski) => [
                   ...eski,
                   {
                     kalit: keyingiKalit,
-                    narxGuruhId: g.id,
-                    narxGuruhNomi: g.nom,
                     mijozTuriId: null,
                     filialId: null,
                     hisoblashUsuli: 'MAYDON',
@@ -528,25 +496,10 @@ export function NarxFormasi({
                 ]);
                 setKeyingiKalit((k) => k + 1);
               }}
-              aria-label="Daraja qo‘shish"
-              className={`${kichik} w-[210px]`}
+              className="rounded-maydon bg-amal px-3 py-1.5 text-[13px] font-medium text-white transition-colors hover:bg-amal-hover"
             >
-              <option value="">+ daraja qo‘shish</option>
-              {/*
-                ⚠️ MATO SONI YONIDA — 2026-09-21. Egasi «Oddiy» ga
-                   narx qo'yib, matosi «Qimmat» darajada ekanini
-                   bilmay qoldi. Endi ro'yxatning o'zi aytadi: bo'sh
-                   darajaga narx qo'yish foydasiz.
-              */}
-              {darajaQoshishRoyxati.map((g) => (
-                <option key={g.id} value={g.id}>
-                  {g.nom}
-                  {g.materialSoni === 0
-                    ? ' — mato yo‘q'
-                    : ` — ${String(g.materialSoni)} mato`}
-                </option>
-              ))}
-            </select>
+              + Narx qatori
+            </button>
           )}
         </div>
 
@@ -558,39 +511,11 @@ export function NarxFormasi({
                egasi darajani qayerdan qo'shishni topolmadi (2026-09-20).
           */
           <div className="rounded-maydon border border-dashed border-chegara-quyuq px-4 py-6 text-center">
-            {guruhlar.length === 0 ? (
-              <>
-                <p className="text-sm font-medium text-matn">
-                  Avval narx darajasi kerak
-                </p>
-                <p className="mx-auto mt-1 max-w-md text-[13px] text-matn-ikki">
-                  Narx jadvali darajalar bo‘yicha to‘ldiriladi: «Oddiy» matoga bir
-                  narx, «Premium» ga boshqa narx. Bittasini yarating va shu yerga
-                  qaytib narx qo‘yasiz.
-                </p>
-                {ozgartiraOladi && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setGuruhModali(true);
-                    }}
-                    className="mt-4 rounded-maydon bg-brend px-4 py-2.5 text-sm font-medium text-tugma-matn transition-all hover:bg-brend-quyuq active:scale-[0.98]"
-                  >
-                    + Yangi daraja yaratish
-                  </button>
-                )}
-              </>
-            ) : (
-              <>
-                <p className="text-sm font-medium text-matn">
-                  Bu turga hali narx qo‘yilmagan
-                </p>
-                <p className="mx-auto mt-1 max-w-md text-[13px] text-matn-ikki">
-                  Yuqoridagi <b>«+ daraja qo‘shish»</b> ro‘yxatidan narx darajasini
-                  tanlang — shundan keyin bosqichlar jadvali ochiladi.
-                </p>
-              </>
-            )}
+            <p className="text-sm font-medium text-matn">Narx qo&apos;yilmagan</p>
+            <p className="mt-1 text-[13px] text-matn-ikki">
+              Bu tur hozir sotuvda <b>narxsiz</b> chiqadi. Yuqoridagi
+              <b> + Narx qatori</b> tugmasi bilan boshlang.
+            </p>
           </div>
         ) : (
           <div className="flex flex-col gap-4">
@@ -604,9 +529,6 @@ export function NarxFormasi({
               const birlik = birlikNomi(q.hisoblashUsuli);
 
               const takrormi = takrorlar.has(takrorKaliti(q));
-              const matoSoni =
-                guruhlar.find((g) => g.id === q.narxGuruhId)?.materialSoni ?? 0;
-
               /**
                * Qamrov SO'Z BILAN — 2026-09-21. Bir daraja endi bir
                * necha qatorga ega bo'lishi mumkin va ular faqat mijoz
@@ -630,18 +552,9 @@ export function NarxFormasi({
                   }`}
                 >
                   <div className="mb-2 flex flex-wrap items-center gap-2">
-                    <span className="text-[14px] font-medium text-matn">{q.narxGuruhNomi}</span>
-                    <span className="text-[11px] text-matn-kuchsiz">
+                    <span className="text-[14px] font-medium text-matn">
                       {kimga} · {qayerda}
                     </span>
-                    {matoSoni === 0 && (
-                      <span
-                        className="text-[11px] text-belgi-sariq"
-                        title="Bu darajaga birorta mato biriktirilmagan — narx hech qachon ishlamaydi"
-                      >
-                        ⚠ mato yo‘q
-                      </span>
-                    )}
 
                     <select
                       value={q.hisoblashUsuli}
@@ -933,8 +846,6 @@ export function NarxFormasi({
                       k += 1;
                       return {
                         kalit: k,
-                        narxGuruhId: q.narxGuruhId,
-                        narxGuruhNomi: q.narxGuruhNomi,
                         mijozTuriId: q.mijozTuriId,
                         filialId: q.filialId,
                         hisoblashUsuli: q.hisoblashUsuli as HisoblashUsuli,
@@ -972,17 +883,6 @@ export function NarxFormasi({
             <span className="text-[12px] text-belgi-qizil">{nusxaXatosi}</span>
           )}
 
-          {ozgartiraOladi && (
-            <button
-              type="button"
-              onClick={() => {
-                setGuruhModali(true);
-              }}
-              className="rounded-maydon border border-chegara-quyuq bg-sirt px-3 py-1.5 text-[13px] font-medium text-matn transition-colors hover:border-brend hover:text-brend"
-            >
-              + Yangi narx darajasi
-            </button>
-          )}
           {/*
             ⚠️ Darajani TAHRIRLASH va O'CHIRISH shu yerda emas, alohida
                sahifada: bu ekran narx jadvaliga bag'ishlangan.
@@ -1235,23 +1135,6 @@ export function NarxFormasi({
                bo'lishi mumkin va `qoidalar` dan tuzilsa ro'yxatda
                takrorlanib chiqardi.
           */}
-          <select
-            value={sinovGuruh ?? ''}
-            onChange={(e) => {
-              setSinovGuruh(son(e.target.value));
-            }}
-            aria-label="Sinov darajasi"
-            className={`${kichik} w-[170px]`}
-          >
-            <option value="">— daraja —</option>
-            {guruhlar
-              .filter((g) => qoidalar.some((q) => q.narxGuruhId === g.id))
-              .map((g) => (
-                <option key={g.id} value={g.id}>
-                  {g.nom}
-                </option>
-              ))}
-          </select>
 
           <select
             value={sinovMijoz ?? ''}
@@ -1409,25 +1292,6 @@ export function NarxFormasi({
         </div>
       )}
 
-      <Modal
-        ochiq={guruhModali}
-        yop={() => {
-          setGuruhModali(false);
-        }}
-        sarlavha="Yangi narx darajasi"
-        izoh="Narx jadvali shu darajalar bo‘yicha to‘ldiriladi"
-        bolalar={
-          <NarxGuruhFormasi
-            saqlandi={(y) => {
-              setGuruhlar((eski) => [...eski, { id: y.id, nom: y.nom, materialSoni: 0 }]);
-              setGuruhModali(false);
-            }}
-            bekor={() => {
-              setGuruhModali(false);
-            }}
-          />
-        }
-      />
     </form>
   );
 }

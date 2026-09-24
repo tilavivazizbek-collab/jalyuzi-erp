@@ -23,7 +23,6 @@ import { dollar, kurs, nolSom, pulKorsat, pulMatn, qosh, som, type Som } from '@
 import { aksessuarNarxi, katalogNarxi, matoNarxi } from '@/lib/domain/narx';
 import { pozitsiyaNarxiniHisobla } from '@/lib/domain/pozitsiya-narxi';
 import {
-  darajaliSlotniTop,
   qoidaniTop,
   type HisoblashUsuli,
   type QoshimchaUsuli,
@@ -680,35 +679,12 @@ export function SotuvFormasi({
 
     const xizmat = tur.xizmatHaqi === null ? nolSom() : som(tur.xizmatHaqi);
 
-    /**
-     * ⚠️ MIJOZ NARXI — egasi qarori 2026-09-20.
-     *
-     *    Tanlangan matoning DARAJASI qoidani topadi, qoida esa
-     *    o'lchamga qarab bosqichni tanlaydi. Materiallarning narxi
-     *    endi mijoz narxiga umuman ta'sir qilmaydi.
-     *
-     * ⚠️ DARAJA QAYSI SLOTDAN OLINISHI — `darajaliSlotniTop()` da,
-     *    bu yerda EMAS (egasi qarori 2026-09-22, migratsiya 0048).
-     *
-     *    Ilgari bu qoida SHU YERDA, `lib/amal/narx-tekshir.ts` da va
-     *    `bot/buyurtma-oqimi.ts` da — UCH JOYDA alohida yozilgan edi.
-     *    Uchalasi bir xil ishlashi shart, aks holda mijoz ko'rgan
-     *    narx, bazaga tushgan narx va botdagi narx uch xil bo'lardi.
-     *    Endi qoida bitta joyda (CLAUDE.md §3).
+    /*
+     * ⚠️ DARAJA 0057 DA OLIB TASHLANDI — egasi qarori
+     *    2026-09-24. Narx endi faqat MAHSULOT TURIGA bog'liq:
+     *    bir turdagi hamma mato bir xil narxda sotiladi va
+     *    matoning qimmat-arzonligi mijoz narxiga ta'sir qilmaydi.
      */
-    const darajaliQator = darajaliSlotniTop(
-      qatorlar.map((q) => ({
-        narxBelgilaydi: q.slot.narxBelgilaydi,
-        matomi: q.birlik === 'KV_M',
-        narxGuruhId: q.material?.narxGuruhId ?? null,
-        qator: q,
-      })),
-    );
-    const narxGuruhId = darajaliQator?.narxGuruhId ?? null;
-    /** Xato xabarida ko'rsatish uchun — sotuvchi sababni ko'rsin */
-    const darajaNomi = darajaliQator?.qator.material?.narxGuruhNomi ?? null;
-    const darajaliMaterial = darajaliQator?.qator.material?.nom ?? null;
-
     /**
      * QAYSI NARX QOIDASI — tanlov DOMAINDA (`qoidaniTop`).
      *
@@ -724,7 +700,6 @@ export function SotuvFormasi({
      */
     const mijozTuriId = mijoz?.mijozTuriId ?? null;
     const qoidaQatori = qoidaniTop(tur.narxQoidalari, {
-      narxGuruhId,
       mijozTuriId,
       /** ⚠️ Katalog shu filial uchun yuklangan (TZ 20.9) */
       filialId: ozFilialId,
@@ -879,8 +854,6 @@ export function SotuvFormasi({
       eniM,
       boyiM,
       buyumSoni,
-      darajaNomi,
-      darajaliMaterial,
       narxSababi,
       matosizSlotlar,
       tanlanmaganSlotlar,
@@ -2101,27 +2074,16 @@ export function SotuvFormasi({
               >
                 <p className="font-medium">{hisob.narx.xato}</p>
                 {/*
-                  ⚠️ SABABNI AYTAMIZ — 2026-09-21. Egasi «narx
-                     belgiladim, sotuvda baribir narx qo'yilmagan
-                     deydi» dedi va sababni topolmadi: qoida
-                     «oddiy» darajasiga, mato esa «qimmat»
-                     darajasida edi. Endi ekranning o'zi aytadi.
+                  ⚠️ SABAB — 0057 dan keyin bitta: bu TURGA narx
+                     qo'yilmagan. Ilgari bu yerda daraja tushuntirilardi
+                     («qoida oddiy darajasiga, mato esa qimmat
+                     darajasida»), lekin daraja butunlay olib
+                     tashlandi va narx faqat turga bog'liq.
                 */}
-                {hisob.darajaNomi !== null && (
-                  <p className="mt-1 text-xs">
-                    Tanlangan mato <b>{hisob.darajaliMaterial}</b> — darajasi{' '}
-                    <b>«{hisob.darajaNomi}»</b>. «Narxlar va turlar» da shu tur uchun
-                    AYNAN SHU daraja bo'yicha narx qo'ying yoki material kartochkasida
-                    darajani o'zgartiring.
-                  </p>
-                )}
-                {hisob.darajaNomi === null && (
-                  <p className="mt-1 text-xs">
-                    Tanlangan matoga <b>daraja qo&apos;yilmagan</b>. Material kartochkasida
-                    narx darajasini tanlang — narx o&apos;sha daraja bo&apos;yicha
-                    topiladi.
-                  </p>
-                )}
+                <p className="mt-1 text-xs">
+                  «Narxlar va turlar» sahifasida <b>{tur.nom}</b> uchun narx
+                  qo&apos;ying.
+                </p>
               </div>
             )}
 

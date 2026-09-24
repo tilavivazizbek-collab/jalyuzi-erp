@@ -400,6 +400,20 @@
       "when": 1790184166251,
       "tag": "0056_eng_kam_olchov",
       "breakpoints": true
+    },
+    {
+      "idx": 57,
+      "version": "7",
+      "when": 1790186166251,
+      "tag": "0057_narx_guruhi_olib_tashlandi",
+      "breakpoints": true
+    },
+    {
+      "idx": 58,
+      "version": "7",
+      "when": 1790188166251,
+      "tag": "0058_narx_guruhi_ustunlari",
+      "breakpoints": true
     }
   ]
 }

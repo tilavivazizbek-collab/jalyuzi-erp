@@ -50,32 +50,18 @@ export interface SotuvMaterial {
   /** Q-25 — shu filialdagi bo'sh qoldiq (3.3: «har mato yonida qoldiq») */
   readonly boshKvM: number;
   readonly boshDona: number;
-  /**
-   * Mato darajasi — mijoz narxi shundan hisoblanadi (egasi qarori
-   * 2026-09-20). `null` bo'lsa bu materialga narx qoidasi topilmaydi
-   * va sotuvchi «narx qo'yilmagan» xabarini oladi.
-   */
-  readonly narxGuruhId: number | null;
-  /**
-   * Daraja NOMI — narx topilmaganda xabarda ko'rsatiladi.
-   *
-   * ⚠️ 2026-09-21: egasi «narx belgiladim, sotuvda baribir
-   *    narx qo'yilmagan deydi» dedi. Sababi — qoida «oddiy»
-   *    darajasiga, mato esa «qimmat» darajasida edi. Ekran buni
-   *    AYTMAGANI uchun sabab topilmadi.
-   */
-  readonly narxGuruhNomi: string | null;
 }
 
 /**
- * Bitta mato darajasi uchun narx qoidasi — egasi qarori 2026-09-20.
+ * Mahsulot turi uchun narx qoidasi — egasi qarori 2026-09-20.
  *
- * ⚠️ Mijoz narxi ENDI SHUNDAN keladi, materialdan emas. Sotuvchi
- *    matoni tanlaydi, uning darajasi qoidani topadi, qoida esa
- *    o'lchamga qarab bosqichni tanlaydi.
+ * ⚠️ 0057 — ILGARI QOIDA MATO DARAJASIGA TEGISHLI EDI.
+ *    Egasi darajani butunlay olib tashlashni buyurdi: bir daraja
+ *    5–10 xil mahsulotni ushlab turardi va qaysi narx qayerdan
+ *    kelayotgani ko'rinmasdi. Endi qoida TURGA tegishli, mato esa
+ *    faqat sarfga ta'sir qiladi.
  */
 export interface SotuvNarxQoidasi {
-  readonly narxGuruhId: number;
   /** TZ 6.2 — `null` bo'lsa hamma mijoz turiga */
   readonly mijozTuriId: number | null;
   /** TZ 20.9 — `null` bo'lsa hamma filialga */
@@ -141,14 +127,6 @@ export interface SotuvSlot {
    * `null` — eni maydondan hisoblanadi (odatdagi holat).
    */
   readonly kesimEniM: number | null;
-  /**
-   * Mijoz narxini SHU slot belgilaydimi — egasi qarori 2026-09-22 (0048).
-   *
-   * ⚠️ Sotuv ekrani, server tekshiruvi va bot — uchalasi ham shu
-   *    belgini `darajaliSlotniTop()` ga uzatadi. Qoida o'sha yerda,
-   *    bu yerda emas.
-   */
-  readonly narxBelgilaydi: boolean;
   readonly materiallar: readonly SotuvMaterial[];
 }
 
@@ -344,11 +322,10 @@ export async function sotuvTurlari(
       koeffitsient: string;
       kesish_turi: string;
       kesim_eni_m: string | null;
-      narx_belgilaydi: boolean;
     }[]
   >`
     SELECT id, mahsulot_tur_id, nom, tartib, majburiy, formula, almashtirish_guruh_id,
-           koeffitsient::text, kesish_turi, kesim_eni_m::text, narx_belgilaydi
+           koeffitsient::text, kesish_turi, kesim_eni_m::text
     FROM mahsulot_slot
     WHERE mahsulot_tur_id = ANY(${turIdlar}) AND faol = true
     ORDER BY mahsulot_tur_id, tartib`;
@@ -484,16 +461,12 @@ export async function sotuvTurlari(
       nom: string;
       sarflash_birligi: string;
       almashtirish_guruh_id: number | null;
-      narx_guruh_id: number | null;
-      /** Daraja NOMI — xato xabarida ko'rsatiladi (2026-09-21) */
-      narx_guruh_nomi: string | null;
       narx: string | null;
       narx_valyuta: string;
       rasm_bormi: boolean;
     }[]
   >`
     SELECT m.id, m.nom, m.sarflash_birligi, m.almashtirish_guruh_id,
-           m.narx_guruh_id, ng.nom AS narx_guruh_nomi,
            COALESCE(fn.sotuv_narx::text, m.sotuv_narx::text) AS narx,
            /*
             * ⚠️ Valyuta narx bilan BIRGA olinadi. Filial narxi
@@ -503,7 +476,6 @@ export async function sotuvTurlari(
            COALESCE(fn.valyuta, m.sotuv_valyuta) AS narx_valyuta,
            (m.rasm IS NOT NULL) AS rasm_bormi
     FROM material m
-    LEFT JOIN narx_guruh ng ON ng.id = m.narx_guruh_id
     LEFT JOIN material_filial_narx fn
            ON fn.material_id = m.id AND fn.filial_id = ${filialId}
     WHERE m.faol = true
@@ -562,7 +534,6 @@ export async function sotuvTurlari(
     {
       id: number;
       mahsulot_tur_id: number | null;
-      narx_guruh_id: number;
       mijoz_turi_id: number | null;
       filial_id: number | null;
       hamma_turga: boolean;
@@ -570,13 +541,13 @@ export async function sotuvTurlari(
       min_olchov: string | null;
     }[]
   >`
-    SELECT id, mahsulot_tur_id, narx_guruh_id, mijoz_turi_id, filial_id,
+    SELECT id, mahsulot_tur_id, mijoz_turi_id, filial_id,
            hamma_turga, hisoblash_usuli, min_olchov::text
     FROM mahsulot_narx
     WHERE faol = true
       AND (filial_id IS NULL OR filial_id = ${filialId})
       AND (mahsulot_tur_id = ANY(${turIdlar}) OR hamma_turga = true)
-    ORDER BY mahsulot_tur_id, narx_guruh_id, (filial_id IS NULL)`;
+    ORDER BY mahsulot_tur_id, (filial_id IS NULL)`;
 
   const bosqichQatorlari =
     narxQatorlari.length === 0
@@ -654,8 +625,6 @@ export async function sotuvTurlari(
       rasmBormi: m.rasm_bormi,
       boshKvM: q?.kvM ?? 0,
       boshDona: q?.dona ?? 0,
-      narxGuruhId: m.narx_guruh_id,
-      narxGuruhNomi: m.narx_guruh_nomi,
     };
   };
 
@@ -693,7 +662,6 @@ export async function sotuvTurlari(
         kesishTuri: s.kesish_turi,
         kesimEniM: s.kesim_eni_m === null ? null : Number(s.kesim_eni_m),
         // Egasi qarori 2026-09-22 — mijoz narxini shu slot belgilaydimi (0048)
-        narxBelgilaydi: s.narx_belgilaydi,
         // 3.3 — guruh belgilangan bo'lsa faqat o'sha guruh matolari
         materiallar: materiallar
           .filter((m) =>
@@ -738,14 +706,13 @@ export async function sotuvTurlari(
         turNarxlari: turNarxBoyicha.get(a.material_id) ?? {},
       })),
     /**
-     * ⚠️ TURNIKI VA DARAJANIKI BIRGA beriladi — 0055.
+     * ⚠️ TURNIKI VA «HAMMA TURGA» QO'YILGANI BIRGA beriladi — 0055.
      *    Ajratishni `qoidaniTop()` qiladi. Bu yerda filtrlansa
-     *    darajaga qo'yilgan narx hech qachon ishlatilmasdi.
+     *    umumiy narx hech qachon ishlatilmasdi.
      */
     narxQoidalari: narxQatorlari
       .filter((q) => q.mahsulot_tur_id === t.id || q.hamma_turga)
       .map((q) => ({
-        narxGuruhId: q.narx_guruh_id,
         mijozTuriId: q.mijoz_turi_id,
         filialId: q.filial_id,
         hammaTurga: q.hamma_turga,

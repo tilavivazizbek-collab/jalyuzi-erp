@@ -23,7 +23,6 @@ let sql: Ulanish;
 let matoId = 0;
 let turId = 0;
 let slotId = 0;
-let darajaId = 0;
 let hisoblagich = 0;
 
 const FILIAL = 1;
@@ -36,17 +35,12 @@ beforeAll(async () => {
   sql = sinovUlanishi();
   const belgi = String(Date.now());
 
-  const g = await sql<{ id: number }[]>`
-    INSERT INTO narx_guruh (nom, yaratdi_id)
-    VALUES (${`NT daraja ${belgi}`}, ${XODIM}) RETURNING id`;
-  darajaId = g[0]?.id ?? 0;
-
   const m = await sql<{ id: number }[]>`
     INSERT INTO material (nom, hisob_turi, kirim_birligi, sarflash_birligi,
-                          narx_guruh_id, yaroqsiz_chegara_m,
+                          yaroqsiz_chegara_m,
                           kam_ishlatiladigan_m, yaratdi_id)
     VALUES (${`NT mato ${belgi}`}, 'RULON', 'rulon', 'KV_M',
-            ${darajaId}, 0.3, 0.5, ${XODIM})
+            0.3, 0.5, ${XODIM})
     RETURNING id`;
   matoId = m[0]?.id ?? 0;
 
@@ -62,9 +56,8 @@ beforeAll(async () => {
 
   /** Narx qoidasi: hamma mijoz, hamma filial, maydon bo'yicha */
   const n = await sql<{ id: number }[]>`
-    INSERT INTO mahsulot_narx (mahsulot_tur_id, narx_guruh_id, hisoblash_usuli,
-                               yaratdi_id)
-    VALUES (${turId}, ${darajaId}, 'MAYDON', ${XODIM}) RETURNING id`;
+    INSERT INTO mahsulot_narx (mahsulot_tur_id, hisoblash_usuli, yaratdi_id)
+    VALUES (${turId}, 'MAYDON', ${XODIM}) RETURNING id`;
   const narxId = n[0]?.id ?? 0;
 
   await sql`
@@ -208,19 +201,40 @@ describe('narx serverda qayta hisoblanadi', () => {
     hisoblagich += 1;
     const belgi = `${String(Date.now())}-${String(hisoblagich)}`;
 
-    /** Darajasi boshqa mato — bu turga qoida qo'yilmagan */
-    const g = await sql<{ id: number }[]>`
-      INSERT INTO narx_guruh (nom, yaratdi_id)
-      VALUES (${`NT bosh daraja ${belgi}`}, ${XODIM}) RETURNING id`;
+    /*
+     * ⚠️ 0057 — «QOIDA YO'Q» ENDI BOSHQACHA QURILADI.
+     *
+     *    Ilgari mato BOSHQA DARAJADA bo'lsa qoida topilmasdi.
+     *    Daraja olib tashlangach qoida TURGA bog'langan, shuning
+     *    uchun narxsiz YANGI TUR yaratiladi.
+     *
+     * ⚠️ «Hamma turga standart» qatori ham to'sadi (0055): u faol
+     *    tursa har turga narx beradi va bu sinov yolg'on yashil
+     *    bo'lardi. Shuning uchun avval nofaol qilinadi.
+     */
+    await sql`
+      UPDATE mahsulot_narx SET faol = false
+       WHERE hamma_turga = true AND faol = true
+         AND mijoz_turi_id IS NULL AND filial_id IS NULL`;
 
     const m = await sql<{ id: number }[]>`
       INSERT INTO material (nom, hisob_turi, kirim_birligi, sarflash_birligi,
-                            narx_guruh_id, yaroqsiz_chegara_m,
+                            yaroqsiz_chegara_m,
                             kam_ishlatiladigan_m, yaratdi_id)
       VALUES (${`NT mato2 ${belgi}`}, 'RULON', 'rulon', 'KV_M',
-              ${g[0]?.id ?? 0}, 0.3, 0.5, ${XODIM})
+              0.3, 0.5, ${XODIM})
       RETURNING id`;
     const mato2 = m[0]?.id ?? 0;
+
+    const t2 = await sql<{ id: number }[]>`
+      INSERT INTO mahsulot_tur (nom, yaratdi_id)
+      VALUES (${`NT narxsiz tur ${belgi}`}, ${XODIM}) RETURNING id`;
+    const tur2 = t2[0]?.id ?? 0;
+
+    const s2 = await sql<{ id: number }[]>`
+      INSERT INTO mahsulot_slot (mahsulot_tur_id, nom, tartib, formula, yaratdi_id)
+      VALUES (${tur2}, 'Mato', 1, ${"ENI * BO'YI"}, ${XODIM}) RETURNING id`;
+    const slot2 = s2[0]?.id ?? 0;
 
     await sql`
       INSERT INTO bolak (material_id, filial_id, kod, turi, eni_m, boyi_m,
@@ -242,7 +256,7 @@ describe('narx serverda qayta hisoblanadi', () => {
         qarzgaKetadimi: false,
         pozitsiyalar: [
           {
-            mahsulotTurId: turId,
+            mahsulotTurId: tur2,
             eniM: 1.2,
             boyiM: 2.0,
             soni: 1,
@@ -252,7 +266,7 @@ describe('narx serverda qayta hisoblanadi', () => {
             formulaSnapshot: { parametrlar: [] },
             slotlar: [
               {
-                slotId,
+                slotId: slot2,
                 materialId: mato2,
                 hisoblanganMiqdor: '2.4000',
                 tuzatilganMiqdor: null,

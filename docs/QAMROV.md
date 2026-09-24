@@ -1131,3 +1131,91 @@ ishlatiladi». Yashildan ajratilgan, chunki narxni tuzatish joyi boshqa.
 - Turga qo'yilgan narx darajanikini **to'liq** almashtiradi. «+30 000»
   yoki «×1.2» ko'rinishidagi farq qo'yish qurilmadi (egasi to'liq
   almashtirishni tanladi)
+
+## 6f. Narx darajasi BUTUNLAY olib tashlandi — 0057·0058 (2026-09-24)
+
+### Egasining qarori
+
+> «5 — btun tizimda narx guruhi degan narsa kerak emas, tulqi uchirib
+> tashla bu funcsiyani yoki kerakli bulsa kerakli ekanligni hisobla»
+
+Men **qoldirishni tavsiya qildim** va raqam bilan ko'rsatdim:
+
+| Variant | To'ldiriladigan qator |
+|---|---|
+| Daraja bilan | 3 |
+| Darajasiz, turga | 4 — lekin qimmat va arzon mato BIR XIL narxda |
+| Har matoga alohida | 32, har yangi mato yana 4 ta |
+
+Egasi shuni ko'rib turib **«Butunlay o'chirasan»** dedi. Bu biznes
+qarori: **bir turdagi hamma mato endi bir xil narxda sotiladi** va
+matoning qimmat-arzonligi mijoz narxiga ta'sir qilmaydi.
+
+### Nima ketdi
+
+| Nima | Qayerda edi |
+|---|---|
+| `narx_guruh` jadvali | spravochnik, `/daraja` ekrani (5 fayl) |
+| `material.narx_guruh_id` | matoning darajasi |
+| `mahsulot_narx.narx_guruh_id` | narx qoidasining ikkinchi o'qi |
+| `mahsulot_slot.narx_belgilaydi` | «qaysi slot darajani beradi» (0048) |
+| `darajaliSlotniTop()` | daraja tanlash mantig'i |
+
+`/narx?tur=daraja` → **`/narx?tur=umumiy`**. `hamma_turga` ustuni
+qoldi, lekin ma'nosi o'zgardi: endi u **«hamma tur uchun standart
+narx»** va darajaga aloqasi yo'q.
+
+### Ikki qadamli migratsiya — nega
+
+| # | Nima | Nega shunday |
+|---|---|---|
+| **0057** | `narx_guruh_id` IXTIYORIY bo'ladi | Jonli saytda hali eski kod ishlaydi va u ustunni yozadi. Ustun darhol tashlansa sayt o'sha zahoti yiqilardi |
+| **0058** | Ustunlar va jadval TASHLANADI | Yangi kod deploy bo'lgach — endi ustunni hech kim o'qimaydi |
+
+⚠️ **Tartib**: 0057 → push → Render deploy tugashini kutish → 0058.
+Oraliqda faqat **narx saqlash** ishlamaydi (bir necha daqiqa), qolgan
+hammasi ishlayveradi.
+
+### ⚠️ 0058 sinov bazasida YIQILARDI — topildi va tuzatildi
+
+Noyoblik indeksi ilgari NOFAOL qatorlarni ham qamrardi va uning ichida
+`narx_guruh_id` bor edi. Ustun tashlangach ikki darajaga yozilgan ikki
+**tarix** qatori bir xil to'rtlikka aylanadi.
+
+Ustun tashlanishidan oldin sanaldi:
+
+| Baza | To'qnashadigan guruh | Qator |
+|---|---|---|
+| Egasining bazasi | 0 | 0 |
+| Sinov bazasi | **16** | **48** |
+
+Ya'ni migratsiya ishchi bazada o'tib, sinov bazasida yiqilardi —
+«bitta bazada ishladi» degan yolg'on tinchlik (QOIDALAR §6).
+
+**Yechim:** indeks **QISMAN** qilindi — `WHERE faol`. Narx tarixi
+saqlanadi (2.1-invariant), hech qanday qator o'chirilmaydi. Kod ham
+shunga moslandi: `ON CONFLICT ... WHERE faol`. Predikat yozilmasa
+Postgres qisman indeksni **tanimaydi** va har saqlash «no unique or
+exclusion constraint matching» bilan yiqilardi.
+
+### Yo'l-yo'lakay topilgan xato
+
+`lib/amal/material.ts` dagi `INSERT INTO material` da ustunlar
+ro'yxatida `narx_guruh_id` qolib ketgan, qiymatlar ro'yxatidan esa
+olib tashlangan edi — ya'ni **yangi material umuman qo'shilmasdi**
+(«INSERT has more target columns than expressions»). `tsc`, `lint` va
+`build` — uchalasi ham buni ko'rmaydi.
+
+### ⚠️ OCHIQ QOLGANI — egasidan javob kutiladi
+
+«Materialni o'zi sotish» jadvali endi **bitta va umumiy**: u
+to'g'ridan sotiladigan HAMMA materialga tegishli. Ilgari uni daraja
+ajratardi.
+
+Ya'ni **«ko'p olganga arzonroq»** (0056, egasi qarori 2026-09-22)
+jadvali karniz uchun ham, pult uchun ham bir xil bo'lib qoldi:
+35 000 so'm/metr karnizga to'g'ri, pultga esa yo'q.
+
+Yechim uchun qator **materialga** bog'lanishi kerak
+(`mahsulot_narx.material_id`) — bu migratsiya va egasining ruxsati
+talab qiladi.

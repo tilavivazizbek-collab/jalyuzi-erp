@@ -44,8 +44,6 @@ interface NamunaMato {
   readonly nom: string;
   readonly material_id: number;
   readonly material_nom: string;
-  readonly daraja_id: number;
-  readonly daraja: string | null;
 }
 
 /**
@@ -73,20 +71,7 @@ async function namunaMatoYarat(sql: ReturnType<typeof ulanishOl>): Promise<Namun
         VALUES (${`${BELGI} mato guruhi`}, ${XODIM}) RETURNING id, nom`
     )[0];
 
-  const daraja =
-    (
-      await sql<{ id: number; nom: string }[]>`
-        SELECT id, nom FROM narx_guruh WHERE nom = ${`${BELGI} daraja`} LIMIT 1`
-    )[0] ??
-    (
-      await sql<{ id: number; nom: string }[]>`
-        INSERT INTO narx_guruh (nom, yaratdi_id)
-        VALUES (${`${BELGI} daraja`}, ${XODIM}) RETURNING id, nom`
-    )[0];
-
-  if (guruh === undefined || daraja === undefined) {
-    throw new Error('Namuna guruh yaratilmadi');
-  }
+  if (guruh === undefined) throw new Error('Namuna guruh yaratilmadi');
 
   const mato =
     (
@@ -96,10 +81,10 @@ async function namunaMatoYarat(sql: ReturnType<typeof ulanishOl>): Promise<Namun
     (
       await sql<{ id: number; nom: string }[]>`
         INSERT INTO material (nom, hisob_turi, kirim_birligi, sarflash_birligi,
-                              almashtirish_guruh_id, narx_guruh_id,
+                              almashtirish_guruh_id,
                               odatdagi_rulon_boyi_m, yaratdi_id)
         VALUES (${`${BELGI} dikkey mato`}, 'RULON', 'rulon', 'KV_M',
-                ${guruh.id}, ${daraja.id}, 100.00, ${XODIM})
+                ${guruh.id}, 100.00, ${XODIM})
         RETURNING id, nom`
     )[0];
   if (mato === undefined) throw new Error('Namuna mato yaratilmadi');
@@ -113,8 +98,6 @@ async function namunaMatoYarat(sql: ReturnType<typeof ulanishOl>): Promise<Namun
     nom: guruh.nom,
     material_id: mato.id,
     material_nom: mato.nom,
-    daraja_id: daraja.id,
-    daraja: daraja.nom,
   };
 }
 
@@ -130,17 +113,10 @@ export async function namunaYarat(): Promise<void> {
   const guruhlar = await sql<
     NamunaMato[]
   >`
-    SELECT g.id, g.nom, m.id AS material_id, m.nom AS material_nom,
-           m.narx_guruh_id AS daraja_id, ng.nom AS daraja
+    SELECT g.id, g.nom, m.id AS material_id, m.nom AS material_nom
       FROM almashtirish_guruh g
       JOIN material m ON m.almashtirish_guruh_id = g.id AND m.faol
-      LEFT JOIN narx_guruh ng ON ng.id = m.narx_guruh_id
      WHERE g.faol AND m.sarflash_birligi = 'KV_M'
-       /*
-        * ⚠️ DARAJASI BOR mato SHART — darajasiz matodan narx
-        *    topilmaydi va namuna aynan narxni ko'rsatish uchun.
-        */
-       AND m.narx_guruh_id IS NOT NULL
      /*
       * ⚠️ OMBORDA BO'LAGI BORI birinchi turadi — shunda
       *    buyurtma ombordan haqiqatan band qiladi va zanjir
@@ -163,7 +139,7 @@ export async function namunaYarat(): Promise<void> {
    */
   const g = guruhlar[0] ?? (await namunaMatoYarat(sql));
 
-  console.log(`Mato:   «${g.material_nom}» · guruh «${g.nom}» · daraja «${g.daraja ?? '?'}»`);
+  console.log(`Mato:   «${g.material_nom}» · guruh «${g.nom}»`);
 
   /*
    * ── OMBOR ─────────────────────────────────────────────
@@ -218,7 +194,6 @@ export async function namunaYarat(): Promise<void> {
            *    «0.40 × N metr» bo'lib chiqadi.
            */
           kesimEniM: 0.4,
-          narxBelgilaydi: true,
         },
       ],
       parametrlar: [],
@@ -254,8 +229,8 @@ export async function namunaYarat(): Promise<void> {
    *    Turga qo'yilgani esa namuna bilan birga o'chib ketadi va
    *    egasining hech narsasiga tegmaydi.
    *
-   * ⚠️ Darajaga umumiy narxni (0055) egasi O'ZI qo'yadi:
-   *    `/narx?tur=daraja` — uch qator, hamma turga yetadi.
+   * ⚠️ «Hamma turga standart» narxni (0055) egasi O'ZI qo'yadi:
+   *    `/narx?tur=umumiy` — bitta qator hamma turga yetadi.
    */
   const narx = await sql.begin(async (tx) =>
     turNarxiniSaqla(
@@ -265,7 +240,6 @@ export async function namunaYarat(): Promise<void> {
         hammaTurga: false,
         qoidalar: [
           {
-            narxGuruhId: g.daraja_id,
             mijozTuriId: null,
             filialId: null,
             hisoblashUsuli: 'MAYDON',
@@ -284,8 +258,7 @@ export async function namunaYarat(): Promise<void> {
   if (narx.holat !== 'SAQLANDI') {
     throw new Error(`Narx saqlanmadi: ${JSON.stringify(narx)}`);
   }
-  console.log(`Narx:   NAMUNA turiga, «${g.daraja ?? '?'}» darajasi uchun — 3 bosqich`);
-  console.log('        ✓ sizning narx jadvalingizga TEGILMADI');
+  console.log('Narx:   NAMUNA turiga qo’yildi — sizning jadvalingizga tegilmadi');
 
   // ─── 4. HISOBNI KO'RSATAMIZ ───────────────────────────────────────────
   const t = await turTafsili(tur.id, FILIAL, sql);

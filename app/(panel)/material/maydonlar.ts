@@ -30,8 +30,6 @@ export const MATERIAL_MAYDONLARI = [
   'standartRulonEniM',
   'odatdagiRulonBoyiM',
   'almashtirishGuruhId',
-  /** Mato darajasi — mijoz narxi shundan (egasi qarori 2026-09-20) */
-  'narxGuruhId',
   /** Tayyor mahsulot belgisi — sotuv narxini ochadi */
   'togridanSotiladi',
   'yaxlitlashQadami',

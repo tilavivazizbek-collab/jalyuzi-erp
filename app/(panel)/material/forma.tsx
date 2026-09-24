@@ -8,7 +8,6 @@ import { useActionState, useState } from 'react';
 import { Maydon, kirishUslubi } from '../maydon';
 import { TanlovModal } from '../tanlov-modal';
 import { GuruhFormasi } from '../guruh-forma';
-import { NarxGuruhFormasi } from '../narx/guruh-forma';
 import { NARX_MAYDONLARI } from './maydonlar';
 import { NarxKatagi } from './narx-katak';
 import { RasmYuklash } from '../rasm-yuklash';
@@ -55,8 +54,6 @@ export interface MaterialQiymatlari {
   readonly odatdagiRulonBoyiM: string;
   readonly kirimNarxAsosi: string;
   readonly almashtirishGuruhId: string;
-  /** Mato darajasi — mijoz narxi shundan (egasi qarori 2026-09-20) */
-  readonly narxGuruhId: string;
   /** Tayyor mahsulot — to‘g‘ridan-to‘g‘ri sotiladi (egasi qarori 2026-09-20) */
   readonly togridanSotiladi: boolean;
   readonly yaxlitlashQadami: string;
@@ -81,7 +78,6 @@ export const BOSH_QIYMATLAR: MaterialQiymatlari = {
   odatdagiRulonBoyiM: '',
   kirimNarxAsosi: 'METR',
   almashtirishGuruhId: '',
-  narxGuruhId: '',
   togridanSotiladi: false,
   yaxlitlashQadami: '',
 };
@@ -90,8 +86,6 @@ export function MaterialFormasi({
   amal,
   qiymatlar,
   guruhlar,
-  narxGuruhlari = [],
-  narxGuruhQoshaOladi = false,
   guruhQoshaOladi,
   joriyKurs,
   oxirgiKelish,
@@ -105,13 +99,6 @@ export function MaterialFormasi({
   amal: (holat: FormaHolati, forma: FormData) => Promise<FormaHolati>;
   qiymatlar: MaterialQiymatlari;
   guruhlar: readonly Guruh[];
-  /**
-   * Mato darajalari. Bo'sh bo'lsa katak umuman chiqmaydi — daraja
-   * hali yaratilmagan bo'lsa omborchini chalkashtirmaslik uchun.
-   */
-  narxGuruhlari?: readonly Guruh[];
-  /** §9.4 — `narx.standart.ozgartir`; server amali ham tekshiradi */
-  narxGuruhQoshaOladi?: boolean;
   /** Ro'yxat ichidan yangi guruh qo'sha oladimi (§9.4 — server ham tekshiradi) */
   guruhQoshaOladi: boolean;
   /** Bugungi kurs — $ ↔ so'm ko'rsatish uchun. Yo'q bo'lsa hamroh katak jim turadi */
@@ -370,40 +357,6 @@ export function MaterialFormasi({
           forma={(saqla, yop) => <GuruhFormasi saqlandi={saqla} bekor={yop} />}
         />
 
-        {/*
-          ⚠️ MATO DARAJASI — mijoz narxi shundan hisoblanadi (egasi
-             qarori 2026-09-20). «Guruhi» dan FARQ QILADI:
-
-               Guruhi  — slotda qaysi materiallar chiqadi
-               Daraja  — ulardan qaysi biri qimmat
-
-             Daraja yaratilmagan bo'lsa katak umuman chiqmaydi:
-             bo'sh ro'yxat omborchini chalkashtirardi.
-        */}
-        {narxGuruhlari.length > 0 && (
-          <TanlovModal
-            nom="narxGuruhId"
-            /*
-              ⚠️ «Mato darajasi» EDI (2026-09-22 gacha). Daraja endi
-                 matoga ham, karnizga ham, donalab sotiladigan buyumga
-                 ham qo'yiladi — egasi qarori 2026-09-22 («ko'p olganga
-                 arzonroq»). Karniz kartochkasida «Mato darajasi»
-                 degan yorliq turgani odamni «bu menga tegishli emas»
-                 deb o'ylashga majburlardi.
-            */
-            yorliq="Narx darajasi"
-            izoh="mijoz narxi shu darajaga qarab hisoblanadi"
-            bandlar={narxGuruhlari}
-            boshlangich={qiymatlar.narxGuruhId}
-            boshMatn="— narxga kirmaydi —"
-            yangiYorliq="Yangi daraja"
-            modalSarlavha="Yangi narx darajasi"
-            modalIzoh="Narx jadvali shu darajalar bo‘yicha to‘ldiriladi"
-            boshqaruvYoli="/narx"
-            qoshaOladi={narxGuruhQoshaOladi}
-            forma={(saqla, yop) => <NarxGuruhFormasi saqlandi={saqla} bekor={yop} />}
-          />
-        )}
 
         <Maydon
           nom="olchovBirligi"
@@ -667,24 +620,19 @@ export function MaterialFormasi({
           */}
           {togridanSotiladi && (
             <div className="sm:col-span-2 rounded-maydon bg-fon px-3 py-2.5 text-[13px]">
-              {qiymatlar.narxGuruhId === '' ? (
-                <p className="text-belgi-qizil">
-                  ⚠ Narx darajasi tanlanmagan — bu mahsulot{' '}
-                  <b>sotuvda narxsiz qoladi</b>. Yuqoridan daraja tanlang, keyin{' '}
-                  <Link href="/narx?tur=material" className="underline">
-                    Narxlar va turlar
-                  </Link>{' '}
-                  da o&apos;sha darajaga narx qo&apos;ying.
-                </p>
-              ) : (
-                <p className="text-matn-ikki">
-                  Narxi{' '}
-                  <Link href="/narx?tur=material" className="text-brend underline">
-                    Narxlar va turlar → Materialni o&apos;zi sotish
-                  </Link>{' '}
-                  dan, tanlangan darajaga qarab olinadi.
-                </p>
-              )}
+              {/*
+                ⚠️ 0057 — daraja olib tashlandi. Ilgari bu yerda
+                   «daraja tanlanmagan» ogohlantirishi turardi;
+                   endi narx to'g'ridan-to'g'ri «Materialni o'zi
+                   sotish» jadvalidan olinadi.
+              */}
+              <p className="text-matn-ikki">
+                Narxi{' '}
+                <Link href="/narx?tur=material" className="text-brend underline">
+                  Narxlar va turlar → Materialni o&apos;zi sotish
+                </Link>{' '}
+                dan olinadi.
+              </p>
               {qiymatlar.sotuvNarx !== '' && (
                 <p className="mt-1.5 text-matn-kuchsiz">
                   Eski narx: <b className="raqam">{qiymatlar.sotuvNarx}</b>{' '}

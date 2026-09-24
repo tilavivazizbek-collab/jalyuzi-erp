@@ -38,8 +38,6 @@ export interface BosqichQatori {
 }
 
 export interface QoidaQatori {
-  readonly narxGuruhId: number;
-  readonly narxGuruhNomi: string;
   readonly mijozTuriId: number | null;
   readonly filialId: number | null;
   readonly hisoblashUsuli: string;
@@ -114,7 +112,6 @@ export async function materialQoidalariSoni(): Promise<number> {
  */
 export interface MatritsaKatagi {
   readonly turId: number | null;
-  readonly narxGuruhId: number;
   readonly holat: 'TOLIQ' | 'QISMAN';
 }
 
@@ -130,7 +127,6 @@ export interface MatritsaKatagi {
 export async function narxMatritsasiniOl(): Promise<MatritsaKatagi[]> {
   return ulanishOl()<MatritsaKatagi[]>`
     SELECT mn.mahsulot_tur_id AS "turId",
-           mn.narx_guruh_id   AS "narxGuruhId",
            CASE WHEN bool_or(mn.mijoz_turi_id IS NULL AND mn.filial_id IS NULL)
                 THEN 'TOLIQ' ELSE 'QISMAN' END AS holat
     FROM mahsulot_narx mn
@@ -138,64 +134,24 @@ export async function narxMatritsasiniOl(): Promise<MatritsaKatagi[]> {
       AND mn.hamma_turga = false
       AND EXISTS (SELECT 1 FROM mahsulot_narx_bosqich b
                    WHERE b.mahsulot_narx_id = mn.id AND b.faol = true)
-    GROUP BY mn.mahsulot_tur_id, mn.narx_guruh_id`;
+    GROUP BY mn.mahsulot_tur_id`;
 }
 
 /**
- * Darajaga umumiy narx qo'yilgan darajalar — 0055.
+ * «Hamma tur uchun» standart narx qo'yilganmi — 0055 · 0057.
  *
- * ⚠️ Matritsada shu darajalarning BUTUN USTUNI qoplangan
- *    hisoblanadi: turga alohida qator bo'lmasa shu ishlatiladi.
+ * ⚠️ Qo'yilgan bo'lsa turga alohida qatori yo'q turlar ham
+ *    SOTILADI. Narx xaritasi usiz yolg'on ogohlantirish berardi.
  */
-export async function darajaQoplaganlar(): Promise<number[]> {
-  const q = await ulanishOl()<{ id: number }[]>`
-    SELECT DISTINCT mn.narx_guruh_id AS id
+export async function standartNarxBormi(): Promise<boolean> {
+  const q = await ulanishOl()<{ n: number }[]>`
+    SELECT count(*)::int AS n
       FROM mahsulot_narx mn
      WHERE mn.faol = true AND mn.hamma_turga = true
        AND mn.mijoz_turi_id IS NULL AND mn.filial_id IS NULL
        AND EXISTS (SELECT 1 FROM mahsulot_narx_bosqich b
                     WHERE b.mahsulot_narx_id = mn.id AND b.faol = true)`;
-  return q.map((x) => x.id);
-}
-
-/** Mato darajalari — «Oddiy», «Premium» … */
-export async function narxGuruhlariniOl(): Promise<NarxGuruhQatori[]> {
-  return ulanishOl()<NarxGuruhQatori[]>`
-    SELECT g.id, g.nom,
-           (SELECT COUNT(*)::int FROM material m
-             WHERE m.narx_guruh_id = g.id AND m.faol = true) AS "materialSoni"
-    FROM narx_guruh g
-    WHERE g.faol = true
-    ORDER BY g.tartib, g.nom`;
-}
-
-/**
- * Tanlangan turning narx qoidalari, bosqichlari bilan.
- *
- * ⚠️ Bosqichlar `dan` bo'yicha tartiblanadi — ekranda ular jadval
- *    bo'lib chiqadi va tartibsiz ko'rinsa admin bo'shliqni sezmaydi.
- *
- * ⚠️ `turId === null` — «MATERIALNI O'ZI SOTISH» (egasi qarori
- *    2026-09-20). Mato metrlab sotilganda mahsulot turi yo'q, narx
- *    esa baribir kerak: `mahsulot_tur_id IS NULL` qatorlari aynan
- *    shu holat uchun.
- */
-/**
- * ⚠️ `hammaTurga` — 0055. `mahsulot_tur_id IS NULL` endi IKKI
- *    xil qatorni bildiradi va ularni ajratmasa bo'lmaydi:
- *
- *      hammaTurga = false → «materialni o'zi sotish»
- *      hammaTurga = true  → «darajaga umumiy narx»
- *
- *    Ajratilmasa ikkalasi bitta ro'yxatda aralashib, egasi
- *    material narxini saqlaganda daraja narxi o'chib ketardi.
- */
-/** Darajaga umumiy narx qo'yilgan qatorlar soni — chap ustundagi belgi (0055) */
-export async function darajaQoidalariSoni(): Promise<number> {
-  const q = await ulanishOl()<{ n: number }[]>`
-    SELECT count(DISTINCT narx_guruh_id)::int AS n
-      FROM mahsulot_narx WHERE hamma_turga = true AND faol = true`;
-  return q[0]?.n ?? 0;
+  return (q[0]?.n ?? 0) > 0;
 }
 
 export async function turQoidalariniOl(
@@ -207,20 +163,17 @@ export async function turQoidalariniOl(
   const qoidalar = await sql<
     {
       id: number;
-      narxGuruhId: number;
-      narxGuruhNomi: string;
       mijozTuriId: number | null;
       filialId: number | null;
       hisoblashUsuli: string;
       minOlchov: string | null;
     }[]
   >`
-    SELECT mn.id, mn.narx_guruh_id AS "narxGuruhId", g.nom AS "narxGuruhNomi",
+    SELECT mn.id,
            mn.mijoz_turi_id AS "mijozTuriId", mn.filial_id AS "filialId",
            mn.hisoblash_usuli AS "hisoblashUsuli",
            mn.min_olchov::text AS "minOlchov"
     FROM mahsulot_narx mn
-    JOIN narx_guruh g ON g.id = mn.narx_guruh_id
     WHERE mn.faol = true
       AND (${turId === null} OR mn.mahsulot_tur_id = ${turId ?? 0})
       AND (${turId !== null} OR mn.mahsulot_tur_id IS NULL)
@@ -239,8 +192,6 @@ export async function turQoidalariniOl(
     ORDER BY dan`;
 
   return qoidalar.map((q) => ({
-    narxGuruhId: q.narxGuruhId,
-    narxGuruhNomi: q.narxGuruhNomi,
     mijozTuriId: q.mijozTuriId,
     filialId: q.filialId,
     hisoblashUsuli: q.hisoblashUsuli,

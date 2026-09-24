@@ -12,10 +12,9 @@ import { revalidatePath } from 'next/cache';
 import { xatoXabari } from '../xato-xabari';
 import { ulanishOl } from '@/lib/db';
 import { ruxsatTalab } from '@/lib/kirish/joriy';
-import { narxGuruhTezYarat, turNarxiniSaqla } from '@/lib/amal/narx-qoida';
+import { turNarxiniSaqla } from '@/lib/amal/narx-qoida';
 import { turNarxiSxema } from '@/lib/sxema/narx-qoida';
 import { turQoidalariniOl, type QoidaQatori } from './malumot';
-import type { GuruhHolati } from '../guruh-holat';
 import type { NarxHolati } from './holat';
 
 function xom(forma: FormData, nom: string): string {
@@ -92,52 +91,6 @@ export async function narxSaqlaAmali(
   return { xato: null, nuqsonlar: [], saqlandi: true };
 }
 
-/**
- * Yangi mato darajasi — dropdown yonidagi «+» dan.
- *
- * ⚠️ QAMROV §1 talabi: har dropdownda qo'shish bo'lsin. Egasi buni
- *    2026-08-28 da uch marta aytishga majbur bo'lgan.
- */
-export async function narxGuruhYaratAmali(
-  _oldingi: GuruhHolati,
-  forma: FormData,
-): Promise<GuruhHolati> {
-  const f = await ruxsatTalab('narx.standart.ozgartir');
-
-  const nom = forma.get('nom');
-  if (typeof nom !== 'string') return { xato: 'Nom kiritilmagan', yaratildi: null };
-
-  try {
-    const y = await narxGuruhTezYarat(ulanishOl(), nom, f.xodimId);
-    revalidatePath('/narx');
-    revalidatePath('/material');
-    return { xato: null, yaratildi: { id: y.id, nom: y.nom } };
-  } catch (x) {
-    return {
-      xato: await xatoXabari(x, 'narx/amal', "Daraja qo'shilmadi"),
-      yaratildi: null,
-    };
-  }
-}
-
-/**
- * Boshqa turning narx jadvalini O'QIYDI — nusxalash uchun.
- *
- * ⚠️ NEGA KERAK: to'qqiz xil jalyuzi × bir necha daraja × bir necha
- *    bosqich = bir xil jadvalni o'nlab marta qo'lda to'ldirish.
- *    Egasi buni qo'lda qilsa, bir joyda raqam adashadi va bu faqat
- *    mijoz oldida chiqadi.
- *
- * ⚠️ HECH NARSA SAQLAMAYDI. Qatorlar ekranga qo'yiladi, egasi
- *    ko'radi, kerakli joyini tuzatadi va O'ZI «Saqlash» bosadi.
- *    Jimgina yozib qo'yish eng yomon yo'l bo'lardi: nusxa noto'g'ri
- *    turga tushsa, buni hech kim sezmasdi.
- *
- * ⚠️ Qo'shimchalar NUSXALANMAYDI. Ular materialga va formulaga
- *    bog'langan («usti shabalik» — falon mato, `ENI * 40`); boshqa
- *    turga ko'r-ko'rona ko'chirilsa, ombordan noto'g'ri material
- *    yechila boshlardi.
- */
 export async function turNarxlariniNusxalaAmali(
   manbaTurId: number,
 ): Promise<{ readonly xato: string | null; readonly qoidalar: readonly QoidaQatori[] }> {

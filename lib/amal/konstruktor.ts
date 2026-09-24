@@ -223,12 +223,10 @@ async function bolaklarniYoz(
     await tx`
       INSERT INTO mahsulot_slot (mahsulot_tur_id, nom, tartib, majburiy,
                                  almashtirish_guruh_id, formula,
-                                 koeffitsient, kesish_turi, kesim_eni_m,
-                                 narx_belgilaydi, yaratdi_id)
+                                 koeffitsient, kesish_turi, kesim_eni_m, yaratdi_id)
       VALUES (${turId}, ${s.nom}, ${i}, ${s.majburiy},
               ${s.almashtirishGuruhId}, ${s.formula},
-              ${s.koeffitsient}, ${s.kesishTuri}, ${s.kesimEniM},
-              ${s.narxBelgilaydi ?? false}, ${xodimId})`;
+              ${s.koeffitsient}, ${s.kesishTuri}, ${s.kesimEniM}, ${xodimId})`;
   }
 
   for (const p of kirim.parametrlar) {

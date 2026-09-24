@@ -43,7 +43,6 @@ import {
   mahsulotTur,
   material,
   mijozTuri,
-  narxGuruh,
 } from './spravochnik';
 import { buyurtmaPozitsiya } from './buyurtma';
 
@@ -53,10 +52,14 @@ export const HISOBLASH_USULLARI = ['MAYDON', 'ENI', "BO'YI", 'DONA'] as const;
 /** Qo'shimcha narxi nimadan hisoblanadi — `QATIY` o'lchamdan bog'liq emas */
 export const QOSHIMCHA_USULLARI = ['QATIY', 'MAYDON', 'ENI', "BO'YI"] as const;
 
-// ─── Narx qoidasi — tur × daraja ──────────────────────────────────────────
+// ─── Narx qoidasi — mahsulot turi bo'yicha ───────────────────────────────
 
 /**
- * Bitta mahsulot turi va bitta mato darajasi uchun narx qoidasi.
+ * Bitta mahsulot turi uchun narx qoidasi.
+ *
+ * ⚠️ 0057 — MATO DARAJASI OLIB TASHLANDI. Ilgari qoida «tur ×
+ *    daraja» kesishmasida turardi; egasi darajani butunlay
+ *    o'chirishni buyurdi, shuning uchun o'q bittaga tushdi.
  *
  * ⚠️ `mijoz_turi_id` va `filial_id` IXTIYORIY — bu loyihadagi mavjud
  *    naqsh (`material_tur_narx`, `material_filial_narx`):
@@ -82,16 +85,26 @@ export const mahsulotNarx = pgTable(
     mahsulotTurId: bigint('mahsulot_tur_id', { mode: 'number' }).references(
       () => mahsulotTur.id,
     ),
-    narxGuruhId: bigint('narx_guruh_id', { mode: 'number' })
-      .notNull()
-      .references(() => narxGuruh.id),
 
     /** TZ 6.2 — bo'sh bo'lsa hamma mijoz turiga */
     mijozTuriId: bigint('mijoz_turi_id', { mode: 'number' }).references(() => mijozTuri.id),
     /** TZ 20.9 — bo'sh bo'lsa hamma filialga */
     filialId: bigint('filial_id', { mode: 'number' }).references(() => filial.id),
 
-    /** `MAYDON` · `ENI` · `BO'YI` · `DONA` */
+    /**
+     * Hamma tur uchun standart narx — 0055.
+     *
+     * ⚠️ `true` bo'lsa qator ANIQ TURGA emas, hammasiga tegishli:
+     *    turga alohida qator bo'lmasa shu ishlatiladi. Shu sababli
+     *    u `mahsulot_tur_id IS NULL` ning IKKINCHI ma'nosi bo'lib
+     *    qoladi — birinchisi «materialni o'zi sotish».
+     */
+    hammaTurga: boolean('hamma_turga').notNull().default(false),
+
+    /** 0056 — «kamida shuncha kv.m dan hisoblanadi» */
+    minOlchov: numeric('min_olchov', { precision: 12, scale: 2 }),
+
+    /** `MAYDON` · `ENI` · `BO'YI` · `DONA` · `MIQDOR` */
     hisoblashUsuli: text('hisoblash_usuli').notNull().default('MAYDON'),
 
     ...ochirilmaydi,
@@ -102,15 +115,30 @@ export const mahsulotNarx = pgTable(
      * ⚠️ `coalesce` bilan: Postgresda NULL lar bir-biriga TENG EMAS,
      *    shuning uchun oddiy unique index ikkita «hammaga» qatorini
      *    o'tkazib yuborardi.
+     *
+     * ⚠️ FAQAT FAOL QATORLARGA — 0058. Nofaol qatorlar narx TARIXI
+     *    va ular bir-biriga to'qnashishi mumkin: daraja olib
+     *    tashlangach ikki darajaga yozilgan ikki tarix qatori bir
+     *    xil to'rtlikka aylandi. To'liq indeks shu sababli sinov
+     *    bazasida yiqilardi.
      */
-    uniqueIndex('mahsulot_narx_bitta').on(
-      sql`coalesce(${t.mahsulotTurId}, 0)`,
-      t.narxGuruhId,
-      sql`coalesce(${t.mijozTuriId}, 0)`,
-      sql`coalesce(${t.filialId}, 0)`,
+    uniqueIndex('mahsulot_narx_bitta')
+      .on(
+        sql`coalesce(${t.mahsulotTurId}, 0)`,
+        t.hammaTurga,
+        sql`coalesce(${t.mijozTuriId}, 0)`,
+        sql`coalesce(${t.filialId}, 0)`,
+      )
+      .where(sql`${t.faol}`),
+    check(
+      'mahsulot_narx_usul',
+      sql`${t.hisoblashUsuli} IN ('MAYDON','ENI','BO''YI','DONA','MIQDOR')`,
     ),
-    check('mahsulot_narx_usul', sql`${t.hisoblashUsuli} IN ('MAYDON','ENI','BO''YI','DONA')`),
-    index('mahsulot_narx_tur').on(t.mahsulotTurId, t.faol),
+    /** ⚠️ «Falon tur uchun, lekin hamma turga» — ma'nosiz qator */
+    check(
+      'mahsulot_narx_hamma_tur',
+      sql`NOT (${t.hammaTurga} AND ${t.mahsulotTurId} IS NOT NULL)`,
+    ),
   ],
 );
 

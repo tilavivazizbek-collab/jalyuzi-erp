@@ -40,7 +40,7 @@ import {
   type Qoralama,
 } from '@/lib/domain/bot-oqim';
 import { pozitsiyaNarxiniHisobla } from '@/lib/domain/pozitsiya-narxi';
-import { darajaliSlotniTop, type HisoblashUsuli } from '@/lib/domain/narx-qoidasi';
+import { type HisoblashUsuli } from '@/lib/domain/narx-qoidasi';
 import { chegaraXabari, olchamniTekshir } from '@/lib/domain/olcham-chegarasi';
 import { amaldagiOffset } from '@/lib/domain/mijoz';
 import type { SarflashBirligi } from '@/lib/domain/birlik';
@@ -187,42 +187,11 @@ function pozitsiyaHisobi(
     };
   });
 
-  /**
-   * ⚠️ MIJOZ NARXI — egasi qarori 2026-09-20.
-   *
-   *    Tanlangan matoning DARAJASI qoidani topadi. Materiallarning
-   *    narxi endi mijoz narxiga umuman ta'sir qilmaydi.
-   *
-   * ⚠️ DARAJA QAYSI SLOTDAN — `darajaliSlotniTop()` da, bu yerda EMAS
-   *    (egasi qarori 2026-09-22, migratsiya 0048).
-   *
-   *    Qoida sayt, server tekshiruvi va shu yerda — UCH JOYDA
-   *    alohida yozilgan edi. Bot eng oxirida tuzatilardi va bir
-   *    muddat botdagi narx saytdagidan farq qilib turardi. Endi
-   *    uchalasi bitta funksiyani chaqiradi (CLAUDE.md §3 · §2.2).
-   *
-   * ⚠️ TURNING SLOTLARIDAN yuriladi, tanlanganlardan emas — sotuv
-   *    ekranidagi bilan AYNAN bir xil bo'lishi uchun. Mijoz
-   *    belgilangan slotga mato tanlamagan bo'lsa, belgi baribir
-   *    ko'rinadi va narx topilmaydi (jimgina boshqa matoning
-   *    narxiga o'tib ketmaydi).
+  /*
+   * ⚠️ DARAJA 0057 DA OLIB TASHLANDI — egasi qarori 2026-09-24.
+   *    Narx endi faqat MAHSULOT TURIGA bog'liq: bir turdagi hamma
+   *    mato bir xil narxda sotiladi.
    */
-  const narxGuruhId =
-    darajaliSlotniTop(
-      tur.slotlar.map((slot) => {
-        const tanlov = p.slotlar.find((x) => x.slotId === slot.id);
-        const m =
-          tanlov === undefined
-            ? undefined
-            : slot.materiallar.find((y) => y.id === tanlov.materialId);
-        return {
-          narxBelgilaydi: slot.narxBelgilaydi,
-          matomi: m?.sarflashBirligi === 'KV_M',
-          narxGuruhId: m?.narxGuruhId ?? null,
-        };
-      }),
-    )?.narxGuruhId ?? null;
-
   /*
    * QAYSI NARX QOIDASI — tanlov DOMAINDA (`qoidaniTop`).
    *
@@ -231,11 +200,7 @@ function pozitsiyaHisobi(
    *    qo'yilgan umumiy narxni ham KO'RMASDI: sayt narx
    *    ko'rsatar, bot esa «narx yo'q» derdi.
    */
-  const qoidaQatori = qoidaniTop(tur.narxQoidalari, {
-    narxGuruhId,
-    mijozTuriId,
-    filialId,
-  });
+  const qoidaQatori = qoidaniTop(tur.narxQoidalari, { mijozTuriId, filialId });
 
   // Majburiylar avtomatik, ixtiyoriylardan tanlanganlari (13.4)
   const aksessuarlar = tur.aksessuarlar

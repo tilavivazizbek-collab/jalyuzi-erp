@@ -41,19 +41,6 @@ export const slotSxema = z.object({
     .transform((v) => (v === '' ? null : v))
     .nullable()
     .default(null),
-  /**
-   * MIJOZ NARXINI SHU SLOT BELGILAYDI — egasi qarori 2026-09-22 (0048).
-   *
-   * ⚠️ IXTIYORIY — `default(false)` emas. Ikkalasi bir xil ko'rinadi,
-   *    lekin farqi bor: `default` chiqish turini MAJBURIY qiladi va
-   *    o'shanda bu maydonni bilmaydigan har bir eski chaqiruvchi
-   *    (tuzatish skriptlari, integratsiya testlari) buziladi.
-   *
-   *    Ixtiyoriy bo'lsa ma'no ham to'g'ri chiqadi: belgi YO'Q =
-   *    eski xulq (birinchi darajali mato). Bazaga yozishda
-   *    `?? false` qo'llanadi.
-   */
-  narxBelgilaydi: z.boolean().optional(),
 });
 
 export const parametrSxema = z.object({

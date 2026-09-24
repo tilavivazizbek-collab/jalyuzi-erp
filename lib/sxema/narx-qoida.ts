@@ -35,7 +35,6 @@ export const bosqichSxema = z
   });
 
 export const narxQoidaSxema = z.object({
-  narxGuruhId: z.number().int().positive('Narx darajasini tanlang'),
   /** TZ 6.2 — bo'sh bo'lsa hamma mijoz turiga */
   mijozTuriId: z.number().int().positive().nullable().default(null),
   /** TZ 20.9 — bo'sh bo'lsa hamma filialga */

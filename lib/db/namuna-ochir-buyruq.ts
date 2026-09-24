@@ -97,26 +97,17 @@ async function ochir(): Promise<void> {
       console.log(`Namuna mato o'chirildi: ${String(mIdlar.length)} ta`);
     }
 
-    await tx`
-      DELETE FROM mahsulot_narx_bosqich
-       WHERE mahsulot_narx_id IN (
-         SELECT mn.id FROM mahsulot_narx mn JOIN narx_guruh g ON g.id = mn.narx_guruh_id
-          WHERE g.nom LIKE ${`${BELGI}%`})`;
-    await tx`
-      DELETE FROM mahsulot_narx
-       WHERE narx_guruh_id IN (SELECT id FROM narx_guruh WHERE nom LIKE ${`${BELGI}%`})`;
-    await tx`DELETE FROM narx_guruh WHERE nom LIKE ${`${BELGI}%`}`;
     await tx`DELETE FROM almashtirish_guruh WHERE nom LIKE ${`${BELGI}%`}`;
   });
 
   /*
-   * ⚠️ EGASINING DARAJASIGA QO'YILGAN NARX O'CHIRILMAYDI.
+   * ⚠️ EGASINING «HAMMA TURGA STANDART» NARXI O'CHIRILMAYDI.
    *
    *    U egasining o'z narx jadvali bo'lib qoladi va uni namuna
    *    bilan birga o'chirib yuborish — uning ishini bekor qilish
-   *    degani. Kerak bo'lsa `/narx?tur=daraja` dan o'zi tozalaydi.
+   *    degani. Kerak bo'lsa `/narx?tur=umumiy` dan o'zi tozalaydi.
    */
-  console.log("Darajaga qo'yilgan narx TEGILMADI — u sizniki (/narx?tur=daraja)");
+  console.log("Standart narx TEGILMADI — u sizniki (/narx?tur=umumiy)");
   process.exit(0);
 }
 

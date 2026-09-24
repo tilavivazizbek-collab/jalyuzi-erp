@@ -81,7 +81,7 @@ export interface SarfTavsifi {
 
 export const SARF_TAVSIFI: Record<SarfTuri, SarfTavsifi> = {
   MAYDON: {
-    nom: 'Maydondan',
+    nom: 'Maydondan (kv.m)',
     izoh: '1 kv.m jalyuziga shuncha ketadi',
     raqamli: true,
     ikkiQiymat: false,
@@ -98,9 +98,23 @@ export const SARF_TAVSIFI: Record<SarfTuri, SarfTavsifi> = {
     raqamli: true,
     ikkiQiymat: false,
   },
+  /**
+   * ⚠️ NOMI 2026-09-24 DA O'ZGARTIRILDI — egasi chalg'idi.
+   *
+   *    Eski nom «Ham eniga, ham bo'yiga» edi va egasi uni MAYDON
+   *    deb tushundi: «eniga 1, bo'yiga 2 qildim, 1×2 m oynaga
+   *    4 kv.m kutdim, tizim 5 dedi».
+   *
+   *    Tizim to'g'ri hisoblagan: bu tur QO'SHADI, ko'paytirmaydi.
+   *    1×1 + 2×2 = 5 METR — bu profil uzunligi, maydon emas.
+   *    Maydon kerak bo'lsa «Maydondan × 2» beradi: 2 × 2 = 4 kv.m.
+   *
+   *    Nom endi natijaning BIRLIGINI aytadi — raqamning o'zi
+   *    xatoni ko'rsatmaydi, chunki ikkalasi ham «ishlaydi».
+   */
   ENI_BOYI: {
-    nom: 'Ham eniga, ham bo‘yiga',
-    izoh: 'eniga ham, bo‘yiga ham ketadi — profil ramka',
+    nom: 'Profil — eni va bo‘yi qo‘shiladi (metr)',
+    izoh: 'ENI×a + BO‘YI×b — ramka profili. Maydon kerak bo‘lsa «Maydondan»',
     raqamli: true,
     ikkiQiymat: true,
   },

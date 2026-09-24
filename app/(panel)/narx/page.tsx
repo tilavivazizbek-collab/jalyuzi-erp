@@ -6,14 +6,12 @@ import { NarxMatritsasi } from './matritsa';
 import {
   almashtirishGuruhlariniOl,
   materialQoidalariSoni,
-  darajaQoidalariSoni,
-  darajaQoplaganlar,
+  standartNarxBormi,
   narxMatritsasiniOl,
   filiallarniOl,
   joriyKursniOl,
   materiallarniOl,
   mijozTurlariniOl,
-  narxGuruhlariniOl,
   turQoidalariniOl,
   turQoshimchalariniOl,
   turlarniOl,
@@ -49,27 +47,32 @@ export default async function NarxSahifasi({
   const xomTur = sp['tur'];
   const materialTanlandi = xomTur === 'material';
   /**
-   * `?tur=daraja` — DARAJAGA UMUMIY NARX (0055).
+   * `?tur=umumiy` — HAMMA TUR UCHUN STANDART NARX (0055).
    *
    * ⚠️ Egasi: «1 ta narx darajasidan 5 xil yoki 10 xil mahsulot
-   *    turishi mumkin». To'qqiz tur × uch daraja = 27 qator edi;
-   *    bu yerda uchta qator yozilsa hamma tur sotiladigan bo'ladi.
+   *    turishi mumkin». Har turga alohida qator yozish o'rniga
+   *    bu yerda bitta qator yozilsa hamma tur sotiladigan bo'ladi.
    *
    * ⚠️ Muharrirning O'ZI qayta ishlatiladi — bosqichlar,
    *    valyuta, mijoz turi, filial, tekshirish kalkulyatori
    *    hammasi bir xil. Ikkinchi muharrir yozilsa ular
    *    bir-biridan ajralib ketardi (CLAUDE.md §3).
    */
-  const darajaTanlandi = xomTur === 'daraja';
+  /**
+   * ⚠️ 0057 — bu rejim ilgari `?tur=daraja` edi va MATO DARAJASINI
+   *    bildirardi. Daraja olib tashlangach ma'nosi butunlay
+   *    boshqacha: «alohida narxi yo'q HAMMA turga standart».
+   *    Eski nom qolsa keyingi o'qigan odam darajani izlab yurardi.
+   */
+  const umumiyTanlandi = xomTur === 'umumiy';
   const soralgan = typeof xomTur === 'string' ? Number(xomTur) : Number.NaN;
 
   const turlar = await turlarniOl();
-  const tanlangan = materialTanlandi || darajaTanlandi
+  const tanlangan = materialTanlandi || umumiyTanlandi
     ? null
     : (turlar.find((t) => t.id === soralgan) ?? turlar[0] ?? null);
 
   const [
-    guruhlar,
     materiallar,
     almashtirishGuruhlari,
     mijozTurlari,
@@ -77,10 +80,8 @@ export default async function NarxSahifasi({
     kursQiymati,
     materialQoidaSoni,
     matritsa,
-    darajaQoidaSoni,
-    darajaQoplagan,
+    standartBormi,
   ] = await Promise.all([
-      narxGuruhlariniOl(),
       materiallarniOl(),
       almashtirishGuruhlariniOl(),
       mijozTurlariniOl(),
@@ -88,19 +89,18 @@ export default async function NarxSahifasi({
       joriyKursniOl(),
       materialQoidalariSoni(),
       narxMatritsasiniOl(),
-      darajaQoidalariSoni(),
-      darajaQoplaganlar(),
+      standartNarxBormi(),
     ]);
 
   /** Materialni o'zi sotishda tur yo'q — `null` beriladi */
-  const tanlanganId = materialTanlandi || darajaTanlandi ? null : (tanlangan?.id ?? null);
+  const tanlanganId = materialTanlandi || umumiyTanlandi ? null : (tanlangan?.id ?? null);
 
   const [qoidalar, qoshimchalar] =
-    tanlangan === null && !materialTanlandi && !darajaTanlandi
+    tanlangan === null && !materialTanlandi && !umumiyTanlandi
       ? [[], []]
       : await Promise.all([
-          /** ⚠️ 0055 — daraja rejimida BOSHQA qatorlar olinadi */
-          turQoidalariniOl(tanlanganId, darajaTanlandi),
+          /** ⚠️ 0055 — umumiy rejimda BOSHQA qatorlar olinadi */
+          turQoidalariniOl(tanlanganId, umumiyTanlandi),
           turQoshimchalariniOl(tanlanganId),
         ]);
 
@@ -125,9 +125,8 @@ export default async function NarxSahifasi({
       */}
       <NarxMatritsasi
         turlar={turlar}
-        guruhlar={guruhlar}
         kataklar={matritsa}
-        darajaQoplagan={darajaQoplagan}
+        standartBormi={standartBormi}
       />
 
       {turlar.length === 0 ? (
@@ -148,37 +147,36 @@ export default async function NarxSahifasi({
                  Bazada bu `mahsulot_tur_id IS NULL` qatorlari.
             */}
             {/*
-              ── DARAJAGA UMUMIY NARX — 0055 ─────────────────
+              ── HAMMA TUR UCHUN STANDART NARX — 0055 ────────
 
               Egasi: «1 ta narx darajasidan 5 xil yoki 10 xil
-              mahsulot turishi mumkin».
+              mahsulot turishi mumkin» — shu muammoning yechimi.
 
-              ⚠️ BIRINCHI BAND — ataylab. To'qqiz tur × uch daraja
-                 = 27 qator, bu yerda esa UCHTA qator yetadi.
-                 Egasi ishni shu yerdan boshlashi kerak, turdan
-                 emas: turga alohida qator faqat FARQ bo'lganda
-                 yoziladi.
+              ⚠️ BIRINCHI BAND — ataylab. To'qqiz turga alohida
+                 qator yozish o'rniga bu yerda BITTA qator yetadi.
+                 Egasi ishni shu yerdan boshlashi kerak: turga
+                 alohida qator faqat FARQ bo'lganda yoziladi.
             */}
             <Link
-              href="/narx?tur=daraja"
+              href="/narx?tur=umumiy"
               className={`flex items-center justify-between rounded-maydon px-3 py-2 text-sm transition-colors ${
-                darajaTanlandi
+                umumiyTanlandi
                   ? 'bg-brend/10 font-medium text-brend'
                   : 'text-matn-ikki hover:bg-fon-ikki'
               }`}
             >
-              <span className="truncate">Darajaga umumiy narx</span>
+              <span className="truncate">Hamma tur uchun standart</span>
               <span
                 className={`ml-2 shrink-0 text-[11px] ${
-                  darajaQoidaSoni === 0 ? 'text-belgi-sariq' : 'text-matn-kuchsiz'
+                  standartBormi ? 'text-matn-kuchsiz' : 'text-belgi-sariq'
                 }`}
                 title={
-                  darajaQoidaSoni === 0
-                    ? "Qo'yilmagan — har tur uchun alohida narx kerak bo'ladi"
-                    : `${String(darajaQoidaSoni)} daraja`
+                  standartBormi
+                    ? "Qo'yilgan — alohida narxi yo'q turlar shundan oladi"
+                    : "Qo'yilmagan — har tur uchun alohida narx kerak bo'ladi"
                 }
               >
-                {darajaQoidaSoni === 0 ? '—' : darajaQoidaSoni}
+                {standartBormi ? '✓' : '—'}
               </span>
             </Link>
 
@@ -198,7 +196,7 @@ export default async function NarxSahifasi({
                 title={
                   materialQoidaSoni === 0
                     ? "Narx qo'yilmagan — mato metrlab sotilmaydi"
-                    : `${String(materialQoidaSoni)} daraja`
+                    : `${String(materialQoidaSoni)} qator`
                 }
               >
                 {materialQoidaSoni === 0 ? '⚠' : materialQoidaSoni}
@@ -254,29 +252,28 @@ export default async function NarxSahifasi({
           </nav>
 
           {/* ─── Tanlangan turning narxi ──────────────────────────────── */}
-          {tanlangan === null && !materialTanlandi && !darajaTanlandi ? null : (
+          {tanlangan === null && !materialTanlandi && !umumiyTanlandi ? null : (
             <NarxFormasi
               key={
-                darajaTanlandi
-                  ? 'daraja'
+                umumiyTanlandi
+                  ? 'umumiy'
                   : materialTanlandi
                     ? 'material'
                     : String(tanlangan?.id ?? 0)
               }
-              turId={materialTanlandi || darajaTanlandi ? null : (tanlangan?.id ?? 0)}
+              turId={materialTanlandi || umumiyTanlandi ? null : (tanlangan?.id ?? 0)}
               turNomi={
-                darajaTanlandi
-                  ? "Darajaga umumiy narx"
+                umumiyTanlandi
+                  ? 'Hamma tur uchun standart'
                   : materialTanlandi
                     ? "Materialni o'zi sotish"
                     : (tanlangan?.nom ?? '')
               }
-              hammaTurga={darajaTanlandi}
+              hammaTurga={umumiyTanlandi}
               /* ⚠️ Narxi BOR turlar; o'zi chiqariladi — o'zidan nusxa ma'nosiz */
               nusxaTurlari={turlar.filter(
                 (t) => t.qoidaSoni > 0 && t.id !== (tanlangan?.id ?? 0),
               )}
-              guruhlar={guruhlar}
               qoidalar={qoidalar}
               qoshimchalar={qoshimchalar}
               materiallar={materiallar}

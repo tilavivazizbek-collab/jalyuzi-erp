@@ -54,33 +54,15 @@ export const almashtirishGuruh = pgTable('almashtirish_guruh', {
   ...izlar,
 });
 
-/**
- * Mato darajasi: «Oddiy», «O'rta», «Premium» — nomini egasi qo'yadi.
- * Egasi qarori 2026-09-20 · TZ 3.8.
+/*
+ * ⚠️ `narx_guruh` (mato darajasi) 0057 DA OLIB TASHLANDI —
+ *    egasi qarori 2026-09-24.
  *
- * ⚠️ Bu ALMASHTIRISH GURUHI EMAS. Ikkalasi boshqa savolga javob beradi:
- *
- *     almashtirish_guruh  — slotda QAYSI materiallar chiqadi
- *                           («mato dikkey» — mexanizm chiqmasin)
- *     narx_guruh          — o'sha materiallardan qaysi biri QIMMAT
- *
- *    Bitta almashtirish guruhida arzon ham, qimmat mato ham turadi:
- *    ular bir-birini almashtiradi, lekin narxi bir xil emas.
+ *    U bir turdagi matolarni narx bo'yicha guruhlash uchun edi:
+ *    «Oddiy», «O'rta», «Premium». Endi narx faqat MAHSULOT
+ *    TURIGA qo'yiladi va bir turdagi hamma mato bir xil narxda
+ *    sotiladi.
  */
-export const narxGuruh = pgTable(
-  'narx_guruh',
-  {
-    id: id(),
-    nom: text('nom').notNull(),
-    tartib: integer('tartib').notNull().default(0),
-    ...ochirilmaydi,
-    ...izlar,
-  },
-  (t) => [
-    check('narx_guruh_nom', sql`length(btrim(${t.nom})) > 0`),
-    uniqueIndex('narx_guruh_nom_bitta').on(sql`lower(btrim(${t.nom}))`),
-  ],
-);
 
 // ─── 2.1 · material — TZ 5 · Q-01, Q-05, Q-10, Q-14 ───────────────────────
 
@@ -220,7 +202,6 @@ export const material = pgTable(
      * 2026-09-20). Bo'sh bo'lishi mumkin: aksessuar va mexanizmga
      * daraja kerak emas, ular narxga alohida kirmaydi.
      */
-    narxGuruhId: bigint('narx_guruh_id', { mode: 'number' }).references(() => narxGuruh.id),
     /**
      * Tayyor mahsulot: o'lchamsiz, slotsiz, to'g'ridan-to'g'ri sotiladi
      * (pult, tayyor parda). Egasi qarori 2026-09-20.
@@ -459,21 +440,11 @@ export const mahsulotSlot = pgTable(
      * ⚠️ Qoidaning O'ZI `lib/domain/narx-qoidasi.ts` →
      *    `darajaliSlotniTop()` da. Bu yerda faqat ma'lumot turadi.
      */
-    narxBelgilaydi: boolean('narx_belgilaydi').notNull().default(false),
     ...ochirilmaydi,
     ...izlar,
   },
   (t) => [
     index('mahsulot_slot_tur').on(t.mahsulotTurId, t.tartib),
-    /**
-     * ⚠️ Bir turda IKKITA belgilangan slot bo'lmaydi: o'shanda
-     *    «qaysi biri» degan savol qaytib kelardi va biz aynan
-     *    shundan qutulyapmiz. Qisman indeks — belgilanmaganlar
-     *    cheklanmaydi.
-     */
-    uniqueIndex('mahsulot_slot_narx_bitta')
-      .on(t.mahsulotTurId)
-      .where(sql`${t.narxBelgilaydi}`),
   ],
 );
 

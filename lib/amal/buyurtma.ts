@@ -373,7 +373,6 @@ export async function pozitsiyaYozTx(
       mijozId: k.mijozId,
       filialId: k.ishlabChiqaruvchiFilialId,
       kursSnapshot: k.kursSnapshot,
-      // 0048 — daraja qaysi slotdan olinishini server ham bilishi shart
       slotlar: p.slotlar.map((x) => ({ slotId: x.slotId, materialId: x.materialId })),
       qoshimchaIdlar: (p.qoshimchalar ?? []).map((x) => x.mahsulotQoshimchaId),
       parametrlar: Object.fromEntries(parametrlarniOqi(p.formulaSnapshot)),

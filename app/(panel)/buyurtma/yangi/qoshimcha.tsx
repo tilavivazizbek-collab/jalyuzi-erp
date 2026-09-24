@@ -16,7 +16,7 @@
  *
  *    METRLAB (mato): rulondan KESILADI. O'lcham so'raladi, band
  *    qilinadi, narx esa «Narxlar va turlar» dagi «Materialni o'zi
- *    sotish» jadvalidan keladi — mato darajasiga qarab, bosqichli.
+ *    sotish» jadvalidan keladi — o'lcham yoki miqdor bosqichida.
  */
 
 import { useState } from 'react';
@@ -46,8 +46,6 @@ export interface QoshimchaMaterial {
   /** `DONA` — donalab, `RULON` — metrlab kesib sotiladi */
   readonly hisobTuri: string;
   readonly sarflashBirligi: string;
-  /** Mato darajasi — metrlab sotishda narx shundan */
-  readonly narxGuruhId: number | null;
   readonly boshKvM: number;
   /** Eng keng bo'lak, metr — «bundan keng kesib bo'lmaydi» */
   readonly engKengM: number;
@@ -171,7 +169,6 @@ export function QoshimchaQoshish({
    */
   const qoida =
     qoidaniTop(qoidalar, {
-      narxGuruhId: tanlangan?.narxGuruhId ?? null,
       mijozTuriId,
       /** ⚠️ Qoidalar shu filial uchun yuklangan (TZ 20.9) */
       filialId: ozFilialId,
@@ -185,8 +182,8 @@ export function QoshimchaQoshish({
    *    buyum ham xuddi mato kabi «Materialni o'zi sotish» jadvalidan
    *    narx oladi, faqat bosqich MIQDORGA qarab tanlanadi.
    *
-   * ⚠️ MAJBURIY EMAS. Materialga daraja qo'yilmagan bo'lsa yoki
-   *    qoida `MIQDOR` usulida bo'lmasa — hammasi avvalgidek:
+   * ⚠️ MAJBURIY EMAS. «Materialni o'zi sotish» jadvali bo'sh
+   *    bo'lsa yoki qoida `MIQDOR` usulida bo'lmasa — avvalgidek:
    *    materialning o'z `sotuv_narx` i ishlaydi. Shuning uchun
    *    hech bir mavjud mahsulot buzilmaydi.
    */
@@ -292,7 +289,7 @@ export function QoshimchaQoshish({
       }
       if (qoida === null) {
         xatoniOzgartir(
-          "Bu narx darajasi uchun narx qo'yilmagan — «Narxlar va turlar» → «Materialni o'zi sotish»",
+          "Metrlab sotishga narx qo'yilmagan — «Narxlar va turlar» → «Materialni o'zi sotish»",
         );
         return;
       }
@@ -516,7 +513,7 @@ export function QoshimchaQoshish({
                 {kesiladimi ? (
                   qoida === null ? (
                     <span className="text-belgi-sariq">
-                      Bu narx darajasi uchun narx qo&apos;yilmagan — «Narxlar va
+                      Metrlab sotishga narx qo&apos;yilmagan — «Narxlar va
                       turlar» → «Materialni o&apos;zi sotish»
                     </span>
                   ) : jami === null ? (

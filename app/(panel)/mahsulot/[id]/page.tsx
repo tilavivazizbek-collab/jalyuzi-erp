@@ -68,9 +68,9 @@ export default async function MahsulotTahrirlash({ params }: { params: Promise<{
     ulanish<
       { nom: string; formula: string; majburiy: boolean; almashtirish_guruh_id: number | null;
         koeffitsient: string; kesish_turi: string;
-        kesim_eni_m: string | null; narx_belgilaydi: boolean }[]
+        kesim_eni_m: string | null }[]
     >`SELECT nom, formula, majburiy, almashtirish_guruh_id, koeffitsient::text,
-             kesish_turi, kesim_eni_m::text, narx_belgilaydi
+             kesish_turi, kesim_eni_m::text
       FROM mahsulot_slot WHERE mahsulot_tur_id = ${turId} AND faol = true
       ORDER BY tartib, id`,
     ulanish<
@@ -148,7 +148,6 @@ export default async function MahsulotTahrirlash({ params }: { params: Promise<{
       /** ⚠️ `null` — qat'iy eni yo'q, formadagi katak BO'SH turadi */
       kesimEniM: s.kesim_eni_m ?? '',
       /** Egasi qarori 2026-09-22 — mijoz narxini shu slot belgilaydimi (0048) */
-      narxBelgilaydi: s.narx_belgilaydi,
     })),
     parametrlar: parametrlar.map((p): ParametrQatori => ({
       kod: p.kod,

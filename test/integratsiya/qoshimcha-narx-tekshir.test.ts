@@ -18,6 +18,17 @@
  *
  * ⚠️ BLOKLAMAYDI — narx baribir sotuvchi yozganicha saqlanadi
  *    (TZ 3.8 · 3.11), faqat belgi va audit yozuvi qoladi.
+ *
+ * ⚠️ 0057 — QAMROV KENGAYDI, RAQAMLAR SHU SABABLI O'ZGARDI.
+ *
+ *    Ilgari «Materialni o'zi sotish» jadvali MATO DARAJASIGA
+ *    tegishli edi: darajasi yo'q pult o'zining `sotuv_narx` idan
+ *    sotilardi. Daraja olib tashlangach jadval BITTA bo'lib qoldi
+ *    va to'g'ridan sotiladigan HAMMA materialga tegishli.
+ *
+ *    Ya'ni pult ham karniz bilan BIR jadvaldan narx oladi. Bu
+ *    egasiga aytilgan: har materialga alohida miqdor jadvali
+ *    kerak bo'lsa, qator materialga bog'lanishi shart.
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { buyurtmaYarat, type BuyurtmaKirimi } from '@/lib/amal/buyurtma';
@@ -27,7 +38,6 @@ import { sinovUlanishi } from './yordamchi';
 let sql: Ulanish;
 let karnizId = 0;
 let pultId = 0;
-let darajaId = 0;
 let hisoblagich = 0;
 
 const FILIAL = 1;
@@ -37,23 +47,22 @@ const belgi = String(Date.now());
 /** Karniz: 10 metrgacha 35 000, undan ko'p bo'lsa 32 000 */
 const QIMMAT = '35000';
 const ARZON = '32000';
-/** Pult — darajasi yo'q, o'z narxidan sotiladi */
+/**
+ * Pultning o'z narxi — 0057 dan keyin U ISHLATILMAYDI: umumiy
+ * jadval ustun turadi. Materialda saqlanib turibdi, chunki jadval
+ * bo'shatilsa yana zaxira bo'lib ishlaydi.
+ */
 const PULT_NARX = '90000';
 
 beforeAll(async () => {
   sql = sinovUlanishi();
 
-  const g = await sql<{ id: number }[]>`
-    INSERT INTO narx_guruh (nom, yaratdi_id)
-    VALUES (${`QNT daraja ${belgi}`}, ${XODIM}) RETURNING id`;
-  darajaId = g[0]?.id ?? 0;
-
   const k = await sql<{ id: number }[]>`
     INSERT INTO material (nom, hisob_turi, kirim_birligi, sarflash_birligi,
                           koeffitsient, sotuv_narx, sotuv_valyuta,
-                          narx_guruh_id, togridan_sotiladi, yaratdi_id)
+                          togridan_sotiladi, yaratdi_id)
     VALUES (${`QNT karniz ${belgi}`}, 'CHIZIQLI', 'metr', 'M',
-            1, ${QIMMAT}, 'SOM', ${darajaId}, true, ${XODIM})
+            1, ${QIMMAT}, 'SOM', true, ${XODIM})
     RETURNING id`;
   karnizId = k[0]?.id ?? 0;
 
@@ -66,11 +75,25 @@ beforeAll(async () => {
     RETURNING id`;
   pultId = p[0]?.id ?? 0;
 
+  /*
+   * ⚠️ «Materialni o'zi sotish» qatori BITTA va UMUMIY — 0057.
+   *    Boshqa test qoldirgan qator turib qolsa noyoblik indeksiga
+   *    urilardi, shuning uchun tiriltirib ustiga yoziladi.
+   */
   const n = await sql<{ id: number }[]>`
-    INSERT INTO mahsulot_narx (mahsulot_tur_id, narx_guruh_id, hisoblash_usuli,
+    INSERT INTO mahsulot_narx (mahsulot_tur_id, hamma_turga, hisoblash_usuli,
                                yaratdi_id)
-    VALUES (NULL, ${darajaId}, 'MIQDOR', ${XODIM}) RETURNING id`;
+    VALUES (NULL, false, 'MIQDOR', ${XODIM})
+    ON CONFLICT (coalesce(mahsulot_tur_id, 0), hamma_turga,
+                 coalesce(mijoz_turi_id, 0), coalesce(filial_id, 0))
+      WHERE faol
+    DO UPDATE SET hisoblash_usuli = 'MIQDOR', faol = true, ochirildi = NULL
+    RETURNING id`;
   const narxId = n[0]?.id ?? 0;
+
+  await sql`
+    UPDATE mahsulot_narx_bosqich SET faol = false
+     WHERE mahsulot_narx_id = ${narxId} AND faol = true`;
 
   await sql`
     INSERT INTO mahsulot_narx_bosqich (mahsulot_narx_id, dan, gacha, narx,
@@ -201,13 +224,18 @@ describe('alohida sotuvda ham narx serverda tekshiriladi', () => {
     expect(JSON.stringify(a[0]?.yangi)).toContain('700000');
   }, 120_000);
 
-  it('darajasi YO‘Q buyum — o‘z narxi × soni, 3 × 90 000', async () => {
-    const poz = await sot(pultId, '270000', null, 3);
+  /**
+   * ⚠️ DONALAB SOTILGAN BUYUM HAM AYNI JADVALDAN — 0057.
+   *    Ilgari pult o'zining 90 000 idan sotilardi (darajasi yo'q
+   *    edi). Endi umumiy jadval ustun: 3 dona × 35 000.
+   */
+  it('donalab buyum umumiy jadvaldan — 3 × 35 000', async () => {
+    const poz = await sot(pultId, '105000', null, 3);
 
     expect(await belgilandimi(poz)).toBe(false);
   }, 120_000);
 
-  it('darajasi yo‘q buyum boshqa summada sotilsa — BELGILANADI', async () => {
+  it('donalab buyum boshqa summada sotilsa — BELGILANADI', async () => {
     const poz = await sot(pultId, '200000', null, 3);
 
     expect(await belgilandimi(poz)).toBe(true);
@@ -215,7 +243,7 @@ describe('alohida sotuvda ham narx serverda tekshiriladi', () => {
   }, 120_000);
 
   it('100 so‘mgacha farq e’tiborga olinmaydi — yaxlitlash shovqini', async () => {
-    const poz = await sot(pultId, '270050', null, 3);
+    const poz = await sot(pultId, '105050', null, 3);
 
     expect(await belgilandimi(poz)).toBe(false);
   }, 120_000);

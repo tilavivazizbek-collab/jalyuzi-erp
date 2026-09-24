@@ -48,7 +48,6 @@ export interface SlotQatori {
    * ⚠️ Bir turda faqat BITTA slotda `true` bo'ladi (bazada qisman
    *    unique indeks, 0048). Ekranda ham radio bilan shunday.
    */
-  narxBelgilaydi: boolean;
 }
 
 export interface ParametrQatori {
@@ -175,7 +174,6 @@ interface Qator {
   /** `TASMALI` — HAR TASMAGA qo'shiladigan zapas, metrda */
   zapasM: string;
   /** Egasi qarori 2026-09-22 — mijoz narxini shu slot belgilaydimi */
-  narxBelgilaydi: boolean;
 }
 
 const kirish =
@@ -209,7 +207,6 @@ function boshQatorlar(q: MahsulotQiymatlari): Qator[] {
       kesimEniM: sarf.tasmaEniM ?? s.kesimEniM,
       yaxlitlash: sarf.yaxlitlash ?? 'ROUND',
       zapasM: sarf.zapasM ?? '',
-      narxBelgilaydi: s.narxBelgilaydi,
     };
   });
 
@@ -227,7 +224,6 @@ function boshQatorlar(q: MahsulotQiymatlari): Qator[] {
       kesimEniM: '',
       yaxlitlash: 'ROUND',
       zapasM: '',
-      narxBelgilaydi: false,
     };
   });
 
@@ -404,7 +400,6 @@ export function MahsulotFormasi({
       koeffitsient: q.koeffitsient,
       kesishTuri: q.kesishTuri,
       kesimEniM: q.kesimEniM.trim(),
-      narxBelgilaydi: q.narxBelgilaydi,
     }));
 
   const aksessuarlar: AksessuarQatori[] = qatorlar
@@ -618,11 +613,27 @@ export function MahsulotFormasi({
 
                 return (
                   <div key={i} className="rounded-maydon border border-chegara p-3">
+                    {/*
+                      ⚠️ UCHINCHI USTUN ENI TURGA QARAB o'zgaradi —
+                         2026-09-24 da tuzatildi.
+
+                         Ilgari u ikki xil edi: `ikkiQiymat` da 210px,
+                         qolganida 110px. Lekin «Tasmalab» BESHTA
+                         katak chizadi va ular 110px ga sig'masdi —
+                         kataklar qatordan chiqib ketardi. «Eniga
+                         bo'linadi» (0057 kuni qo'shilgan) ham ikkita
+                         katak bilan o'sha yerga tushib, buzilishni
+                         ko'zga tashlanadigan qildi.
+
+                         Endi kenglik KATAKLAR SONIGA qarab beriladi.
+                    */}
                     <div
                       className={`grid gap-2 sm:items-center ${
-                        tavsif.ikkiQiymat
-                          ? 'sm:grid-cols-[1fr_150px_210px]'
-                          : 'sm:grid-cols-[1fr_150px_110px]'
+                        tavsif.tasmali === true
+                          ? 'sm:grid-cols-[minmax(0,1fr)_150px_minmax(0,1.6fr)]'
+                          : tavsif.ikkiQiymat || tavsif.bolinadi === true
+                            ? 'sm:grid-cols-[1fr_150px_210px]'
+                            : 'sm:grid-cols-[1fr_150px_110px]'
                       }`}
                     >
                       {/*
@@ -1087,46 +1098,6 @@ export function MahsulotFormasi({
                           {q.majburiy ? "doim qo'shiladi" : "mijoz so'rasa"}
                         </label>
 
-                        {/*
-                          ⚠️ EGASI QARORI 2026-09-22 — «men slotda belgilayman».
-
-                             Mijoz narxi mato DARAJASIDAN keladi. Kun-tunda
-                             ikkita mato bo'ladi va qaysi biri narxni
-                             belgilashini ilgari KOD TAXMIN QILARDI
-                             («birinchi mato»). Endi egasi aytadi.
-
-                             ⚠️ CHECKBOX, radio emas — garchi faqat bitta
-                                slot belgilansa ham (bazada qisman unique
-                                indeks, 0048). Radioni bir marta bosgandan
-                                keyin BEKOR QILIB BO'LMAYDI: egasi fikridan
-                                qaytsa, eski xulqqa qaytish yo'li yopilardi.
-                                Bittalik shart quyidagi funksiyada.
-
-                             Faqat GURUH qatorida ko'rinadi: aniq material
-                             (aksessuar) mijoz tanlovi emas, uning darajasi
-                             narx uchun ma'noga ega emas.
-                        */}
-                        {q.turi === 'GURUH' && (
-                          <label className="flex items-center gap-1.5 text-xs text-matn-ikki">
-                            <input
-                              type="checkbox"
-                              checked={q.narxBelgilaydi}
-                              onChange={(e) => {
-                                const yoqildi = e.target.checked;
-                                setQatorlar(
-                                  qatorlar.map((x, j) => ({
-                                    ...x,
-                                    // Yoqilsa boshqalari o'chadi, o'chirilsa hech biri qolmaydi
-                                    narxBelgilaydi: yoqildi && j === i,
-                                  })),
-                                );
-                              }}
-                              className="size-3.5"
-                            />
-                            narxni belgilaydi
-                          </label>
-                        )}
-
                         <button
                           type="button"
                           onClick={() => {
@@ -1162,7 +1133,6 @@ export function MahsulotFormasi({
                   kesimEniM: '',
                   yaxlitlash: 'ROUND',
                   zapasM: '',
-                  narxBelgilaydi: false,
                 },
               ]);
             }}

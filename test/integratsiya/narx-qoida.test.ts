@@ -3,11 +3,11 @@
  *
  * ⚠️ NEGA HAQIQIY BAZADA
  *
- *    `turNarxiniSaqla` ikkita `ON CONFLICT` ishlatadi va ikkalasi ham
- *    IFODA ustidagi noyob indeksga tayanadi:
+ *    `turNarxiniSaqla` `ON CONFLICT` ishlatadi va u IFODA
+ *    ustidagi noyob indeksga tayanadi:
  *
- *        narx_guruh               lower(btrim(nom))
- *        mahsulot_narx            coalesce(mijoz_turi_id, 0) …
+ *        mahsulot_narx   coalesce(mahsulot_tur_id, 0), hamma_turga,
+ *                        coalesce(mijoz_turi_id, 0), coalesce(filial_id, 0)
  *
  *    Bunday `ON CONFLICT` ni na `tsc`, na sof funksiya testi ko'radi —
  *    indeks nomi mos kelmasa Postgres ishga tushgandagina aytadi.
@@ -16,19 +16,13 @@
  */
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import {
-  narxGuruhTezYarat,
-  turNarxiniSaqla,
-  type NarxSaqlashNatijasi,
-} from '@/lib/amal/narx-qoida';
+import { turNarxiniSaqla, type NarxSaqlashNatijasi } from '@/lib/amal/narx-qoida';
 import type { TurNarxiKirimi } from '@/lib/sxema/narx-qoida';
 import type { Ulanish } from '@/lib/db/ulanish';
 import { sinovUlanishi } from './yordamchi';
 
 let sql: Ulanish;
 let turId: number;
-let oddiyId: number;
-let premiumId: number;
 
 /** ⚠️ Har yurishda YANGI nom — qat'iy nom ikkinchi yurishda dublikat berardi (T-06) */
 const belgi = `sinov-${String(Date.now())}`;
@@ -51,8 +45,6 @@ beforeAll(async () => {
   if (tid === undefined) throw new Error('mahsulot turi yaratilmadi');
   turId = tid;
 
-  oddiyId = (await narxGuruhTezYarat(sql, `Oddiy ${belgi}`, 1)).id;
-  premiumId = (await narxGuruhTezYarat(sql, `Premium ${belgi}`, 1)).id;
 });
 
 afterAll(async () => {
@@ -66,42 +58,12 @@ const EGASI = [
   { dan: 1, gacha: null, narx: '3', valyuta: 'USD' as const },
 ];
 
-describe('narx guruhi — mato darajasi', () => {
-  it('bir xil nom qayta yozilsa YANGI qator yasalmaydi', async () => {
-    const a = await narxGuruhTezYarat(sql, `Oddiy ${belgi}`, 1);
-    expect(a.id).toBe(oddiyId);
-  });
-
-  it('bosh va katta harf farqi dublikat yasamaydi', async () => {
-    const a = await narxGuruhTezYarat(sql, `  ODDIY ${belgi.toUpperCase()}  `, 1);
-    // `lower(btrim(nom))` indeksi tufayli shu qatorga tushadi
-    const q = await sql<{ n: number }[]>`
-      SELECT COUNT(*)::int AS n FROM narx_guruh
-      WHERE lower(btrim(nom)) = lower(${`Oddiy ${belgi}`})`;
-    expect(q[0]?.n).toBe(1);
-    expect(a.id).toBe(oddiyId);
-  });
-
-  it("nofaol qilingan daraja TIRILADI, yangisi yasalmaydi", async () => {
-    await sql`UPDATE narx_guruh SET faol = false WHERE id = ${premiumId}`;
-    const a = await narxGuruhTezYarat(sql, `Premium ${belgi}`, 1);
-    expect(a.id).toBe(premiumId);
-
-    const q = await sql<{ faol: boolean }[]>`SELECT faol FROM narx_guruh WHERE id = ${premiumId}`;
-    expect(q[0]?.faol).toBe(true);
-  });
-
-  it("bo'sh nom rad etiladi", async () => {
-    await expect(narxGuruhTezYarat(sql, '   ', 1)).rejects.toThrow();
-  });
-});
-
 describe('tur narxini saqlash', () => {
   it('qoida, bosqich va qo‘shimcha birga yoziladi', async () => {
     const n = await saqla({
       mahsulotTurId: turId,
       qoidalar: [
-        { narxGuruhId: oddiyId, mijozTuriId: null, filialId: null, hisoblashUsuli: 'MAYDON', bosqichlar: EGASI },
+        { mijozTuriId: null, filialId: null, hisoblashUsuli: 'MAYDON', bosqichlar: EGASI },
       ],
       qoshimchalar: [
         {
@@ -143,8 +105,8 @@ describe('tur narxini saqlash', () => {
     const n = await saqla({
       mahsulotTurId: turId,
       qoidalar: [
-        { narxGuruhId: oddiyId, mijozTuriId: null, filialId: null, hisoblashUsuli: 'MAYDON', bosqichlar: EGASI },
-        { narxGuruhId: premiumId, mijozTuriId: null, filialId: null, hisoblashUsuli: 'MAYDON', bosqichlar: [
+        { mijozTuriId: null, filialId: null, hisoblashUsuli: 'MAYDON', bosqichlar: EGASI },
+        { mijozTuriId: null, filialId: null, hisoblashUsuli: 'MAYDON', bosqichlar: [
           { dan: 0, gacha: 1, narx: '12', valyuta: 'USD' },
           { dan: 1, gacha: null, narx: '6', valyuta: 'USD' },
         ] },
@@ -205,13 +167,13 @@ describe('tur narxini saqlash', () => {
       SELECT COUNT(*)::int AS n,
              COALESCE(string_agg(hisoblash_usuli, ',' ORDER BY id), '') AS usullar
         FROM mahsulot_narx
-       WHERE mahsulot_tur_id = ${turId} AND narx_guruh_id = ${oddiyId} AND faol = true`;
+       WHERE mahsulot_tur_id = ${turId} AND faol = true`;
 
     const n = await saqla({
       mahsulotTurId: turId,
       qoidalar: [
-        { narxGuruhId: oddiyId, mijozTuriId: null, filialId: null, hisoblashUsuli: 'MAYDON', bosqichlar: EGASI },
-        { narxGuruhId: oddiyId, mijozTuriId: null, filialId: null, hisoblashUsuli: 'ENI', bosqichlar: EGASI },
+        { mijozTuriId: null, filialId: null, hisoblashUsuli: 'MAYDON', bosqichlar: EGASI },
+        { mijozTuriId: null, filialId: null, hisoblashUsuli: 'ENI', bosqichlar: EGASI },
       ],
       qoshimchalar: [],
     });
@@ -224,7 +186,7 @@ describe('tur narxini saqlash', () => {
       SELECT COUNT(*)::int AS n,
              COALESCE(string_agg(hisoblash_usuli, ',' ORDER BY id), '') AS usullar
         FROM mahsulot_narx
-       WHERE mahsulot_tur_id = ${turId} AND narx_guruh_id = ${oddiyId} AND faol = true`;
+       WHERE mahsulot_tur_id = ${turId} AND faol = true`;
 
     expect(keyin[0]?.n).toBe(oldin[0]?.n);
     expect(keyin[0]?.usullar).toBe(oldin[0]?.usullar);
@@ -249,8 +211,8 @@ describe('tur narxini saqlash', () => {
     const n = await saqla({
       mahsulotTurId: turId,
       qoidalar: [
-        { narxGuruhId: oddiyId, mijozTuriId: null, filialId: null, hisoblashUsuli: 'MAYDON', bosqichlar: EGASI },
-        { narxGuruhId: oddiyId, mijozTuriId: optomId, filialId: null, hisoblashUsuli: 'MAYDON', bosqichlar: EGASI },
+        { mijozTuriId: null, filialId: null, hisoblashUsuli: 'MAYDON', bosqichlar: EGASI },
+        { mijozTuriId: optomId, filialId: null, hisoblashUsuli: 'MAYDON', bosqichlar: EGASI },
       ],
       qoshimchalar: [],
     });
@@ -259,7 +221,7 @@ describe('tur narxini saqlash', () => {
 
     const q = await sql<{ mijoz_turi_id: number | null }[]>`
       SELECT mijoz_turi_id FROM mahsulot_narx
-      WHERE mahsulot_tur_id = ${turId} AND narx_guruh_id = ${oddiyId} AND faol = true
+      WHERE mahsulot_tur_id = ${turId} AND faol = true
       ORDER BY mijoz_turi_id NULLS FIRST`;
 
     expect(q).toHaveLength(2);
@@ -272,7 +234,7 @@ describe('nuqsonlar saqlashni TO‘XTATADI', () => {
   const nuqsonli = async (bosqichlar: typeof EGASI): Promise<readonly string[]> => {
     const n = await saqla({
       mahsulotTurId: turId,
-      qoidalar: [{ narxGuruhId: oddiyId, mijozTuriId: null, filialId: null, hisoblashUsuli: 'MAYDON', bosqichlar }],
+      qoidalar: [{ mijozTuriId: null, filialId: null, hisoblashUsuli: 'MAYDON', bosqichlar }],
       qoshimchalar: [],
     });
     expect(n.holat).toBe('NUQSON');

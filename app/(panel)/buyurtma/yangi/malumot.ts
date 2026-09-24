@@ -173,8 +173,6 @@ export interface QoshimchaMaterial {
    */
   readonly hisobTuri: string;
   readonly sarflashBirligi: string;
-  /** Mato darajasi — metrlab sotishda narx shundan keladi */
-  readonly narxGuruhId: number | null;
   /** Kesib sotish uchun omborda bor maydon, kv.m */
   readonly boshKvM: number;
   /** Eng keng rulon eni, metr — sotuvchiga «bundan keng kesib bo'lmaydi» */
@@ -242,7 +240,6 @@ export async function qoshimchaMateriallar(
                        AND b.faol = true), 0)::int AS "boshDona",
            m.hisob_turi AS "hisobTuri",
            m.sarflash_birligi AS "sarflashBirligi",
-           m.narx_guruh_id AS "narxGuruhId",
            /*
             * Q-05 — kv.m saqlanmaydi, eni x boyi dan hisoblanadi.
             * Q-25 — qoldiq SHU FILIALDA sanaladi.
@@ -285,7 +282,6 @@ export async function qoshimchaMateriallar(
  *    qayta borish shart emas.
  */
 export interface MaterialNarxQoidasi {
-  readonly narxGuruhId: number;
   readonly mijozTuriId: number | null;
   /** TZ 20.9 — `null` bo'lsa hamma filialga */
   readonly filialId: number | null;
@@ -308,26 +304,25 @@ export async function materialNarxQoidalari(
    *
    *    Bu yerda «MATERIALNI O'ZI SOTISH» qoidalari olinadi va
    *    ular `mahsulot_tur_id IS NULL` bilan belgilanadi. 0055 da
-   *    DARAJAGA umumiy narx qo'shildi va u ham turi NULL qator.
-   *    Shartsiz qoldirilsa darajaga qo'yilgan tayyor jalyuzi narxi
-   *    metrlab sotishga SIZIB o'tardi: mijoz matoni metrlab olsa,
-   *    tayyor parda narxida hisoblanardi.
+   *    «HAMMA TURGA» umumiy narx qo'shildi va u ham turi NULL
+   *    qator. Shartsiz qoldirilsa tayyor jalyuziga qo'yilgan
+   *    umumiy narx metrlab sotishga SIZIB o'tardi: mijoz matoni
+   *    metrlab olsa, tayyor parda narxida hisoblanardi.
    */
   const qoidalar = await sql<
     {
       id: number;
-      narxGuruhId: number;
       mijozTuriId: number | null;
       filialId: number | null;
       hisoblashUsuli: string;
     }[]
   >`
-    SELECT id, narx_guruh_id AS "narxGuruhId", mijoz_turi_id AS "mijozTuriId",
+    SELECT id, mijoz_turi_id AS "mijozTuriId",
            filial_id AS "filialId", hisoblash_usuli AS "hisoblashUsuli"
     FROM mahsulot_narx
     WHERE mahsulot_tur_id IS NULL AND hamma_turga = false AND faol = true
       AND (filial_id IS NULL OR filial_id = ${filialId})
-    ORDER BY narx_guruh_id, (filial_id IS NULL)`;
+    ORDER BY (mijoz_turi_id IS NULL), (filial_id IS NULL)`;
 
   if (qoidalar.length === 0) return [];
 
@@ -348,7 +343,6 @@ export async function materialNarxQoidalari(
 
   return qoidalar.map((q) => ({
     filialId: q.filialId,
-    narxGuruhId: q.narxGuruhId,
     mijozTuriId: q.mijozTuriId,
     hisoblashUsuli: q.hisoblashUsuli,
     bosqichlar: bosqichlar

@@ -87,14 +87,28 @@ export async function turNarxiniSaqla(
   xodimId: number,
 ): Promise<NarxSaqlashNatijasi> {
   // ── Guruh nomlari — xabarlar odam o'qiydigan bo'lsin ──
-  const guruhlar = await tx<{ id: number; nom: string }[]>`
-    SELECT id, nom FROM narx_guruh WHERE faol = true`;
-  const nomi = new Map(guruhlar.map((g) => [g.id, g.nom]));
-
   const xabarlar: string[] = [];
 
+  /**
+   * Qatorni odam tanigudek atash — 0057 dan keyin daraja yo'q.
+   *
+   * ⚠️ Ilgari bu yerda darajaning NOMI turardi («Premium»).
+   *    Endi qatorni faqat mijoz turi va filial ajratadi, shuning
+   *    uchun xabarda o'shalar yoziladi — aks holda egasi qaysi
+   *    qatorda xato borligini topolmasdi.
+   */
+  const qatorNomi = (q: {
+    readonly mijozTuriId: number | null;
+    readonly filialId: number | null;
+  }): string => {
+    const bolaklar: string[] = [];
+    if (q.mijozTuriId !== null) bolaklar.push(`mijoz turi #${String(q.mijozTuriId)}`);
+    if (q.filialId !== null) bolaklar.push(`filial #${String(q.filialId)}`);
+    return bolaklar.length === 0 ? 'Umumiy qator' : bolaklar.join(' · ');
+  };
+
   for (const q of kirim.qoidalar) {
-    const guruhNomi = nomi.get(q.narxGuruhId) ?? `#${String(q.narxGuruhId)}`;
+    const guruhNomi = qatorNomi(q);
     const bosqichlar: Bosqich[] = q.bosqichlar.map((b) => ({
       dan: b.dan,
       gacha: b.gacha,
@@ -107,9 +121,9 @@ export async function turNarxiniSaqla(
   /**
    * ⚠️ TAKROR QAMROV — 2026-09-21.
    *
-   *    Bazada `(tur, guruh, mijoz, filial)` noyob va saqlash
+   *    Bazada `(tur, hamma_turga, mijoz, filial)` noyob va saqlash
    *    `ON CONFLICT ... DO UPDATE` bilan ketadi. Ya'ni bir xil
-   *    to'rtlik ikki marta kelsa ikkinchisi birinchisi ustiga
+   *    qamrov ikki marta kelsa ikkinchisi birinchisi ustiga
    *    JIMGINA yozilardi: egasi ikki xil narx kiritib, bittasi
    *    saqlanmaganini bilmay qolardi.
    *
@@ -118,12 +132,11 @@ export async function turNarxiniSaqla(
    */
   const qamrovlar = new Map<string, number>();
   for (const q of kirim.qoidalar) {
-    const kalit = `${String(q.narxGuruhId)}|${String(q.mijozTuriId ?? 0)}|${String(q.filialId ?? 0)}`;
+    const kalit = `${String(q.mijozTuriId ?? 0)}|${String(q.filialId ?? 0)}`;
     qamrovlar.set(kalit, (qamrovlar.get(kalit) ?? 0) + 1);
     if (qamrovlar.get(kalit) === 2) {
-      const guruhNomi = nomi.get(q.narxGuruhId) ?? `#${String(q.narxGuruhId)}`;
       xabarlar.push(
-        `«${guruhNomi}» uchun bir xil qamrov (mijoz turi va filial) ikki marta yozilgan`,
+        `«${qatorNomi(q)}» ikki marta yozilgan — bir xil qamrov`,
       );
     }
   }
@@ -177,20 +190,31 @@ export async function turNarxiniSaqla(
   // ── Yangilarini yozish ──
   for (const q of kirim.qoidalar) {
     /**
-     * ⚠️ `mahsulot_narx_bitta` noyob indeksi nofaol qatorni ham
-     *    hisobga oladi, shuning uchun `ON CONFLICT` bilan TIRILTIRAMIZ:
-     *    aks holda ikkinchi saqlashda «duplicate key» chiqardi.
+     * ⚠️ `ON CONFLICT` PREDIKATI SHART — 0058.
+     *
+     *    `mahsulot_narx_bitta` endi QISMAN indeks: u faqat faol
+     *    qatorlarni qamraydi (nofaol qatorlar narx tarixi bo'lib
+     *    qoladi va bir-biriga to'qnashishi mumkin). Postgres
+     *    qisman indeksni faqat AYNI predikat yozilganda taniydi —
+     *    `WHERE faol` tushirib qoldirilsa har saqlash «no unique
+     *    or exclusion constraint matching» bilan yiqilardi.
+     *
+     * ⚠️ Odatda bu yerga kelganda eskisi allaqachon nofaol
+     *    qilingan va to'qnashuv BO'LMAYDI. `DO UPDATE` shu sababli
+     *    zaxira: bitta saqlashda ikki bir xil qamrov kelib qolsa
+     *    ikkinchisi birinchisini yangilaydi, xato bermaydi.
      */
     const qator = await tx<{ id: number }[]>`
-      INSERT INTO mahsulot_narx (mahsulot_tur_id, hamma_turga, narx_guruh_id,
+      INSERT INTO mahsulot_narx (mahsulot_tur_id, hamma_turga,
                                  mijoz_turi_id,
                                  filial_id, hisoblash_usuli, min_olchov,
                                  yaratdi_id)
-      VALUES (${tur}, ${hammaTurga}, ${q.narxGuruhId}, ${q.mijozTuriId},
+      VALUES (${tur}, ${hammaTurga}, ${q.mijozTuriId},
               ${q.filialId}, ${q.hisoblashUsuli}, ${q.minOlchov ?? null},
               ${xodimId})
-      ON CONFLICT (coalesce(mahsulot_tur_id, 0), hamma_turga, narx_guruh_id,
+      ON CONFLICT (coalesce(mahsulot_tur_id, 0), hamma_turga,
                    coalesce(mijoz_turi_id, 0), coalesce(filial_id, 0))
+        WHERE faol
       DO UPDATE SET hisoblash_usuli = EXCLUDED.hisoblash_usuli,
                     /** ⚠️ 0056 — tiriltirishda ham yangilanadi, aks
                      *     holda eski eng kam hisob qolib ketardi */
@@ -225,35 +249,4 @@ export async function turNarxiniSaqla(
   }
 
   return { holat: 'SAQLANDI' };
-}
-
-// ─── Narx guruhi — spravochnik ────────────────────────────────────────────
-
-/**
- * Yangi mato darajasi. Modal oyna ham, ro'yxat sahifasi ham AYNAN
- * shuni chaqiradi (§2.2).
- *
- * ⚠️ Nofaol qilingan guruh TIRILADI, yangi dublikat yasalmaydi:
- *    bazadagi noyob indeks `lower(btrim(nom))` bo'yicha va u nofaol
- *    qatorni ham qamrab oladi.
- */
-export async function narxGuruhTezYarat(
-  sql: postgres.Sql | postgres.TransactionSql,
-  nom: string,
-  xodimId: number,
-): Promise<{ id: number; nom: string }> {
-  const t = nom.trim();
-  if (t === '') throw new BiznesXato('NARX_NOTOGRI', 'Daraja nomini kiriting');
-  if (t.length > 120) throw new BiznesXato('NARX_NOTOGRI', 'Nom juda uzun');
-
-  const q = await sql<{ id: number; nom: string }[]>`
-    INSERT INTO narx_guruh (nom, yaratdi_id) VALUES (${t}, ${xodimId})
-    ON CONFLICT (lower(btrim(nom)))
-    DO UPDATE SET faol = true, ochirildi = NULL,
-                  ozgartirdi_id = ${xodimId}, ozgartirildi = now()
-    RETURNING id, nom`;
-
-  const y = q[0];
-  if (y === undefined) throw new BiznesXato('SAQLANMADI', 'daraja yozilmadi');
-  return y;
 }
