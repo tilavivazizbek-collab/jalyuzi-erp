@@ -166,12 +166,17 @@ export function QoshimchaQoshish({
    *    sotish» jadvalidan keladi (egasi qarori 2026-09-20).
    *
    *    TZ 6.2 — mijoz turiga qo'yilgan qoida umumiysidan ustun.
+   *
+   * ⚠️ 0059 — MATERIAL HAM UZATILADI. Usiz karnizga qo'yilgan
+   *    bosqich jadvali pultga ham qo'llanardi: daraja olib
+   *    tashlangach jadval bitta bo'lib qolgan edi.
    */
   const qoida =
     qoidaniTop(qoidalar, {
       mijozTuriId,
       /** ⚠️ Qoidalar shu filial uchun yuklangan (TZ 20.9) */
       filialId: ozFilialId,
+      materialId: tanlangan?.id ?? null,
     }) ?? null;
 
   /**

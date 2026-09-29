@@ -282,6 +282,11 @@ export async function qoshimchaMateriallar(
  *    qayta borish shart emas.
  */
 export interface MaterialNarxQoidasi {
+  /**
+   * Qaysi materialga — 0059. `null` bo'lsa jadval HAMMA to'g'ridan
+   * sotiladigan materialga tegishli.
+   */
+  readonly materialId: number | null;
   readonly mijozTuriId: number | null;
   /** TZ 20.9 — `null` bo'lsa hamma filialga */
   readonly filialId: number | null;
@@ -312,17 +317,18 @@ export async function materialNarxQoidalari(
   const qoidalar = await sql<
     {
       id: number;
+      materialId: number | null;
       mijozTuriId: number | null;
       filialId: number | null;
       hisoblashUsuli: string;
     }[]
   >`
-    SELECT id, mijoz_turi_id AS "mijozTuriId",
+    SELECT id, material_id AS "materialId", mijoz_turi_id AS "mijozTuriId",
            filial_id AS "filialId", hisoblash_usuli AS "hisoblashUsuli"
     FROM mahsulot_narx
     WHERE mahsulot_tur_id IS NULL AND hamma_turga = false AND faol = true
       AND (filial_id IS NULL OR filial_id = ${filialId})
-    ORDER BY (mijoz_turi_id IS NULL), (filial_id IS NULL)`;
+    ORDER BY (material_id IS NULL), (mijoz_turi_id IS NULL), (filial_id IS NULL)`;
 
   if (qoidalar.length === 0) return [];
 
@@ -343,6 +349,7 @@ export async function materialNarxQoidalari(
 
   return qoidalar.map((q) => ({
     filialId: q.filialId,
+    materialId: q.materialId,
     mijozTuriId: q.mijozTuriId,
     hisoblashUsuli: q.hisoblashUsuli,
     bosqichlar: bosqichlar

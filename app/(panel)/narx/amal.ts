@@ -41,13 +41,23 @@ export async function narxSaqlaAmali(
 
   /** ⚠️ Bo'sh — «materialni o'zi sotish», mahsulot turi yo'q */
   const turMatni = xom(forma, 'mahsulotTurId').trim();
+  /** ⚠️ Bo'sh — UMUMIY jadval, ya'ni alohida jadvali yo'q hammaga (0059) */
+  const materialMatni = xom(forma, 'materialId').trim();
 
   const tekshiruv = turNarxiSxema.safeParse({
     mahsulotTurId: turMatni === '' ? null : Number(turMatni),
     /**
+     * ⚠️ 0059 — `hammaTurga` bilan BIR XIL TUZOQ. Ro'yxatga
+     *    qo'shilmasa forma yuborar, sxema qabul qilar, server esa
+     *    jimgina tashlab yuborardi: karniz uchun ochilgan jadval
+     *    UMUMIY bo'lib saqlanib, hamma materialning narxini
+     *    o'zgartirib yuborardi.
+     */
+    materialId: materialMatni === '' ? null : Number(materialMatni),
+    /**
      * ⚠️ 0055 — bu maydon SHU RO'YXATGA qo'shilmasa, forma
      *    yuborar, sxema qabul qilar, server esa jimgina tashlab
-     *    yuborardi va daraja narxi «materialni o'zi sotish»
+     *    yuborardi va standart narx «materialni o'zi sotish»
      *    qatori bo'lib yozilardi. Shu xato 0049 da bo'lgan.
      */
     hammaTurga: forma.get('hammaTurga') === '1',

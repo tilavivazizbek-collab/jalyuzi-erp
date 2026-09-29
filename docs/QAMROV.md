@@ -1206,16 +1206,80 @@ olib tashlangan edi — ya'ni **yangi material umuman qo'shilmasdi**
 («INSERT has more target columns than expressions»). `tsc`, `lint` va
 `build` — uchalasi ham buni ko'rmaydi.
 
-### ⚠️ OCHIQ QOLGANI — egasidan javob kutiladi
+### Bu yerda ochilgan teshik 0059 da yopildi
 
-«Materialni o'zi sotish» jadvali endi **bitta va umumiy**: u
-to'g'ridan sotiladigan HAMMA materialga tegishli. Ilgari uni daraja
-ajratardi.
+«Materialni o'zi sotish» jadvali daraja ketgach **bitta va umumiy**
+bo'lib qolgan edi — pastdagi §6g shuni hal qiladi.
+
+## 6g. Materialga alohida narx jadvali — 0059 (2026-09-24)
+
+### Nima buzilgan edi
+
+0057 da daraja olib tashlandi. Daraja «bu jadval qaysi materiallarga»
+degan savolga javob berardi — u ketgach «Materialni o'zi sotish»
+jadvali **bitta** bo'lib qoldi va to'g'ridan sotiladigan HAMMA
+materialga tegishli bo'ldi.
 
 Ya'ni **«ko'p olganga arzonroq»** (0056, egasi qarori 2026-09-22)
-jadvali karniz uchun ham, pult uchun ham bir xil bo'lib qoldi:
-35 000 so'm/metr karnizga to'g'ri, pultga esa yo'q.
+buzilgan edi: jadvalga 35 000 so'm/metr yozilsa karniz ham, pult ham,
+mato ham shu narxda sotilardi.
 
-Yechim uchun qator **materialga** bog'lanishi kerak
-(`mahsulot_narx.material_id`) — bu migratsiya va egasining ruxsati
-talab qiladi.
+Bu **men ochgan teshik**, egasi so'ragan narsa emas — 0057 ni qilganda
+o'sha jadvalning qamrovi darajaga bog'langanini hisobga olmagandim.
+
+### Egasiga berilgan uch variant
+
+| Variant | Natija |
+|---|---|
+| **Har materialga alohida jadval** (tavsiyam) | Karnizga 35 000/metr, pultga 90 000/dona |
+| Hozirgicha qolsin | «Ko'p olganga arzonroq» faqat bitta buyum turiga ishlardi |
+| Hisob turiga qarab uchta jadval | Ikki xil karniz baribir bir xil narxda qolardi |
+
+Egasi **birinchisini** tanladi.
+
+### Qanday ishlaydi — uch pog'ona
+
+    material_id = shu material  →  shu materialning jadvali
+    material_id bo'sh           →  umumiy jadval (hammasiga)
+    qoida umuman yo'q           →  materialning o'z sotuv narxi
+
+Tanlash `qoidaniTop()` da, **bitta joyda**. Material o'qi **eng
+tashqi**: materialga qo'yilgan UMUMIY qator umumiy jadvalning ANIQ
+qatoridan ham ustun — aks holda aniqroq sozlama umumiysiga
+yutqazardi.
+
+Ekran: `/narx?tur=material&material=<id>`. Chap ustunda faqat
+**jadvali borlari** ko'rinadi — o'nlab mato chiqsa ro'yxat o'qib
+bo'lmas holga kelardi.
+
+### Nima qilindi
+
+| Qatlam | Nima |
+|---|---|
+| Baza | **0059** — `mahsulot_narx.material_id`, CHECK, noyoblik indeksi qayta qurildi |
+| Domen | `qoidaniTop()` ga material o'qi qo'shildi |
+| Sxema | `materialId` + `refine` — tur bilan birga kelmaydi |
+| Amal | `narx-qoida.ts` (saqlash qamrovi), `narx-tekshir.ts` (server) |
+| Ekran | `/narx` — material tanlagich; `qoshimcha.tsx` — sotuvda material uzatiladi |
+
+### ⚠️ ENG XAVFLI JOY — SAQLASH QAMROVI
+
+Nofaollashtirish `material_id` ni hisobga olmasa, karniz narxini
+saqlash **pultnikini va umumiy jadvalni ham** jimgina o'chirib
+yuborardi: egasi bitta jadvalni tahrirlab **uchtasini** yo'qotardi.
+
+`EC-MTN-02…04` aynan shuni ushlaydi.
+
+### Yo'l-yo'lakay topilgan xato
+
+`turQoidalariniOl()` da `ORDER BY g.tartib, g.nom` qolib ketgan edi —
+`g` aliasi daraja bilan birga o'chgan. Ya'ni `/narx` sahifasi **har
+ochilishida yiqilardi**. `tsc`, `lint` va `build` — hech biri SQL
+matni ichini ko'rmaydi.
+
+### Ushlab turadigan testlar
+
+| Test | Nimani ushlaydi |
+|---|---|
+| `test/domain/qoida-tanlash.test.ts` — EC-QT-14…20 (7 ta) | Boshqa materialning qatori olinmasligi; materialniki umumiysidan ustunligi; material berilmasa eski xulq saqlanishi |
+| `test/integratsiya/material-narxi.test.ts` — EC-MTN-01…06 (6 ta) | Uch jadval bir-birini o'chirmasligi, `ON CONFLICT` qisman indeksga mos kelishi, bazadagi CHECK |

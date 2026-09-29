@@ -104,9 +104,20 @@ export const turNarxiSxema = z.object({
    */
   mahsulotTurId: z.number().int().positive().nullable().default(null),
   /**
-   * DARAJAGA UMUMIY NARX — 0055.
+   * QAYSI MATERIALGA — 0059, egasi qarori 2026-09-24.
    *
-   * ⚠️ `true` bo'lsa qatorlar ANIQ TURGA emas, DARAJAGA
+   * ⚠️ FAQAT «materialni o'zi sotish» jadvalida. Bo'sh bo'lsa
+   *    jadval hamma to'g'ridan sotiladigan materialga tegishli
+   *    (0059 gacha faqat shu holat bor edi).
+   *
+   * ⚠️ `.optional()`, `.default()` EMAS — `.default()` chiqish
+   *    turini MAJBURIY qilib eski chaqiruvchilarni buzardi.
+   */
+  materialId: z.number().int().positive().nullable().optional(),
+  /**
+   * HAMMA TUR UCHUN STANDART NARX — 0055.
+   *
+   * ⚠️ `true` bo'lsa qatorlar ANIQ TURGA emas, hammasiga
    *    yoziladi va turga alohida qator bo'lmaganda ishlatiladi.
    *
    * ⚠️ `mahsulotTurId` bilan BIRGA kelmaydi — pastdagi
@@ -126,8 +137,22 @@ export const turNarxiSxema = z.object({
    */
   .refine((t) => t.hammaTurga !== true || t.mahsulotTurId === null, {
     path: ['hammaTurga'],
-    message: "Darajaga umumiy narx aniq turga bog'lanmaydi",
-  });
+    message: "Hamma turga standart narx aniq turga bog'lanmaydi",
+  })
+  /**
+   * ⚠️ MATERIAL FAQAT «O'ZI SOTISH» QATORIDA — 0059.
+   *    Tayyor jalyuzi narxi turga tegishli va materialga
+   *    bog'lanmaydi (0057, egasi qarori). Bazada ham CHECK bor.
+   */
+  .refine(
+    (t) =>
+      (t.materialId ?? null) === null ||
+      (t.mahsulotTurId === null && t.hammaTurga !== true),
+    {
+      path: ['materialId'],
+      message: "Material narxi mahsulot turiga bog'lanmaydi",
+    },
+  );
 
 export type BosqichKirimi = z.infer<typeof bosqichSxema>;
 export type NarxQoidaKirimi = z.infer<typeof narxQoidaSxema>;

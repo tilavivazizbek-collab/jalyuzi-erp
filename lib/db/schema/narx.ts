@@ -104,6 +104,19 @@ export const mahsulotNarx = pgTable(
     /** 0056 — «kamida shuncha kv.m dan hisoblanadi» */
     minOlchov: numeric('min_olchov', { precision: 12, scale: 2 }),
 
+    /**
+     * QAYSI MATERIALGA — 0059, egasi qarori 2026-09-24.
+     *
+     * ⚠️ Faqat «materialni o'zi sotish» qatorida. Bo'sh bo'lsa
+     *    jadval alohida jadvali yo'q HAMMA to'g'ridan sotiladigan
+     *    materialga tegishli.
+     *
+     * ⚠️ 0057 gacha bu ishni MATO DARAJASI qilardi. Daraja
+     *    ketgach jadval bitta bo'lib qolgan va karniz bilan pult
+     *    bir xil bosqichdan narx olardi.
+     */
+    materialId: bigint('material_id', { mode: 'number' }).references(() => material.id),
+
     /** `MAYDON` · `ENI` · `BO'YI` · `DONA` · `MIQDOR` */
     hisoblashUsuli: text('hisoblash_usuli').notNull().default('MAYDON'),
 
@@ -126,6 +139,7 @@ export const mahsulotNarx = pgTable(
       .on(
         sql`coalesce(${t.mahsulotTurId}, 0)`,
         t.hammaTurga,
+        sql`coalesce(${t.materialId}, 0)`,
         sql`coalesce(${t.mijozTuriId}, 0)`,
         sql`coalesce(${t.filialId}, 0)`,
       )
@@ -138,6 +152,12 @@ export const mahsulotNarx = pgTable(
     check(
       'mahsulot_narx_hamma_tur',
       sql`NOT (${t.hammaTurga} AND ${t.mahsulotTurId} IS NOT NULL)`,
+    ),
+    /** ⚠️ Material FAQAT «o'zi sotish» qatorida bo'ladi — 0059 */
+    check(
+      'mahsulot_narx_material',
+      sql`NOT (${t.materialId} IS NOT NULL
+               AND (${t.mahsulotTurId} IS NOT NULL OR ${t.hammaTurga}))`,
     ),
   ],
 );

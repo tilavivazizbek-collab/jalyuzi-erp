@@ -81,8 +81,28 @@ export async function turlarniOl(): Promise<TurQatori[]> {
 export async function materialQoidalariSoni(): Promise<number> {
   const q = await ulanishOl()<{ n: number }[]>`
     SELECT COUNT(*)::int AS n FROM mahsulot_narx
-    WHERE mahsulot_tur_id IS NULL AND faol = true`;
+    WHERE mahsulot_tur_id IS NULL AND hamma_turga = false
+      AND material_id IS NULL AND faol = true`;
   return q[0]?.n ?? 0;
+}
+
+/**
+ * Qaysi materiallarga ALOHIDA jadval qo'yilgan — 0059.
+ *
+ * ⚠️ Egasi ro'yxatni ochganda qaysi materialda o'z narxi borligini
+ *    ko'rishi kerak. Usiz u har materialni bittalab bosib
+ *    tekshirardi — va ko'pincha umumiy jadvalni o'zining deb
+ *    o'ylab, boshqa materiallarning narxini ham o'zgartirardi.
+ */
+export async function materialJadvallariniOl(): Promise<
+  { readonly materialId: number; readonly soni: number }[]
+> {
+  return ulanishOl()<{ materialId: number; soni: number }[]>`
+    SELECT material_id AS "materialId", COUNT(*)::int AS soni
+      FROM mahsulot_narx
+     WHERE mahsulot_tur_id IS NULL AND hamma_turga = false
+       AND material_id IS NOT NULL AND faol = true
+     GROUP BY material_id`;
 }
 
 /**
@@ -157,6 +177,8 @@ export async function standartNarxBormi(): Promise<boolean> {
 export async function turQoidalariniOl(
   turId: number | null,
   hammaTurga = false,
+  /** 0059 — «materialni o'zi sotish» rejimida qaysi material */
+  materialId: number | null = null,
 ): Promise<QoidaQatori[]> {
   const sql = ulanishOl();
 
@@ -178,7 +200,8 @@ export async function turQoidalariniOl(
       AND (${turId === null} OR mn.mahsulot_tur_id = ${turId ?? 0})
       AND (${turId !== null} OR mn.mahsulot_tur_id IS NULL)
       AND mn.hamma_turga = ${hammaTurga}
-    ORDER BY g.tartib, g.nom`;
+      AND coalesce(mn.material_id, 0) = ${materialId ?? 0}
+    ORDER BY (mn.mijoz_turi_id IS NULL) DESC, (mn.filial_id IS NULL) DESC, mn.id`;
 
   if (qoidalar.length === 0) return [];
 

@@ -5,6 +5,7 @@ import { NarxFormasi } from './forma';
 import { NarxMatritsasi } from './matritsa';
 import {
   almashtirishGuruhlariniOl,
+  materialJadvallariniOl,
   materialQoidalariSoni,
   standartNarxBormi,
   narxMatritsasiniOl,
@@ -47,6 +48,19 @@ export default async function NarxSahifasi({
   const xomTur = sp['tur'];
   const materialTanlandi = xomTur === 'material';
   /**
+   * `?material=<id>` — 0059, egasi qarori 2026-09-24.
+   *
+   * ⚠️ Bo'sh bo'lsa UMUMIY jadval tahrirlanadi: u alohida jadvali
+   *    yo'q hamma materialga tegishli. Aynan shu 0059 gacha yagona
+   *    holat edi va karniz bilan pultni bir narxga bog'lab
+   *    qo'ygandi.
+   */
+  const xomMaterial = sp['material'];
+  const tanlanganMaterial =
+    typeof xomMaterial === 'string' && Number.isInteger(Number(xomMaterial))
+      ? Number(xomMaterial)
+      : null;
+  /**
    * `?tur=umumiy` — HAMMA TUR UCHUN STANDART NARX (0055).
    *
    * ⚠️ Egasi: «1 ta narx darajasidan 5 xil yoki 10 xil mahsulot
@@ -81,6 +95,7 @@ export default async function NarxSahifasi({
     materialQoidaSoni,
     matritsa,
     standartBormi,
+    materialJadvallari,
   ] = await Promise.all([
       materiallarniOl(),
       almashtirishGuruhlariniOl(),
@@ -90,6 +105,7 @@ export default async function NarxSahifasi({
       materialQoidalariSoni(),
       narxMatritsasiniOl(),
       standartNarxBormi(),
+      materialJadvallariniOl(),
     ]);
 
   /** Materialni o'zi sotishda tur yo'q — `null` beriladi */
@@ -100,7 +116,11 @@ export default async function NarxSahifasi({
       ? [[], []]
       : await Promise.all([
           /** ⚠️ 0055 — umumiy rejimda BOSHQA qatorlar olinadi */
-          turQoidalariniOl(tanlanganId, umumiyTanlandi),
+          turQoidalariniOl(
+            tanlanganId,
+            umumiyTanlandi,
+            materialTanlandi ? tanlanganMaterial : null,
+          ),
           turQoshimchalariniOl(tanlanganId),
         ]);
 
@@ -183,7 +203,7 @@ export default async function NarxSahifasi({
             <Link
               href="/narx?tur=material"
               className={`flex items-center justify-between rounded-maydon px-3 py-2 text-sm transition-colors ${
-                materialTanlandi
+                materialTanlandi && tanlanganMaterial === null
                   ? 'bg-brend/10 font-medium text-brend'
                   : 'text-matn-ikki hover:bg-fon-ikki'
               }`}
@@ -202,6 +222,40 @@ export default async function NarxSahifasi({
                 {materialQoidaSoni === 0 ? '⚠' : materialQoidaSoni}
               </span>
             </Link>
+
+            {/*
+              ── ALOHIDA JADVALI BOR MATERIALLAR — 0059 ──────
+
+              ⚠️ Faqat JADVALI BORLARI ko'rsatiladi, hamma material
+                 emas. O'nlab mato ro'yxatga chiqsa chap ustun
+                 o'qib bo'lmas holga kelardi va egasi aynan shu
+                 ekranda «qayerdan boshlashni topolmadim» degandi.
+
+                 Yangi material uchun jadval «Materialni o'zi
+                 sotish» ichidan ochiladi.
+            */}
+            {materialTanlandi &&
+              materialJadvallari.map((j) => {
+                const nomi =
+                  materiallar.find((m) => m.id === j.materialId)?.nom ??
+                  `#${String(j.materialId)}`;
+                return (
+                  <Link
+                    key={j.materialId}
+                    href={`/narx?tur=material&material=${String(j.materialId)}`}
+                    className={`ml-3 flex items-center justify-between rounded-maydon px-3 py-1.5 text-[13px] transition-colors ${
+                      tanlanganMaterial === j.materialId
+                        ? 'bg-brend/10 font-medium text-brend'
+                        : 'text-matn-ikki hover:bg-fon-ikki'
+                    }`}
+                  >
+                    <span className="truncate">↳ {nomi}</span>
+                    <span className="ml-2 shrink-0 text-[11px] text-matn-kuchsiz">
+                      {j.soni}
+                    </span>
+                  </Link>
+                );
+              })}
 
             <div className="my-1 border-t border-chegara" />
 
@@ -258,7 +312,7 @@ export default async function NarxSahifasi({
                 umumiyTanlandi
                   ? 'umumiy'
                   : materialTanlandi
-                    ? 'material'
+                    ? `material-${String(tanlanganMaterial ?? 0)}`
                     : String(tanlangan?.id ?? 0)
               }
               turId={materialTanlandi || umumiyTanlandi ? null : (tanlangan?.id ?? 0)}
@@ -266,10 +320,14 @@ export default async function NarxSahifasi({
                 umumiyTanlandi
                   ? 'Hamma tur uchun standart'
                   : materialTanlandi
-                    ? "Materialni o'zi sotish"
+                    ? tanlanganMaterial === null
+                      ? "Materialni o'zi sotish — umumiy jadval"
+                      : `${materiallar.find((m) => m.id === tanlanganMaterial)?.nom ?? ''} — o'z jadvali`
                     : (tanlangan?.nom ?? '')
               }
               hammaTurga={umumiyTanlandi}
+              materialId={materialTanlandi ? tanlanganMaterial : null}
+              materialRoyxati={materialTanlandi ? materiallar : []}
               /* ⚠️ Narxi BOR turlar; o'zi chiqariladi — o'zidan nusxa ma'nosiz */
               nusxaTurlari={turlar.filter(
                 (t) => t.qoidaSoni > 0 && t.id !== (tanlangan?.id ?? 0),

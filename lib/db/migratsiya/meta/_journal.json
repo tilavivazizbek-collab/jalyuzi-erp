@@ -414,6 +414,13 @@
       "when": 1790188166251,
       "tag": "0058_narx_guruhi_ustunlari",
       "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "7",
+      "when": 1790190166251,
+      "tag": "0059_material_narxi",
+      "breakpoints": true
     }
   ]
 }

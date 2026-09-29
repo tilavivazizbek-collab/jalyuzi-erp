@@ -157,6 +157,8 @@ export function NarxFormasi({
   ozgartiraOladi,
   nusxaTurlari,
   hammaTurga = false,
+  materialId = null,
+  materialRoyxati = [],
 }: {
   /** ⚠️ `null` — «materialni o'zi sotish», mahsulot turi yo'q */
   turId: number | null;
@@ -172,12 +174,21 @@ export function NarxFormasi({
   /** Narxi bor boshqa turlar — jadvalni nusxalash uchun */
   nusxaTurlari: readonly { readonly id: number; readonly nom: string }[];
   /**
-   * DARAJAGA UMUMIY NARX rejimi — 0055.
+   * HAMMA TURGA STANDART NARX rejimi — 0055.
    *
-   * ⚠️ Bu rejimda qatorlar aniq turga emas, DARAJAGA yoziladi
+   * ⚠️ Bu rejimda qatorlar aniq turga emas, hammasiga yoziladi
    *    va turga alohida qator bo'lmaganda ishlatiladi.
    */
   hammaTurga?: boolean;
+  /**
+   * QAYSI MATERIALNING jadvali — 0059.
+   *
+   * ⚠️ `null` = UMUMIY jadval: alohida jadvali yo'q hamma
+   *    materialga tegishli. Tanlansa faqat o'sha materialga.
+   */
+  materialId?: number | null;
+  /** «Materialni o'zi sotish» rejimida material tanlash uchun */
+  materialRoyxati?: readonly TanlovQatori[];
 }) {
   const [holat, yubor, kutilmoqda] = useActionState<NarxHolati, FormData>(
     narxSaqlaAmali,
@@ -435,8 +446,10 @@ export function NarxFormasi({
   return (
     <form action={yubor} className="flex flex-col gap-5">
       <input type="hidden" name="mahsulotTurId" value={turId ?? ''} />
-      {/* 0055 — darajaga umumiy narx rejimi */}
+      {/* 0055 — hamma turga standart narx rejimi */}
       <input type="hidden" name="hammaTurga" value={hammaTurga ? '1' : '0'} />
+      {/* 0059 — qaysi materialning jadvali (bo'sh = umumiy) */}
+      <input type="hidden" name="materialId" value={materialId ?? ''} />
       <input type="hidden" name="qoidalar" value={JSON.stringify(yuk.qoidalar)} />
       <input type="hidden" name="qoshimchalar" value={JSON.stringify(yuk.qoshimchalar)} />
 
@@ -460,6 +473,52 @@ export function NarxFormasi({
         <p className="rounded-maydon bg-belgi-yashil-fon px-3 py-2.5 text-sm text-belgi-yashil">
           Saqlandi — yangi narx endi sotuvda ishlaydi. Eski buyurtmalar o‘zgarmaydi.
         </p>
+      )}
+
+      {/*
+        ── MATERIAL UCHUN ALOHIDA JADVAL — 0059 ───────────────
+
+        ⚠️ NEGA BU YERDA
+
+           Daraja olib tashlangach (0057) «Materialni o'zi sotish»
+           jadvali BITTA bo'lib qoldi: karnizga qo'yilgan
+           35 000 so'm/metr pultga ham qo'llanardi.
+
+           Egasi «har materialga alohida jadval» ni tanladi
+           (2026-09-24). Bu tanlagich — o'sha jadvalni ochish yo'li.
+
+        ⚠️ HAVOLA, tugma emas: jadval boshqa sahifada ochiladi va
+           saqlanmagan o'zgarish yo'qolmasligi uchun forma
+           yuborilmaydi — brauzer o'zi ogohlantiradi.
+      */}
+      {materialRoyxati.length > 0 && (
+        <section className="rounded-maydon border border-chegara bg-fon px-4 py-3">
+          <p className="text-[13px] font-medium text-matn">
+            {materialId === null
+              ? "Bu UMUMIY jadval — alohida jadvali yo'q hamma materialga tegishli"
+              : 'Bu faqat shu materialning jadvali'}
+          </p>
+          <p className="mt-0.5 text-[12px] text-matn-ikki">
+            Materialga o&apos;z narxi kerak bo&apos;lsa tanlang — u umumiy
+            jadvaldan ustun turadi.
+          </p>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <Tanlagich
+              qiymat={materialId === null ? '' : String(materialId)}
+              ozgartir={(v) => {
+                window.location.href =
+                  v === '' ? '/narx?tur=material' : `/narx?tur=material&material=${v}`;
+              }}
+              boshQator="Umumiy jadval (hammasiga)"
+              yozuvlar={materialRoyxati.map((m) => ({
+                qiymat: String(m.id),
+                matn: m.nom,
+              }))}
+              ariaYorliq="Qaysi materialning jadvali"
+              sinf="min-w-60"
+            />
+          </div>
+        </section>
       )}
 
       {/* ─── Narx jadvali ─────────────────────────────────────────────── */}

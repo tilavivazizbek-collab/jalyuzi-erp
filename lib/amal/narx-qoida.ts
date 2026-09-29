@@ -159,12 +159,22 @@ export async function turNarxiniSaqla(
    * ⚠️ `hamma_turga` NOFAOLLASHTIRISHGA HAM KIRADI — 0055.
    *
    *    0055 dan keyin `mahsulot_tur_id IS NULL` IKKI xil qatorni
-   *    bildiradi: «materialni o'zi sotish» va «darajaga umumiy
-   *    narx». Shartsiz qoldirilsa, material narxini saqlash
-   *    darajaga qo'yilgan narxlarni JIMGINA o'chirib yuborardi —
+   *    bildiradi: «materialni o'zi sotish» va «hamma tur uchun
+   *    standart narx». Shartsiz qoldirilsa, material narxini
+   *    saqlash standart narxlarni JIMGINA o'chirib yuborardi —
    *    va aksincha.
    */
   const hammaTurga = kirim.hammaTurga === true;
+  /*
+   * ⚠️ MATERIAL HAM QAMROVGA KIRADI — 0059.
+   *
+   *    Nofaollashtirish «shu ekranda ko'rinib turgan jadval»ni
+   *    almashtirishi kerak, undan kattasini emas. Material shartsiz
+   *    qoldirilsa karniz narxini saqlash PULTNIKINI va umumiy
+   *    jadvalni ham jimgina o'chirib yuborardi — ya'ni egasi bitta
+   *    jadvalni tahrirlab, uchtasini yo'qotardi.
+   */
+  const material = kirim.materialId ?? null;
 
   await tx`
     UPDATE mahsulot_narx_bosqich SET faol = false, ozgartirdi_id = ${xodimId},
@@ -173,12 +183,14 @@ export async function turNarxiniSaqla(
        AND mahsulot_narx_id IN (
          SELECT id FROM mahsulot_narx
           WHERE coalesce(mahsulot_tur_id, 0) = ${tur ?? 0}
-            AND hamma_turga = ${hammaTurga})`;
+            AND hamma_turga = ${hammaTurga}
+            AND coalesce(material_id, 0) = ${material ?? 0})`;
 
   await tx`
     UPDATE mahsulot_narx SET faol = false, ozgartirdi_id = ${xodimId}, ozgartirildi = now()
      WHERE coalesce(mahsulot_tur_id, 0) = ${tur ?? 0}
-       AND hamma_turga = ${hammaTurga} AND faol = true`;
+       AND hamma_turga = ${hammaTurga}
+       AND coalesce(material_id, 0) = ${material ?? 0} AND faol = true`;
 
   if (tur !== null) {
     await tx`
@@ -205,14 +217,15 @@ export async function turNarxiniSaqla(
      *    ikkinchisi birinchisini yangilaydi, xato bermaydi.
      */
     const qator = await tx<{ id: number }[]>`
-      INSERT INTO mahsulot_narx (mahsulot_tur_id, hamma_turga,
+      INSERT INTO mahsulot_narx (mahsulot_tur_id, hamma_turga, material_id,
                                  mijoz_turi_id,
                                  filial_id, hisoblash_usuli, min_olchov,
                                  yaratdi_id)
-      VALUES (${tur}, ${hammaTurga}, ${q.mijozTuriId},
+      VALUES (${tur}, ${hammaTurga}, ${material}, ${q.mijozTuriId},
               ${q.filialId}, ${q.hisoblashUsuli}, ${q.minOlchov ?? null},
               ${xodimId})
       ON CONFLICT (coalesce(mahsulot_tur_id, 0), hamma_turga,
+                   coalesce(material_id, 0),
                    coalesce(mijoz_turi_id, 0), coalesce(filial_id, 0))
         WHERE faol
       DO UPDATE SET hisoblash_usuli = EXCLUDED.hisoblash_usuli,

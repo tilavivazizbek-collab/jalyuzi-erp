@@ -361,21 +361,51 @@ export async function qoshimchaNarxiniTekshir(
    * ⚠️ `hamma_turga = false` SHART. `mahsulot_tur_id IS NULL`
    *    ikki xil qatorni bildiradi (0055): bu yerda kerakligi —
    *    alohida sotuv, ikkinchisi esa tayyor jalyuziga qo'yilgan
-   *    umumiy narx. Shartsiz qoldirilsa ular aralashardi.
+   *    standart narx. Shartsiz qoldirilsa ular aralashardi.
+   *
+   * ⚠️ MATERIAL O'QI — 0059. Shu materialga qo'yilgan jadval
+   *    umumiysidan ustun; boshqa materialniki esa HECH QACHON
+   *    olinmaydi. Tanlashni `qoidaniTop()` qiladi — bu yerda
+   *    faqat nomzodlar yig'iladi (EKRAN BILAN BIR XIL, §3).
    */
-  const qoida = (
-    await tx<{ id: number; mijoz_turi_id: number | null; hisoblash_usuli: string }[]>`
-      SELECT id, mijoz_turi_id, hisoblash_usuli
-        FROM mahsulot_narx
-       WHERE mahsulot_tur_id IS NULL
-         AND hamma_turga = false
-         AND faol = true
-         AND (filial_id IS NULL OR filial_id = ${k.filialId})
-         AND (mijoz_turi_id IS NULL
-              OR mijoz_turi_id = (
-                SELECT mijoz_turi_id FROM mijoz WHERE id = ${k.mijozId}))
-       ORDER BY (mijoz_turi_id IS NULL), (filial_id IS NULL)`
-  )[0];
+  const nomzodlar = await tx<
+    {
+      id: number;
+      material_id: number | null;
+      mijoz_turi_id: number | null;
+      filial_id: number | null;
+      hisoblash_usuli: string;
+    }[]
+  >`
+    SELECT id, material_id, mijoz_turi_id, filial_id, hisoblash_usuli
+      FROM mahsulot_narx
+     WHERE mahsulot_tur_id IS NULL
+       AND hamma_turga = false
+       AND faol = true
+       AND (material_id IS NULL OR material_id = ${k.materialId})
+       AND (filial_id IS NULL OR filial_id = ${k.filialId})
+       AND (mijoz_turi_id IS NULL
+            OR mijoz_turi_id = (
+              SELECT mijoz_turi_id FROM mijoz WHERE id = ${k.mijozId}))`;
+
+  const mijozTuri = (
+    await tx<{ t: number | null }[]>`
+      SELECT mijoz_turi_id AS t FROM mijoz WHERE id = ${k.mijozId}`
+  )[0]?.t;
+
+  const qoida = qoidaniTop(
+    nomzodlar.map((q) => ({
+      ...q,
+      materialId: q.material_id,
+      mijozTuriId: q.mijoz_turi_id,
+      filialId: q.filial_id,
+    })),
+    {
+      mijozTuriId: mijozTuri ?? null,
+      filialId: k.filialId,
+      materialId: k.materialId,
+    },
+  );
 
   if (qoida !== undefined && (kesiladimi || qoida.hisoblash_usuli === 'MIQDOR')) {
     const bosqichlar = await tx<

@@ -426,6 +426,17 @@ export interface TanlanadiganQoida {
   readonly mijozTuriId: number | null;
   readonly filialId: number | null;
   readonly hammaTurga?: boolean;
+  /**
+   * QAYSI MATERIALGA — 0059, egasi qarori 2026-09-24.
+   *
+   * ⚠️ Faqat «materialni o'zi sotish» qatorlarida to'ladi. Tayyor
+   *    jalyuzi qoidasida doim bo'sh: u turga tegishli.
+   *
+   * ⚠️ IXTIYORIY: bilmaydigan eski chaqiruvchilar avvalgidek
+   *    ishlayveradi — berilmasa qator «hamma materialga» deb
+   *    qaraladi.
+   */
+  readonly materialId?: number | null;
 }
 
 /**
@@ -453,6 +464,23 @@ export interface TanlanadiganQoida {
  *      7. HAMMA TUR + hamma mijoz + filial
  *      8. HAMMA TUR + hamma mijoz + hamma filial
  *
+ * ⚠️ MATERIAL O'QI — 0059, ENG TASHQI.
+ *
+ *    «Materialni o'zi sotish» jadvali ilgari BITTA edi va u
+ *    to'g'ridan sotiladigan hamma materialga tegishli bo'lardi:
+ *    karniz 35 000 so'm/metr desa, pult ham 35 000 ga sotilardi.
+ *
+ *    Endi qator MATERIALGA bog'lanishi mumkin. Aniq materialniki
+ *    umumiysidan USTUN — sakkiz qadam ikkalasida ham to'liq
+ *    yuriladi:
+ *
+ *      AVVAL  material_id = shu material  → 8 qadam
+ *      KEYIN  material_id bo'sh (umumiy)  → 8 qadam
+ *
+ *    Ya'ni materialga «optomchiga» qatori qo'yilgan bo'lsa u
+ *    umumiy jadvalning «optomchiga» qatoridan ham ustun turadi.
+ *    Aks holda aniqroq sozlama umumiysiga yutqazardi.
+ *
  *    TZ 6.2 — mijoz turi filialdan USTUN (egasi bilan kelishilgan
  *    2026-08-30). Tur esa ikkalasidan ham ustun: egasi qarori
  *    2026-09-23 — «turga qo'yilgan narx darajanikini TO'LIQ
@@ -468,18 +496,41 @@ export function qoidaniTop<T extends TanlanadiganQoida>(
   k: {
     readonly mijozTuriId: number | null;
     readonly filialId: number | null;
+    /**
+     * Qaysi material sotilyapti — 0059. Tayyor jalyuzida
+     * berilmaydi.
+     */
+    readonly materialId?: number | null;
   },
 ): T | undefined {
-  const turniki = qoidalar.filter((q) => q.hammaTurga !== true);
-  const umumiy = qoidalar.filter((q) => q.hammaTurga === true);
+  const tanla = (royxat: readonly T[]): T | undefined => {
+    const turniki = royxat.filter((q) => q.hammaTurga !== true);
+    const umumiy = royxat.filter((q) => q.hammaTurga === true);
 
-  const tanla = (royxat: readonly T[]): T | undefined =>
-    royxat.find((q) => q.mijozTuriId === k.mijozTuriId && q.filialId === k.filialId) ??
-    royxat.find((q) => q.mijozTuriId === k.mijozTuriId && q.filialId === null) ??
-    royxat.find((q) => q.mijozTuriId === null && q.filialId === k.filialId) ??
-    royxat.find((q) => q.mijozTuriId === null && q.filialId === null);
+    const sakkiz = (r: readonly T[]): T | undefined =>
+      r.find((q) => q.mijozTuriId === k.mijozTuriId && q.filialId === k.filialId) ??
+      r.find((q) => q.mijozTuriId === k.mijozTuriId && q.filialId === null) ??
+      r.find((q) => q.mijozTuriId === null && q.filialId === k.filialId) ??
+      r.find((q) => q.mijozTuriId === null && q.filialId === null);
 
-  return tanla(turniki) ?? tanla(umumiy);
+    return sakkiz(turniki) ?? sakkiz(umumiy);
+  };
+
+  const material = k.materialId ?? null;
+
+  /**
+   * ⚠️ MATERIALGA BOG'LANGAN QATOR BOSHQA MATERIALGA HECH QACHON
+   *    ishlatilmaydi — shuning uchun umumiy ro'yxatdan ham
+   *    chiqariladi. Aks holda karnizga qo'yilgan 35 000 pultga
+   *    sizib o'tardi, ya'ni 0059 dan oldingi xatoning o'zi
+   *    qaytardi.
+   */
+  const umumiyQatorlar = qoidalar.filter((q) => (q.materialId ?? null) === null);
+
+  if (material === null) return tanla(umumiyQatorlar);
+
+  const materialniki = qoidalar.filter((q) => (q.materialId ?? null) === material);
+  return tanla(materialniki) ?? tanla(umumiyQatorlar);
 }
 
 /**

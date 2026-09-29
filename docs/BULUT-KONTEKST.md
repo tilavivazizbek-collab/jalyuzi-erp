@@ -266,7 +266,34 @@ Batafsil: `docs/QAMROV.md` §6f.
 
 ---
 
-## 6g. Ikki ko'rinish — kun va tun (2026-09-23)
+## 6g. Materialga alohida narx jadvali — 2026-09-24 (0059)
+
+Daraja ketgach «Materialni o'zi sotish» jadvali BITTA bo'lib qolgan
+edi: karnizga qo'yilgan 35 000 so'm/metr pultga ham qo'llanardi, ya'ni
+«ko'p olganga arzonroq» (0056) buzilgandi. Bu 0057 ochgan teshik.
+
+Egasi uch variantdan **«har materialga alohida jadval»** ni tanladi.
+
+⚠️ **UCH POG'ONA, aniqdan umumiyga:**
+
+    material_id = shu material  →  shu materialning jadvali
+    material_id bo'sh           →  umumiy jadval (hammasiga)
+    qoida umuman yo'q           →  materialning o'z sotuv narxi
+
+⚠️ **MATERIAL O'QI ENG TASHQI** — `qoidaniTop()` da. Materialga
+qo'yilgan UMUMIY qator umumiy jadvalning ANIQ qatoridan ham ustun.
+
+⚠️ **SAQLASH QAMROVIGA `material_id` SHART.** Usiz karniz narxini
+saqlash pultnikini va umumiy jadvalni ham jimgina o'chirib yuborardi —
+egasi bitta jadvalni tahrirlab uchtasini yo'qotardi.
+
+Ekran: `/narx?tur=material&material=<id>`.
+
+Batafsil: `docs/QAMROV.md` §6g.
+
+---
+
+## 6h. Ikki ko'rinish — kun va tun (2026-09-23)
 
 Egasi: «butun tizimni ikki xil dizaynli qil, tun va kun».
 To'liq qaror: **`docs/QARORLAR-KOD.md` P-39**.
@@ -311,12 +338,15 @@ mahsulot turi uchun `/stavka` ekranidan tanlaydi.
 Kod `chegara_kv_m` ustunini o'qiydi; migratsiyasiz deploy qilinsa
 «Ishni oldim» yiqiladi (CLAUDE.md'dagi 0026 hodisasining aynan o'zi).
 
-⚠️ **2026-09-24 — «ko'p olganga arzonroq» jadvali endi UMUMIY.**
-Daraja olib tashlangach «Materialni o'zi sotish» jadvali bitta bo'lib
-qoldi va to'g'ridan sotiladigan HAMMA materialga tegishli: karniz ham,
-pult ham bir xil bosqichdan narx oladi. Har materialga alohida jadval
-kerak bo'lsa qator **materialga** bog'lanishi shart
-(`mahsulot_narx.material_id`) — migratsiya va ruxsat kerak.
+⚠️ **2026-09-24 — 0057 · 0058 · 0059 QO'LLANMAGAN.** Uchalasi kodga
+ulangan, kod ularsiz **ishlamaydi**: `narx_guruh_id` hali `NOT NULL`
+va `material_id` ustuni hali yo'q. Tartib qat'iy:
+
+    0057  →  push (Render deploy tugasin)  →  0058  →  0059
+
+⚠️ 0059 dan oldin `material_id` ustuni yo'q ekanligi uchun narx
+saqlash va `/narx` sahifasi ishlamaydi — ya'ni uchalasi BIRGA
+qo'llanishi kerak, yarmini qoldirib ketilmaydi.
 
 2026-09-03 dan javobsiz qolgan savollar (batafsil: `docs/QAMROV.md` §6c):
 

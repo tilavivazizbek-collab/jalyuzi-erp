@@ -14,6 +14,13 @@
  *
  *    Narx endi matoga bog'liq emas: bir turdagi hamma mato bir xil
  *    narxda sotiladi.
+ *
+ * ⚠️ 0059 — TO'RTINCHI O'Q: MATERIAL (egasi qarori 2026-09-24).
+ *
+ *    Faqat «materialni o'zi sotish» qatorlariga tegishli. Daraja
+ *    ketgach bu jadval BITTA bo'lib qolgan edi va karniz bilan
+ *    pult bir xil bosqichdan narx olardi. Endi qator materialga
+ *    bog'lanishi mumkin va aniq materialniki umumiysidan ustun.
  */
 
 import { describe, expect, it } from 'vitest';
@@ -24,6 +31,7 @@ interface Q {
   readonly mijozTuriId: number | null;
   readonly filialId: number | null;
   readonly hammaTurga?: boolean;
+  readonly materialId?: number | null;
 }
 
 const MIJOZ = 3;
@@ -35,6 +43,14 @@ const q = (
   filialId: number | null,
   hammaTurga = false,
 ): Q => ({ kod, mijozTuriId, filialId, hammaTurga });
+
+/** 0059 — materialga bog'langan qator */
+const qm = (
+  kod: string,
+  materialId: number | null,
+  mijozTuriId: number | null = null,
+  filialId: number | null = null,
+): Q => ({ kod, mijozTuriId, filialId, hammaTurga: false, materialId });
 
 const KIRIM = { mijozTuriId: MIJOZ, filialId: FILIAL };
 
@@ -145,5 +161,69 @@ describe('EC-QT · narx manbai', () => {
     expect(narxManbai(q('t', null, null))).toBe('TUR');
     expect(narxManbai(q('s', null, null, true))).toBe('STANDART');
     expect(narxManbai(undefined)).toBe('YOQ');
+  });
+});
+
+// ─── 0059 — material o'qi ────────────────────────────────────────
+
+const KARNIZ = 17;
+const PULT = 21;
+
+describe("EC-QT · material o'qi — 0059", () => {
+  /**
+   * ⚠️ ASOSIY SABAB. 0059 gacha jadval bitta edi: karnizga
+   *    qo'yilgan 35 000 so'm/metr pultga ham qo'llanardi.
+   */
+  it("EC-QT-14 · boshqa materialning qatori HECH QACHON olinmaydi", () => {
+    const r = qoidaniTop([qm('karniz', KARNIZ)], { ...KIRIM, materialId: PULT });
+    expect(r).toBeUndefined();
+  });
+
+  it("EC-QT-15 · materialga qo'yilgani umumiysidan ustun", () => {
+    const r = qoidaniTop([qm('umumiy', null), qm('karniz', KARNIZ)], {
+      ...KIRIM,
+      materialId: KARNIZ,
+    });
+    expect(r?.kod).toBe('karniz');
+  });
+
+  it("EC-QT-16 · materialniki yo'q bo'lsa umumiyga tushadi", () => {
+    const r = qoidaniTop([qm('umumiy', null)], { ...KIRIM, materialId: PULT });
+    expect(r?.kod).toBe('umumiy');
+  });
+
+  /**
+   * ⚠️ MATERIAL O'QI ENG TASHQI. Materialga qo'yilgan UMUMIY qator
+   *    (mijoz turi yo'q) umumiy jadvalning ANIQ qatoridan ham
+   *    ustun: aks holda aniqroq sozlama umumiysiga yutqazardi.
+   */
+  it("EC-QT-17 · materialning umumiy qatori umumiy jadvalning aniq qatoridan ustun", () => {
+    const r = qoidaniTop([qm('umumiy-aniq', null, MIJOZ, FILIAL), qm('karniz', KARNIZ)], {
+      ...KIRIM,
+      materialId: KARNIZ,
+    });
+    expect(r?.kod).toBe('karniz');
+  });
+
+  it("EC-QT-18 · material ichida ham sakkiz qadam ishlaydi", () => {
+    const r = qoidaniTop(
+      [qm('k-umumiy', KARNIZ), qm('k-aniq', KARNIZ, MIJOZ, FILIAL)],
+      { ...KIRIM, materialId: KARNIZ },
+    );
+    expect(r?.kod).toBe('k-aniq');
+  });
+
+  /**
+   * ⚠️ TAYYOR JALYUZI QATORLARI BUZILMAYDI: `materialId` berilmasa
+   *    tanlov avvalgidek ishlaydi.
+   */
+  it("EC-QT-19 · material berilmasa eski xulq saqlanadi", () => {
+    const r = qoidaniTop([q('tur', MIJOZ, FILIAL), q('standart', null, null, true)], KIRIM);
+    expect(r?.kod).toBe('tur');
+  });
+
+  it("EC-QT-20 · material berilmasa materialga bog'langan qator OLINMAYDI", () => {
+    const r = qoidaniTop([qm('karniz', KARNIZ)], KIRIM);
+    expect(r).toBeUndefined();
   });
 });
