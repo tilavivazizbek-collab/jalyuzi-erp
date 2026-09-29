@@ -255,6 +255,9 @@ Ketgani: `narx_guruh` jadvali, `material.narx_guruh_id`,
     push  → Render deploy tugasin
     0060  ustunlar TASHLANADI       → yangi kod jonli bo'lgach
 
+Holatni tekshirish: `npm run db:narx-tekshir` (faqat o'qiydi, 25 s
+ichida javob beradi).
+
 Buzadigan migratsiya ATAYLAB oxirida: 0059 dan oldin turgan paytda
 deploy bilan migratsiya orasida jonli sayt BUTUNLAY yiqilardi.
 

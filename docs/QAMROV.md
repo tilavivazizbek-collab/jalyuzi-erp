@@ -1178,6 +1178,10 @@ narx»** va darajaga aloqasi yo'q.
 indeksga mos kelmaydi), materiallar ro'yxati ham, sotuv ekrani ham
 ishlayveradi.
 
+**Holatni tekshirish:** `npm run db:narx-tekshir` — uchalasi ikkala
+bazaga qo'llanganini bir buyruqda aytadi, faqat o'qiydi. Tarmoq
+to'silgan bo'lsa ham 25 soniyada javob beradi (cheksiz aylanmaydi).
+
 ⚠️ **Buzadigan migratsiya ATAYLAB OXIRIDA.** Ilgari u 0058 edi va
 0059 dan oldin turardi — shunda deploy bilan migratsiya orasida
 jonli sayt **butunlay** yiqilardi: materiallar ro'yxati ham, sotuv
