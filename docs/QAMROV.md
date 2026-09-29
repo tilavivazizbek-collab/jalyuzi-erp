@@ -1132,7 +1132,7 @@ ishlatiladi». Yashildan ajratilgan, chunki narxni tuzatish joyi boshqa.
   yoki «×1.2» ko'rinishidagi farq qo'yish qurilmadi (egasi to'liq
   almashtirishni tanladi)
 
-## 6f. Narx darajasi BUTUNLAY olib tashlandi — 0057·0058 (2026-09-24)
+## 6f. Narx darajasi BUTUNLAY olib tashlandi — 0057·0060 (2026-09-24)
 
 ### Egasining qarori
 
@@ -1165,18 +1165,25 @@ matoning qimmat-arzonligi mijoz narxiga ta'sir qilmaydi.
 qoldi, lekin ma'nosi o'zgardi: endi u **«hamma tur uchun standart
 narx»** va darajaga aloqasi yo'q.
 
-### Ikki qadamli migratsiya — nega
+### Uch qadamli migratsiya — nega
 
 | # | Nima | Nega shunday |
 |---|---|---|
 | **0057** | `narx_guruh_id` IXTIYORIY bo'ladi | Jonli saytda hali eski kod ishlaydi va u ustunni yozadi. Ustun darhol tashlansa sayt o'sha zahoti yiqilardi |
-| **0058** | Ustunlar va jadval TASHLANADI | Yangi kod deploy bo'lgach — endi ustunni hech kim o'qimaydi |
+| **0059** | `material_id` qo'shiladi (§6g) | Qo'shimcha ustun — eski kod ham ishlayveradi |
+| **0060** | Ustunlar va jadval TASHLANADI | Yangi kod deploy bo'lgach — endi ustunni hech kim o'qimaydi |
 
-⚠️ **Tartib**: 0057 → push → Render deploy tugashini kutish → 0058.
-Oraliqda faqat **narx saqlash** ishlamaydi (bir necha daqiqa), qolgan
-hammasi ishlayveradi.
+⚠️ **Tartib**: 0057 → 0059 → push → Render deploy tugashini kutish →
+0060. Oraliqda faqat **narx saqlash** ishlamaydi (`ON CONFLICT`
+indeksga mos kelmaydi), materiallar ro'yxati ham, sotuv ekrani ham
+ishlayveradi.
 
-### ⚠️ 0058 sinov bazasida YIQILARDI — topildi va tuzatildi
+⚠️ **Buzadigan migratsiya ATAYLAB OXIRIDA.** Ilgari u 0058 edi va
+0059 dan oldin turardi — shunda deploy bilan migratsiya orasida
+jonli sayt **butunlay** yiqilardi: materiallar ro'yxati ham, sotuv
+ekrani ham `narx_guruh_id` ni so'raydi.
+
+### ⚠️ To'liq noyoblik indeksi sinov bazasida YIQILARDI
 
 Noyoblik indeksi ilgari NOFAOL qatorlarni ham qamrardi va uning ichida
 `narx_guruh_id` bor edi. Ustun tashlangach ikki darajaga yozilgan ikki
@@ -1192,11 +1199,12 @@ Ustun tashlanishidan oldin sanaldi:
 Ya'ni migratsiya ishchi bazada o'tib, sinov bazasida yiqilardi —
 «bitta bazada ishladi» degan yolg'on tinchlik (QOIDALAR §6).
 
-**Yechim:** indeks **QISMAN** qilindi — `WHERE faol`. Narx tarixi
-saqlanadi (2.1-invariant), hech qanday qator o'chirilmaydi. Kod ham
-shunga moslandi: `ON CONFLICT ... WHERE faol`. Predikat yozilmasa
-Postgres qisman indeksni **tanimaydi** va har saqlash «no unique or
-exclusion constraint matching» bilan yiqilardi.
+**Yechim:** indeks **QISMAN** qilindi — `WHERE faol` (0059 da
+quriladi). Narx tarixi saqlanadi (2.1-invariant), hech qanday qator
+o'chirilmaydi. Kod ham shunga moslandi: `ON CONFLICT ... WHERE faol`.
+Predikat yozilmasa Postgres qisman indeksni **tanimaydi** va har
+saqlash «no unique or exclusion constraint matching» bilan
+yiqilardi.
 
 ### Yo'l-yo'lakay topilgan xato
 

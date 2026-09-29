@@ -82,7 +82,8 @@ UPDATE "mahsulot_narx" mn SET "faol" = false, "ochirildi" = now(), "ozgartirildi
 --      0057 (bu)  — ustun IXTIYORIY bo'ladi. Eski kod ham, yangi
 --                   kod ham ishlayveradi: eskisi yozadi, yangisi
 --                   yozmaydi va baza norozi bo'lmaydi.
---      0058       — yangi kod deploy bo'lgach ustun TASHLANADI.
+--      0059       — material_id qo'shiladi (eski kod ishlayveradi).
+--      0060       — yangi kod deploy bo'lgach ustun TASHLANADI.
 --
 --    Bu «kengaytir, keyin qis» (expand/contract) tartibi. Usiz
 --    deploy bilan migratsiya orasida sayt bir necha daqiqa

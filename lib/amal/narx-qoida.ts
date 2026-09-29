@@ -202,7 +202,7 @@ export async function turNarxiniSaqla(
   // ── Yangilarini yozish ──
   for (const q of kirim.qoidalar) {
     /**
-     * ⚠️ `ON CONFLICT` PREDIKATI SHART — 0058.
+     * ⚠️ `ON CONFLICT` PREDIKATI SHART — 0059.
      *
      *    `mahsulot_narx_bitta` endi QISMAN indeks: u faqat faol
      *    qatorlarni qamraydi (nofaol qatorlar narx tarixi bo'lib

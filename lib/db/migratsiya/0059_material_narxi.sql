@@ -49,8 +49,18 @@ ALTER TABLE "mahsulot_narx" ADD CONSTRAINT "mahsulot_narx_material"
  *    Usiz ikkita material bir xil to'rtlikka tushardi: karnizning
  *    «optomchiga» qatori pultnikini ustiga yozib yuborardi.
  *
- * ⚠️ QISMAN (`WHERE faol`) — 0058 dagi sabab bilan bir xil: nofaol
- *    qatorlar narx TARIXI va ular bir-biriga to'qnashishi mumkin.
+ * ⚠️ QISMAN — `WHERE faol`. Nofaol qatorlar narx TARIXI va ular
+ *    bir-biriga to'qnashishi mumkin: eski indeks `narx_guruh_id` ni
+ *    ham qamrardi, ya'ni ikki darajaga yozilgan ikki tarix qatori
+ *    daraja ketgach bir xil beshlikka aylanadi.
+ *
+ *    Sanaldi (2026-09-24): egasining bazasi — 0 ta to'qnashuv,
+ *    sinov bazasi — 16 ta guruh, 48 qator. To'liq indeks shu
+ *    sababli SINOV BAZASIDA yiqilardi va migratsiya «bitta bazada
+ *    ishladi» degan yolg'on tinchlik berardi (QOIDALAR §6).
+ *
+ *    Nofaol qatorlar O'CHIRILMAYDI — ular narx tarixi
+ *    (2.1-invariant). Indeksni qisqartirish tarixni saqlaydi.
  *
  * ⚠️ Kod `ON CONFLICT` bandini shu ro'yxat bilan AYNAN bir xil
  *    yozishi shart, aks holda har saqlash yiqiladi.

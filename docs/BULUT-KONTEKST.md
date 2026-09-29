@@ -235,7 +235,7 @@ Batafsil: `docs/QAMROV.md` §6e.
 
 ---
 
-## 6f. Narx darajasi BUTUNLAY olib tashlandi — 2026-09-24 (0057·0058)
+## 6f. Narx darajasi BUTUNLAY olib tashlandi — 2026-09-24 (0057·0060)
 
 Egasi: «btun tizimda narx guruhi degan narsa kerak emas, tulqi uchirib
 tashla». Men qoldirishni tavsiya qilgandim va raqam bilan ko'rsatdim;
@@ -248,19 +248,22 @@ Ketgani: `narx_guruh` jadvali, `material.narx_guruh_id`,
 `mahsulot_narx.narx_guruh_id`, `mahsulot_slot.narx_belgilaydi`,
 `darajaliSlotniTop()`, `/daraja` ekrani.
 
-⚠️ **IKKI QADAMLI MIGRATSIYA, tartibi muhim:**
+⚠️ **UCH QADAMLI MIGRATSIYA, tartibi muhim:**
 
     0057  ustun IXTIYORIY bo'ladi   → eski kod ham ishlayveradi
+    0059  material_id qo'shiladi    → eski kod ham ishlayveradi
     push  → Render deploy tugasin
-    0058  ustunlar TASHLANADI       → yangi kod jonli bo'lgach
+    0060  ustunlar TASHLANADI       → yangi kod jonli bo'lgach
 
-Teskari tartibda jonli sayt yiqiladi.
+Buzadigan migratsiya ATAYLAB oxirida: 0059 dan oldin turgan paytda
+deploy bilan migratsiya orasida jonli sayt BUTUNLAY yiqilardi.
 
-⚠️ **Noyoblik indeksi endi QISMAN — `WHERE faol`.** Ustun tashlangach
-nofaol TARIX qatorlari bir-biriga to'qnashadi (sinov bazasida 16 ta
-guruh, 48 qator; egasinikida 0 ta). Shu sababli kodda ham
-`ON CONFLICT ... WHERE faol` yozilgan — predikatsiz Postgres qisman
-indeksni tanimaydi va har saqlash yiqiladi.
+⚠️ **Noyoblik indeksi endi QISMAN — `WHERE faol`** (0059 da
+quriladi). Daraja ketgach nofaol TARIX qatorlari bir-biriga
+to'qnashadi (sinov bazasida 16 ta guruh, 48 qator; egasinikida 0 ta).
+Shu sababli kodda ham `ON CONFLICT ... WHERE faol` yozilgan —
+predikatsiz Postgres qisman indeksni tanimaydi va har saqlash
+yiqiladi.
 
 Batafsil: `docs/QAMROV.md` §6f.
 
@@ -338,15 +341,15 @@ mahsulot turi uchun `/stavka` ekranidan tanlaydi.
 Kod `chegara_kv_m` ustunini o'qiydi; migratsiyasiz deploy qilinsa
 «Ishni oldim» yiqiladi (CLAUDE.md'dagi 0026 hodisasining aynan o'zi).
 
-⚠️ **2026-09-24 — 0057 · 0058 · 0059 QO'LLANMAGAN.** Uchalasi kodga
+⚠️ **2026-09-24 — 0057 · 0059 · 0060 QO'LLANMAGAN.** Uchalasi kodga
 ulangan, kod ularsiz **ishlamaydi**: `narx_guruh_id` hali `NOT NULL`
 va `material_id` ustuni hali yo'q. Tartib qat'iy:
 
-    0057  →  push (Render deploy tugasin)  →  0058  →  0059
+    0057  →  0059  →  push (deploy tugasin)  →  0060
 
-⚠️ 0059 dan oldin `material_id` ustuni yo'q ekanligi uchun narx
-saqlash va `/narx` sahifasi ishlamaydi — ya'ni uchalasi BIRGA
-qo'llanishi kerak, yarmini qoldirib ketilmaydi.
+⚠️ 0059 siz `material_id` ustuni yo'q va yangi kodda narx saqlash
+ham, `/narx` sahifasi ham ishlamaydi. 0060 ni esa deploydan KEYIN
+qo'llash kerak — u eski kodni buzadi.
 
 2026-09-03 dan javobsiz qolgan savollar (batafsil: `docs/QAMROV.md` §6c):
 

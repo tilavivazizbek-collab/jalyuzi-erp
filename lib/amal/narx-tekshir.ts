@@ -145,7 +145,7 @@ export async function narxniTekshir(
    *    sotiladi.
    *
    *    Shu bilan birga `darajaliSlotniTop()`, `narx_belgilaydi`
-   *    belgisi va material darajasi ham ketdi (0058) — ular faqat
+   *    belgisi va material darajasi ham ketdi (0060) — ular faqat
    *    shu izlash uchun bor edi.
    */
   /*

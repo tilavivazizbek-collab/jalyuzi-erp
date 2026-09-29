@@ -159,10 +159,10 @@ describe('EC-DRJ · hamma turga umumiy narx yoziladi', () => {
 
   /**
    * ⚠️ `ON CONFLICT` bandi NOYOBLIK INDEKSI bilan mos kelishi shart.
-   *    0055 da indeksga `hamma_turga` qo'shildi, 0058 da esa undan
-   *    `narx_guruh_id` olib tashlandi va indeks QISMAN bo'ldi
-   *    (`WHERE faol`). `ON CONFLICT` shularga mos kelmasa HAR
-   *    SAQLASH xato bilan yiqilardi.
+   *    0055 da indeksga `hamma_turga` qo'shildi, 0059 da esa undan
+   *    `narx_guruh_id` olib tashlanib `material_id` qo'shildi va
+   *    indeks QISMAN bo'ldi (`WHERE faol`). `ON CONFLICT` shularga
+   *    mos kelmasa HAR SAQLASH xato bilan yiqilardi.
    */
   it('EC-DRJ-04 · qayta saqlash ikkinchi marta ham ishlaydi', async () => {
     const n = await sql.begin(async (tx) =>

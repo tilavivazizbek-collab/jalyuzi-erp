@@ -129,7 +129,7 @@ export const mahsulotNarx = pgTable(
      *    shuning uchun oddiy unique index ikkita «hammaga» qatorini
      *    o'tkazib yuborardi.
      *
-     * ⚠️ FAQAT FAOL QATORLARGA — 0058. Nofaol qatorlar narx TARIXI
+     * ⚠️ FAQAT FAOL QATORLARGA — 0059. Nofaol qatorlar narx TARIXI
      *    va ular bir-biriga to'qnashishi mumkin: daraja olib
      *    tashlangach ikki darajaga yozilgan ikki tarix qatori bir
      *    xil to'rtlikka aylandi. To'liq indeks shu sababli sinov
