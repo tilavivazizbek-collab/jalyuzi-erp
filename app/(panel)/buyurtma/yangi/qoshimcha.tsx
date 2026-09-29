@@ -293,8 +293,16 @@ export function QoshimchaQoshish({
         return;
       }
       if (qoida === null) {
+        /*
+         * ⚠️ IKKI YO'L AYTILADI — 0059.
+         *
+         *    Narx endi ikki joydan kelishi mumkin: shu materialning
+         *    o'z jadvali yoki umumiy jadval. Sotuvchiga faqat
+         *    bittasi aytilsa u umumiy jadvalni to'ldirib, boshqa
+         *    materiallarning narxini ham o'zgartirib yuborardi.
+         */
         xatoniOzgartir(
-          "Metrlab sotishga narx qo'yilmagan — «Narxlar va turlar» → «Materialni o'zi sotish»",
+          `«${tanlangan.nom}» ga narx qo'yilmagan — «Narxlar va turlar» → «Materialni o'zi sotish»: shu materialga alohida jadval yoki umumiy jadval`,
         );
         return;
       }
@@ -518,8 +526,9 @@ export function QoshimchaQoshish({
                 {kesiladimi ? (
                   qoida === null ? (
                     <span className="text-belgi-sariq">
-                      Metrlab sotishga narx qo&apos;yilmagan — «Narxlar va
-                      turlar» → «Materialni o&apos;zi sotish»
+                      Narx qo&apos;yilmagan — «Narxlar va turlar» →
+                      «Materialni o&apos;zi sotish». Shu materialga alohida
+                      jadval qo&apos;yish ham mumkin.
                     </span>
                   ) : jami === null ? (
                     <span className="text-matn-kuchsiz">

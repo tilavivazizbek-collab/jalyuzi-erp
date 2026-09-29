@@ -144,6 +144,20 @@ export interface MatritsaKatagi {
  *    turga qo'yilganmi yoki darajadanmi — bu ikki boshqa joyda
  *    tuzatiladi.
  */
+/*
+ * ⚠️ MATERIALGA BOG'LANGAN QATORLAR CHIQARILADI — 0059.
+ *
+ *    Xaritadagi «Materialni o'zi sotish» qatori UMUMIY jadvalni
+ *    bildiradi. Materialga qo'yilgan qator ham shu guruhga tushsa
+ *    (mahsulot_tur_id ikkalasida ham NULL), bitta matoga jadval
+ *    qo'yilgani butun qatorni YASHIL qilib qo'yardi — umumiy jadval
+ *    bo'sh turganda ham. Materialga qo'yilganlari chap ustunda
+ *    alohida ko'rinadi.
+ *
+ * ⚠️ IZOH SQL ICHIDA EMAS: shablon satri ichida teskari apostrof
+ *    yozilsa u satrni UZIB YUBORADI. Bu xato shu loyihada UCHINCHI
+ *    marta bo'ldi — izoh doim shablondan TASHQARIDA yoziladi.
+ */
 export async function narxMatritsasiniOl(): Promise<MatritsaKatagi[]> {
   return ulanishOl()<MatritsaKatagi[]>`
     SELECT mn.mahsulot_tur_id AS "turId",
@@ -152,6 +166,7 @@ export async function narxMatritsasiniOl(): Promise<MatritsaKatagi[]> {
     FROM mahsulot_narx mn
     WHERE mn.faol = true
       AND mn.hamma_turga = false
+      AND mn.material_id IS NULL
       AND EXISTS (SELECT 1 FROM mahsulot_narx_bosqich b
                    WHERE b.mahsulot_narx_id = mn.id AND b.faol = true)
     GROUP BY mn.mahsulot_tur_id`;

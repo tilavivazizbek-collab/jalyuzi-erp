@@ -121,7 +121,8 @@ export async function turNarxiniSaqla(
   /**
    * ⚠️ TAKROR QAMROV — 2026-09-21.
    *
-   *    Bazada `(tur, hamma_turga, mijoz, filial)` noyob va saqlash
+   *    Bazada `(tur, hamma_turga, material, mijoz, filial)` noyob va
+   *    saqlash
    *    `ON CONFLICT ... DO UPDATE` bilan ketadi. Ya'ni bir xil
    *    qamrov ikki marta kelsa ikkinchisi birinchisi ustiga
    *    JIMGINA yozilardi: egasi ikki xil narx kiritib, bittasi
