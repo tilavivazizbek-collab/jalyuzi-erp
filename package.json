@@ -32,7 +32,8 @@
     "db:metr-zaxira": "tsx --env-file=.env lib/db/metr-zaxira.ts",
     "db:dikkey-tuzat": "tsx --env-file=.env lib/db/dikkey-formula-tuzat.ts",
     "db:namuna": "tsx --env-file=.env lib/db/namuna-buyruq.ts",
-    "db:namuna-ochir": "tsx --env-file=.env lib/db/namuna-ochir-buyruq.ts"
+    "db:namuna-ochir": "tsx --env-file=.env lib/db/namuna-ochir-buyruq.ts",
+    "db:narx-tekshir": "tsx --env-file=.env lib/db/narx-migratsiya-tekshir.ts"
   },
   "dependencies": {
     "@node-rs/argon2": "^2.1.0",
