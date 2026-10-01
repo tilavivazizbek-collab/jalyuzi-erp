@@ -51,7 +51,12 @@ async function holatniOl(url: string): Promise<Holat> {
    */
   const soat = new Promise<Holat>((yech) => {
     setTimeout(() => {
-      yech({ ulandi: false, xato: 'qotib qoldi — TLS tushmadi (DPI to‘sig‘i)' });
+      yech({
+        ulandi: false,
+        xato:
+          'qotib qoldi — TLS o‘tadi, Postgres startup javobsiz. ' +
+          'Tarmoq emas: Render panelida bazani tekshir',
+      });
     }, KUTISH_MS);
   });
 
