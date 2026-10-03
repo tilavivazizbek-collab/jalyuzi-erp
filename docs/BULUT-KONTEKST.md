@@ -335,6 +335,36 @@ ko'rib qabul qilgan ko'rinish. Tuzatish alohida ish.
 
 ---
 
+## 6i. ⚠️ BAZA TUSHGAN — 2026-10-03
+
+Ikkala baza ham (`jalyuzi` va `jalyuzi_sinov` — bitta Render
+instansda) ulanmaydi. 0057 · 0059 · 0060 shu sababli qo'llanmagan.
+
+**Tashxis bir so'rovda:**
+
+```bash
+curl -s https://jalyuzi-erp.onrender.com/api/salomatlik
+```
+
+    {"dastur":true,"baza":true}   → baza sog', muammo loqal tarmoqda
+    {"dastur":true,"baza":false}  → BAZA tushgan (503)
+
+2026-10-03 da `baza:false` — ya'ni Render ICHIDAN ham ulanmaydi.
+Egasining tarmog'i aybdor emas, VPN yordam bermaydi. Birinchi
+tekshiriladigan joy — Render paneli.
+
+O'lchangani: TCP ochiladi → SSLRequest ga 'S' → TLS 893 ms da o'tadi
+(CN `aws-eu-central-1-1-postgres.render.com`, bu PROKSI) →
+StartupMessage javobsiz. Proksi tirik, baza orqasida jim.
+
+⚠️ **AVTOMATIK ZAXIRA YOZILMAGAN.** `BACKUP_CHANNEL_ID`
+`lib/muhit.ts` da tekshiriladi, lekin uni hech narsa ishlatmaydi.
+`lib/db/metr-zaxira.ts` to'liq zaxira emas — faqat 0043 ning
+qaytarish nuqtasi. `render.yaml` da baza yo'q: panelda qo'lda
+ochilgan.
+
+---
+
 ## 7. Ochiq savollar — javob kutilmoqda
 
 Usta stavkasi **yopildi** (2026-09-10): uchala usul qurilgan, egasi har
