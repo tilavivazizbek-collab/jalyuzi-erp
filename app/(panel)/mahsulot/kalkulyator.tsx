@@ -84,8 +84,8 @@ export function TestKalkulyatori({
   guruhlar: readonly GuruhMalumoti[];
   xizmatHaqi: string;
 }) {
-  const [eni, setEni] = useState('180');
-  const [boyi, setBoyi] = useState('220');
+  const [eni, setEni] = useState('1.80');
+  const [boyi, setBoyi] = useState('2.20');
   const [soni, setSoni] = useState('1');
 
   const natija = useMemo(() => {
@@ -234,7 +234,7 @@ export function TestKalkulyatori({
             onChange={(e) => {
               setEni(e.target.value);
             }}
-            inputMode="numeric"
+            inputMode="decimal"
             className={kirish}
           />
         </label>
@@ -245,7 +245,7 @@ export function TestKalkulyatori({
             onChange={(e) => {
               setBoyi(e.target.value);
             }}
-            inputMode="numeric"
+            inputMode="decimal"
             className={kirish}
           />
         </label>

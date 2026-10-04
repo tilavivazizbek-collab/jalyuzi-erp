@@ -192,9 +192,37 @@ function qatorQiymati(q: Qator): string {
  * ⚠️ Slotlar OLDIN turadi: sotuv ekranida mato tanlash birinchi
  *    qadam, aksessuar esa o'zi qo'shiladi.
  */
-function boshQatorlar(q: MahsulotQiymatlari): Qator[] {
+function boshQatorlar(
+  q: MahsulotQiymatlari,
+  guruhlar: readonly GuruhMalumoti[],
+): Qator[] {
   const slotlar: Qator[] = q.slotlar.map((s) => {
     const sarf = formuladanSarf(s.formula);
+    /**
+     * Mato sloti «MAYDON × a» + kesish «Bo'yiga × b» bilan saqlangan
+     * bo'lsa — bu aynan «eni × a, bo'yi × b» (`matoIkkiYonalish`).
+     * Ekranda ikki katak bo'lib qaytadi, egasi qanday yozgan bo'lsa.
+     */
+    if (
+      matoSlotimi({ turi: 'GURUH', id: s.almashtirishGuruhId }, guruhlar) &&
+      sarf.turi === 'MAYDON' &&
+      s.kesishTuri === "BO'YIGA" &&
+      s.kesimEniM.trim() === ''
+    ) {
+      return {
+        turi: 'GURUH',
+        id: s.almashtirishGuruhId,
+        sarfTuri: 'ENI_BOYI',
+        sarfQiymat: sarf.qiymat,
+        sarfQiymat2: String(s.koeffitsient),
+        majburiy: s.majburiy,
+        koeffitsient: 1,
+        kesishTuri: 'ENIGA',
+        kesimEniM: '',
+        yaxlitlash: 'ROUND',
+        zapasM: '',
+      };
+    }
     return {
       turi: 'GURUH',
       id: s.almashtirishGuruhId,
@@ -277,6 +305,55 @@ function xavfsizFormula(q: {
   }
 }
 
+/** Slot mato (kv.m) guruhiga ulanganmi — profil (metr) guruhiga emas */
+function matoSlotimi(
+  q: { turi: 'GURUH' | 'MATERIAL'; id: number | null },
+  guruhlar: readonly GuruhMalumoti[],
+): boolean {
+  if (q.turi !== 'GURUH' || q.id === null) return false;
+  return guruhlar.find((g) => g.id === q.id)?.sarflashBirligi === 'KV_M';
+}
+
+/**
+ * MATODA «ENI × a, BO'YI × b» — KO'PAYTIRILADI (egasi 2026-10-04).
+ *
+ * ⚠️ NEGA: egasi mato slotida «eni va bo'yi» ni tanlab 1 va 1 yozdi,
+ *    1.80 × 2.20 oynaga 3.96 kv.m kutdi, tizim 4 dedi (1.8 + 2.2).
+ *    `ENI_BOYI` turi QO'SHADI — u profil uchun, natija METR. Kv.m
+ *    materialida qo'shilgan metr hech qachon to'g'ri emas, shuning
+ *    uchun matoda shu ikki katak ko'paytma ma'nosini oladi. Bu ikkinchi
+ *    marta (birinchisi 2026-09-24 — nom o'zgartirilgan edi, yetmadi).
+ *
+ * ⚠️ YANGI FORMULA YOZILMAYDI. Tizimda bu hisob allaqachon bor:
+ *
+ *        formula `MAYDON * a`, koeffitsient `b`, kesish «Bo'yiga»
+ *        → sarf  ENI × BO'YI × a × b
+ *        → kesim (ENI × a) × (BO'YI × b)      — `kesimOlchami`
+ *
+ *    Sotuv, band qilish, usta va bot shu uchtasini o'qiydi. Ikki
+ *    katak faqat shu uchtaga yoziladi — domain va baza o'zgarmaydi.
+ *
+ * `null` — mato emas yoki tur boshqa: qator o'zicha saqlanadi.
+ */
+function matoIkkiYonalish(
+  q: Qator,
+  guruhlar: readonly GuruhMalumoti[],
+): { formula: string; koeffitsient: number; kesishTuri: "BO'YIGA" } | null {
+  if (q.sarfTuri !== 'ENI_BOYI' || !matoSlotimi(q, guruhlar)) return null;
+
+  const b = Number(q.sarfQiymat2.trim());
+  /**
+   * ⚠️ Bo'yi katagi noto'g'ri bo'lsa formula BO'SH ketadi — server
+   *    «sarf kiritilmagan» deydi. Jimgina 1 qo'yilsa egasi yozgan
+   *    raqam yo'qolib, sarf boshqacha chiqardi.
+   */
+  const formula =
+    q.sarfQiymat2.trim() !== '' && Number.isFinite(b) && b > 0
+      ? xavfsizFormula({ ...q, sarfTuri: 'MAYDON' })
+      : '';
+  return { formula, koeffitsient: formula === '' ? 1 : b, kesishTuri: "BO'YIGA" };
+}
+
 export function MahsulotFormasi({
   amal,
   qiymatlar,
@@ -301,7 +378,7 @@ export function MahsulotFormasi({
   const [holat, yubor, kutilmoqda] = useActionState(amal, BOSH_HOLAT);
 
   const [xizmatHaqi, setXizmatHaqi] = useState(qiymatlar.xizmatHaqi);
-  const [qatorlar, setQatorlar] = useState<Qator[]>(boshQatorlar(qiymatlar));
+  const [qatorlar, setQatorlar] = useState<Qator[]>(() => boshQatorlar(qiymatlar, guruhlar));
 
   const [guruhRoyxati, setGuruhRoyxati] = useState<readonly GuruhMalumoti[]>(guruhlar);
   const [materialRoyxati, setMaterialRoyxati] =
@@ -387,20 +464,24 @@ export function MahsulotFormasi({
 
   const slotlar: SlotQatori[] = qatorlar
     .filter((q) => q.turi === 'GURUH' && q.id !== null)
-    .map((q) => ({
-      /**
-       * ⚠️ Slot nomi guruh nomidan olinadi — ekranda alohida
-       *    so'ralmaydi (egasi qarori). U sotuv ekranida qator
-       *    sarlavhasi bo'lib chiqadi.
-       */
-      nom: guruhNomi(q.id),
-      formula: xavfsizFormula(q),
-      majburiy: q.majburiy,
-      almashtirishGuruhId: q.id,
-      koeffitsient: q.koeffitsient,
-      kesishTuri: q.kesishTuri,
-      kesimEniM: q.kesimEniM.trim(),
-    }));
+    .map((q) => {
+      const mato = matoIkkiYonalish(q, guruhRoyxati);
+      return {
+        /**
+         * ⚠️ Slot nomi guruh nomidan olinadi — ekranda alohida
+         *    so'ralmaydi (egasi qarori). U sotuv ekranida qator
+         *    sarlavhasi bo'lib chiqadi.
+         */
+        nom: guruhNomi(q.id),
+        formula: mato?.formula ?? xavfsizFormula(q),
+        majburiy: q.majburiy,
+        almashtirishGuruhId: q.id,
+        koeffitsient: mato?.koeffitsient ?? q.koeffitsient,
+        kesishTuri: mato?.kesishTuri ?? q.kesishTuri,
+        /** Qat'iy kesim eni bo'lsa `kesimOlchami` yo'nalishni e'tiborsiz qoldiradi */
+        kesimEniM: mato === null ? q.kesimEniM.trim() : '',
+      };
+    });
 
   const aksessuarlar: AksessuarQatori[] = qatorlar
     .filter((q) => q.turi === 'MATERIAL' && q.id !== null)
@@ -610,6 +691,9 @@ export function MahsulotFormasi({
             <div className="mb-3 flex flex-col gap-2">
               {qatorlar.map((q, i) => {
                 const tavsif = SARF_TAVSIFI[q.sarfTuri];
+                /** Mato slotida «eni va bo'yi» KO'PAYTIRADI — `matoIkkiYonalish` */
+                const matoda = matoSlotimi(q, guruhRoyxati);
+                const matoIkki = matoda && q.sarfTuri === 'ENI_BOYI';
 
                 return (
                   <div key={i} className="rounded-maydon border border-chegara p-3">
@@ -697,7 +781,9 @@ export function MahsulotFormasi({
                       >
                         {SARF_TURLARI.map((t) => (
                           <option key={t} value={t}>
-                            {SARF_TAVSIFI[t].nom}
+                            {matoda && t === 'ENI_BOYI'
+                              ? 'Eni × bo‘yi — kv.m (har biriga koeffitsient)'
+                              : SARF_TAVSIFI[t].nom}
                           </option>
                         ))}
                       </select>
@@ -955,7 +1041,20 @@ export function MahsulotFormasi({
                       </p>
                     )}
 
-                    {tavsif.ikkiQiymat && (
+                    {matoIkki && (
+                      <p className="mt-2 text-[11px] text-matn-kuchsiz">
+                        Kesim:{' '}
+                        <code className="font-mono">
+                          (ENI × {q.sarfQiymat === '' ? '?' : q.sarfQiymat}) × (BO&apos;YI ×{' '}
+                          {q.sarfQiymat2 === '' ? '?' : q.sarfQiymat2})
+                        </code>{' '}
+                        — <b>ko&apos;paytiriladi</b>, natija kv.m. Masalan 1.80 × 2.20 oynaga,
+                        1 va 1 bo&apos;lsa: 1.80 × 2.20 = 3.96 kv.m; bo&apos;yiga 2 bo&apos;lsa:
+                        1.80 × 4.40 = 7.92 kv.m.
+                      </p>
+                    )}
+
+                    {tavsif.ikkiQiymat && !matoIkki && (
                       <p className="mt-2 text-[11px] text-matn-kuchsiz">
                         Formula:{' '}
                         <code className="font-mono">
@@ -980,7 +1079,12 @@ export function MahsulotFormasi({
                       </p>
                     )}
 
-                    {q.turi === 'GURUH' && (
+                    {/*
+                      ⚠️ «Eni × bo'yi» da koeffitsient va kesish YASHIRIN —
+                         ular ikki katakning o'zidan yoziladi. Ko'rinib
+                         tursa bo'yi koeffitsienti ikki joyda turardi.
+                    */}
+                    {q.turi === 'GURUH' && !matoIkki && (
                       <div className="mt-2 flex flex-wrap items-center gap-3">
                         <label className="flex items-center gap-1.5 text-xs text-matn-ikki">
                           <span>Koeffitsient</span>
@@ -1076,7 +1180,11 @@ export function MahsulotFormasi({
                     )}
 
                     <div className="mt-2 flex items-center justify-between gap-3">
-                      <span className="text-[11px] text-matn-kuchsiz">{tavsif.izoh}</span>
+                      <span className="text-[11px] text-matn-kuchsiz">
+                        {matoIkki
+                          ? 'rulondan (eni × a) × (bo‘yi × b) to‘rtburchak kesiladi'
+                          : tavsif.izoh}
+                      </span>
 
                       <div className="flex items-center gap-3">
                         {/*
