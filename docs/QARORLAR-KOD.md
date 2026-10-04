@@ -1927,3 +1927,38 @@ Tuzatish kerak bo'lsa alohida ish sifatida qilinadi.
   deyilgan, qiymati esa ko'k (`rgb(37 99 235)`). Kunduzgi ko'rinishga
   tegmaslik uchun shundayligicha qoldirildi — tunda halqa brend
   rangida va kuchliroq.
+
+---
+
+## P-40 — Matoda «eni × bo'yi» ko'paytiradi
+
+**2026-10-04, egasi holati.** Mato slotida «eni va bo'yi» tanlandi,
+1 va 1 yozildi: 1.80 × 2.20 oynaga **3.96 kv.m** kutildi, tizim
+**4** dedi (1.8 + 2.2). Bo'yiga 2 yozilganda 6.2 kv.m va 2.82 × 2.20
+kesim chiqdi — ikkalasi ham noto'g'ri.
+
+`ENI_BOYI` QO'SHADI — u profil uchun, natija metr. Kv.m materialida
+qo'shilgan metr hech qachon to'g'ri emas. 2026-09-24 da xuddi shu
+chalkashlikka nom o'zgartirish bilan javob berilgan edi — yetmadi
+(CLAUDE.md §14a: ikkinchi marta — asosiy ish).
+
+**Qaror:** mato (kv.m) guruhli slotda ikki katak ko'paytma ma'nosini
+oladi. Yangi formula yozilmaydi — mavjud hisobga yoziladi:
+
+| Ekranda | Bazada |
+|---|---|
+| eni × a | formula `MAYDON * a` |
+| bo'yi × b | koeffitsient `b`, kesish «Bo'yiga» |
+
+Natija: sarf `ENI × BO'YI × a × b`, kesim `(ENI × a) × (BO'YI × b)`.
+1 va 1 → 3.96 kv.m, 1.80 × 2.20 · 1 va 2 → 7.92 kv.m, 1.80 × 4.40.
+
+Domain va baza o'zgarmadi: sotuv, band qilish, usta va bot shu
+uchtasini allaqachon o'qiydi. Profil (metr) guruhida qo'shish
+avvalgidek qoladi.
+
+⚠️ **Ishlab chiqarish bazasida eski yozuv qolishi mumkin.** Bu
+tuzatishdan oldin mato slotiga `ENI * a + BO'YI * b` saqlangan tur
+sotuvda hali ham QO'SHADI. Tur ochilib «Saqlash» bosilsa to'g'ri
+shaklga o'tadi. Baza qaytgach tekshiriladi:
+`SELECT ... FROM mahsulot_slot WHERE faol AND formula LIKE 'ENI * % + BO''YI * %'`.
