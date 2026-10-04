@@ -1,7 +1,8 @@
 import Link from 'next/link';
 import { sahifaRuxsati } from '@/lib/kirish/joriy';
 import { rolRoyxati, xodimFiliallari } from '../malumot';
-import { BOSH_XODIM, XodimFormasi } from '../forma';
+import { XodimFormasi } from '../forma';
+import { BOSH_XODIM } from '../holat';
 import { xodimYaratAmali } from '../amal';
 
 export const dynamic = 'force-dynamic';

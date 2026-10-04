@@ -11,28 +11,9 @@
 import { useActionState, useState } from 'react';
 import { Maydon, kirishUslubi } from '../maydon';
 import { BekorQilish } from '../modal-forma';
-import { BOSH_XODIM_HOLATI, type XodimHolati } from './holat';
+import { BOSH_XODIM_HOLATI, type XodimHolati, type XodimQiymatlari } from './holat';
 import { PAROL_ENG_KAM } from '@/lib/domain/parol-qoida';
 import type { FilialTanlovi, RolTanlovi } from './malumot';
-
-export interface XodimQiymatlari {
-  readonly ism: string;
-  readonly telefon: string;
-  readonly filialId: string;
-  readonly ishgaKirdi: string;
-  /** TZ 6.4 — chegirma chegarasi, foizda. Bo'sh — chegara yo'q */
-  readonly chegirmaLimitFoiz: string;
-  readonly rolIdlar: readonly number[];
-}
-
-export const BOSH_XODIM: XodimQiymatlari = {
-  ism: '',
-  telefon: '',
-  chegirmaLimitFoiz: '',
-  filialId: '',
-  ishgaKirdi: '',
-  rolIdlar: [],
-};
 
 export function XodimFormasi({
   amal,
