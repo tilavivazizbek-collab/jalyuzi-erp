@@ -29,6 +29,26 @@ const bosMatn = z
   .transform((x) => (x === '' ? undefined : x))
   .optional();
 
+/**
+ * ⚠️ PUL SHAKLI — `Number()` emas, qolip bilan (egasi auditi 2026-10-06).
+ *    `Number('1e5')` va `Number('Infinity')` «son» deb o'tib ketardi va
+ *    bazada xato bilan yiqilardi.
+ */
+const PUL = /^\d{1,12}(\.\d{1,2})?$/;
+const ISHORALI_PUL = /^-?\d{1,12}(\.\d{1,2})?$/;
+
+/**
+ * Faqat raqamlardan iborat rekvizit — bo'sh joy va chiziqcha olib
+ * tashlanadi: «2020 8000 …» deb yozilgan hisob raqami ham qabul qilinadi.
+ */
+const raqamli = (uzunliklar: readonly number[], xabar: string) =>
+  z
+    .string()
+    .transform((x) => x.replace(/[\s-]/g, ''))
+    .transform((x) => (x === '' ? undefined : x))
+    .optional()
+    .refine((x) => x === undefined || (/^\d+$/.test(x) && uzunliklar.includes(x.length)), xabar);
+
 export const mijozSxema = z
   .object({
     ism: z.string().trim().min(1, 'Ismni kiriting').max(200),
@@ -65,23 +85,24 @@ export const mijozSxema = z
         (x) => x === undefined || (OFFSET_TURLARI as readonly string[]).includes(x),
         "Offset turi noto'g'ri",
       ),
+    /**
+     * ⚠️ ISHORALI: manfiy — chegirma, musbat — ustama (`offsetQolla`).
+     *    Ekranda yo'nalish alohida tanlanadi, ishorani forma qo'yadi.
+     */
     offsetQiymat: z
       .string()
       .trim()
       .transform((x) => (x === '' ? undefined : x))
       .optional()
-      .refine((x) => x === undefined || !Number.isNaN(Number(x)), 'Offset qiymati son emas'),
+      .refine((x) => x === undefined || ISHORALI_PUL.test(x), 'Qiymat son bo‘lishi kerak'),
 
     // TZ 6.4 — limit DOIM so'mda
     qarzLimiti: z
       .string()
       .trim()
-      .transform((x) => (x === '' ? undefined : x))
+      .transform((x) => (x === '' ? undefined : x.replace(/\s/g, '')))
       .optional()
-      .refine(
-        (x) => x === undefined || (!Number.isNaN(Number(x)) && Number(x) >= 0),
-        "Limit musbat son bo'lishi kerak",
-      ),
+      .refine((x) => x === undefined || PUL.test(x), "Limit musbat son bo'lishi kerak"),
 
     // ── Q-23 soliq maydonlari ──
     /**
@@ -116,27 +137,76 @@ export const mijozSxema = z
         message: 'Mijoz turini tanlang',
       }),
     tashkilotNomi: bosMatn,
-    inn: bosMatn,
+    /** INN — 9 raqam (yuridik) yoki 14 raqam (JShShIR) */
+    inn: raqamli([9, 14], 'INN 9 yoki 14 ta raqam bo‘ladi'),
     yuridikManzil: bosMatn,
     bankNomi: bosMatn,
-    hisobRaqam: bosMatn,
-    mfo: bosMatn,
+    hisobRaqam: raqamli([20], 'Hisob raqami 20 ta raqam bo‘ladi'),
+    mfo: raqamli([5], 'MFO 5 ta raqam bo‘ladi'),
     shartnomaRaqam: bosMatn,
+    /** 2026-10-06 — ustun bazada bor edi, formada yo'q edi */
+    shartnomaSana: z
+      .string()
+      .trim()
+      .transform((x) => (x === '' ? undefined : x))
+      .optional()
+      .refine(
+        (x) =>
+          x === undefined ||
+          (/^\d{4}-\d{2}-\d{2}$/.test(x) && !Number.isNaN(new Date(`${x}T00:00:00Z`).getTime())),
+        'Sana noto‘g‘ri',
+      ),
     ndsStavka: z
       .string()
       .trim()
       .transform((x) => (x === '' ? undefined : x))
       .optional()
       .refine(
-        (x) => x === undefined || (!Number.isNaN(Number(x)) && Number(x) >= 0),
-        "NDS stavkasi musbat son bo'lishi kerak",
+        (x) => x === undefined || (/^\d{1,3}(\.\d{1,2})?$/.test(x) && Number(x) <= 100),
+        'NDS stavkasi 0 dan 100 gacha',
       ),
+
+    // ── Savdo — 0061, egasi auditi 2026-10-06 ──
+    /** Bo'sh — muddat nazorati yo'q (CLAUDE.md §14a) */
+    tolovMuddatiKun: z
+      .string()
+      .trim()
+      .transform((x) => (x === '' ? undefined : Number(x)))
+      .optional()
+      .refine(
+        (x) => x === undefined || (Number.isInteger(x) && x >= 1 && x <= 365),
+        'Muddat 1 dan 365 kungacha',
+      ),
+    masulXodimId: z
+      .string()
+      .trim()
+      .transform((x) => (x === '' ? undefined : Number(x)))
+      .optional()
+      .refine((x) => x === undefined || (Number.isSafeInteger(x) && x > 0), 'Xodim noto‘g‘ri'),
+    manba: z
+      .string()
+      .trim()
+      .max(100)
+      .transform((x) => (x === '' ? undefined : x))
+      .optional(),
   })
   .refine((m) => (m.offsetTuri === undefined) === (m.offsetQiymat === undefined), {
     // 6.3 — turi bor, qiymati yo'q bo'lsa offset ma'nosiz qoladi
     message: "Offset turi va qiymati birga to'ldiriladi",
     path: ['offsetQiymat'],
   })
+  /**
+   * ⚠️ FOIZ CHEGARASI — egasi auditi 2026-10-06 (2-xato). Ilgari 150% va
+   *    −150% ham saqlanardi; −150% chegirma 100 000 so'mlik narxni
+   *    −50 000 ga aylantirardi.
+   */
+  .refine(
+    (m) =>
+      m.offsetTuri !== 'FOIZ' ||
+      m.offsetQiymat === undefined ||
+      (Number(m.offsetQiymat) >= -100 && Number(m.offsetQiymat) <= 100),
+    { message: 'Foiz 0 dan 100 gacha bo‘ladi', path: ['offsetQiymat'] },
+  )
   .refine(
     (m) =>
       m.shaxsTuri !== 'YURIDIK' ||

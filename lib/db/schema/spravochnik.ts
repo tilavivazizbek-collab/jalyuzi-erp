@@ -25,6 +25,7 @@ import {
   numeric,
   pgTable,
   text,
+  timestamp,
   uniqueIndex,
 } from 'drizzle-orm/pg-core';
 
@@ -37,7 +38,7 @@ const baytlar = customType<{ data: Buffer; driverData: Buffer }>({
   dataType: () => 'bytea',
 });
 import { id, izlar, ochirilmaydi } from './ustunlar';
-import { filial } from './asos';
+import { filial, xodim } from './asos';
 
 // ─── 2.2 · almashtirish_guruh — TZ 5.6 ────────────────────────────────────
 
@@ -847,11 +848,22 @@ export const mijoz = pgTable(
     shartnomaSana: date('shartnoma_sana'),
     ndsTolovchi: boolean('nds_tolovchi').notNull().default(false),
     ndsStavka: numeric('nds_stavka', { precision: 5, scale: 2 }),
+    // ── Savdo — 0061, egasi auditi 2026-10-06 ──
+    /** Qarz necha kunda to'lanishi kerak. Bo'sh — muddat nazorati yo'q */
+    tolovMuddatiKun: integer('tolov_muddati_kun'),
+    /** Mijoz qaysi sotuvchiga biriktirilgan */
+    masulXodimId: bigint('masul_xodim_id', { mode: 'number' }).references(() => xodim.id),
+    /** Qayerdan keldi — reklama qaysi kanaldan ishlayotgani */
+    manba: text('manba'),
 
     ...ochirilmaydi,
     ...izlar,
   },
   (t) => [
+    check(
+      'mijoz_tolov_muddati',
+      sql`${t.tolovMuddatiKun} IS NULL OR (${t.tolovMuddatiKun} > 0 AND ${t.tolovMuddatiKun} <= 365)`,
+    ),
     check('mijoz_shaxs_turi', sql`${t.shaxsTuri} IN ('JISMONIY','YURIDIK')`),
     check(
       'mijoz_offset_turi',
@@ -872,6 +884,80 @@ export const mijoz = pgTable(
     ),
     check('mijoz_limit_manfiy_emas', sql`${t.qarzLimiti} IS NULL OR ${t.qarzLimiti} >= 0`),
     index('mijoz_ism').on(t.ism),
+  ],
+);
+
+// ─── mijoz_kontakt — 0061 · egasi auditi 2026-10-06 ───────────────────────
+
+/**
+ * Firmadagi odamlar — rahbar, buxgalter, usta.
+ *
+ * ⚠️ Asosiy telefon `mijoz.telefon` da qoladi — bot mijozni SHU bilan
+ *    taniydi. Bu yerdagilar faqat aloqa uchun.
+ */
+export const mijozKontakt = pgTable(
+  'mijoz_kontakt',
+  {
+    id: id(),
+    mijozId: bigint('mijoz_id', { mode: 'number' })
+      .notNull()
+      .references(() => mijoz.id),
+    ism: text('ism').notNull(),
+    lavozim: text('lavozim'),
+    telefon: text('telefon'),
+    izoh: text('izoh'),
+    ...ochirilmaydi,
+    ...izlar,
+  },
+  (t) => [index('mijoz_kontakt_mijoz').on(t.mijozId, t.faol)],
+);
+
+// ─── mijoz_muloqot — 0061 · egasi auditi 2026-10-06 ───────────────────────
+
+export const MULOQOT_TURLARI = ['QONGIROQ', 'UCHRASHUV', 'XABAR', 'IZOH', 'VADA'] as const;
+export type MuloqotTuri = (typeof MULOQOT_TURLARI)[number];
+
+/**
+ * Qo'ng'iroq, uchrashuv, va'da tarixi.
+ *
+ * ⚠️ PUL JADVALI EMAS — va'da summasi qarzga tegmaydi, qarzni faqat
+ *    `mijoz_harakat` o'zgartiradi (2.2-invariant). `bajarildi`
+ *    belgisini yangilash shuning uchun ruxsat etilgan.
+ */
+export const mijozMuloqot = pgTable(
+  'mijoz_muloqot',
+  {
+    id: id(),
+    mijozId: bigint('mijoz_id', { mode: 'number' })
+      .notNull()
+      .references(() => mijoz.id),
+    sana: timestamp('sana', { withTimezone: true })
+      .notNull()
+      .default(sql`now()`),
+    turi: text('turi').notNull(),
+    matn: text('matn').notNull(),
+    vadaSana: date('vada_sana'),
+    vadaSumma: numeric('vada_summa', { precision: 14, scale: 2 }),
+    vadaValyuta: text('vada_valyuta'),
+    bajarildi: boolean('bajarildi').notNull().default(false),
+    bajarildiSana: timestamp('bajarildi_sana', { withTimezone: true }),
+    xodimId: bigint('xodim_id', { mode: 'number' })
+      .notNull()
+      .references(() => xodim.id),
+  },
+  (t) => [
+    check(
+      'mijoz_muloqot_turi',
+      sql`${t.turi} IN ('QONGIROQ', 'UCHRASHUV', 'XABAR', 'IZOH', 'VADA')`,
+    ),
+    check('mijoz_muloqot_vada_sanasi', sql`${t.turi} <> 'VADA' OR ${t.vadaSana} IS NOT NULL`),
+    check('mijoz_muloqot_vada_summa', sql`${t.vadaSumma} IS NULL OR ${t.vadaSumma} > 0`),
+    check(
+      'mijoz_muloqot_vada_valyuta',
+      sql`${t.vadaValyuta} IS NULL OR ${t.vadaValyuta} IN ('SOM', 'USD')`,
+    ),
+    check('mijoz_muloqot_vada_toliq', sql`(${t.vadaSumma} IS NULL) = (${t.vadaValyuta} IS NULL)`),
+    index('mijoz_muloqot_mijoz').on(t.mijozId, t.sana),
   ],
 );
 

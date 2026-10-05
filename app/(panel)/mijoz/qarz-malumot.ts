@@ -6,6 +6,7 @@
  */
 
 import { ulanishOl } from '@/lib/db';
+import type { JurnalQatori } from '@/lib/domain/qarz-taqsimot';
 
 export interface MijozQarzi {
   readonly som: string;
@@ -69,4 +70,36 @@ export async function mijozQarzi(mijozId: number, chegara = 50): Promise<MijozQa
       xodimIsmi: r.xodim_ismi,
     })),
   };
+}
+
+/**
+ * Mijoz qarz jurnali — `qarzniTaqsimla()` uchun (egasi auditi 2026-10-06).
+ *
+ * ⚠️ `buyurtmaId` SHU YERDA aniqlanadi: sotuv, tahrir va storno
+ *    `buyurtma` manbasi bilan, buyurtmaga to'lov `buyurtma_tolov`
+ *    bilan, qaytarish esa POZITSIYA bilan yoziladi. Kartochkadan
+ *    to'lov, avans, umidsiz qarz — hech qaysi buyurtmaga bog'lanmaydi.
+ */
+export async function mijozJurnali(mijozId: number): Promise<JurnalQatori[]> {
+  const q = await ulanishOl()<
+    { id: number; sana: Date; turi: string; summa: string; valyuta: string; buyurtma_id: number | null }[]
+  >`
+    SELECT h.id, h.sana, h.turi, h.summa::text AS summa, h.valyuta,
+           CASE
+             WHEN h.manba_turi IN ('buyurtma', 'buyurtma_tolov') THEN h.manba_id
+             WHEN h.manba_turi = 'qaytarish' THEN
+               (SELECT bp.buyurtma_id FROM buyurtma_pozitsiya bp WHERE bp.id = h.manba_id)
+           END AS buyurtma_id
+    FROM mijoz_harakat h
+    WHERE h.mijoz_id = ${mijozId}
+    ORDER BY h.sana, h.id`;
+
+  return q.map((r) => ({
+    id: r.id,
+    sana: r.sana,
+    turi: r.turi,
+    summa: r.summa,
+    valyuta: r.valyuta === 'USD' ? 'USD' : 'SOM',
+    buyurtmaId: r.buyurtma_id,
+  }));
 }

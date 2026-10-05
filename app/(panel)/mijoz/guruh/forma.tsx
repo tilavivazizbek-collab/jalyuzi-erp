@@ -58,6 +58,23 @@ export function MijozGuruhFormasi({
 
   const [turi, turiniOzgartir] = useState(q('offsetTuri'));
 
+  /**
+   * ⚠️ CHEGIRMA / USTAMA — mijoz formasi bilan BIR XIL (egasi auditi
+   *    2026-10-06). Ilgari bu yerda «chegirma manfiy yoziladi» qoidasi
+   *    turardi, mijoz formasida esa bo'lim «Chegirma» deb atalib, musbat
+   *    son narxni oshirardi. Endi ikkalasida ham yo'nalish tanlanadi,
+   *    son musbat yoziladi, ishorani forma qo'yadi.
+   */
+  const boshQiymat = q('offsetQiymat').trim();
+  const [yonalish, setYonalish] = useState<'CHEGIRMA' | 'USTAMA'>(
+    boshQiymat !== '' && !boshQiymat.startsWith('-') && Number(boshQiymat) !== 0
+      ? 'USTAMA'
+      : 'CHEGIRMA',
+  );
+  const [miqdor, setMiqdor] = useState(boshQiymat.replace(/^-/, ''));
+  const ishorali =
+    miqdor.trim() === '' ? '' : `${yonalish === 'CHEGIRMA' ? '-' : ''}${miqdor.trim()}`;
+
   return (
     <form key={holat.urinish ?? 0} action={yubor} className="flex flex-col gap-4">
       {holat.xato !== null && (
@@ -78,8 +95,23 @@ export function MijozGuruhFormasi({
         <input id="nom" name="nom" defaultValue={q('nom')} required className={ch('nom')} />
       </Maydon>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Maydon nom="offsetTuri" yorliq="Chegirma turi" xato={x('offsetTuri')}>
+      <div className="grid gap-4 sm:grid-cols-3">
+        <Maydon nom="offsetYonalish" yorliq="Nima">
+          <select
+            id="offsetYonalish"
+            value={yonalish}
+            onChange={(e) => {
+              setYonalish(e.target.value === 'USTAMA' ? 'USTAMA' : 'CHEGIRMA');
+            }}
+            disabled={turi === ''}
+            className={`${ch('offsetQiymat')} disabled:bg-fon disabled:text-matn-kuchsiz`}
+          >
+            <option value="CHEGIRMA">Chegirma (arzonroq)</option>
+            <option value="USTAMA">Ustama (qimmatroq)</option>
+          </select>
+        </Maydon>
+
+        <Maydon nom="offsetTuri" yorliq="Turi" xato={x('offsetTuri')}>
           <select
             id="offsetTuri"
             name="offsetTuri"
@@ -95,31 +127,30 @@ export function MijozGuruhFormasi({
           </select>
         </Maydon>
 
-        {/*
-          ⚠️ Chegirma MANFIY yoziladi: «−10» narxni 10% kamaytiradi.
-             Musbat son ustama bo'ladi — ba'zi mijozga (masalan
-             uzoq manzil) narx qimmatroq bo'lishi mumkin.
-        */}
         <Maydon
-          nom="offsetQiymat"
+          nom="offsetMiqdor"
           yorliq="Qiymati"
           izoh={
             turi === 'FOIZ'
-              ? "chegirma manfiy: −10 → narx 10% arzon"
+              ? `10 → narx 10% ${yonalish === 'CHEGIRMA' ? 'arzon' : 'qimmat'}`
               : turi === 'SOM'
-                ? "chegirma manfiy: −5000 → narx 5000 so'm arzon"
+                ? `5000 → narx 5000 so'm ${yonalish === 'CHEGIRMA' ? 'arzon' : 'qimmat'}`
                 : 'avval turini tanlang'
           }
           xato={x('offsetQiymat')}
         >
           <input
-            id="offsetQiymat"
-            name="offsetQiymat"
-            defaultValue={q('offsetQiymat')}
+            id="offsetMiqdor"
+            value={miqdor}
+            onChange={(e) => {
+              // Minus yozilsa ham olib tashlanadi — yo'nalish chapda tanlanadi
+              setMiqdor(e.target.value.replace(/^\s*[-−]/, ''));
+            }}
             inputMode="decimal"
             disabled={turi === ''}
             className={`${ch('offsetQiymat')} disabled:bg-fon disabled:text-matn-kuchsiz`}
           />
+          <input type="hidden" name="offsetQiymat" value={turi === '' ? '' : ishorali} />
         </Maydon>
       </div>
 

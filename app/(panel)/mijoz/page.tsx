@@ -3,173 +3,436 @@ import { ulanishOl } from '@/lib/db';
 import { sahifaRuxsati } from '@/lib/kirish/joriy';
 import { ruxsatBormi } from '@/lib/ruxsat/tekshir';
 import { telefonKorsat } from '@/lib/domain/telefon';
-import { pulKorsat, som } from '@/lib/domain/pul';
-import { OFFSET_TURI_NOMI, type OffsetTuri } from '@/lib/sxema/mijoz';
+import { dollar, musbatmi, manfiymi, pulKorsat, som } from '@/lib/domain/pul';
+import { joriyKurs } from '@/lib/amal/kurs';
 import { OchirTugma } from '../ochir-tugma';
 import { OchirilganlarHavolasi, QaytarTugma } from '../ochirilganlar';
+import {
+  HOLAT_FILTRLARI,
+  SAHIFA_HAJMI,
+  SARALASHLAR,
+  SEGMENT_NOMI,
+  filtrTanlovlari,
+  mijozlarRoyxati,
+  ochirilganSoni,
+  type HolatFiltri,
+  type RoyxatFiltri,
+  type Saralash,
+  type Segment,
+} from './malumot';
 
 export const dynamic = 'force-dynamic';
 
-interface Qator {
-  readonly id: number;
-  readonly ism: string;
-  readonly telefon: string | null;
-  readonly telegram_id: number | null;
-  readonly shaxs_turi: string;
-  readonly turi_nomi: string | null;
-  readonly guruh_nomi: string | null;
-  readonly offset_turi: string | null;
-  readonly offset_qiymat: string | null;
-  readonly qarz_limiti: string | null;
-  readonly faol: boolean;
+type Parametrlar = Record<string, string | string[] | undefined>;
+
+const bir = (sp: Parametrlar, k: string): string => {
+  const v = sp[k];
+  return typeof v === 'string' ? v : '';
+};
+const id = (x: string): number | null => {
+  const n = Number(x);
+  return x !== '' && Number.isSafeInteger(n) && n > 0 ? n : null;
+};
+const kalitmi = <T extends string>(x: string, r: Record<T, string>): x is T =>
+  Object.prototype.hasOwnProperty.call(r, x);
+
+/** Filtrni URL dan o'qiydi — noto'g'ri qiymat jimgina tashlanadi */
+function filtrniOqi(sp: Parametrlar): RoyxatFiltri {
+  const holat = bir(sp, 'holat');
+  const segment = bir(sp, 'segment');
+  const saralash = bir(sp, 'saralash');
+  const sahifa = Number(bir(sp, 'sahifa'));
+  return {
+    qidiruv: bir(sp, 'q').slice(0, 100),
+    holat: kalitmi<HolatFiltri>(holat, HOLAT_FILTRLARI) ? holat : null,
+    segment: kalitmi<Segment>(segment, SEGMENT_NOMI) ? segment : null,
+    guruhId: id(bir(sp, 'guruh')),
+    turiId: id(bir(sp, 'tur')),
+    masulId: id(bir(sp, 'masul')),
+    saralash: kalitmi<Saralash>(saralash, SARALASHLAR) ? saralash : 'ism',
+    ochirilganlar: bir(sp, 'ochirilgan') === '1',
+    sahifa: Number.isSafeInteger(sahifa) && sahifa > 0 ? sahifa : 1,
+  };
 }
+
+/** Joriy filtr bilan havola — faqat bitta qiymat o'zgaradi */
+function havola(sp: Parametrlar, ozgar: Record<string, string | null>, yol = '/mijoz'): string {
+  const u = new URLSearchParams();
+  for (const [k, v] of Object.entries(sp)) if (typeof v === 'string' && v !== '') u.set(k, v);
+  for (const [k, v] of Object.entries(ozgar)) {
+    if (v === null || v === '') u.delete(k);
+    else u.set(k, v);
+  }
+  const s = u.toString();
+  return s === '' ? yol : `${yol}?${s}`;
+}
+
+const SEGMENT_USLUBI: Record<Segment, string> = {
+  TOP: 'bg-belgi-yashil-fon text-belgi-yashil',
+  YANGI: 'bg-belgi-kok-fon text-belgi-kok',
+  FAOL: 'bg-fon text-matn-ikki',
+  UXLAGAN: 'bg-belgi-sariq-fon text-belgi-sariq',
+  YOQOTILGAN: 'bg-belgi-qizil-fon text-belgi-qizil',
+  XARIDSIZ: 'bg-fon text-matn-kuchsiz',
+};
 
 export default async function MijozRoyxati({
   searchParams,
 }: {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
+  searchParams: Promise<Parametrlar>;
 }) {
   const f = await sahifaRuxsati('mijoz.kor');
-
-  /** ⚠️ O'chirilgan yozuv ro'yxatda KO'RINMAYDI (§13) */
-  const sp = await searchParams;
-  const ochirilganlar = sp['ochirilgan'] === '1';
   const yarataOladi = ruxsatBormi(f, 'mijoz.yarat');
   const ozgartiraOladi = ruxsatBormi(f, 'mijoz.ozgartir');
 
-  const sql = ulanishOl();
+  const sp = await searchParams;
+  const filtr = filtrniOqi(sp);
 
-  const ochirilganSoni = await sql<{ n: number }[]>`
-    SELECT COUNT(*)::int AS n FROM mijoz WHERE faol = false`;
+  const kurs = await joriyKurs(ulanishOl());
+  const [ochirilgan, natija, tanlov] = await Promise.all([
+    ochirilganSoni(),
+    mijozlarRoyxati(filtr, kurs),
+    filtrTanlovlari(),
+  ]);
 
-  const qatorlar = await sql<Qator[]>`
-    SELECT m.id, m.ism, m.telefon, m.telegram_id, m.shaxs_turi,
-           g.nom AS guruh_nomi, t.nom AS turi_nomi,
-           m.offset_turi, m.offset_qiymat, m.qarz_limiti, m.faol
-    FROM mijoz m
-    LEFT JOIN mijoz_guruh g ON g.id = m.mijoz_guruh_id AND g.faol = true
-    LEFT JOIN mijoz_turi t ON t.id = m.mijoz_turi_id
-    WHERE m.faol = ${!ochirilganlar} ORDER BY m.ism`;
+  const sahifalar = Math.max(1, Math.ceil(natija.jamiSoni / SAHIFA_HAJMI));
+  const filtrBor =
+    filtr.qidiruv !== '' ||
+    filtr.holat !== null ||
+    filtr.segment !== null ||
+    filtr.guruhId !== null ||
+    filtr.turiId !== null ||
+    filtr.masulId !== null;
+
+  const tanla = 'rounded-maydon border border-chegara-quyuq bg-sirt px-2.5 py-1.5 text-[13px]';
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-end justify-between gap-4">
+    <div className="flex flex-col gap-5">
+      <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-[22px] font-semibold tracking-[-0.02em] text-matn">Mijozlar</h1>
           <p className="mt-1 text-sm text-matn-kuchsiz">
-            {qatorlar.length} ta · barcha filial uchun umumiy, qarzi ham (Q-26)
+            {natija.jamiSoni} ta{filtrBor ? ' (filtr bo‘yicha)' : ''} · barcha filial uchun umumiy
+            (Q-26)
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          <OchirilganlarHavolasi
-            soni={ochirilganSoni[0]?.n ?? 0}
-            korsatilmoqda={ochirilganlar}
-          />
-
+        <div className="flex flex-wrap items-center gap-3">
+          <OchirilganlarHavolasi soni={ochirilgan} korsatilmoqda={filtr.ochirilganlar} />
+          {/* Joriy filtr bilan — ekranda ko'rgan ro'yxatning o'zi tushadi */}
+          <a
+            href={havola(sp, { sahifa: null }, '/mijoz/eksport')}
+            className="rounded-maydon border border-chegara-quyuq px-3 py-2 text-sm text-matn-ikki transition-colors hover:bg-fon"
+          >
+            Excel&apos;ga yuklash
+          </a>
+          <Link
+            href="/mijoz/qarzdorlik"
+            className="rounded-maydon border border-chegara-quyuq px-3 py-2 text-sm text-matn-ikki transition-colors hover:bg-fon"
+          >
+            Qarzdorlik hisoboti
+          </Link>
           {yarataOladi && (
-            <Link
-              href="/mijoz/yangi"
-              className="rounded-maydon bg-brend px-3.5 py-2 text-sm font-medium text-tugma-matn transition-all active:scale-[0.98] hover:bg-brend-quyuq"
-            >
-              Mijoz qo&apos;shish
-            </Link>
+            <>
+              <Link
+                href="/mijoz/import"
+                className="rounded-maydon border border-chegara-quyuq px-3 py-2 text-sm text-matn-ikki transition-colors hover:bg-fon"
+              >
+                Import
+              </Link>
+              <Link
+                href="/mijoz/yangi"
+                className="rounded-maydon bg-brend px-3.5 py-2 text-sm font-medium text-tugma-matn transition-all active:scale-[0.98] hover:bg-brend-quyuq"
+              >
+                Mijoz qo&apos;shish
+              </Link>
+            </>
           )}
         </div>
       </div>
 
-      {qatorlar.length === 0 ? (
+      {/*
+        ⚠️ ODDIY GET FORMA — JavaScript shart emas. Filtr URL da turadi:
+           havolani nusxalab yuborsa, o'sha ro'yxat ochiladi.
+      */}
+      <form method="get" className="flex flex-wrap items-center gap-2">
+        {filtr.ochirilganlar && <input type="hidden" name="ochirilgan" value="1" />}
+        <input
+          name="q"
+          defaultValue={filtr.qidiruv}
+          placeholder="Ism, telefon, tashkilot yoki INN"
+          aria-label="Qidirish"
+          className={`${tanla} min-w-[240px] flex-1`}
+        />
+        <select name="holat" defaultValue={filtr.holat ?? ''} aria-label="Holati" className={tanla}>
+          <option value="">Hammasi</option>
+          {Object.entries(HOLAT_FILTRLARI).map(([k, v]) => (
+            <option key={k} value={k}>
+              {v}
+            </option>
+          ))}
+        </select>
+        <select
+          name="segment"
+          defaultValue={filtr.segment ?? ''}
+          aria-label="Segment"
+          className={tanla}
+        >
+          <option value="">Har qanday segment</option>
+          {Object.entries(SEGMENT_NOMI).map(([k, v]) => (
+            <option key={k} value={k}>
+              {v}
+            </option>
+          ))}
+        </select>
+        {tanlov.guruhlar.length > 0 && (
+          <select
+            name="guruh"
+            defaultValue={filtr.guruhId === null ? '' : String(filtr.guruhId)}
+            aria-label="Guruh"
+            className={tanla}
+          >
+            <option value="">Har qanday guruh</option>
+            {tanlov.guruhlar.map((g) => (
+              <option key={g.id} value={g.id}>
+                {g.nom}
+              </option>
+            ))}
+          </select>
+        )}
+        {tanlov.turlar.length > 0 && (
+          <select
+            name="tur"
+            defaultValue={filtr.turiId === null ? '' : String(filtr.turiId)}
+            aria-label="Turi"
+            className={tanla}
+          >
+            <option value="">Har qanday tur</option>
+            {tanlov.turlar.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.nom}
+              </option>
+            ))}
+          </select>
+        )}
+        <select
+          name="masul"
+          defaultValue={filtr.masulId === null ? '' : String(filtr.masulId)}
+          aria-label="Mas'ul sotuvchi"
+          className={tanla}
+        >
+          <option value="">Har qanday mas&apos;ul</option>
+          {tanlov.xodimlar.map((x) => (
+            <option key={x.id} value={x.id}>
+              {x.nom}
+            </option>
+          ))}
+        </select>
+        <select name="saralash" defaultValue={filtr.saralash} aria-label="Saralash" className={tanla}>
+          {Object.entries(SARALASHLAR).map(([k, v]) => (
+            <option key={k} value={k}>
+              {v}
+            </option>
+          ))}
+        </select>
+        <button
+          type="submit"
+          className="rounded-maydon bg-brend px-3.5 py-1.5 text-[13px] font-medium text-tugma-matn hover:bg-brend-quyuq"
+        >
+          Ko&apos;rsatish
+        </button>
+        {filtrBor && (
+          <Link
+            href={filtr.ochirilganlar ? '/mijoz?ochirilgan=1' : '/mijoz'}
+            className="text-[13px] text-matn-kuchsiz hover:text-matn"
+          >
+            Tozalash
+          </Link>
+        )}
+      </form>
+
+      {/* Filtrdagi BARCHA mijozlarning qarzi — kimdan qancha olish kerak */}
+      {(musbatmi(som(natija.jamiQarzSom)) || musbatmi(dollar(natija.jamiQarzUsd))) && (
+        <p className="text-[13px] text-matn-ikki">
+          Jami qarz:{' '}
+          {musbatmi(som(natija.jamiQarzSom)) && (
+            <b className="text-belgi-sariq">{pulKorsat(som(natija.jamiQarzSom))} so&apos;m </b>
+          )}
+          {musbatmi(dollar(natija.jamiQarzUsd)) && (
+            <b className="text-belgi-sariq">{pulKorsat(dollar(natija.jamiQarzUsd))} $</b>
+          )}
+        </p>
+      )}
+
+      {natija.qatorlar.length === 0 ? (
         <p className="rounded-karta border border-dashed border-chegara-quyuq px-4 py-10 text-center text-sm text-matn-kuchsiz">
-          Hali mijoz yo&apos;q.
+          {filtrBor ? 'Bu filtr bo‘yicha mijoz topilmadi.' : 'Hali mijoz yo‘q.'}
         </p>
       ) : (
         <div className="overflow-x-auto rounded-karta border border-chegara bg-sirt">
           <table className="w-full text-sm">
             <thead className="border-b border-chegara bg-fon text-left text-xs uppercase tracking-wide text-matn-kuchsiz">
               <tr>
-                <th className="px-4 py-2.5 font-medium">Ismi</th>
+                <th className="px-4 py-2.5 font-medium">Mijoz</th>
                 <th className="px-4 py-2.5 font-medium">Telefon</th>
-                <th className="px-4 py-2.5 font-medium">Turi</th>
-                <th className="px-4 py-2.5 font-medium">Guruh</th>
-                <th className="px-4 py-2.5 font-medium">Shaxsiy chegirma</th>
-                <th className="px-4 py-2.5 text-right font-medium">Qarz limiti</th>
+                <th className="px-4 py-2.5 font-medium">Turi · guruh</th>
+                <th className="px-4 py-2.5 text-right font-medium">Qarz</th>
+                <th className="px-4 py-2.5 font-medium">Oxirgi xarid</th>
+                <th className="px-4 py-2.5 text-right font-medium">Sotuv</th>
                 {ozgartiraOladi && <th className="px-4 py-2.5" />}
               </tr>
             </thead>
             <tbody className="divide-y divide-chegara [&>tr:nth-child(even)]:bg-fon/50">
-              {qatorlar.map((m) => (
-                <tr key={m.id} className={m.faol ? '' : 'bg-fon text-matn-kuchsiz'}>
-                  {/*
-                    ⚠️ ISM — KARTOCHKAGA HAVOLA.
-
-                       Ilgari kartochkaga faqat amallar ustunidagi
-                       «Tahrirlash» orqali kirilardi va u FAQAT
-                       `mijoz.ozgartir` bor odamga ko'rinardi. Sotuvchi
-                       kartochka borligini bilmasdi ham — qarzni,
-                       to'lov intizomini va buyurtmalar tarixini
-                       ko'rish yo'li yopiq edi.
-                  */}
-                  <td className="px-4 py-2.5 font-medium">
-                    <Link
-                      href={`/mijoz/${String(m.id)}`}
-                      className="text-brend hover:underline"
-                    >
-                      {m.ism}
-                    </Link>
-                    {!m.faol && <span className="ml-2 text-xs">(nofaol)</span>}
-                  </td>
-                  <td className="px-4 py-2.5">
-                    {m.telefon === null ? (
-                      <span className="text-matn-kuchsiz">—</span>
-                    ) : (
-                      telefonKorsat(m.telefon)
-                    )}
-                    {/* TZ 6.11 — telegram yo'q bo'lsa xabar yuborib bo'lmaydi */}
-                    {m.telegram_id === null && (
-                      <span className="ml-2 text-xs text-belgi-sariq" title="Botga ulanmagan">
-                        qo&apos;ng&apos;iroq qiling
+              {natija.qatorlar.map((m) => {
+                const qSom = som(m.qarz_som);
+                const qUsd = dollar(m.qarz_usd);
+                return (
+                  <tr key={m.id} className={m.faol ? '' : 'bg-fon text-matn-kuchsiz'}>
+                    <td className="px-4 py-2.5">
+                      <Link
+                        href={`/mijoz/${String(m.id)}`}
+                        className="font-medium text-brend hover:underline"
+                      >
+                        {m.ism}
+                      </Link>
+                      {!m.faol && <span className="ml-2 text-xs">(nofaol)</span>}
+                      <span
+                        className={`ml-2 rounded-full px-2 py-0.5 text-[11px] font-medium ${SEGMENT_USLUBI[m.segment]}`}
+                      >
+                        {SEGMENT_NOMI[m.segment]}
                       </span>
-                    )}
-                  </td>
-                  <td className="px-4 py-2.5">
-                    {/* TZ 6.2 — tur endi spravochnikdan */}
-                    {m.turi_nomi ?? (m.shaxs_turi === 'YURIDIK' ? 'Yuridik' : 'Jismoniy')}
-                  </td>
-                  <td className="px-4 py-2.5">
-                    {m.guruh_nomi ?? <span className="text-matn-kuchsiz">—</span>}
-                  </td>
-                  <td className="px-4 py-2.5">
-                    {m.offset_turi === null || m.offset_qiymat === null ? (
-                      <span className="text-matn-kuchsiz">—</span>
-                    ) : (
-                      `${String(Number(m.offset_qiymat))} · ${OFFSET_TURI_NOMI[m.offset_turi as OffsetTuri]}`
-                    )}
-                  </td>
-                  <td className="raqam px-4 py-2.5">
-                    {m.qarz_limiti === null ? (
-                      <span className="text-matn-kuchsiz">—</span>
-                    ) : (
-                      pulKorsat(som(m.qarz_limiti))
-                    )}
-                  </td>
-                  {ozgartiraOladi && (
-                    <td className="px-4 py-2.5 text-right">
-                      <div className="flex items-center justify-end gap-3">
-                        {/* ⚠️ O'chirilganda faqat qaytarish mumkin */}
-                        {/* Ism allaqachon havola — takroriy «Tahrirlash» olib tashlandi */}
-                        {!m.faol && <QaytarTugma tur="mijoz" id={m.id} nom={m.ism} />}
-                        {/* O'chirish = nofaol qilish; ishlatilayotgani to'siladi */}
-                        {m.faol && (
-                          <OchirTugma tur="mijoz" id={m.id} nom={m.ism} ixcham />
-                        )}
-                      </div>
+                      {(m.tashkilot_nomi !== null || m.masul_ismi !== null) && (
+                        <span className="mt-0.5 block text-xs text-matn-kuchsiz">
+                          {m.tashkilot_nomi}
+                          {m.tashkilot_nomi !== null && m.masul_ismi !== null && ' · '}
+                          {m.masul_ismi !== null && `mas'ul: ${m.masul_ismi}`}
+                        </span>
+                      )}
                     </td>
-                  )}
-                </tr>
-              ))}
+                    <td className="px-4 py-2.5 whitespace-nowrap">
+                      {m.telefon === null ? (
+                        <span className="text-matn-kuchsiz">—</span>
+                      ) : (
+                        telefonKorsat(m.telefon)
+                      )}
+                      {/*
+                        ⚠️ 2026-10-06 — ilgari botga ulanMAGAN har mijozda
+                           «qo'ng'iroq qiling» turardi: hammasida bir xil
+                           yozuv hech narsa demasdi. Endi ULANGANI belgilanadi.
+                      */}
+                      {m.telegram_id !== null && (
+                        <span
+                          className="ml-2 rounded-full bg-belgi-kok-fon px-1.5 py-0.5 text-[10px] font-medium text-belgi-kok"
+                          title="Botga ulangan — xabar yuborsa bo'ladi"
+                        >
+                          TG
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-2.5 text-matn-ikki">
+                      {m.turi_nomi ?? (m.shaxs_turi === 'YURIDIK' ? 'Yuridik' : 'Jismoniy')}
+                      {m.guruh_nomi !== null && (
+                        <span className="text-matn-kuchsiz"> · {m.guruh_nomi}</span>
+                      )}
+                    </td>
+                    <td className="raqam px-4 py-2.5 text-right whitespace-nowrap">
+                      {!musbatmi(qSom) && !musbatmi(qUsd) && !manfiymi(qSom) && !manfiymi(qUsd) ? (
+                        <span className="text-matn-kuchsiz">—</span>
+                      ) : (
+                        <span className="flex flex-col items-end">
+                          {!pulNol(m.qarz_som) && (
+                            <span
+                              className={
+                                manfiymi(qSom) ? 'text-belgi-yashil' : 'font-medium text-belgi-sariq'
+                              }
+                              title={manfiymi(qSom) ? 'Avans — oldindan to‘langan' : undefined}
+                            >
+                              {pulKorsat(qSom)} so&apos;m
+                            </span>
+                          )}
+                          {!pulNol(m.qarz_usd) && (
+                            <span
+                              className={
+                                manfiymi(qUsd) ? 'text-belgi-yashil' : 'font-medium text-belgi-sariq'
+                              }
+                            >
+                              {pulKorsat(qUsd)} $
+                            </span>
+                          )}
+                        </span>
+                      )}
+                      {m.limit_oshgan && (
+                        <span className="mt-0.5 block text-[11px] text-belgi-qizil">
+                          limit {m.qarz_limiti === null ? '' : pulKorsat(som(m.qarz_limiti))} dan
+                          oshgan
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-2.5 whitespace-nowrap text-matn-ikki">
+                      {m.oxirgi === null ? (
+                        <span className="text-matn-kuchsiz">—</span>
+                      ) : (
+                        m.oxirgi.toLocaleDateString('uz-UZ')
+                      )}
+                    </td>
+                    <td className="raqam px-4 py-2.5 text-right whitespace-nowrap text-matn-ikki">
+                      {pulNol(m.sotuv_som) && pulNol(m.sotuv_usd) ? (
+                        <span className="text-matn-kuchsiz">—</span>
+                      ) : (
+                        <>
+                          {!pulNol(m.sotuv_som) && <span>{pulKorsat(som(m.sotuv_som))}</span>}
+                          {!pulNol(m.sotuv_usd) && (
+                            <span className="ml-1 text-xs">+{pulKorsat(dollar(m.sotuv_usd))} $</span>
+                          )}
+                        </>
+                      )}
+                    </td>
+                    {ozgartiraOladi && (
+                      <td className="px-4 py-2.5 text-right">
+                        {!m.faol && <QaytarTugma tur="mijoz" id={m.id} nom={m.ism} />}
+                        {/* O'chirish = nofaol qilish; qarzi bori to'siladi */}
+                        {m.faol && <OchirTugma tur="mijoz" id={m.id} nom={m.ism} ixcham />}
+                      </td>
+                    )}
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
       )}
+
+      {sahifalar > 1 && (
+        <nav className="flex items-center justify-center gap-3 text-sm" aria-label="Sahifalar">
+          {filtr.sahifa > 1 ? (
+            <Link
+              href={havola(sp, { sahifa: String(filtr.sahifa - 1) })}
+              className="text-brend hover:underline"
+            >
+              ← Oldingi
+            </Link>
+          ) : (
+            <span className="text-matn-kuchsiz">← Oldingi</span>
+          )}
+          <span className="text-matn-ikki">
+            {filtr.sahifa} / {sahifalar}
+          </span>
+          {filtr.sahifa < sahifalar ? (
+            <Link
+              href={havola(sp, { sahifa: String(filtr.sahifa + 1) })}
+              className="text-brend hover:underline"
+            >
+              Keyingi →
+            </Link>
+          ) : (
+            <span className="text-matn-kuchsiz">Keyingi →</span>
+          )}
+        </nav>
+      )}
     </div>
   );
+}
+
+/** NUMERIC matni nolmi — `0`, `0.00`, `-0.00` */
+function pulNol(x: string): boolean {
+  return /^-?0+(\.0+)?$/.test(x);
 }

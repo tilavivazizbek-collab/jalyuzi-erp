@@ -33,7 +33,12 @@ const MAYDONLAR = [
   'hisobRaqam',
   'mfo',
   'shartnomaRaqam',
+  'shartnomaSana',
   'ndsStavka',
+  // Egasi auditi 2026-10-06
+  'tolovMuddatiKun',
+  'masulXodimId',
+  'manba',
 ];
 
 const formadanOqi = (forma: FormData): Record<string, string> =>
@@ -133,13 +138,21 @@ export async function mijozModalYaratAmali(
 
 export async function mijozTahrirlaAmali(
   mijozId: number,
-  _oldingi: MijozHolati,
+  oldingi: MijozHolati,
   forma: FormData,
 ): Promise<MijozHolati> {
   const f = await ruxsatTalab('mijoz.ozgartir');
 
-  const tekshiruv = mijozSxema.safeParse(formadanOqi(forma));
-  if (!tekshiruv.success) return xatolarniYig(tekshiruv.error.issues);
+  /**
+   * ⚠️ 2026-10-06 — tahrirda ham kiritilgan qiymat QAYTARILADI.
+   *    Ilgari faqat yaratishda qaytarilardi: tahrirda bitta xato
+   *    maydon butun formani bo'shatib yuborardi.
+   */
+  const kirim = formadanOqi(forma);
+  const tekshiruv = mijozSxema.safeParse(kirim);
+  if (!tekshiruv.success) {
+    return kirimniQaytar(xatolarniYig(tekshiruv.error.issues), oldingi, kirim);
+  }
 
   let natija;
   try {
@@ -172,5 +185,7 @@ export async function mijozTahrirlaAmali(
   }
 
   revalidatePath('/mijoz');
-  redirect('/mijoz');
+  revalidatePath(`/mijoz/${String(mijozId)}`);
+  // Kartochkada qoladi — tahrir qilgan odam natijani shu yerda ko'radi
+  redirect(`/mijoz/${String(mijozId)}`);
 }

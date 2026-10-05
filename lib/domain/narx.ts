@@ -14,6 +14,7 @@ import {
   kattami,
   kopaytir,
   manfiy,
+  manfiymi,
   musbatmi,
   nisbat,
   nolSom,
@@ -75,6 +76,24 @@ export type Offset =
 export function offsetQolla(baza: Som, offset: Offset | null, kurs: Kurs | null): Som {
   if (offset === null) return baza;
 
+  /**
+   * ⚠️ MANFIY NARX YO'Q — egasi auditi 2026-10-06. Forma endi foizni
+   *    0–100 bilan cheklaydi, lekin eski yozuv (−150%) yoki narxdan katta
+   *    so'mli chegirma baribir manfiy narx berardi: 100 000 → −50 000.
+   *    Jimgina 0 qilib qo'yish ham noto'g'ri — mijozga bepul sotilardi.
+   */
+  const natija = offsetsizQolla(baza, offset, kurs);
+  if (manfiymi(natija)) {
+    throw new BiznesXato(
+      'NARX_NOTOGRI',
+      `chegirma narxdan katta: ${pulMatn(baza)} → ${pulMatn(natija)}. ` +
+        'Mijoz yoki guruh chegirmasini tekshiring',
+    );
+  }
+  return natija;
+}
+
+function offsetsizQolla(baza: Som, offset: Offset, kurs: Kurs | null): Som {
   switch (offset.turi) {
     case 'SOM':
       return qosh(baza, offset.summa);

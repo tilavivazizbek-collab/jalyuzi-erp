@@ -114,15 +114,19 @@ export async function mijozYarat(
         ism, telefon, manzil, eslatma,
         mijoz_guruh_id, mijoz_turi_id, offset_turi, offset_qiymat, qarz_limiti,
         shaxs_turi, tashkilot_nomi, inn, yuridik_manzil,
-        bank_nomi, hisob_raqam, mfo, shartnoma_raqam,
-        nds_tolovchi, nds_stavka, yaratdi_id
+        bank_nomi, hisob_raqam, mfo, shartnoma_raqam, shartnoma_sana,
+        nds_tolovchi, nds_stavka,
+        tolov_muddati_kun, masul_xodim_id, manba,
+        yaratdi_id
       ) VALUES (
         ${kirim.ism}, ${telefon}, ${yoNull(kirim.manzil)}, ${yoNull(kirim.eslatma)},
         ${kirim.mijozGuruhId ?? null}, ${kirim.mijozTuriId ?? null}, ${yoNull(kirim.offsetTuri)}, ${yoNull(kirim.offsetQiymat)}, ${yoNull(kirim.qarzLimiti)},
         ${shaxsTuri}, ${yoNull(kirim.tashkilotNomi)}, ${yoNull(kirim.inn)},
         ${yoNull(kirim.yuridikManzil)}, ${yoNull(kirim.bankNomi)}, ${yoNull(kirim.hisobRaqam)},
-        ${yoNull(kirim.mfo)}, ${yoNull(kirim.shartnomaRaqam)},
-        ${kirim.ndsStavka !== undefined}, ${yoNull(kirim.ndsStavka)}, ${xodimId}
+        ${yoNull(kirim.mfo)}, ${yoNull(kirim.shartnomaRaqam)}, ${yoNull(kirim.shartnomaSana)},
+        ${kirim.ndsStavka !== undefined}, ${yoNull(kirim.ndsStavka)},
+        ${kirim.tolovMuddatiKun ?? null}, ${kirim.masulXodimId ?? null}, ${yoNull(kirim.manba)},
+        ${xodimId}
       ) RETURNING id`;
 
     const id = qator[0]?.id;
@@ -176,8 +180,12 @@ export async function mijozTahrirla(
         hisob_raqam = ${yoNull(kirim.hisobRaqam)},
         mfo = ${yoNull(kirim.mfo)},
         shartnoma_raqam = ${yoNull(kirim.shartnomaRaqam)},
+        shartnoma_sana = ${yoNull(kirim.shartnomaSana)},
         nds_tolovchi = ${kirim.ndsStavka !== undefined},
         nds_stavka = ${yoNull(kirim.ndsStavka)},
+        tolov_muddati_kun = ${kirim.tolovMuddatiKun ?? null},
+        masul_xodim_id = ${kirim.masulXodimId ?? null},
+        manba = ${yoNull(kirim.manba)},
         ozgartirildi = now(), ozgartirdi_id = ${xodimId}
       WHERE id = ${mijozId}`;
 

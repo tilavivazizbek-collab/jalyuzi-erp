@@ -17,7 +17,16 @@
  * ⚠️ Bekor qilingan pozitsiya hech qayerda sanalmaydi.
  */
 
+import Decimal from 'decimal.js';
 import { ulanishOl } from '@/lib/db';
+import {
+  qarzniTaqsimla,
+  tolovIntizomi as intizomniHisobla,
+  type TolovIntizomi,
+} from '@/lib/domain/qarz-taqsimot';
+import { mijozJurnali } from '../qarz-malumot';
+
+export type { TolovIntizomi };
 
 /** Hisobga olinmaydigan pozitsiyalar — sotuv bo'lmagan */
 const SANALMAYDI = ['BEKOR', 'RAD_ETILGAN', 'QAYTARILGAN'] as const;
@@ -89,7 +98,7 @@ export async function mijozXulosasi(mijozId: number): Promise<MijozXulosasi> {
     buyurtmaSoni: soni,
     aylanmaSom,
     aylanmaDollar: r?.aylanma_dollar ?? '0',
-    ortachaChekSom: soni > 0 ? (Number(aylanmaSom) / soni).toFixed(2) : '0',
+    ortachaChekSom: soni > 0 ? new Decimal(aylanmaSom).div(soni).toFixed(2) : '0',
     birinchiXarid: birinchi,
     oxirgiXarid: oxirgi,
     ortachaOraliqKun: oraliq,
@@ -97,77 +106,15 @@ export async function mijozXulosasi(mijozId: number): Promise<MijozXulosasi> {
   };
 }
 
-// ─── To'lov intizomi — B2B da eng muhim raqam ────────────────────────────
-
-export interface TolovIntizomi {
-  /** To'liq to'langan buyurtmalar bo'yicha o'rtacha kun */
-  readonly ortachaKun: number | null;
-  /** Eng uzoq to'langan buyurtma — necha kun */
-  readonly engUzunKun: number | null;
-  /** To'liq to'langan buyurtmalar soni — o'rtacha shundan chiqqan */
-  readonly tolanganSoni: number;
-  /** Hozir to'lanmagan eng eski buyurtma necha kunlik */
-  readonly ochiqQarzKun: number | null;
-}
-
+// ─── To'lov intizomi ──────────────────────────────────────────────────────
 /**
- * ⚠️ NEGA BU KERAK
- *
- *    Qayta sotuvchi deyarli doim QARZGA oladi. «Qancha qarz berish
- *    mumkin» degan savolga javob summada emas — TO'LOV TARIXIDA.
- *
- * ⚠️ 2.2-invariant — to'langan summa saqlanmaydi, kassa
- *    yozuvlaridan yig'iladi.
+ * ⚠️ 2026-10-06 — SQL dagi hisob OLIB TASHLANDI. U faqat buyurtmaga
+ *    bog'langan kassa yozuvini sanardi va kartochkadan to'langan
+ *    qarzni ko'rmasdi. Endi jurnal taqsimotidan
+ *    (`lib/domain/qarz-taqsimot.ts`).
  */
 export async function tolovIntizomi(mijozId: number): Promise<TolovIntizomi> {
-  const q = await ulanishOl()<
-    {
-      ortacha: string | null;
-      eng_uzun: string | null;
-      tolangan_soni: number;
-      ochiq_kun: string | null;
-    }[]
-  >`
-    WITH buyurtmalar AS (
-      SELECT b.id, b.sana,
-             SUM((p.narx_snapshot - COALESCE(p.chegirma_summa, 0))
-                 + COALESCE(p.xizmat_haqi, 0)) AS jami
-      FROM buyurtma b
-      JOIN buyurtma_pozitsiya p ON p.buyurtma_id = b.id
-      WHERE b.mijoz_id = ${mijozId}
-        AND b.storno_sana IS NULL
-        AND p.holat <> ALL(${SANALMAYDI})
-      GROUP BY b.id, b.sana
-    ),
-    tolovlar AS (
-      SELECT bu.id, bu.sana, bu.jami,
-             COALESCE(SUM(y.summa), 0) AS tolangan,
-             MAX(y.sana)               AS oxirgi_tolov
-      FROM buyurtmalar bu
-      LEFT JOIN kassa_yozuv y
-             ON y.manba_turi = 'buyurtma' AND y.manba_id = bu.id AND y.summa > 0
-      GROUP BY bu.id, bu.sana, bu.jami
-    )
-    SELECT
-      AVG(EXTRACT(EPOCH FROM (oxirgi_tolov - sana)) / 86400)
-        FILTER (WHERE tolangan >= jami AND jami > 0)::text AS ortacha,
-      MAX(EXTRACT(EPOCH FROM (oxirgi_tolov - sana)) / 86400)
-        FILTER (WHERE tolangan >= jami AND jami > 0)::text AS eng_uzun,
-      COUNT(*) FILTER (WHERE tolangan >= jami AND jami > 0)::int AS tolangan_soni,
-      MAX(EXTRACT(EPOCH FROM (now() - sana)) / 86400)
-        FILTER (WHERE tolangan < jami)::text AS ochiq_kun
-    FROM tolovlar`;
-
-  const r = q[0];
-  const son = (x: string | null | undefined): number | null =>
-    x === null || x === undefined ? null : Math.round(Number(x));
-
-  return {
-    ortachaKun: son(r?.ortacha),
-    engUzunKun: son(r?.eng_uzun),
-    tolanganSoni: r?.tolangan_soni ?? 0,
-    ochiqQarzKun: son(r?.ochiq_kun),
-  };
+  return intizomniHisobla(qarzniTaqsimla(await mijozJurnali(mijozId)).bandlar, new Date());
 }
 
 // ─── Nima sotadi ──────────────────────────────────────────────────────────
@@ -265,8 +212,8 @@ export interface MijozBuyurtmasi {
   readonly raqam: string;
   readonly sana: Date;
   readonly valyuta: string;
+  /** Bekor/rad etilgan/qaytarilgan pozitsiyalarsiz */
   readonly jami: string;
-  readonly tolangan: string;
   readonly pozitsiyaSoni: number;
   readonly stornomi: boolean;
   /** Holat sanoqlari: `{ TAYYOR: 2, TOPSHIRILDI: 1 }` */
@@ -286,7 +233,6 @@ export async function mijozBuyurtmalari(
       sana: Date;
       valyuta: string;
       jami: string | null;
-      tolangan: string | null;
       pozitsiya_soni: number;
       stornomi: boolean;
     }[]
@@ -294,12 +240,13 @@ export async function mijozBuyurtmalari(
     SELECT b.id, b.raqam, b.sana, b.valyuta,
            (b.storno_sana IS NOT NULL) AS stornomi,
            COUNT(p.id)::int AS pozitsiya_soni,
+           /*
+            * ⚠️ 2026-10-06 — bekor qilingan pozitsiya summaga KIRMAYDI.
+            *    Ilgari kirardi va «Aylanma» katagi bilan farq qilardi.
+            */
            SUM((p.narx_snapshot - COALESCE(p.chegirma_summa, 0))
-               + COALESCE(p.xizmat_haqi, 0))::text AS jami,
-           COALESCE((
-             SELECT SUM(y.summa) FROM kassa_yozuv y
-             WHERE y.manba_turi = 'buyurtma' AND y.manba_id = b.id AND y.summa > 0
-           ), 0)::text AS tolangan
+               + COALESCE(p.xizmat_haqi, 0))
+             FILTER (WHERE p.holat <> ALL(${SANALMAYDI}))::text AS jami
     FROM buyurtma b
     LEFT JOIN buyurtma_pozitsiya p ON p.buyurtma_id = b.id
     WHERE b.mijoz_id = ${mijozId}
@@ -328,7 +275,6 @@ export async function mijozBuyurtmalari(
     sana: q.sana,
     valyuta: q.valyuta,
     jami: q.jami ?? '0',
-    tolangan: q.tolangan ?? '0',
     pozitsiyaSoni: q.pozitsiya_soni,
     stornomi: q.stornomi,
     holatlar: boyicha.get(q.id) ?? {},

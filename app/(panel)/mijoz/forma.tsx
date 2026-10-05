@@ -28,8 +28,33 @@ export interface MijozQiymatlari {
   readonly hisobRaqam: string;
   readonly mfo: string;
   readonly shartnomaRaqam: string;
+  /** `YYYY-MM-DD` — bo'sh bo'lishi mumkin */
+  readonly shartnomaSana: string;
   readonly ndsStavka: string;
+  /** Egasi auditi 2026-10-06 — qarz necha kunda to'lanishi kerak */
+  readonly tolovMuddatiKun: string;
+  /** Mijoz qaysi sotuvchiga biriktirilgan */
+  readonly masulXodimId: string;
+  /** Qayerdan keldi — reklama qaysi kanaldan ishlayotgani */
+  readonly manba: string;
 }
+
+/**
+ * Mijoz manbalari — egasi auditi 2026-10-06.
+ *
+ * ⚠️ Ro'yxat MASLAHAT, majburiy emas: «Boshqa» tanlansa ham
+ *    saqlanadi. Bazada oddiy matn — yangi kanal qo'shish uchun
+ *    migratsiya kerak bo'lmasin.
+ */
+export const MIJOZ_MANBALARI = [
+  'Instagram',
+  'Telegram',
+  'Tavsiya (tanish)',
+  "Ko'chadan / do'kondan",
+  'Usta orqali',
+  'Qayta sotuvchi',
+  'Boshqa',
+] as const;
 
 export const BOSH_QIYMATLAR: MijozQiymatlari = {
   ism: '',
@@ -49,7 +74,11 @@ export const BOSH_QIYMATLAR: MijozQiymatlari = {
   hisobRaqam: '',
   mfo: '',
   shartnomaRaqam: '',
+  shartnomaSana: '',
   ndsStavka: '',
+  tolovMuddatiKun: '',
+  masulXodimId: '',
+  manba: '',
 };
 
 export function MijozFormasi({
@@ -60,6 +89,7 @@ export function MijozFormasi({
   guruhQoshaOladi = false,
   turlar = [],
   turQoshaOladi = false,
+  xodimlar = [],
   saqlandi,
   bekor,
 }: {
@@ -72,6 +102,8 @@ export function MijozFormasi({
   /** TZ 6.2 — mijoz turlari (narx darajasi) */
   turlar?: readonly { id: number; nom: string; soliqKerak: boolean }[];
   turQoshaOladi?: boolean;
+  /** Mas'ul sotuvchi tanlovi uchun */
+  xodimlar?: readonly { id: number; nom: string }[];
   /**
    * ⚠️ Modal oynada beriladi. O'z sahifasida saqlangach ro'yxatga
    *    yo'naltiriladi, shuning uchun u yerda bu chaqirilmaydi.
@@ -113,6 +145,27 @@ export function MijozFormasi({
   const [turId, setTurId] = useState(q('mijozTuriId'));
   const soliqKerak = turlar.find((t) => String(t.id) === turId)?.soliqKerak === true;
   const [offsetTuri, setOffsetTuri] = useState(q('offsetTuri'));
+
+  /**
+   * ⚠️ CHEGIRMA / USTAMA — egasi auditi 2026-10-06 (2-xato).
+   *
+   *    Bazada offset ISHORALI turadi: manfiy — chegirma, musbat —
+   *    ustama (`offsetQolla`: −3 → × 0.97). Ekranda esa bo'lim
+   *    «Chegirma» deb atalardi va «10» yozilsa narx 10% OSHARDI.
+   *
+   *    Endi yo'nalish alohida tanlanadi, son doim MUSBAT yoziladi.
+   *    Ishora shu yerda qo'yiladi va server avvalgidek ishorali
+   *    qiymat oladi — bazadagi yozuvlar va narx hisobi o'zgarmaydi.
+   */
+  const boshQiymat = q('offsetQiymat').trim();
+  const [yonalish, setYonalish] = useState<'CHEGIRMA' | 'USTAMA'>(
+    boshQiymat !== '' && !boshQiymat.startsWith('-') && Number(boshQiymat) !== 0
+      ? 'USTAMA'
+      : 'CHEGIRMA',
+  );
+  const [miqdor, setMiqdor] = useState(boshQiymat.replace(/^-/, ''));
+  const ishorali =
+    miqdor.trim() === '' ? '' : `${yonalish === 'CHEGIRMA' ? '-' : ''}${miqdor.trim()}`;
 
   const x = (nom: string): string | undefined => holat.maydonXatolari[nom];
   const ch = (nom: string): string => kirishUslubi(x(nom) !== undefined);
@@ -248,10 +301,10 @@ export function MijozFormasi({
       </section>
 
       <section>
-        <h2 className="mb-1 text-sm font-semibold text-matn">Chegirma</h2>
+        <h2 className="mb-1 text-sm font-semibold text-matn">Chegirma yoki ustama</h2>
         <p className="mb-3 text-xs text-matn-kuchsiz">
-          Barcha matoga bir xil qo&apos;llanadi, aksessuarga tegmaydi (6.3). Manfiy qiymat —
-          chegirma.
+          Barcha matoga bir xil qo&apos;llanadi, aksessuarga tegmaydi (6.3). Son doim musbat
+          yoziladi — chegirma narxni kamaytiradi, ustama oshiradi.
         </p>
 
         {/*
@@ -275,7 +328,21 @@ export function MijozFormasi({
           />
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-3">
+          <Maydon nom="offsetYonalish" yorliq="Nima">
+            <select
+              id="offsetYonalish"
+              value={yonalish}
+              onChange={(e) => {
+                setYonalish(e.target.value === 'USTAMA' ? 'USTAMA' : 'CHEGIRMA');
+              }}
+              className={ch('offsetQiymat')}
+            >
+              <option value="CHEGIRMA">Chegirma (arzonroq)</option>
+              <option value="USTAMA">Ustama (qimmatroq)</option>
+            </select>
+          </Maydon>
+
           <Maydon nom="offsetTuri" yorliq="Turi">
             <select
               id="offsetTuri"
@@ -296,20 +363,28 @@ export function MijozFormasi({
           </Maydon>
 
           <Maydon
-            nom="offsetQiymat"
+            nom="offsetMiqdor"
             yorliq="Qiymati"
             izoh={
-              offsetTuri === 'FOIZ' ? 'masalan −3' : offsetTuri === '' ? undefined : 'masalan −1500'
+              offsetTuri === 'FOIZ'
+                ? `masalan 3 — ${yonalish === 'CHEGIRMA' ? '3% arzon' : '3% qimmat'}`
+                : offsetTuri === ''
+                  ? undefined
+                  : `masalan 1500 — har kv.m ${yonalish === 'CHEGIRMA' ? 'arzon' : 'qimmat'}`
             }
             xato={x('offsetQiymat')}
           >
             <input
-              id="offsetQiymat"
-              name="offsetQiymat"
+              id="offsetMiqdor"
               inputMode="decimal"
-              defaultValue={q('offsetQiymat')}
+              value={miqdor}
+              onChange={(e) => {
+                // Minus yozilsa ham olib tashlanadi — yo'nalish yuqorida tanlanadi
+                setMiqdor(e.target.value.replace(/^\s*[-−]/, ''));
+              }}
               className={ch('offsetQiymat')}
             />
+            <input type="hidden" name="offsetQiymat" value={ishorali} />
           </Maydon>
         </div>
         {offsetTuri === 'USD' && (
@@ -335,7 +410,7 @@ export function MijozFormasi({
                 className={ch('tashkilotNomi')}
               />
             </Maydon>
-            <Maydon nom="inn" yorliq="INN *" xato={x('inn')}>
+            <Maydon nom="inn" yorliq="INN *" izoh="9 raqam (yuridik) yoki 14 raqam (JShShIR)" xato={x('inn')}>
               <input id="inn" name="inn" defaultValue={q('inn')} className={ch('inn')} />
             </Maydon>
             <div className="sm:col-span-2">
@@ -356,7 +431,7 @@ export function MijozFormasi({
                 className={ch('bankNomi')}
               />
             </Maydon>
-            <Maydon nom="hisobRaqam" yorliq="Hisob raqami">
+            <Maydon nom="hisobRaqam" yorliq="Hisob raqami" izoh="20 raqam" xato={x('hisobRaqam')}>
               <input
                 id="hisobRaqam"
                 name="hisobRaqam"
@@ -364,7 +439,7 @@ export function MijozFormasi({
                 className={ch('hisobRaqam')}
               />
             </Maydon>
-            <Maydon nom="mfo" yorliq="MFO">
+            <Maydon nom="mfo" yorliq="MFO" izoh="5 raqam" xato={x('mfo')}>
               <input id="mfo" name="mfo" defaultValue={q('mfo')} className={ch('mfo')} />
             </Maydon>
             <Maydon nom="shartnomaRaqam" yorliq="Shartnoma raqami">
@@ -373,6 +448,16 @@ export function MijozFormasi({
                 name="shartnomaRaqam"
                 defaultValue={q('shartnomaRaqam')}
                 className={ch('shartnomaRaqam')}
+              />
+            </Maydon>
+            {/* Egasi auditi 2026-10-06 — ustun bazada bor edi, formada yo'q edi */}
+            <Maydon nom="shartnomaSana" yorliq="Shartnoma sanasi" xato={x('shartnomaSana')}>
+              <input
+                id="shartnomaSana"
+                name="shartnomaSana"
+                type="date"
+                defaultValue={q('shartnomaSana')}
+                className={ch('shartnomaSana')}
               />
             </Maydon>
             <Maydon
@@ -392,6 +477,64 @@ export function MijozFormasi({
           </div>
         </section>
       )}
+
+      {/*
+        ⚠️ SAVDO — egasi auditi 2026-10-06. Qarzga oladigan qayta
+           sotuvchi uchun uchta narsa: qachongacha to'laydi, kim
+           bilan ishlaydi, qayerdan kelgan.
+      */}
+      <section>
+        <h2 className="mb-1 text-sm font-semibold text-matn">Savdo</h2>
+        <p className="mb-3 text-xs text-matn-kuchsiz">
+          To&apos;lov muddati bo&apos;sh — muddat nazorati yo&apos;q. To&apos;ldirilsa, muddati
+          o&apos;tgan qarz ro&apos;yxatda, kartochkada va sotuvda ko&apos;rinadi.
+        </p>
+        <div className="grid gap-4 sm:grid-cols-3">
+          <Maydon
+            nom="tolovMuddatiKun"
+            yorliq="To'lov muddati (kun)"
+            izoh="masalan 15 — sotuvdan 15 kun ichida"
+            xato={x('tolovMuddatiKun')}
+          >
+            <input
+              id="tolovMuddatiKun"
+              name="tolovMuddatiKun"
+              inputMode="numeric"
+              defaultValue={q('tolovMuddatiKun')}
+              className={ch('tolovMuddatiKun')}
+            />
+          </Maydon>
+          <Maydon nom="masulXodimId" yorliq="Mas'ul sotuvchi" xato={x('masulXodimId')}>
+            <select
+              id="masulXodimId"
+              name="masulXodimId"
+              defaultValue={q('masulXodimId')}
+              className={ch('masulXodimId')}
+            >
+              <option value="">— biriktirilmagan —</option>
+              {xodimlar.map((xo) => (
+                <option key={xo.id} value={xo.id}>
+                  {xo.nom}
+                </option>
+              ))}
+            </select>
+          </Maydon>
+          <Maydon nom="manba" yorliq="Qayerdan keldi" xato={x('manba')}>
+            <select id="manba" name="manba" defaultValue={q('manba')} className={ch('manba')}>
+              <option value="">— noma&apos;lum —</option>
+              {/* Ro'yxatda yo'q eski qiymat ham yo'qolmasin */}
+              {q('manba') !== '' && !(MIJOZ_MANBALARI as readonly string[]).includes(q('manba')) && (
+                <option value={q('manba')}>{q('manba')}</option>
+              )}
+              {MIJOZ_MANBALARI.map((m) => (
+                <option key={m} value={m}>
+                  {m}
+                </option>
+              ))}
+            </select>
+          </Maydon>
+        </div>
+      </section>
 
       <section>
         <Maydon nom="eslatma" yorliq="Eslatma">

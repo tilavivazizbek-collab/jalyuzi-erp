@@ -7,8 +7,20 @@ import { mijozTahrirlaAmali } from '../amal';
 import type { MijozHolati } from '../holat';
 import { MijozFormasi, type MijozQiymatlari } from '../forma';
 import { ruxsatBormi } from '@/lib/ruxsat/tekshir';
-import { dollar, pulKorsat, som } from '@/lib/domain/pul';
-import { HARAKAT_NOMI, mijozQarzi } from '../qarz-malumot';
+import { dollar, kurs as kursYasa, musbatmi, pulKorsat, som } from '@/lib/domain/pul';
+import { limitHolati } from '@/lib/domain/mijoz';
+import {
+  YOSH_ORALIQLARI,
+  muddatOtganQarz,
+  qarzYoshi,
+  qarzniTaqsimla,
+  tolovIntizomi,
+  type TolovIntizomi,
+} from '@/lib/domain/qarz-taqsimot';
+import { joriyKurs } from '@/lib/amal/kurs';
+import { telefonKorsat } from '@/lib/domain/telefon';
+import { HARAKAT_NOMI, mijozJurnali, mijozQarzi } from '../qarz-malumot';
+import { filtrTanlovlari } from '../malumot';
 import { tolovKassalari } from '../../buyurtma/malumot';
 import { QarzTolashFormasi } from '../qarz-forma';
 import { UmidsizQarzFormasi } from '../umidsiz-forma';
@@ -19,13 +31,11 @@ import {
   mijozXulosasi,
   nimaSotadi,
   oylikAylanma,
-  tolovIntizomi,
   type MijozBuyurtmasi,
   type MijozXulosasi,
   type OylikAylanma,
   type SotilganMaterial,
   type SotilganQator,
-  type TolovIntizomi,
 } from './malumot';
 
 export const dynamic = 'force-dynamic';
@@ -49,7 +59,15 @@ interface Qator {
   readonly hisob_raqam: string | null;
   readonly mfo: string | null;
   readonly shartnoma_raqam: string | null;
+  /** `to_char` bilan — vaqt mintaqasi siljitmasin */
+  readonly shartnoma_sana_matn: string | null;
   readonly nds_stavka: string | null;
+  readonly tolov_muddati_kun: number | null;
+  readonly masul_xodim_id: number | null;
+  readonly masul_ismi: string | null;
+  readonly manba: string | null;
+  readonly telegram_id: number | null;
+  readonly faol: boolean;
 }
 
 const m = (x: string | null): string => x ?? '';
@@ -70,7 +88,12 @@ export default async function MijozTahrirlash({ params }: { params: Promise<{ id
   const mijozId = Number(id);
   if (!Number.isSafeInteger(mijozId) || mijozId <= 0) notFound();
 
-  const qatorlar = await ulanishOl()<Qator[]>`SELECT * FROM mijoz WHERE id = ${mijozId}`;
+  const qatorlar = await ulanishOl()<Qator[]>`
+    SELECT m.*, to_char(m.shartnoma_sana, 'YYYY-MM-DD') AS shartnoma_sana_matn,
+           x.ism AS masul_ismi
+    FROM mijoz m
+    LEFT JOIN xodim x ON x.id = m.masul_xodim_id
+    WHERE m.id = ${mijozId}`;
   const mijoz = qatorlar[0];
   if (mijoz === undefined) notFound();
 
@@ -92,18 +115,30 @@ export default async function MijozTahrirlash({ params }: { params: Promise<{ id
     hisobRaqam: m(mijoz.hisob_raqam),
     mfo: m(mijoz.mfo),
     shartnomaRaqam: m(mijoz.shartnoma_raqam),
+    shartnomaSana: m(mijoz.shartnoma_sana_matn),
     ndsStavka: m(mijoz.nds_stavka),
+    tolovMuddatiKun:
+      mijoz.tolov_muddati_kun === null ? '' : String(mijoz.tolov_muddati_kun),
+    masulXodimId: mijoz.masul_xodim_id === null ? '' : String(mijoz.masul_xodim_id),
+    manba: m(mijoz.manba),
   };
 
   // TZ 6.7 · 6.8 — qarz bloki va harakatlar tarixi
   const tolovQilaOladi = ruxsatBormi(f, 'kassa.tolov');
-  // TZ 6.10 — «ADMIN qarzni hisobdan chiqara oladi»
-  const hisobdanChiqaraOladi = ruxsatBormi(f, 'kassa.storno');
-  const [qarz, kassalar, guruhlar, turlar] = await Promise.all([
+  /**
+   * TZ 6.10 — «ADMIN qarzni hisobdan chiqara oladi».
+   *
+   * ⚠️ 2026-10-06 — ilgari `kassa.storno` tekshirilardi, rollarda esa
+   *    ALOHIDA «Qarzni hisobdan chiqarish» ruxsati turardi va u hech
+   *    narsani boshqarmasdi. Endi o'sha ruxsat ishlaydi.
+   */
+  const hisobdanChiqaraOladi = ruxsatBormi(f, 'mijoz.qarz.hisobdan');
+  const [qarz, kassalar, guruhlar, turlar, tanlov] = await Promise.all([
     mijozQarzi(mijozId),
     tolovQilaOladi ? tolovKassalari(f.filialId, f.xodimId) : Promise.resolve([]),
     guruhTanlovlari(),
     faolTurlar(ulanishOl()),
+    filtrTanlovlari(),
   ]);
 
   /**
@@ -111,13 +146,52 @@ export default async function MijozTahrirlash({ params }: { params: Promise<{ id
    *    Shuning uchun bu raqamlar: qanday to'laydi, qanday ritmda
    *    oladi, nimani qayta sotadi.
    */
-  const [xulosa, intizom, sotilgan, aylanma, buyurtmalar] = await Promise.all([
+  const [xulosa, jurnal, sotilgan, aylanma, buyurtmalar, kursMatni] = await Promise.all([
     mijozXulosasi(mijozId),
-    tolovIntizomi(mijozId),
+    mijozJurnali(mijozId),
     nimaSotadi(mijozId),
     oylikAylanma(mijozId),
     mijozBuyurtmalari(mijozId),
+    joriyKurs(ulanishOl()),
   ]);
+
+  /**
+   * ⚠️ TAQSIMOT — egasi auditi 2026-10-06. Kartochkadan to'langan qarz
+   *    endi eng eski buyurtmalarni yopadi: «To'landi» belgisi, to'lov
+   *    intizomi va eng eski qarz shu bitta hisobdan chiqadi.
+   */
+  const bugun = new Date();
+  const taqsimot = qarzniTaqsimla(jurnal);
+  const intizom = tolovIntizomi(taqsimot.bandlar, bugun);
+  const buyurtmaQoldigi = new Map(
+    taqsimot.bandlar
+      .filter((b) => b.buyurtmaId !== null)
+      .map((b) => [b.buyurtmaId as number, { tolangan: b.tolangan, qolgan: b.qolgan }]),
+  );
+
+  /**
+   * To'lov muddati o'tgan qarz va qarz yoshi — egasi auditi 2026-10-06.
+   * Ikkalasi ham TAQSIMOTDAN: kartochkadan to'langan pul eng eski
+   * buyurtmani yopgan bo'ladi.
+   */
+  const muddatOtgan = {
+    SOM: muddatOtganQarz(taqsimot.bandlar, 'SOM', mijoz.tolov_muddati_kun, bugun),
+    USD: muddatOtganQarz(taqsimot.bandlar, 'USD', mijoz.tolov_muddati_kun, bugun),
+  };
+  const yosh = {
+    SOM: qarzYoshi(taqsimot.bandlar, 'SOM', bugun),
+    USD: qarzYoshi(taqsimot.bandlar, 'USD', bugun),
+  };
+
+  /** TZ 6.4 — limit sotuv ekranidagi bilan BIR XIL hisob (`limitHolati`) */
+  const limit =
+    mijoz.qarz_limiti === null || kursMatni === null
+      ? null
+      : limitHolati(
+          { som: som(qarz.som), dollar: dollar(qarz.dollar) },
+          som(mijoz.qarz_limiti),
+          kursYasa(kursMatni, bugun, 'JORIY'),
+        );
 
   const amal = async (holat: MijozHolati, forma: FormData): Promise<MijozHolati> => {
     'use server';
@@ -158,14 +232,48 @@ export default async function MijozTahrirlash({ params }: { params: Promise<{ id
 
         <dl className="mb-4 grid max-w-xs grid-cols-2 gap-x-4 gap-y-1 rounded-karta border border-chegara bg-fon px-4 py-3 text-sm">
           <dt className="text-matn-kuchsiz">So&apos;m</dt>
-          <dd className={`raqam font-medium ${Number(qarz.som) > 0 ? 'text-belgi-sariq' : ''}`}>
+          <dd className={`raqam font-medium ${musbatmi(som(qarz.som)) ? 'text-belgi-sariq' : ''}`}>
             {pulKorsat(som(qarz.som))}
           </dd>
           <dt className="text-matn-kuchsiz">Dollar</dt>
-          <dd className={`raqam font-medium ${Number(qarz.dollar) > 0 ? 'text-belgi-sariq' : ''}`}>
+          <dd className={`raqam font-medium ${musbatmi(dollar(qarz.dollar)) ? 'text-belgi-sariq' : ''}`}>
             {pulKorsat(dollar(qarz.dollar))}
           </dd>
         </dl>
+
+        {/* TZ 6.4 — limit oshgani kartochkada ham ko'rinadi, faqat sotuvda emas */}
+        {limit?.oshganmi === true && limit.limit !== null && (
+          <p className="mb-4 max-w-xl rounded-maydon bg-belgi-qizil-fon px-3 py-2.5 text-[13px] text-belgi-qizil">
+            Qarz limitdan oshgan: {pulKorsat(limit.jamiSomda)} so&apos;m (dollar joriy kursda) —
+            limit {pulKorsat(limit.limit)} so&apos;m.
+          </p>
+        )}
+
+        {(musbatmi(som(muddatOtgan.SOM.summa)) || musbatmi(dollar(muddatOtgan.USD.summa))) && (
+          <p className="mb-4 max-w-xl rounded-maydon bg-belgi-qizil-fon px-3 py-2.5 text-[13px] text-belgi-qizil">
+            To&apos;lov muddati ({String(mijoz.tolov_muddati_kun)} kun) o&apos;tgan qarz:{' '}
+            {musbatmi(som(muddatOtgan.SOM.summa)) && (
+              <b>{pulKorsat(som(muddatOtgan.SOM.summa))} so&apos;m </b>
+            )}
+            {musbatmi(dollar(muddatOtgan.USD.summa)) && (
+              <b>{pulKorsat(dollar(muddatOtgan.USD.summa))} $ </b>
+            )}
+            — eng eskisi{' '}
+            {String(Math.max(muddatOtgan.SOM.engEskiKun ?? 0, muddatOtgan.USD.engEskiKun ?? 0))}{' '}
+            kun kechikdi.
+          </p>
+        )}
+
+        <QarzYoshiJadvali yosh={yosh} />
+
+        {/* Ortiqcha to'langan pul — keyingi xariddan yechiladi */}
+        {(musbatmi(som(taqsimot.avans.SOM)) || musbatmi(dollar(taqsimot.avans.USD))) && (
+          <p className="mb-4 max-w-xl rounded-maydon bg-belgi-yashil-fon px-3 py-2.5 text-[13px] text-belgi-yashil">
+            Avans (oldindan to&apos;langan):{' '}
+            {musbatmi(som(taqsimot.avans.SOM)) && <b>{pulKorsat(som(taqsimot.avans.SOM))} so&apos;m </b>}
+            {musbatmi(dollar(taqsimot.avans.USD)) && <b>{pulKorsat(dollar(taqsimot.avans.USD))} $</b>}
+          </p>
+        )}
 
         {tolovQilaOladi && (
           <QarzTolashFormasi
@@ -176,7 +284,7 @@ export default async function MijozTahrirlash({ params }: { params: Promise<{ id
           />
         )}
 
-        {hisobdanChiqaraOladi && (Number(qarz.som) > 0 || Number(qarz.dollar) > 0) && (
+        {hisobdanChiqaraOladi && (musbatmi(som(qarz.som)) || musbatmi(dollar(qarz.dollar))) && (
           <div className="mt-4 flex flex-col">
             <UmidsizQarzFormasi mijozId={mijozId} somQarz={qarz.som} dollarQarz={qarz.dollar} />
           </div>
@@ -187,6 +295,18 @@ export default async function MijozTahrirlash({ params }: { params: Promise<{ id
       {qarz.harakatlar.length > 0 && (
         <section>
           <h2 className="mb-2 text-sm font-medium text-matn-ikki">Qarz harakati</h2>
+          {qarz.harakatlar.length >= 50 && (
+            <p className="mb-2 text-xs text-matn-kuchsiz">
+              Oxirgi 50 tasi. To&apos;liq tarix va qoldiq —{' '}
+              <Link
+                href={`/mijoz/${String(mijozId)}/hisob-kitob`}
+                className="text-brend hover:underline"
+              >
+                hisob-kitob varaqasida
+              </Link>
+              .
+            </p>
+          )}
           <div className="overflow-x-auto rounded-karta border border-chegara bg-sirt">
             <table className="w-full text-sm">
               <thead className="border-b border-chegara bg-fon text-left text-xs uppercase tracking-wide text-matn-kuchsiz">
@@ -211,7 +331,7 @@ export default async function MijozTahrirlash({ params }: { params: Promise<{ id
                     </td>
                     <td
                       className={`raqam px-4 py-2.5 font-medium ${
-                        Number(h.summa) < 0 ? 'text-belgi-yashil' : 'text-matn-ikki'
+                        h.summa.startsWith('-') ? 'text-belgi-yashil' : 'text-matn-ikki'
                       }`}
                     >
                       {h.valyuta === 'SOM' ? pulKorsat(som(h.summa)) : pulKorsat(dollar(h.summa))}
@@ -227,7 +347,7 @@ export default async function MijozTahrirlash({ params }: { params: Promise<{ id
 
       <NimaSotadi sotilgan={sotilgan} />
       <Aylanma qatorlar={aylanma} />
-      <Buyurtmalar qatorlar={buyurtmalar} />
+      <Buyurtmalar qatorlar={buyurtmalar} qoldiqlar={buyurtmaQoldigi} />
 
       {tahrirlayOladi && (
       <div className="rounded-karta border border-chegara bg-sirt p-6">
@@ -238,6 +358,7 @@ export default async function MijozTahrirlash({ params }: { params: Promise<{ id
           guruhlar={guruhlar}
           turlar={turlar}
           guruhQoshaOladi={tahrirlayOladi}
+          xodimlar={tanlov.xodimlar}
         />
       </div>
       )}
@@ -284,15 +405,26 @@ function Katak({
  */
 function Rekvizitlar({ mijoz }: { mijoz: Qator }) {
   const qatorlar: [string, string | null][] = [
-    ['Telefon', mijoz.telefon],
+    ['Telefon', mijoz.telefon === null ? null : telefonKorsat(mijoz.telefon)],
     ['Manzil', mijoz.manzil],
     ['Shaxs turi', mijoz.shaxs_turi === 'YURIDIK' ? 'Yuridik' : 'Jismoniy'],
     ['Tashkilot', mijoz.tashkilot_nomi],
     ['INN', mijoz.inn],
-    ['Shartnoma', mijoz.shartnoma_raqam],
+    [
+      'Shartnoma',
+      mijoz.shartnoma_raqam === null
+        ? null
+        : `${mijoz.shartnoma_raqam}${mijoz.shartnoma_sana_matn === null ? '' : ` · ${mijoz.shartnoma_sana_matn}`}`,
+    ],
     ['Bank', mijoz.bank_nomi],
     ['Hisob raqam', mijoz.hisob_raqam],
-    ['Qarz limiti', mijoz.qarz_limiti === null ? null : `${raqam(mijoz.qarz_limiti)} so'm`],
+    ['Qarz limiti', mijoz.qarz_limiti === null ? null : `${pulKorsat(som(mijoz.qarz_limiti))} so'm`],
+    [
+      "To'lov muddati",
+      mijoz.tolov_muddati_kun === null ? null : `${String(mijoz.tolov_muddati_kun)} kun`,
+    ],
+    ["Mas'ul sotuvchi", mijoz.masul_ismi],
+    ['Qayerdan keldi', mijoz.manba],
     ['Eslatma', mijoz.eslatma],
   ];
 
@@ -504,7 +636,14 @@ function Aylanma({ qatorlar }: { qatorlar: readonly OylikAylanma[] }) {
 }
 
 /** Sotuvlari tarixi — shu paytgacha bu sahifada UMUMAN yo'q edi */
-function Buyurtmalar({ qatorlar }: { qatorlar: readonly MijozBuyurtmasi[] }) {
+function Buyurtmalar({
+  qatorlar,
+  qoldiqlar,
+}: {
+  qatorlar: readonly MijozBuyurtmasi[];
+  /** Qarz taqsimotidan — `qarzniTaqsimla()` */
+  qoldiqlar: ReadonlyMap<number, { tolangan: string; qolgan: string }>;
+}) {
   if (qatorlar.length === 0) return null;
 
   return (
@@ -523,9 +662,15 @@ function Buyurtmalar({ qatorlar }: { qatorlar: readonly MijozBuyurtmasi[] }) {
           </thead>
           <tbody className="divide-y divide-chegara [&>tr:nth-child(even)]:bg-fon/50">
             {qatorlar.map((b) => {
-              const jami = Number(b.jami);
-              const tolangan = Number(b.tolangan);
-              const toliq = jami > 0 && tolangan >= jami;
+              /**
+               * ⚠️ 2026-10-06 — holat QARZ TAQSIMOTIDAN. Ilgari faqat
+               *    buyurtmaga bog'langan kassa yozuvi sanalardi va
+               *    kartochkadan to'langan qarz bu yerda ko'rinmasdi.
+               *    Taqsimotda yo'q buyurtma (mijozsiz, storno) qarz emas.
+               */
+              const t = qoldiqlar.get(b.id);
+              const toliq = t === undefined || !musbatmi(som(t.qolgan));
+              const qisman = t !== undefined && musbatmi(som(t.tolangan));
 
               return (
                 <tr key={b.id} className={b.stornomi ? 'opacity-60' : ''}>
@@ -551,12 +696,12 @@ function Buyurtmalar({ qatorlar }: { qatorlar: readonly MijozBuyurtmasi[] }) {
                       className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${
                         toliq
                           ? 'bg-belgi-yashil-fon text-belgi-yashil'
-                          : tolangan > 0
+                          : qisman
                             ? 'bg-belgi-sariq-fon text-belgi-sariq'
                             : 'bg-belgi-qizil-fon text-belgi-qizil'
                       }`}
                     >
-                      {toliq ? "To'landi" : tolangan > 0 ? 'Qisman' : "To'lanmagan"}
+                      {b.stornomi ? '—' : toliq ? "To'landi" : qisman ? 'Qisman' : "To'lanmagan"}
                     </span>
                   </td>
                   <td className="px-4 py-2.5">
@@ -578,5 +723,58 @@ function Buyurtmalar({ qatorlar }: { qatorlar: readonly MijozBuyurtmasi[] }) {
         </table>
       </div>
     </section>
+  );
+}
+
+/**
+ * QARZ YOSHI — egasi auditi 2026-10-06. Har qanday ERP da birinchi
+ * hisobot: qarzning qanchasi yangi, qanchasi eskirgan.
+ */
+function QarzYoshiJadvali({
+  yosh,
+}: {
+  yosh: Record<'SOM' | 'USD', Record<(typeof YOSH_ORALIQLARI)[number], string>>;
+}) {
+  const valyutalar = (['SOM', 'USD'] as const).filter((v) =>
+    YOSH_ORALIQLARI.some((o) => !/^0+(\.0+)?$/.test(yosh[v][o])),
+  );
+  if (valyutalar.length === 0) return null;
+  return (
+    <table className="mb-4 max-w-xl text-[13px]">
+      <thead className="text-left text-[11px] uppercase tracking-wide text-matn-kuchsiz">
+        <tr>
+          <th className="pr-4 pb-1 font-medium">Qarz yoshi</th>
+          {YOSH_ORALIQLARI.map((o) => (
+            <th key={o} className="px-3 pb-1 text-right font-medium">
+              {o} kun
+            </th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {valyutalar.map((v) => (
+          <tr key={v}>
+            <td className="pr-4 text-matn-kuchsiz">{v === 'SOM' ? "so'm" : '$'}</td>
+            {YOSH_ORALIQLARI.map((o) => {
+              const x = v === 'SOM' ? som(yosh[v][o]) : dollar(yosh[v][o]);
+              return (
+                <td
+                  key={o}
+                  className={`raqam px-3 text-right ${
+                    musbatmi(x) && (o === '61-90' || o === '90+')
+                      ? 'font-medium text-belgi-qizil'
+                      : musbatmi(x)
+                        ? 'text-matn'
+                        : 'text-matn-kuchsiz'
+                  }`}
+                >
+                  {musbatmi(x) ? pulKorsat(x) : '—'}
+                </td>
+              );
+            })}
+          </tr>
+        ))}
+      </tbody>
+    </table>
   );
 }

@@ -79,7 +79,19 @@ export async function mijozQidir(matn: string, chegara = 10): Promise<SotuvMijoz
   const q = matn.trim();
   if (q === '') return [];
 
-  const qatorlar = await ulanishOl()<
+  /**
+   * ⚠️ TELEFON RAQAMLARI BO'YICHA — egasi auditi 2026-10-06. Bazada
+   *    `998901234567` turadi; ilgari «90 123 45» yoki «+998 90» deb
+   *    yozilsa topilmasdi — sotuvchi bo'sh joysiz yozishga majbur edi.
+   *
+   * ⚠️ `%` va `_` foydalanuvchi matnida maxsus belgi bo'lib qolmasin.
+   */
+  const ismBilan = `%${q.replace(/[\\%_]/g, (b) => `\\${b}`)}%`;
+  const raqamlar = q.replace(/\D/g, '');
+  const telefonBilan = raqamlar.length >= 3 ? `%${raqamlar}%` : null;
+
+  const sql = ulanishOl();
+  const qatorlar = await sql<
     {
       id: number;
       ism: string;
@@ -115,7 +127,9 @@ export async function mijozQidir(matn: string, chegara = 10): Promise<SotuvMijoz
     FROM mijoz m
     LEFT JOIN mijoz_guruh g ON g.id = m.mijoz_guruh_id AND g.faol = true
     LEFT JOIN mijoz_turi t ON t.id = m.mijoz_turi_id AND t.faol = true
-    WHERE m.faol = true AND (m.ism ILIKE ${`%${q}%`} OR m.telefon LIKE ${`%${q}%`})
+    WHERE m.faol = true
+      AND (m.ism ILIKE ${ismBilan} OR m.tashkilot_nomi ILIKE ${ismBilan}
+           ${telefonBilan === null ? sql`` : sql`OR m.telefon LIKE ${telefonBilan}`})
     ORDER BY m.ism LIMIT ${chegara}`;
 
   return qatorlar.map((r) => ({
