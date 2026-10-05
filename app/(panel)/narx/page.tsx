@@ -21,7 +21,7 @@ import {
 export const dynamic = 'force-dynamic';
 
 /**
- * «Narxlar va turlar» — egasi qarori 2026-09-20 · TZ 3.8 · 6.2 · 20.9
+ * «Narxlar» — egasi qarori 2026-09-20 · TZ 3.8 · 6.2 · 20.9
  *
  * ⚠️ Ilgari mijoz narxi MATERIALLARDAN yig'ilardi. Egasi buni rad
  *    etdi: «endi men belgilab qo'yaman mijozga narx qanday
@@ -128,7 +128,7 @@ export default async function NarxSahifasi({
     <div className="flex flex-col gap-6">
       <div>
         <h1 className="text-[22px] font-semibold tracking-[-0.02em] text-matn">
-          Narxlar va turlar
+          Narxlar
         </h1>
         <p className="mt-0.5 text-[13px] text-matn-ikki">
           Mijozga narx qanday hisoblanishini shu yerda belgilaysiz
@@ -307,6 +307,21 @@ export default async function NarxSahifasi({
 
           {/* ─── Tanlangan turning narxi ──────────────────────────────── */}
           {tanlangan === null && !materialTanlandi && !umumiyTanlandi ? null : (
+            <div className="flex min-w-0 flex-col gap-3">
+            {/*
+              ⚠️ TARKIBGA QAYTISH — egasi savoli 2026-10-05. Narx va tur
+                 tarkibi ikki sahifada qoladi, lekin bir-biriga bir
+                 bosishda. Faqat aniq tur tanlanganda: standart va
+                 material jadvalining «tarkibi» yo'q.
+            */}
+            {tanlangan !== null && !materialTanlandi && !umumiyTanlandi && (
+              <Link
+                href={`/mahsulot/${String(tanlangan.id)}`}
+                className="self-end text-[13px] font-medium text-brend hover:underline"
+              >
+                «{tanlangan.nom}» tarkibini tahrirlash →
+              </Link>
+            )}
             <NarxFormasi
               key={
                 umumiyTanlandi
@@ -341,6 +356,7 @@ export default async function NarxSahifasi({
               kursQiymati={kursQiymati}
               ozgartiraOladi={ozgartiraOladi}
             />
+            </div>
           )}
         </div>
       )}

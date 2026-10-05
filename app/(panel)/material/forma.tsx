@@ -563,7 +563,7 @@ export function MaterialFormasi({
                qo'shish sahifasidan sotuv narxini olib tashlaymiz, faqat
                kelish narxini yozamiz».
 
-               Jalyuzi narxi «Narxlar va turlar» jadvalidan keladi.
+               Jalyuzi narxi «Narxlar» jadvalidan keladi.
                Tayyor mahsulot esa o'lchamsiz sotiladi va unga baribir
                narx kerak — shuning uchun butunlay olib tashlanmadi,
                yashirildi.
@@ -629,7 +629,7 @@ export function MaterialFormasi({
               <p className="text-matn-ikki">
                 Narxi{' '}
                 <Link href="/narx?tur=material" className="text-brend underline">
-                  Narxlar va turlar → Materialni o&apos;zi sotish
+                  Narxlar → Materialni o&apos;zi sotish
                 </Link>{' '}
                 dan olinadi.
               </p>
@@ -734,7 +734,7 @@ export function MaterialFormasi({
         {/*
           ⚠️ Mijoz turi narxi ham SOTUV narxining bir turi (TZ 6.2) —
              u ham faqat to'g'ridan-to'g'ri sotiladigan mahsulotda
-             ma'noga ega. Jalyuzida mijoz turi «Narxlar va turlar»
+             ma'noga ega. Jalyuzida mijoz turi «Narxlar»
              jadvalida, qoida qatorida tanlanadi.
         */}
         {/*

@@ -1,7 +1,7 @@
 'use server';
 
 /**
- * app/(panel)/narx/amal.ts — «Narxlar va turlar» · TZ 3.8 · QISM 1 §9.4
+ * app/(panel)/narx/amal.ts — «Narxlar» · TZ 3.8 · QISM 1 §9.4
  *
  * Narx jadvali dinamik: bosqich va qo'shimcha qatorlari qo'shiladi va
  * o'chiriladi. Ular formaga JSON bo'lib keladi — `mahsulot/amal.ts`

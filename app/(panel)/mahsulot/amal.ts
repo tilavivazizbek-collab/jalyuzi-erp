@@ -14,6 +14,7 @@ import { redirect } from 'next/navigation';
 import { ulanishOl } from '@/lib/db';
 import { mahsulotTuriTahrirla, mahsulotTuriYarat } from '@/lib/amal/konstruktor';
 import { ruxsatTalab } from '@/lib/kirish/joriy';
+import { ruxsatBormi } from '@/lib/ruxsat/tekshir';
 import { mahsulotTurSxema } from '@/lib/sxema/konstruktor';
 import type { KonstruktorHolati } from './holat';
 import { rasmniOqi } from '@/lib/domain/rasm';
@@ -103,7 +104,16 @@ export async function mahsulotYaratAmali(
   }
 
   revalidatePath('/mahsulot');
-  redirect('/mahsulot');
+  /**
+   * ⚠️ YANGI TUR NARXSIZ SOTILMAYDI — egasi savoli 2026-10-05.
+   *    Ilgari saqlangach ro'yxatga qaytardi va narx qo'yish esdan
+   *    chiqardi: tur sotuvda «narx yo'q» bilan to'xtardi. Endi keyingi
+   *    qadamga — o'sha turning narx jadvaliga — o'zi olib boradi.
+   *    Narxni o'zgartira olmaydigan xodim ro'yxatga qaytadi.
+   */
+  redirect(
+    ruxsatBormi(f, 'narx.standart.ozgartir') ? `/narx?tur=${String(natija.id)}` : '/mahsulot',
+  );
 }
 
 export async function mahsulotTahrirlaAmali(

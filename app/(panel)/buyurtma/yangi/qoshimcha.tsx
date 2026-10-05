@@ -15,7 +15,7 @@
  *    materialning o'z sotuv narxidan keladi.
  *
  *    METRLAB (mato): rulondan KESILADI. O'lcham so'raladi, band
- *    qilinadi, narx esa «Narxlar va turlar» dagi «Materialni o'zi
+ *    qilinadi, narx esa «Narxlar» dagi «Materialni o'zi
  *    sotish» jadvalidan keladi — o'lcham yoki miqdor bosqichida.
  */
 
@@ -302,7 +302,7 @@ export function QoshimchaQoshish({
          *    materiallarning narxini ham o'zgartirib yuborardi.
          */
         xatoniOzgartir(
-          `«${tanlangan.nom}» ga narx qo'yilmagan — «Narxlar va turlar» → «Materialni o'zi sotish»: shu materialga alohida jadval yoki umumiy jadval`,
+          `«${tanlangan.nom}» ga narx qo'yilmagan — «Narxlar» → «Materialni o'zi sotish»: shu materialga alohida jadval yoki umumiy jadval`,
         );
         return;
       }
@@ -350,7 +350,7 @@ export function QoshimchaQoshish({
             ? 'Bu mahsulotning sotuv narxi belgilanmagan'
             : miqdorNatijasi !== null && 'xato' in miqdorNatijasi
               ? miqdorNatijasi.xato
-              : "Bu miqdor uchun bosqich qo'yilmagan — «Narxlar va turlar» → «Materialni o'zi sotish»",
+              : "Bu miqdor uchun bosqich qo'yilmagan — «Narxlar» → «Materialni o'zi sotish»",
         );
         return;
       }
@@ -526,7 +526,7 @@ export function QoshimchaQoshish({
                 {kesiladimi ? (
                   qoida === null ? (
                     <span className="text-belgi-sariq">
-                      Narx qo&apos;yilmagan — «Narxlar va turlar» →
+                      Narx qo&apos;yilmagan — «Narxlar» →
                       «Materialni o&apos;zi sotish». Shu materialga alohida
                       jadval qo&apos;yish ham mumkin.
                     </span>

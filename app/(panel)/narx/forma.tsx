@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * app/(panel)/narx/forma.tsx — «Narxlar va turlar» · TZ 3.8 · 6.2 · 20.9
+ * app/(panel)/narx/forma.tsx — «Narxlar» · TZ 3.8 · 6.2 · 20.9
  *
  * ⚠️ NEGA BU EKRAN BOR
  *

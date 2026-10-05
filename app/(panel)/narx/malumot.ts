@@ -1,7 +1,7 @@
 import 'server-only';
 
 /**
- * app/(panel)/narx/malumot.ts — «Narxlar va turlar» · TZ 3.8 · 6.2 · 20.9
+ * app/(panel)/narx/malumot.ts — «Narxlar» · TZ 3.8 · 6.2 · 20.9
  *
  * ⚠️ NEGA BU EKRAN BOR
  *

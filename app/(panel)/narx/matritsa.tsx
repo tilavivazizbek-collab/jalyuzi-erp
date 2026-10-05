@@ -24,11 +24,21 @@ import Link from 'next/link';
 import type { MatritsaKatagi, TurQatori } from './malumot';
 
 /** Katak holati — to'rtta */
-type Holat = 'TOLIQ' | 'QISMAN' | 'STANDART' | 'YOQ';
+export type NarxHolati = 'TOLIQ' | 'QISMAN' | 'STANDART' | 'YOQ';
 
-const KO_RINISH: Record<Holat, { belgi: string; uslub: string; izoh: string }> = {
+/**
+ * ⚠️ EKSPORT — «Tur yig'ish» ro'yxati va tur sahifasi ham shu
+ *    belgilarni ko'rsatadi (egasi savoli 2026-10-05: ikki sahifa
+ *    bir-birini ko'rmasdi). Ikkinchi nusxa yozilsa belgilar
+ *    bir-biridan ajralib ketardi.
+ */
+export const NARX_HOLAT_KORINISHI: Record<
+  NarxHolati,
+  { belgi: string; qisqa: string; uslub: string; izoh: string }
+> = {
   TOLIQ: {
     belgi: '✓',
+    qisqa: "qo'yilgan",
     uslub: 'bg-belgi-yashil-fon text-belgi-yashil',
     izoh: "narx qo'yilgan",
   },
@@ -39,6 +49,7 @@ const KO_RINISH: Record<Holat, { belgi: string; uslub: string; izoh: string }> =
    */
   QISMAN: {
     belgi: '!',
+    qisqa: 'qisman',
     uslub: 'bg-belgi-sariq-fon text-belgi-sariq',
     izoh: 'faqat ayrim mijoz turi yoki filialga — boshqasiga sotilmaydi',
   },
@@ -51,15 +62,53 @@ const KO_RINISH: Record<Holat, { belgi: string; uslub: string; izoh: string }> =
    */
   STANDART: {
     belgi: '≈',
+    qisqa: 'standartdan',
     uslub: 'bg-belgi-kok-fon text-belgi-kok',
     izoh: 'hamma tur uchun standart narx ishlatiladi',
   },
   YOQ: {
     belgi: '—',
+    qisqa: "narx yo'q",
     uslub: 'bg-belgi-qizil-fon text-belgi-qizil',
     izoh: "narx yo'q — bu tur sotilmaydi",
   },
 };
+
+/**
+ * Tur narxining holati. `turId = null` — «Materialni o'zi sotish».
+ *
+ * ⚠️ Narx haqiqatan qanday TANLANISHI `qoidaniTop()` da. Bu yerda
+ *    faqat «qo'yilganmi» degan savolga javob — xarita uchun.
+ */
+export function turNarxHolati(
+  turId: number | null,
+  kataklar: readonly MatritsaKatagi[],
+  standartBormi: boolean,
+): NarxHolati {
+  const turniki = kataklar.find((k) => k.turId === turId)?.holat;
+  if (turniki !== undefined) return turniki;
+  /*
+   * ⚠️ STANDART NARX «MATERIALNI O'ZI SOTISH» QATORIGA TEGMAYDI.
+   *    U tayyor jalyuzi narxi va metrlab kesib sotishga aloqasi
+   *    yo'q — aks holda xarita yolg'on tinchlik berardi.
+   */
+  if (turId !== null && standartBormi) return 'STANDART';
+  return 'YOQ';
+}
+
+/** Kichik belgi-havola: bosilsa o'sha turning narx jadvali ochiladi */
+export function NarxBelgisi({ turId, holat }: { turId: number; holat: NarxHolati }) {
+  const k = NARX_HOLAT_KORINISHI[holat];
+  return (
+    <Link
+      href={`/narx?tur=${String(turId)}`}
+      title={k.izoh}
+      className={`inline-block whitespace-nowrap rounded-maydon px-2 py-0.5 text-[12px] font-medium transition-opacity hover:opacity-80 ${k.uslub}`}
+    >
+      {k.belgi} {k.qisqa}
+    </Link>
+  );
+}
 
 export function NarxMatritsasi({
   turlar,
@@ -79,17 +128,8 @@ export function NarxMatritsasi({
 }) {
   if (turlar.length === 0) return null;
 
-  const holati = (turId: number | null): Holat => {
-    const turniki = kataklar.find((k) => k.turId === turId)?.holat;
-    if (turniki !== undefined) return turniki;
-    /*
-     * ⚠️ STANDART NARX «MATERIALNI O'ZI SOTISH» QATORIGA TEGMAYDI.
-     *    U tayyor jalyuzi narxi va metrlab kesib sotishga aloqasi
-     *    yo'q — aks holda xarita yolg'on tinchlik berardi.
-     */
-    if (turId !== null && standartBormi) return 'STANDART';
-    return 'YOQ';
-  };
+  const holati = (turId: number | null): NarxHolati =>
+    turNarxHolati(turId, kataklar, standartBormi);
 
   /** ⚠️ «Materialni o'zi sotish» ham qatnashadi — u ham narx talab qiladi */
   const qatorlar: { id: number | null; nom: string; havola: string }[] = [
@@ -118,7 +158,7 @@ export function NarxMatritsasi({
       <div className="flex flex-col gap-1">
         {qatorlar.map((q) => {
           const h = holati(q.id);
-          const k = KO_RINISH[h];
+          const k = NARX_HOLAT_KORINISHI[h];
           return (
             <Link
               key={q.id ?? 'material'}

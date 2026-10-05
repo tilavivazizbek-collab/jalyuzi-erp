@@ -8,7 +8,8 @@ majbur bo'ldi («dropdownlarda qo'shish bo'lsin»). Har safar bitta
 joy tuzatilib «bo'ldi» deyilardi. Teshik ko'rinmagani uchun shunday
 bo'ldi. Endi ko'rinadi.
 
-Oxirgi yangilanish: **2026-09-23** — **KUN va TUN ko'rinishi** (§0=).
+Oxirgi yangilanish: **2026-10-05** — **tur va narx bog'landi** (§0+).
+Undan oldin: **2026-09-23** — **KUN va TUN ko'rinishi** (§0=).
 Undan oldin: **2026-09-22** — soha auditi va narx zanjiri tuzatildi
 (§0-). Undan oldin: **2026-09-20** — **BUTUN TIZIM METRGA O'TDI**
 (§0a) + narx modeli butunlay almashtirildi:
@@ -18,6 +19,26 @@ yopish varaqalari (TZ 8.9 · 15.4); sotuv cheki (TZ 8.9) va korxona
 sozlamalari (TZ 14.3); **modullararo audit — 14 ta tuzatish** (§7);
 yetkazib beruvchi kartochkasi (9.7–9.8), kurs farqi (9.5–9.6),
 buyurtmani tahrirlash (8.7), material statistikasi (7.11)
+
+---
+
+## 0+. Tur va narx bog'landi — 2026-10-05
+
+Egasi: «narx belgilash va tur yig'ish — bitta sahifa qulaymi?»
+Qaror: **birlashtirilmaydi** (vazifasi, ruxsati, yangilanish tezligi
+har xil; «Narxlar»da turga tegishli bo'lmagan bo'limlar bor), lekin
+ikkalasi bir-birini KO'RADI. Holat mantig'i bitta joyda —
+`narx/matritsa.tsx` dagi `turNarxHolati()`.
+
+| Joy | Nima | Holat |
+|---|---|---|
+| Tur yig'ish — ro'yxat | «Narx» ustuni: ✓ · ! · ≈ · — , bosilsa o'sha tur narxi | ✅ |
+| Tur sahifasi | «Mijozga narx» kartochkasi + «Narxini belgilash →» | ✅ |
+| Narxlar — tanlangan tur | «… tarkibini tahrirlash →» | ✅ |
+| Yangi tur saqlangach | narx ruxsati bo'lsa o'sha turning narx jadvaliga o'tadi | ✅ |
+| Menyu va sarlavha | «Narxlar va turlar» → **«Narxlar»** (sotuv/material ogohlantirishlari ham) | ✅ |
+
+Matoda «eni × bo'yi» ko'paytiradi — P-40 (2026-10-04).
 
 ---
 

@@ -16,6 +16,8 @@ import {
   type VariantQatori,
 } from '../forma';
 import { guruhlarniOl, materiallarniOl } from '../malumot';
+import { narxMatritsasiniOl, standartNarxBormi } from '../../narx/malumot';
+import { NARX_HOLAT_KORINISHI, NarxBelgisi, turNarxHolati } from '../../narx/matritsa';
 
 export const dynamic = 'force-dynamic';
 
@@ -54,6 +56,17 @@ export default async function MahsulotTahrirlash({ params }: { params: Promise<{
     FROM mahsulot_tur WHERE id = ${turId}`;
   const tur = turlar[0];
   if (tur === undefined) notFound();
+
+  /**
+   * ⚠️ NARX HOLATI — egasi savoli 2026-10-05. Tarkib va narx ikki
+   *    sahifada qoladi (vazifasi, ruxsati va yangilanish tezligi
+   *    boshqa), lekin bir-birini KO'RADI: bu yerdan narxga bir bosish.
+   */
+  const [narxKataklari, standartBormi] = await Promise.all([
+    narxMatritsasiniOl(),
+    standartNarxBormi(),
+  ]);
+  const narxHolati = turNarxHolati(turId, narxKataklari, standartBormi);
 
   const [
     slotlar,
@@ -198,6 +211,19 @@ export default async function MahsulotTahrirlash({ params }: { params: Promise<{
           Tahrirlansa eski buyurtmalar o&apos;zgarmaydi — ular o&apos;z formulasi bilan qotib qolgan
           (4.10, 2.3-invariant).
         </p>
+        <div className="mt-3 flex flex-wrap items-center gap-3 rounded-maydon border border-chegara bg-sirt px-3 py-2 text-[13px]">
+          <span className="text-matn-ikki">Mijozga narx:</span>
+          <NarxBelgisi turId={turId} holat={narxHolati} />
+          {narxHolati !== 'TOLIQ' && (
+            <span className="text-matn-kuchsiz">{NARX_HOLAT_KORINISHI[narxHolati].izoh}</span>
+          )}
+          <Link
+            href={`/narx?tur=${String(turId)}`}
+            className="ml-auto font-medium text-brend hover:underline"
+          >
+            Narxini belgilash →
+          </Link>
+        </div>
       </div>
 
       <MahsulotFormasi

@@ -6,6 +6,8 @@ import { pulKorsat, som } from '@/lib/domain/pul';
 import { OchirTugma } from '../ochir-tugma';
 import { OchirilganlarHavolasi, QaytarTugma } from '../ochirilganlar';
 import { turOchirilganSoni, turlarRoyxati } from './malumot';
+import { narxMatritsasiniOl, standartNarxBormi } from '../narx/malumot';
+import { NarxBelgisi, turNarxHolati } from '../narx/matritsa';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,9 +29,16 @@ export default async function MahsulotRoyxati({
    * ⚠️ So'rovlar `malumot.ts` da — sahifa ichidagi SQL ni hech
    *    qanday test ko'rmaydi (2026-08-29 xatosi).
    */
-  const [ochirilganSoni, qatorlar] = await Promise.all([
+  const [ochirilganSoni, qatorlar, narxKataklari, standartBormi] = await Promise.all([
     turOchirilganSoni(),
     turlarRoyxati(ochirilganlar),
+    /**
+     * ⚠️ NARX HOLATI — egasi savoli 2026-10-05. Tur saqlangach narxsiz
+     *    qolardi va sotuvda ishlamasdi; buni faqat «Narxlar» sahifasiga
+     *    kirgan odam bilardi. Endi tur yig'ilgan joyning o'zida ko'rinadi.
+     */
+    narxMatritsasiniOl(),
+    standartNarxBormi(),
   ]);
 
   return (
@@ -76,6 +85,7 @@ export default async function MahsulotRoyxati({
                 <th className="px-4 py-2.5 font-medium">Aksessuar</th>
                 <th className="px-4 py-2.5 text-right font-medium">Xizmat haqi</th>
                 <th className="px-4 py-2.5 font-medium">Ko&apos;rinadi</th>
+                <th className="px-4 py-2.5 font-medium">Narx</th>
                 {ozgartiraOladi && <th className="px-4 py-2.5" />}
               </tr>
             </thead>
@@ -119,6 +129,12 @@ export default async function MahsulotRoyxati({
                     {t.oynada_korinadi && t.botda_korinadi ? ' · ' : ''}
                     {t.botda_korinadi ? 'bot' : ''}
                     {!t.oynada_korinadi && !t.botda_korinadi ? '—' : ''}
+                  </td>
+                  <td className="px-4 py-2.5">
+                    <NarxBelgisi
+                      turId={t.id}
+                      holat={turNarxHolati(t.id, narxKataklari, standartBormi)}
+                    />
                   </td>
                   {ozgartiraOladi && (
                     <td className="px-4 py-2.5 text-right">

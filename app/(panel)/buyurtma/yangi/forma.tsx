@@ -579,7 +579,7 @@ export function SotuvFormasi({
       const tuzatilgan = son(tanlov?.tuzatilgan ?? '');
       /**
        * ⚠️ Bu MIJOZ NARXI EMAS (egasi qarori 2026-09-20). Mijoz narxi
-       *    endi «Narxlar va turlar» jadvalidan keladi va quyida
+       *    endi «Narxlar» jadvalidan keladi va quyida
        *    bir marta hisoblanadi.
        *
        *    Bu qiymat faqat `pozitsiya_material.narx_snapshot` ga
@@ -2081,7 +2081,7 @@ export function SotuvFormasi({
                      tashlandi va narx faqat turga bog'liq.
                 */}
                 <p className="mt-1 text-xs">
-                  «Narxlar va turlar» sahifasida <b>{tur.nom}</b> uchun narx
+                  «Narxlar» sahifasida <b>{tur.nom}</b> uchun narx
                   qo&apos;ying.
                 </p>
               </div>
