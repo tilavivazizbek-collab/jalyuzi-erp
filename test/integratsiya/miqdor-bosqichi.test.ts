@@ -75,6 +75,7 @@ beforeAll(async () => {
                                yaratdi_id)
     VALUES (NULL, false, 'MIQDOR', ${XODIM})
     ON CONFLICT (coalesce(mahsulot_tur_id, 0), hamma_turga,
+                 coalesce(material_id, 0),
                  coalesce(mijoz_turi_id, 0), coalesce(filial_id, 0))
       WHERE faol
     DO UPDATE SET hisoblash_usuli = 'MIQDOR', faol = true, ochirildi = NULL

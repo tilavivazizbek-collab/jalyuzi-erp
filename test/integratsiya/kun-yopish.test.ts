@@ -318,7 +318,14 @@ describe('kun hisobi kassa yozuvlariga tayanadi', () => {
     // ⚠️ `chiqimQil` sanani o'zi qo'yadi (now()), shuning uchun bugungi
     //    kun oldindan o'lchanadi va FARQ tekshiriladi — test qayta
     //    yurganda o'zining oldingi yozuvini sanamasin.
-    const bugun = new Date().toISOString().slice(0, 10);
+    /**
+     * ⚠️ TOSHKENT sanasi, UTC emas (2026-10-06). `toISOString()` UTC
+     *    beradi: Toshkentda 00:00–05:00 orasida u KECHAGI sana edi,
+     *    yozuv esa bugungi kunga tushardi — test har kecha qizil edi.
+     */
+    const bugun = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Tashkent' }).format(
+      new Date(),
+    );
     const oldin = Number((await kunHolati(sql, kassaId, bugun)).chiqim);
 
     await chiqimQil(

@@ -101,11 +101,26 @@ describe('tur narxini saqlash', () => {
    *    qatorni ham qamrab oladi, shuning uchun ikkinchi saqlash
    *    `ON CONFLICT` siz «duplicate key» bilan yiqilardi.
    */
-  it('IKKINCHI marta saqlash dublikat bermaydi — eski qator tiriladi', async () => {
+  /**
+   * ⚠️ 2026-10-06 — 0057 GA MOSLANDI. Ilgari bu test bir xil qamrovli
+   *    (mijoz turi va filiali bo'sh) IKKI qoidani yuborardi: ular narx
+   *    darajasi bilan farqlanardi. Daraja olib tashlangach bunday ikki
+   *    qoida DUBLIKAT va amal ularni to'g'ri rad etadi (pastdagi test).
+   *    Test esa eski modelda qolib, qizil chiqardi.
+   *
+   *    Tekshiriladigan narsa: shu qamrov IKKINCHI marta saqlansa
+   *    FAOL qator bitta qoladi (dublikat yo'q), eskisi esa O'CHIRILMAYDI
+   *    — nofaol bo'lib tarixda turadi (2.1-invariant). Qisman indeks
+   *    (`WHERE faol`) nofaol qatorni qamramaydi, shuning uchun yangi
+   *    qator yoziladi — eski «tiriladi» taxmini to'liq indeks davridan.
+   */
+  it('IKKINCHI marta saqlash dublikat bermaydi — eskisi tarixda qoladi', async () => {
+    const oldin = await sql<{ id: number }[]>`
+      SELECT id FROM mahsulot_narx WHERE mahsulot_tur_id = ${turId} AND faol = true`;
+
     const n = await saqla({
       mahsulotTurId: turId,
       qoidalar: [
-        { mijozTuriId: null, filialId: null, hisoblashUsuli: 'MAYDON', bosqichlar: EGASI },
         { mijozTuriId: null, filialId: null, hisoblashUsuli: 'MAYDON', bosqichlar: [
           { dan: 0, gacha: 1, narx: '12', valyuta: 'USD' },
           { dan: 1, gacha: null, narx: '6', valyuta: 'USD' },
@@ -115,17 +130,26 @@ describe('tur narxini saqlash', () => {
     });
     expect(n.holat).toBe('SAQLANDI');
 
-    const q = await sql<{ n: number }[]>`
-      SELECT COUNT(*)::int AS n FROM mahsulot_narx
-      WHERE mahsulot_tur_id = ${turId} AND faol = true`;
-    expect(q[0]?.n).toBe(2);
+    const q = await sql<{ id: number }[]>`
+      SELECT id FROM mahsulot_narx WHERE mahsulot_tur_id = ${turId} AND faol = true`;
+    expect(q).toHaveLength(1);
 
-    // Eski bosqichlar nofaol bo'ldi, yangilari yozildi
+    const eskiQator = await sql<{ faol: boolean }[]>`
+      SELECT faol FROM mahsulot_narx WHERE id = ANY(${oldin.map((r) => r.id)})`;
+    expect(eskiQator).toHaveLength(oldin.length);
+
+    // Eski 3 bosqich nofaol bo'ldi, yangi 2 tasi yozildi — o'chirilmadi
     const faol = await sql<{ n: number }[]>`
       SELECT COUNT(*)::int AS n FROM mahsulot_narx_bosqich bs
       JOIN mahsulot_narx mn ON mn.id = bs.mahsulot_narx_id
       WHERE mn.mahsulot_tur_id = ${turId} AND bs.faol = true`;
-    expect(faol[0]?.n).toBe(5); // 3 + 2
+    expect(faol[0]?.n).toBe(2);
+
+    const hammasi = await sql<{ n: number }[]>`
+      SELECT COUNT(*)::int AS n FROM mahsulot_narx_bosqich bs
+      JOIN mahsulot_narx mn ON mn.id = bs.mahsulot_narx_id
+      WHERE mn.mahsulot_tur_id = ${turId}`;
+    expect(hammasi[0]?.n).toBeGreaterThanOrEqual(5);
 
     // Eski qo'shimcha nofaol bo'ldi, lekin O'CHIRILMADI (2.1-invariant)
     const eski = await sql<{ n: number }[]>`
