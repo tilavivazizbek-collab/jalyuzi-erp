@@ -103,3 +103,87 @@ export async function mijozJurnali(mijozId: number): Promise<JurnalQatori[]> {
     buyurtmaId: r.buyurtma_id,
   }));
 }
+
+export interface QarzdorTaqsimoti {
+  readonly mijozId: number;
+  readonly ism: string;
+  readonly telefon: string | null;
+  readonly tolovMuddatiKun: number | null;
+  readonly masulIsmi: string | null;
+  readonly jurnal: readonly JurnalQatori[];
+}
+
+/**
+ * QARZI BOR barcha mijozlarning jurnali — bitta so'rovda.
+ *
+ * ⚠️ NEGA ALOHIDA SQL HISOB YO'Q (egasi auditi 2026-10-06)
+ *
+ *    «Muddati o'tgan» va «qarz yoshi» ni SQL da taxminan hisoblash
+ *    mumkin edi, lekin u kartochka bilan farq qilardi: mijoz yangi
+ *    buyurtmani to'lab, eskisini to'lamasa, kartochka «muddati o'tgan»
+ *    der, ro'yxat esa yo'q derdi. Hamma joy BITTA taqsimotdan
+ *    (`qarzniTaqsimla`) o'qisin — kartochka, ro'yxat, hisobot.
+ *
+ * ⚠️ Faqat qarzi bor (yoki avansi bor) mijozlar — qarzsizlarni
+ *    taqsimlashdan foyda yo'q.
+ */
+export async function qarzdorlarJurnali(): Promise<QarzdorTaqsimoti[]> {
+  const q = await ulanishOl()<
+    {
+      mijoz_id: number;
+      ism: string;
+      telefon: string | null;
+      tolov_muddati_kun: number | null;
+      masul_ismi: string | null;
+      id: number;
+      sana: Date;
+      turi: string;
+      summa: string;
+      valyuta: string;
+      buyurtma_id: number | null;
+    }[]
+  >`
+    WITH qarzdor AS (
+      SELECT mijoz_id FROM mijoz_harakat
+      GROUP BY mijoz_id
+      HAVING SUM(summa) FILTER (WHERE valyuta = 'SOM') <> 0
+          OR SUM(summa) FILTER (WHERE valyuta = 'USD') <> 0
+    )
+    SELECT m.id AS mijoz_id, m.ism, m.telefon, m.tolov_muddati_kun, x.ism AS masul_ismi,
+           h.id, h.sana, h.turi, h.summa::text AS summa, h.valyuta,
+           CASE
+             WHEN h.manba_turi IN ('buyurtma', 'buyurtma_tolov') THEN h.manba_id
+             WHEN h.manba_turi = 'qaytarish' THEN
+               (SELECT bp.buyurtma_id FROM buyurtma_pozitsiya bp WHERE bp.id = h.manba_id)
+           END AS buyurtma_id
+    FROM qarzdor
+    JOIN mijoz m ON m.id = qarzdor.mijoz_id AND m.faol = true
+    LEFT JOIN xodim x ON x.id = m.masul_xodim_id
+    JOIN mijoz_harakat h ON h.mijoz_id = m.id
+    ORDER BY m.id, h.sana, h.id`;
+
+  const natija = new Map<number, QarzdorTaqsimoti & { jurnal: JurnalQatori[] }>();
+  for (const r of q) {
+    let m = natija.get(r.mijoz_id);
+    if (m === undefined) {
+      m = {
+        mijozId: r.mijoz_id,
+        ism: r.ism,
+        telefon: r.telefon,
+        tolovMuddatiKun: r.tolov_muddati_kun,
+        masulIsmi: r.masul_ismi,
+        jurnal: [],
+      };
+      natija.set(r.mijoz_id, m);
+    }
+    m.jurnal.push({
+      id: r.id,
+      sana: r.sana,
+      turi: r.turi,
+      summa: r.summa,
+      valyuta: r.valyuta === 'USD' ? 'USD' : 'SOM',
+      buyurtmaId: r.buyurtma_id,
+    });
+  }
+  return [...natija.values()];
+}

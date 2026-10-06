@@ -13,47 +13,14 @@ import {
   SARALASHLAR,
   SEGMENT_NOMI,
   filtrTanlovlari,
+  filtrniOqi,
   mijozlarRoyxati,
   ochirilganSoni,
-  type HolatFiltri,
-  type RoyxatFiltri,
-  type Saralash,
+  type Parametrlar,
   type Segment,
 } from './malumot';
 
 export const dynamic = 'force-dynamic';
-
-type Parametrlar = Record<string, string | string[] | undefined>;
-
-const bir = (sp: Parametrlar, k: string): string => {
-  const v = sp[k];
-  return typeof v === 'string' ? v : '';
-};
-const id = (x: string): number | null => {
-  const n = Number(x);
-  return x !== '' && Number.isSafeInteger(n) && n > 0 ? n : null;
-};
-const kalitmi = <T extends string>(x: string, r: Record<T, string>): x is T =>
-  Object.prototype.hasOwnProperty.call(r, x);
-
-/** Filtrni URL dan o'qiydi — noto'g'ri qiymat jimgina tashlanadi */
-function filtrniOqi(sp: Parametrlar): RoyxatFiltri {
-  const holat = bir(sp, 'holat');
-  const segment = bir(sp, 'segment');
-  const saralash = bir(sp, 'saralash');
-  const sahifa = Number(bir(sp, 'sahifa'));
-  return {
-    qidiruv: bir(sp, 'q').slice(0, 100),
-    holat: kalitmi<HolatFiltri>(holat, HOLAT_FILTRLARI) ? holat : null,
-    segment: kalitmi<Segment>(segment, SEGMENT_NOMI) ? segment : null,
-    guruhId: id(bir(sp, 'guruh')),
-    turiId: id(bir(sp, 'tur')),
-    masulId: id(bir(sp, 'masul')),
-    saralash: kalitmi<Saralash>(saralash, SARALASHLAR) ? saralash : 'ism',
-    ochirilganlar: bir(sp, 'ochirilgan') === '1',
-    sahifa: Number.isSafeInteger(sahifa) && sahifa > 0 ? sahifa : 1,
-  };
-}
 
 /** Joriy filtr bilan havola — faqat bitta qiymat o'zgaradi */
 function havola(sp: Parametrlar, ozgar: Record<string, string | null>, yol = '/mijoz'): string {

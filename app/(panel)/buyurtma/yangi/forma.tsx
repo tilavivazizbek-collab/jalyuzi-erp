@@ -19,7 +19,7 @@ import { enterYuborilmasin } from '../../forma-yordamchi';
 import { useActionState, useEffect, useMemo, useState } from 'react';
 import { sarflashHisobla, slotSarfi, standartQiymatlar } from '@/lib/domain/formula';
 import { m, type SarflashBirligi } from '@/lib/domain/birlik';
-import { dollar, kurs, nolSom, pulKorsat, pulMatn, qosh, som, type Som } from '@/lib/domain/pul';
+import { dollar, kurs, nolmi, nolSom, pulKorsat, pulMatn, qosh, som, type Som } from '@/lib/domain/pul';
 import { aksessuarNarxi, katalogNarxi, matoNarxi } from '@/lib/domain/narx';
 import { pozitsiyaNarxiniHisobla } from '@/lib/domain/pozitsiya-narxi';
 import {
@@ -476,16 +476,22 @@ export function SotuvFormasi({
    *    joriy qarzi umuman so'ralmasdi. Ya'ni ogohlantirish hech qachon
    *    chiqmagan.
    *
-   * ⚠️ Dollar qarzi JORIY kursda qo'shiladi (6.4). Kurs yo'q bo'lsa
-   *    tekshiruv o'tkazib yuboriladi — noto'g'ri ogohlantirishdan
-   *    ko'ra ogohlantirmaslik yaxshi.
+   * ⚠️ Dollar qarzi JORIY kursda qo'shiladi (6.4). Kurs yo'q VA dollar
+   *    qarzi bor bo'lsa tekshiruv o'tkazib yuboriladi — noto'g'ri
+   *    ogohlantirishdan ko'ra ogohlantirmaslik yaxshi.
+   *
+   * ⚠️ 2026-10-06 — ilgari kurs yo'q bo'lsa FAQAT SO'MDA qarzi bor
+   *    mijozda ham tekshiruv o'tkazib yuborilardi. Dollar qarzi yo'q
+   *    bo'lsa kurs umuman kerak emas.
    */
   const limit = useMemo(() => {
-    if (mijoz === null || mijoz.qarzLimiti === null || kursObyekti === null) return null;
+    if (mijoz === null || mijoz.qarzLimiti === null) return null;
+    const dollarQarzi = dollar(mijoz.qarzDollar);
+    if (kursObyekti === null && !nolmi(dollarQarzi)) return null;
     return limitHolati(
-      { som: som(mijoz.qarzSom), dollar: dollar(mijoz.qarzDollar) },
+      { som: som(mijoz.qarzSom), dollar: dollarQarzi },
       som(mijoz.qarzLimiti),
-      kursObyekti,
+      kursObyekti ?? kurs('1', new Date(), 'JORIY'),
     );
   }, [mijoz, kursObyekti]);
 
@@ -2654,6 +2660,7 @@ function MijozTanlash({
       // Yangi mijozning qarzi hali yo'q (6.4)
       qarzSom: '0',
       qarzDollar: '0',
+      muddatOtgan: null,
     });
     matnniOzgartir('');
     topilganniOzgartir([]);
@@ -2719,6 +2726,16 @@ function MijozTanlash({
         {limitOshdi !== null && (
           <div className="mt-1 text-xs text-belgi-qizil">
             Qarz limitidan oshgan: {limitOshdi}
+          </div>
+        )}
+        {/*
+          ⚠️ KREDIT NAZORATI — egasi auditi 2026-10-06. Limit kabi
+             BLOKLAMAYDI: sotuvchi qaror qiladi, tizim raqamni ko'rsatadi.
+             Hisob kartochka va qarzdorlik hisoboti bilan bir xil.
+        */}
+        {tanlangan.muddatOtgan !== null && (
+          <div className="mt-1 text-xs text-belgi-qizil">
+            To&apos;lov muddati o&apos;tgan qarz: {tanlangan.muddatOtgan}
           </div>
         )}
         <button

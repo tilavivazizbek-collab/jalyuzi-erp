@@ -8,7 +8,8 @@ majbur bo'ldi («dropdownlarda qo'shish bo'lsin»). Har safar bitta
 joy tuzatilib «bo'ldi» deyilardi. Teshik ko'rinmagani uchun shunday
 bo'ldi. Endi ko'rinadi.
 
-Oxirgi yangilanish: **2026-10-05** — **tur va narx bog'landi** (§0+).
+Oxirgi yangilanish: **2026-10-06** — **mijozlar bo'limi auditi** (§0#).
+Undan oldin: **2026-10-05** — **tur va narx bog'landi** (§0+).
 Undan oldin: **2026-09-23** — **KUN va TUN ko'rinishi** (§0=).
 Undan oldin: **2026-09-22** — soha auditi va narx zanjiri tuzatildi
 (§0-). Undan oldin: **2026-09-20** — **BUTUN TIZIM METRGA O'TDI**
@@ -19,6 +20,56 @@ yopish varaqalari (TZ 8.9 · 15.4); sotuv cheki (TZ 8.9) va korxona
 sozlamalari (TZ 14.3); **modullararo audit — 14 ta tuzatish** (§7);
 yetkazib beruvchi kartochkasi (9.7–9.8), kurs farqi (9.5–9.6),
 buyurtmani tahrirlash (8.7), material statistikasi (7.11)
+
+---
+
+## 0#. Mijozlar bo'limi — egasi auditi 2026-10-06
+
+Egasi: «mijozlar pageni to'liq ko'rib chiq… hammasini qo'shib to'g'rila».
+Qarorlar: P-41 (qarz taqsimoti), P-42 (chegirma yo'nalishi), P-43 (0061).
+
+### Xatolar
+
+| # | Xato | Holat |
+|---|---|---|
+| 1 | Kartochkadan to'langan qarz buyurtmalarni yopmasdi | ✅ FIFO taqsimot |
+| 2 | Chegirma belgisi teskari, chegarasiz (−150% → manfiy narx) | ✅ mijoz va guruh |
+| 3 | «Qarzni hisobdan chiqarish» ruxsati ishlamasdi | ✅ |
+| 4 | Buyurtmalar jadvalida bekor qilingan pozitsiya summada | ✅ |
+| 5 | Ro'yxatda qarz ko'rinmasdi | ✅ |
+| 6 | Qidiruv yo'q, sahifalash yo'q, telefon bo'sh joy bilan topilmasdi | ✅ ro'yxat va sotuv |
+| 7 | Har mijozda «qo'ng'iroq qiling» | ✅ «TG» belgisi |
+| 8 | Shartnoma sanasi formada yo'q; INN/MFO/hisob formati | ✅ |
+| 9 | Kartochkada limit oshgani yo'q; 50 dan ortiq harakat | ✅ |
+| — | Kurs kiritilmagan bo'lsa so'mli qarzda ham limit tekshirilmasdi | ✅ kartochka va sotuv |
+
+### Qo'shildi
+
+| Nima | Qayerda | Holat |
+|---|---|---|
+| Qarz yoshi 0-30 · 31-60 · 61-90 · 90+ | kartochka, qarzdorlik hisoboti | ✅ |
+| To'lov muddati va muddati o'tgan qarz | forma, kartochka, ro'yxat filtri, hisobot | ✅ |
+| Kredit ogohlantirishi (bloklamaydi) | sotuv ekrani | ✅ |
+| Filtr: qarzdor, limit, muddat, avans, uxlagan, xaridsiz, guruh, tur, mas'ul | ro'yxat | ✅ |
+| Saralash, sahifalash, jami qarz | ro'yxat | ✅ |
+| Segment: eng yaxshi, yangi, faol, uxlab qolgan, yo'qotilgan | ro'yxat | ✅ |
+| Qarzdorlik hisoboti + yaqin va'dalar, mas'ul filtri, chop etish | `/mijoz/qarzdorlik` | ✅ |
+| Davr bo'yicha akt sverka | hisob-kitob varaqasi | ✅ |
+| Excel'ga yuklash (filtr bilan) | ro'yxat | ✅ CSV |
+| Import CSV (tekshirish rejimi bilan) | `/mijoz/import` | ✅ qarz import qilinmaydi |
+| Kontakt shaxslar | kartochka | ✅ |
+| Muloqot tarixi va to'lov va'dalari | kartochka, hisobot | ✅ |
+| Telegramda qarz eslatmasi | kartochka | ✅ navbatga qo'yiladi |
+| Mas'ul sotuvchi, mijoz manbasi | forma, ro'yxat, kartochka | ✅ |
+
+### Ochiq qolgani
+
+| Nima | Nega |
+|---|---|
+| Dublikat mijozni birlashtirish | ❌ buyurtma va harakat jadvallarida `mijoz_id` ni o'zgartirish kerak — §3 «harakat jadvalida UPDATE yo'q». Egasining qarori kerak |
+| Bonus / keshbek | ❌ biznes qoidasi kerak: kimga, qanchadan, qachon yechiladi |
+| Ommaviy SMS | ❌ SMS provayderi (Eskiz, Playmobile) shartnomasi va kaliti — jismoniy to'siq |
+| 0061 ishlab chiqarish bazasiga | ❌ Render bazasi tushgan — qaytgach qo'llanadi |
 
 ---
 

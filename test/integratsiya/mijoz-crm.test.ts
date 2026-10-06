@@ -133,3 +133,69 @@ describe('ro‘yxat — 5- va 6-xatolar', () => {
     expect(p.qatorlar.map((r) => r.id)).not.toContain(mijozId);
   });
 });
+
+describe('kontakt va muloqot — 0061', () => {
+  it('EC-CRM-08: kontakt yoziladi, telefon kanonik, o‘chirilsa ro‘yxatdan ketadi', async () => {
+    const { kontaktQosh, kontaktOchir } = await import('@/lib/amal/mijoz-crm');
+    const { mijozKontaktlari } = await import('@/app/(panel)/mijoz/[id]/crm-malumot');
+    const id = await kontaktQosh(
+      sql,
+      mijozId,
+      { ism: 'Buxgalter Nodira', lavozim: 'buxgalter', telefon: '+998 90 111 22 33' },
+      1,
+    );
+    let k = await mijozKontaktlari(mijozId);
+    expect(k.find((x) => x.id === id)?.telefon).toBe('998901112233');
+
+    await kontaktOchir(sql, id, 1);
+    k = await mijozKontaktlari(mijozId);
+    expect(k.map((x) => x.id)).not.toContain(id);
+    // DELETE yo'q — qator nofaol bo'lib turibdi
+    const q = await sql<{ faol: boolean }[]>`SELECT faol FROM mijoz_kontakt WHERE id = ${id}`;
+    expect(q[0]?.faol).toBe(false);
+  });
+
+  it('EC-CRM-09: sanasiz va‘da rad etiladi, sanalisi yoziladi va yopiladi', async () => {
+    const { muloqotYoz, vadaYop } = await import('@/lib/amal/mijoz-crm');
+    const { mijozMuloqotlari } = await import('@/app/(panel)/mijoz/[id]/crm-malumot');
+    await expect(
+      muloqotYoz(sql, mijozId, { turi: 'VADA', matn: 'to‘layman' }, 1),
+    ).rejects.toThrow();
+
+    const id = await muloqotYoz(
+      sql,
+      mijozId,
+      { turi: 'VADA', matn: 'juma kuni', vadaSana: '2026-01-02', vadaSumma: '200 000' },
+      1,
+    );
+    let m = await mijozMuloqotlari(mijozId);
+    const v = m.find((x) => x.id === id);
+    expect(v?.vada_summa).toBe('200000.00');
+    expect(v?.vada_valyuta).toBe('SOM');
+    expect(v?.kechikdi).toBe(true);
+
+    await vadaYop(sql, id);
+    m = await mijozMuloqotlari(mijozId);
+    expect(m.find((x) => x.id === id)?.bajarildi).toBe(true);
+    // Ikkinchi marta yopib bo'lmaydi
+    await expect(vadaYop(sql, id)).rejects.toThrow();
+  });
+});
+
+describe('kredit nazorati va qarzdorlik — 2-bosqich', () => {
+  it('EC-CRM-10: sotuv qidiruvi muddati o‘tgan qarzni aniq ko‘rsatadi', async () => {
+    const s = await mijozQidir(raqam);
+    const m = s.find((r) => r.id === mijozId);
+    // 20 kun oldingi sotuvdan 200 000 qolgan, muddat 15 kun → 5 kun kechikdi
+    expect(m?.muddatOtgan).toBe("200 000 so'm · 5 kun kechikdi");
+  });
+
+  it('EC-CRM-11: qarzdorlar jurnali va «muddati o‘tgan» ro‘yxati bir xil hisobdan', async () => {
+    const { qarzdorlarJurnali } = await import('@/app/(panel)/mijoz/qarz-malumot');
+    const { muddatiOtganlar } = await import('@/app/(panel)/mijoz/malumot');
+    const j = (await qarzdorlarJurnali()).find((x) => x.mijozId === mijozId);
+    expect(j?.jurnal).toHaveLength(3);
+    const o = (await muddatiOtganlar()).get(mijozId);
+    expect(o).toEqual({ som: '200000.00', usd: '0.00', engEskiKun: 5 });
+  });
+});

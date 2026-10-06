@@ -12,6 +12,9 @@
  */
 
 import { ulanishOl } from '@/lib/db';
+import type { Ulanish } from '@/lib/db/ulanish';
+import { muddatOtganQarz, qarzniTaqsimla } from '@/lib/domain/qarz-taqsimot';
+import { dollar, musbatmi, pulKorsat, som } from '@/lib/domain/pul';
 
 export type {
   SotuvMaterial,
@@ -73,6 +76,16 @@ export interface SotuvMijozi {
    */
   readonly qarzSom: string;
   readonly qarzDollar: string;
+
+  /**
+   * To'lov muddati o'tgan qarz — egasi auditi 2026-10-06 (kredit
+   * nazorati). Tayyor matn: «1 200 000 so'm · 25 kun kechikdi».
+   * `null` — muddat qo'yilmagan yoki o'tgan qarz yo'q.
+   *
+   * ⚠️ Kartochka va qarzdorlik hisoboti bilan BIR XIL hisob
+   *    (`qarzniTaqsimla`). Limit kabi BLOKLAMAYDI — ogohlantiradi.
+   */
+  readonly muddatOtgan: string | null;
 }
 
 export async function mijozQidir(matn: string, chegara = 10): Promise<SotuvMijozi[]> {
@@ -106,9 +119,10 @@ export async function mijozQidir(matn: string, chegara = 10): Promise<SotuvMijoz
       tur_nomi: string | null;
       qarz_som: string;
       qarz_dollar: string;
+      tolov_muddati_kun: number | null;
     }[]
   >`
-    SELECT m.id, m.ism, m.telefon, m.qarz_limiti,
+    SELECT m.id, m.ism, m.telefon, m.qarz_limiti, m.tolov_muddati_kun,
            m.offset_turi, m.offset_qiymat,
            g.nom AS guruh_nomi,
            g.offset_turi AS guruh_offset_turi,
@@ -132,10 +146,19 @@ export async function mijozQidir(matn: string, chegara = 10): Promise<SotuvMijoz
            ${telefonBilan === null ? sql`` : sql`OR m.telefon LIKE ${telefonBilan}`})
     ORDER BY m.ism LIMIT ${chegara}`;
 
+  const muddatlar = await muddatOtganMatnlari(
+    sql,
+    qatorlar.filter((r) => r.tolov_muddati_kun !== null).map((r) => ({
+      id: r.id,
+      muddat: r.tolov_muddati_kun as number,
+    })),
+  );
+
   return qatorlar.map((r) => ({
     id: r.id,
     ism: r.ism,
     telefon: r.telefon,
+    muddatOtgan: muddatlar.get(r.id) ?? null,
     qarzLimiti: r.qarz_limiti,
     offsetTuri: r.offset_turi,
     offsetQiymat: r.offset_qiymat,
@@ -375,4 +398,57 @@ export async function materialNarxQoidalari(
         valyuta: b.valyuta,
       })),
   }));
+}
+
+/**
+ * Muddati o'tgan qarz matni — sotuv ekrani uchun (egasi auditi 2026-10-06).
+ *
+ * ⚠️ BITTA so'rov — qidiruvdagi hamma mijoz uchun birdan. Har biriga
+ *    alohida so'rov yuborilsa, harf yozgan sayin o'nta so'rov ketardi.
+ */
+async function muddatOtganMatnlari(
+  sql: Ulanish,
+  mijozlar: readonly { id: number; muddat: number }[],
+): Promise<Map<number, string>> {
+  const natija = new Map<number, string>();
+  if (mijozlar.length === 0) return natija;
+
+  const q = await sql<
+    { id: number; mijoz_id: number; sana: Date; turi: string; summa: string; valyuta: string; buyurtma_id: number | null }[]
+  >`
+    SELECT h.id, h.mijoz_id, h.sana, h.turi, h.summa::text AS summa, h.valyuta,
+           CASE
+             WHEN h.manba_turi IN ('buyurtma', 'buyurtma_tolov') THEN h.manba_id
+             WHEN h.manba_turi = 'qaytarish' THEN
+               (SELECT bp.buyurtma_id FROM buyurtma_pozitsiya bp WHERE bp.id = h.manba_id)
+           END AS buyurtma_id
+    FROM mijoz_harakat h
+    WHERE h.mijoz_id = ANY(${mijozlar.map((m) => m.id)})
+    ORDER BY h.sana, h.id`;
+
+  const bugun = new Date();
+  for (const m of mijozlar) {
+    const t = qarzniTaqsimla(
+      q
+        .filter((r) => r.mijoz_id === m.id)
+        .map((r) => ({
+          id: r.id,
+          sana: r.sana,
+          turi: r.turi,
+          summa: r.summa,
+          valyuta: r.valyuta === 'USD' ? ('USD' as const) : ('SOM' as const),
+          buyurtmaId: r.buyurtma_id,
+        })),
+    );
+    const s = muddatOtganQarz(t.bandlar, 'SOM', m.muddat, bugun);
+    const u = muddatOtganQarz(t.bandlar, 'USD', m.muddat, bugun);
+    const qism: string[] = [];
+    if (musbatmi(som(s.summa))) qism.push(`${pulKorsat(som(s.summa))} so'm`);
+    if (musbatmi(dollar(u.summa))) qism.push(`${pulKorsat(dollar(u.summa))} $`);
+    if (qism.length > 0) {
+      const kun = Math.max(s.engEskiKun ?? 0, u.engEskiKun ?? 0);
+      natija.set(m.id, `${qism.join(' + ')} · ${String(kun)} kun kechikdi`);
+    }
+  }
+  return natija;
 }

@@ -7,7 +7,7 @@ import { mijozTahrirlaAmali } from '../amal';
 import type { MijozHolati } from '../holat';
 import { MijozFormasi, type MijozQiymatlari } from '../forma';
 import { ruxsatBormi } from '@/lib/ruxsat/tekshir';
-import { dollar, kurs as kursYasa, musbatmi, pulKorsat, som } from '@/lib/domain/pul';
+import { dollar, kurs as kursYasa, musbatmi, nolmi, pulKorsat, som } from '@/lib/domain/pul';
 import { limitHolati } from '@/lib/domain/mijoz';
 import {
   YOSH_ORALIQLARI,
@@ -21,6 +21,8 @@ import { joriyKurs } from '@/lib/amal/kurs';
 import { telefonKorsat } from '@/lib/domain/telefon';
 import { HARAKAT_NOMI, mijozJurnali, mijozQarzi } from '../qarz-malumot';
 import { filtrTanlovlari } from '../malumot';
+import { mijozKontaktlari, mijozMuloqotlari } from './crm-malumot';
+import { Kontaktlar, Muloqotlar, TelegramEslatma } from './crm';
 import { tolovKassalari } from '../../buyurtma/malumot';
 import { QarzTolashFormasi } from '../qarz-forma';
 import { UmidsizQarzFormasi } from '../umidsiz-forma';
@@ -99,7 +101,7 @@ export default async function MijozTahrirlash({ params }: { params: Promise<{ id
 
   const qiymatlar: MijozQiymatlari = {
     ism: mijoz.ism,
-    telefon: m(mijoz.telefon),
+    telefon: mijoz.telefon === null ? '' : telefonKorsat(mijoz.telefon),
     manzil: m(mijoz.manzil),
     eslatma: m(mijoz.eslatma),
     mijozGuruhId: mijoz.mijoz_guruh_id === null ? '' : String(mijoz.mijoz_guruh_id),
@@ -146,14 +148,19 @@ export default async function MijozTahrirlash({ params }: { params: Promise<{ id
    *    Shuning uchun bu raqamlar: qanday to'laydi, qanday ritmda
    *    oladi, nimani qayta sotadi.
    */
-  const [xulosa, jurnal, sotilgan, aylanma, buyurtmalar, kursMatni] = await Promise.all([
-    mijozXulosasi(mijozId),
-    mijozJurnali(mijozId),
-    nimaSotadi(mijozId),
-    oylikAylanma(mijozId),
-    mijozBuyurtmalari(mijozId),
-    joriyKurs(ulanishOl()),
-  ]);
+  const [xulosa, jurnal, sotilgan, aylanma, buyurtmalar, kursMatni, kontaktlar, muloqotlar] =
+    await Promise.all([
+      mijozXulosasi(mijozId),
+      mijozJurnali(mijozId),
+      nimaSotadi(mijozId),
+      oylikAylanma(mijozId),
+      mijozBuyurtmalari(mijozId),
+      joriyKurs(ulanishOl()),
+      mijozKontaktlari(mijozId),
+      mijozMuloqotlari(mijozId),
+    ]);
+  /** Sotuvchi ham qo'ng'iroq va va'dani yozadi — `mijoz.yarat` unda bor */
+  const crmYozaOladi = ruxsatBormi(f, 'mijoz.yarat');
 
   /**
    * ⚠️ TAQSIMOT — egasi auditi 2026-10-06. Kartochkadan to'langan qarz
@@ -184,13 +191,20 @@ export default async function MijozTahrirlash({ params }: { params: Promise<{ id
   };
 
   /** TZ 6.4 — limit sotuv ekranidagi bilan BIR XIL hisob (`limitHolati`) */
+  /**
+   * ⚠️ Kurs FAQAT dollar qarzi bo'lsa kerak. Ilgari kurs kiritilmagan
+   *    bo'lsa tekshiruv butunlay o'tkazib yuborilardi — faqat so'mda
+   *    qarzi bor mijozda ham limit ogohlantirishi chiqmasdi
+   *    (egasi auditi 2026-10-06).
+   */
+  const dollarQarziBor = !nolmi(dollar(qarz.dollar));
   const limit =
-    mijoz.qarz_limiti === null || kursMatni === null
+    mijoz.qarz_limiti === null || (kursMatni === null && dollarQarziBor)
       ? null
       : limitHolati(
           { som: som(qarz.som), dollar: dollar(qarz.dollar) },
           som(mijoz.qarz_limiti),
-          kursYasa(kursMatni, bugun, 'JORIY'),
+          kursYasa(kursMatni ?? '1', bugun, 'JORIY'),
         );
 
   const amal = async (holat: MijozHolati, forma: FormData): Promise<MijozHolati> => {
@@ -219,7 +233,19 @@ export default async function MijozTahrirlash({ params }: { params: Promise<{ id
       </div>
 
       {/* ── Rekvizitlar va ko'rsatkichlar ── */}
+      {!mijoz.faol && (
+        <p className="rounded-maydon bg-belgi-sariq-fon px-3 py-2.5 text-[13px] text-belgi-sariq">
+          Bu mijoz o&apos;chirilgan (nofaol). Ro&apos;yxatdagi «O&apos;chirilganlar» dan qaytarish
+          mumkin.
+        </p>
+      )}
       <Rekvizitlar mijoz={mijoz} />
+      <Kontaktlar
+        mijozId={mijozId}
+        kontaktlar={kontaktlar}
+        qoshaOladi={crmYozaOladi}
+        ochiraOladi={tahrirlayOladi}
+      />
       <Korsatkichlar xulosa={xulosa} intizom={intizom} />
 
       {/* ── 6.7 · Qarz bloki ── */}
@@ -289,7 +315,18 @@ export default async function MijozTahrirlash({ params }: { params: Promise<{ id
             <UmidsizQarzFormasi mijozId={mijozId} somQarz={qarz.som} dollarQarz={qarz.dollar} />
           </div>
         )}
+
+        {/* TZ 13.6 — faqat botga ulangan va qarzi bor mijozga */}
+        {crmYozaOladi &&
+          mijoz.telegram_id !== null &&
+          (musbatmi(som(qarz.som)) || musbatmi(dollar(qarz.dollar))) && (
+            <div className="mt-4">
+              <TelegramEslatma mijozId={mijozId} />
+            </div>
+          )}
       </section>
+
+      <Muloqotlar mijozId={mijozId} qatorlar={muloqotlar} yozaOladi={crmYozaOladi} />
 
       {/* ── 6.8 · Qarz harakati ── */}
       {qarz.harakatlar.length > 0 && (

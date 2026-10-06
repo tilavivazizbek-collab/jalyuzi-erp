@@ -1962,3 +1962,50 @@ tuzatishdan oldin mato slotiga `ENI * a + BO'YI * b` saqlangan tur
 sotuvda hali ham QO'SHADI. Tur ochilib «Saqlash» bosilsa to'g'ri
 shaklga o'tadi. Baza qaytgach tekshiriladi:
 `SELECT ... FROM mahsulot_slot WHERE faol AND formula LIKE 'ENI * % + BO''YI * %'`.
+
+---
+
+## P-41 — Mijoz qarzi buyurtmalarga FIFO taqsimlanadi
+
+**2026-10-06, egasi auditi («hammasini qo'shib to'g'rila»).**
+
+Kartochkadan «Qarzni to'lash» bilan kelgan pul kassaga MIJOZ nomiga
+yoziladi va hech qaysi buyurtmaga bog'lanmaydi. Ekranlar esa
+«to'landimi» ni faqat buyurtmaga bog'langan kassa yozuvidan sanardi:
+qarzini uzgan mijozning buyurtmalari «To'lanmagan» qolar, to'lov
+intizomi va «eng eski qarz» yolg'on chiqardi.
+
+**Qaror:** `lib/domain/qarz-taqsimot.ts` — `mijoz_harakat` jurnalini
+taqsimlaydi, natija SAQLANMAYDI (2.2-invariant):
+
+1. Buyurtmaga to'lov va qaytarish — avval o'sha buyurtmaga
+2. Bog'lanmagan pul (kartochkadan to'lov, avans, umidsiz qarz) va
+   buyurtmadan ortgani — eng eski ochiq qarzga
+3. Qolgani — avans. So'm va dollar alohida (1.3)
+
+Kafolat (test EC-QRZ-07): taqsimotdan keyingi qarz jurnal
+yig'indisiga AYNAN teng.
+
+Shu bitta funksiyadan o'qiydi: kartochka (to'landi belgisi, to'lov
+intizomi, qarz yoshi, muddati o'tgan), ro'yxatdagi «muddati o'tgan»
+filtri, qarzdorlik hisoboti, sotuvdagi kredit ogohlantirishi.
+SQL da taxminiy hisob ATAYLAB yozilmadi — u kartochka bilan farq
+qilib qolardi.
+
+## P-42 — Chegirma / ustama yo'nalishi ekranda tanlanadi
+
+Bazada offset ishorali qoladi (manfiy — chegirma, `offsetQolla`:
+−3 → × 0.97). Ekranda bo'lim «Chegirma» deb atalib, «10» yozilsa
+narx 10% OSHARDI; −150% manfiy narx berardi.
+
+**Qaror:** mijoz va guruh formasida «Chegirma / Ustama» tanlovi, son
+doim musbat, ishorani forma qo'yadi — bazadagi yozuvlar o'zgarmadi.
+Foiz −100…100; `offsetQolla` manfiy narxda xato beradi (jimgina 0
+qilinmaydi — bepul sotilib ketardi).
+
+## P-43 — 0061: to'lov muddati, mas'ul, manba, kontakt, muloqot
+
+Faqat qo'shadi. Bo'sh to'lov muddati = nazorat yo'q (§14a). Va'da
+(`mijoz_muloqot`) pul jadvali EMAS — qarzga tegmaydi, shuning uchun
+`bajarildi` ni yangilash ruxsat. Kredit nazorati limit kabi
+BLOKLAMAYDI — ogohlantiradi (`limitBloklaydimi = false` bilan bir xil).

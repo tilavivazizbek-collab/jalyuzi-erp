@@ -16,6 +16,8 @@
  */
 
 import { ulanishOl } from '@/lib/db';
+import { muddatOtganQarz, qarzniTaqsimla } from '@/lib/domain/qarz-taqsimot';
+import { qarzdorlarJurnali } from './qarz-malumot';
 
 export const SAHIFA_HAJMI = 50;
 
@@ -105,9 +107,43 @@ export interface RoyxatNatijasi {
 /** `%` va `_` foydalanuvchi matnida maxsus belgi bo'lib qolmasin */
 const likeXavfsiz = (x: string): string => x.replace(/[\\%_]/g, (b) => `\\${b}`);
 
+export type Parametrlar = Record<string, string | string[] | undefined>;
+
+const bir = (sp: Parametrlar, k: string): string => {
+  const v = sp[k];
+  return typeof v === 'string' ? v : '';
+};
+const id = (x: string): number | null => {
+  const n = Number(x);
+  return x !== '' && Number.isSafeInteger(n) && n > 0 ? n : null;
+};
+const kalitmi = <T extends string>(x: string, r: Record<T, string>): x is T =>
+  Object.prototype.hasOwnProperty.call(r, x);
+
+/** Filtrni URL dan o'qiydi — noto'g'ri qiymat jimgina tashlanadi */
+export function filtrniOqi(sp: Parametrlar): RoyxatFiltri {
+  const holat = bir(sp, 'holat');
+  const segment = bir(sp, 'segment');
+  const saralash = bir(sp, 'saralash');
+  const sahifa = Number(bir(sp, 'sahifa'));
+  return {
+    qidiruv: bir(sp, 'q').slice(0, 100),
+    holat: kalitmi<HolatFiltri>(holat, HOLAT_FILTRLARI) ? holat : null,
+    segment: kalitmi<Segment>(segment, SEGMENT_NOMI) ? segment : null,
+    guruhId: id(bir(sp, 'guruh')),
+    turiId: id(bir(sp, 'tur')),
+    masulId: id(bir(sp, 'masul')),
+    saralash: kalitmi<Saralash>(saralash, SARALASHLAR) ? saralash : 'ism',
+    ochirilganlar: bir(sp, 'ochirilgan') === '1',
+    sahifa: Number.isSafeInteger(sahifa) && sahifa > 0 ? sahifa : 1,
+  };
+}
+
 export async function mijozlarRoyxati(
   f: RoyxatFiltri,
   kurs: string | null,
+  /** Eksportda — hammasi, sahifasiz */
+  chegara: number = SAHIFA_HAJMI,
 ): Promise<RoyxatNatijasi> {
   const sql = ulanishOl();
   const q = f.qidiruv.trim();
@@ -120,6 +156,12 @@ export async function mijozlarRoyxati(
   const telefonBilan = raqamlar.length >= 3 ? `%${raqamlar}%` : null;
   /** Kurs yo'q — dollar qarzi limit va saralashda 0 deb olinadi */
   const k = kurs ?? '0';
+  /**
+   * ⚠️ «Muddati o'tgan» SQL da hisoblanMAYDI — kartochka bilan bir xil
+   *    bo'lishi uchun TAQSIMOTDAN (`muddatiOtganlar`). Faqat shu filtr
+   *    tanlanganda hisoblanadi.
+   */
+  const muddatIdlar = f.holat === 'muddat' ? [...(await muddatiOtganlar()).keys()] : [];
 
   const filtr = sql`
     WHERE r.faol = ${!f.ochirilganlar}
@@ -140,7 +182,7 @@ export async function mijozlarRoyxati(
         : f.holat === 'limit'
           ? sql`AND r.limit_oshgan`
           : f.holat === 'muddat'
-            ? sql`AND r.muddat_otgan`
+            ? sql`AND r.id = ANY(${muddatIdlar})`
             : f.holat === 'avans'
               ? sql`AND (r.qarz_som < 0 OR r.qarz_usd < 0)`
               : f.holat === 'uxlagan'
@@ -168,13 +210,7 @@ export async function mijozlarRoyxati(
              COALESCE(SUM(summa) FILTER (WHERE turi = 'SOTUV' AND valyuta = 'USD'), 0) AS sotuv_usd,
              MIN(sana) FILTER (WHERE turi = 'SOTUV' AND summa > 0) AS birinchi,
              MAX(sana) FILTER (WHERE turi = 'SOTUV' AND summa > 0) AS oxirgi,
-             COUNT(*) FILTER (WHERE turi = 'SOTUV' AND summa > 0) AS xarid_soni,
-             /*
-              * ⚠️ Muddat o'tgani TAXMINIY ro'yxat uchun: eng eski SOTUV
-              *    sanasidan, qarz hali musbat bo'lsa. Aniq hisob — kartochkada,
-              *    to'lov taqsimotidan (lib/domain/qarz-taqsimot.ts).
-              */
-             MIN(sana) FILTER (WHERE turi IN ('SOTUV', 'BOSHLANGICH') AND summa > 0) AS eng_eski
+             COUNT(*) FILTER (WHERE turi = 'SOTUV' AND summa > 0) AS xarid_soni
       FROM mijoz_harakat
       GROUP BY mijoz_id
     ),
@@ -193,9 +229,6 @@ export async function mijozlarRoyxati(
              (m.qarz_limiti IS NOT NULL
                AND COALESCE(h.qarz_som, 0) + COALESCE(h.qarz_usd, 0) * ${k}::numeric
                    > m.qarz_limiti) AS limit_oshgan,
-             (m.tolov_muddati_kun IS NOT NULL
-               AND (COALESCE(h.qarz_som, 0) > 0 OR COALESCE(h.qarz_usd, 0) > 0)
-               AND h.eng_eski < now() - make_interval(days => m.tolov_muddati_kun)) AS muddat_otgan,
              CASE
                WHEN h.oxirgi IS NULL THEN 'XARIDSIZ'
                WHEN h.oxirgi < now() - interval '180 days' THEN 'YOQOTILGAN'
@@ -226,7 +259,7 @@ export async function mijozlarRoyxati(
     FROM r
     ${filtr}
     ${tartib}
-    LIMIT ${SAHIFA_HAJMI} OFFSET ${(Math.max(1, f.sahifa) - 1) * SAHIFA_HAJMI}`;
+    LIMIT ${chegara} OFFSET ${(Math.max(1, f.sahifa) - 1) * chegara}`;
 
   const birinchi = qatorlar[0];
   return {
@@ -235,6 +268,35 @@ export async function mijozlarRoyxati(
     jamiQarzSom: birinchi?.jami_som ?? '0',
     jamiQarzUsd: birinchi?.jami_usd ?? '0',
   };
+}
+
+export interface MuddatOtgani {
+  readonly som: string;
+  readonly usd: string;
+  readonly engEskiKun: number;
+}
+
+/**
+ * To'lov muddati o'tgan mijozlar — TAQSIMOTDAN, kartochka bilan bir xil.
+ * Muddat qo'yilmagan mijoz bu yerga tushmaydi.
+ */
+export async function muddatiOtganlar(
+  bugun: Date = new Date(),
+): Promise<Map<number, MuddatOtgani>> {
+  const natija = new Map<number, MuddatOtgani>();
+  for (const m of await qarzdorlarJurnali()) {
+    if (m.tolovMuddatiKun === null) continue;
+    const t = qarzniTaqsimla(m.jurnal);
+    const s = muddatOtganQarz(t.bandlar, 'SOM', m.tolovMuddatiKun, bugun);
+    const u = muddatOtganQarz(t.bandlar, 'USD', m.tolovMuddatiKun, bugun);
+    if (s.engEskiKun === null && u.engEskiKun === null) continue;
+    natija.set(m.mijozId, {
+      som: s.summa,
+      usd: u.summa,
+      engEskiKun: Math.max(s.engEskiKun ?? 0, u.engEskiKun ?? 0),
+    });
+  }
+  return natija;
 }
 
 export async function ochirilganSoni(): Promise<number> {

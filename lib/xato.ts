@@ -173,6 +173,16 @@ export const XATO_BAND = {
   YETKAZIB_SAQLANMADI: 'TZ 9.1',
   MAHSULOT_SAQLANMADI: 'TZ 4.1',
   MIJOZ_TOPILMADI: 'TZ 6.1',
+  // ── Kontakt va muloqot — 0061, egasi auditi 2026-10-06 ──
+  KONTAKT_ISMSIZ: 'Audit 2026-10-06',
+  KONTAKT_SAQLANMADI: 'Audit 2026-10-06',
+  KONTAKT_TOPILMADI: 'Audit 2026-10-06',
+  MULOQOT_TURI: 'Audit 2026-10-06',
+  MULOQOT_BOSH: 'Audit 2026-10-06',
+  MULOQOT_SAQLANMADI: 'Audit 2026-10-06',
+  VADA_SANASIZ: 'Audit 2026-10-06',
+  VADA_SUMMA: 'Audit 2026-10-06',
+  VADA_TOPILMADI: 'Audit 2026-10-06',
   MIJOZ_SAQLANMADI: 'TZ 6.2',
   /** ⚠️ O'chirilgan yozuvning telefoni/nomi band turadi (2026-08-30) */
   OCHIRILGANDA_BAND: 'TZ 6.5',
