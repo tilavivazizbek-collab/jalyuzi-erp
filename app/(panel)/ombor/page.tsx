@@ -1,6 +1,6 @@
 import { Fragment } from 'react';
 import Link from 'next/link';
-import { kamQoldiqmi } from '@/lib/domain/birlik-tanlovi';
+import { chegaraBirligi } from '@/lib/domain/birlik-tanlovi';
 import { sahifaRuxsati } from '@/lib/kirish/joriy';
 import { ruxsatBormi, yigindiQamrov } from '@/lib/ruxsat/tekshir';
 import { SARFLASH_BIRLIGI_NOMI, type SarflashBirligi } from '@/lib/sxema/material';
@@ -10,8 +10,17 @@ import {
   filialQoldigi,
   qoldiqTarkibi,
   type FilialQoldigi,
+  type MaterialQoldigi,
   type QoldiqTarkibi,
 } from './malumot';
+import {
+  QOLDIQ_HOLATLARI,
+  QOLDIQ_SARALASH,
+  holatSanoqlari,
+  omborda,
+  qoldiqFiltriniOqi,
+  qoldiqniFiltrla,
+} from './qoldiq-filtr';
 
 export const dynamic = 'force-dynamic';
 
@@ -61,7 +70,7 @@ function TarkibQatori({ tarkib }: { tarkib: readonly QoldiqTarkibi[] }) {
 export default async function OmborQoldigi({
   searchParams,
 }: {
-  searchParams: Promise<{ filial?: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const f = await sahifaRuxsati('ombor.qoldiq.kor');
   const kirimQilaOladi = ruxsatBormi(f, 'ombor.kirim.yarat');
@@ -72,7 +81,8 @@ export default async function OmborQoldigi({
    * so'rasa ham o'z filialida qoladi (§9.4 — tekshiruv serverda).
    */
   const barchasiniKoradi = yigindiQamrov(f, 'ombor.qoldiq.kor') === 'BARCHA';
-  const { filial } = await searchParams;
+  const sp = await searchParams;
+  const filial = typeof sp['filial'] === 'string' ? sp['filial'] : undefined;
   const barchasimi = barchasiniKoradi && filial === 'barcha';
 
   const nomi = await filialNomi(f.filialId);
@@ -81,8 +91,36 @@ export default async function OmborQoldigi({
   const qoldiq = barchasimi ? [] : await filialQoldigi(f.filialId);
   // TZ 7.4 — «qancha» yetarli emas, «nimadan iborat» ham kerak
   const tarkib = barchasimi ? [] : await qoldiqTarkibi(f.filialId);
-  const olchamli = qoldiq.filter((q) => q.hisobTuri === 'RULON');
-  const donali = qoldiq.filter((q) => q.hisobTuri !== 'RULON');
+  /**
+   * ⚠️ QIDIRUV VA FILTR — ombor auditi 2026-10-06 (2-band). Ro'yxat endi
+   *    tugagan matoni ham o'z ichiga oladi; asosiy ko'rinish («Omborda
+   *    bor») avvalgidek, tugagan va kam qolganlar o'z tugmasida.
+   */
+  const filtr = qoldiqFiltriniOqi(sp);
+  const sanoq = holatSanoqlari(qoldiq);
+  const korinadi = qoldiqniFiltrla(qoldiq, filtr);
+  const omborBoshmi = !qoldiq.some(omborda);
+  const guruhlar = [
+    ...new Map(
+      qoldiq
+        .filter((q) => q.guruhId !== null && q.guruhNomi !== null)
+        .map((q) => [q.guruhId as number, q.guruhNomi as string]),
+    ),
+  ].sort((a, b) => a[1].localeCompare(b[1]));
+  const filtrBor = filtr.qidiruv !== '' || filtr.holat !== 'bor' || filtr.guruhId !== null;
+  const havola = (holat: string): string => {
+    const u = new URLSearchParams();
+    if (filtr.qidiruv !== '') u.set('q', filtr.qidiruv);
+    if (filtr.guruhId !== null) u.set('guruh', String(filtr.guruhId));
+    if (filtr.saralash !== 'nom') u.set('saralash', filtr.saralash);
+    if (holat !== 'bor') u.set('holat', holat);
+    const t = u.toString();
+    return t === '' ? '/ombor' : `/ombor?${t}`;
+  };
+  const tanla = 'rounded-maydon border border-chegara-quyuq bg-sirt px-2.5 py-1.5 text-[13px]';
+
+  const olchamli = korinadi.filter((q) => q.hisobTuri === 'RULON');
+  const donali = korinadi.filter((q) => q.hisobTuri !== 'RULON');
 
   return (
     <div className="flex flex-col gap-6">
@@ -121,11 +159,103 @@ export default async function OmborQoldigi({
         </div>
       </div>
 
+      {!barchasimi && (
+        <div className="flex flex-col gap-3">
+          {/* Tezkor tugmalar — omborchi birinchi shuni ko'radi */}
+          <div className="flex flex-wrap items-center gap-2 text-[13px]">
+            {(Object.keys(QOLDIQ_HOLATLARI) as (keyof typeof QOLDIQ_HOLATLARI)[]).map((h) => {
+              const son =
+                h === 'kam'
+                  ? sanoq.kam
+                  : h === 'tugagan'
+                    ? sanoq.tugagan
+                    : h === 'yolda'
+                      ? sanoq.yolda
+                      : null;
+              const faol = filtr.holat === h;
+              const xavf = (h === 'kam' || h === 'tugagan') && son !== null && son > 0;
+              return (
+                <Link
+                  key={h}
+                  href={havola(h)}
+                  className={`rounded-full border px-3 py-1 transition-colors ${
+                    faol
+                      ? 'border-brend bg-brend text-tugma-matn'
+                      : xavf
+                        ? 'border-belgi-qizil/40 bg-belgi-qizil-fon text-belgi-qizil'
+                        : 'border-chegara-quyuq bg-sirt text-matn-ikki hover:bg-fon'
+                  }`}
+                >
+                  {QOLDIQ_HOLATLARI[h]}
+                  {son !== null && <b className="ml-1.5">{son}</b>}
+                </Link>
+              );
+            })}
+          </div>
+
+          {/* Oddiy GET forma — havolani nusxalasa o'sha ko'rinish ochiladi */}
+          <form method="get" className="flex flex-wrap items-center gap-2">
+            {filtr.holat !== 'bor' && <input type="hidden" name="holat" value={filtr.holat} />}
+            <input
+              name="q"
+              defaultValue={filtr.qidiruv}
+              placeholder="Mato yoki guruh nomi"
+              aria-label="Qidirish"
+              className={`${tanla} min-w-[220px] flex-1`}
+            />
+            {guruhlar.length > 0 && (
+              <select
+                name="guruh"
+                defaultValue={filtr.guruhId === null ? '' : String(filtr.guruhId)}
+                aria-label="Guruh"
+                className={tanla}
+              >
+                <option value="">Barcha guruhlar</option>
+                {guruhlar.map(([id, nom]) => (
+                  <option key={id} value={id}>
+                    {nom}
+                  </option>
+                ))}
+              </select>
+            )}
+            <select
+              name="saralash"
+              defaultValue={filtr.saralash}
+              aria-label="Saralash"
+              className={tanla}
+            >
+              {Object.entries(QOLDIQ_SARALASH).map(([k, v]) => (
+                <option key={k} value={k}>
+                  {v}
+                </option>
+              ))}
+            </select>
+            <button
+              type="submit"
+              className="rounded-maydon bg-brend px-3.5 py-1.5 text-[13px] font-medium text-tugma-matn hover:bg-brend-quyuq"
+            >
+              Ko&apos;rsatish
+            </button>
+            {filtrBor && (
+              <Link href="/ombor" className="text-[13px] text-matn-kuchsiz hover:text-matn">
+                Tozalash
+              </Link>
+            )}
+          </form>
+        </div>
+      )}
+
       {barchasimi ? (
         <BarchaFiliallar filiallar={filiallar} />
-      ) : qoldiq.length === 0 ? (
+      ) : omborBoshmi && !filtrBor ? (
         <p className="rounded-karta border border-dashed border-chegara-quyuq px-4 py-10 text-center text-sm text-matn-kuchsiz">
           Omborda hali material yo&apos;q. Kirim hujjati bilan boshlanadi.
+        </p>
+      ) : korinadi.length === 0 ? (
+        <p className="rounded-karta border border-dashed border-chegara-quyuq px-4 py-10 text-center text-sm text-matn-kuchsiz">
+          {filtr.holat === 'kam' || filtr.holat === 'tugagan'
+            ? 'Bunday mahsulot yo‘q — hammasi yetarli.'
+            : 'Bu filtr bo‘yicha mahsulot topilmadi.'}
         </p>
       ) : (
         <>
@@ -155,7 +285,10 @@ export default async function OmborQoldigi({
                     {olchamli.map((q) => (
                       <Fragment key={q.materialId}>
                       <tr>
-                        <td className="px-4 py-2.5 font-medium">{q.nom}</td>
+                        <td className="px-4 py-2.5 font-medium">
+                          {q.nom}
+                          <KamBelgisi q={q} />
+                        </td>
                         <td className="raqam px-4 py-2.5">{kvM(q.jamiKvM)}</td>
                         <td className="raqam px-4 py-2.5 text-belgi-yashil">{kvM(q.boshKvM)}</td>
                         <td className="raqam px-4 py-2.5 text-belgi-sariq">
@@ -215,18 +348,13 @@ export default async function OmborQoldigi({
                           ? `${q.miqdor.toFixed(2)} m`
                           : `${String(q.miqdor)} ${SARFLASH_BIRLIGI_NOMI[birlik]}`;
 
-                      /** Q-10 — hisob bitta joyda: dona mahsulotda ham ishlaydi */
-                      const kamqoldiq = kamQoldiqmi(birlik, q.miqdor, q.kamQoldiqChegaraM);
-
                       return (
                         <tr key={q.materialId}>
-                          <td className="px-4 py-2.5 font-medium">{q.nom}</td>
-                          <td className="raqam px-4 py-2.5">
-                            {korinish}
-                            {kamqoldiq && (
-                              <span className="ml-2 text-xs text-belgi-sariq">kam qoldiq</span>
-                            )}
+                          <td className="px-4 py-2.5 font-medium">
+                            {q.nom}
+                            <KamBelgisi q={q} />
                           </td>
+                          <td className="raqam px-4 py-2.5">{korinish}</td>
                           <td className="px-4 py-2.5 text-matn-kuchsiz">
                             {birlik === 'M'
                               ? 'metrda saqlanadi (Q-01)'
@@ -251,6 +379,42 @@ export default async function OmborQoldigi({
         </>
       )}
     </div>
+  );
+}
+
+/**
+ * Kam qoldiq / tugagan belgisi — rulonda ham, donada ham BIR XIL
+ * (`chegaraBirligidaQoldiq`). Ilgari rulonda belgi umuman yo'q edi,
+ * donada esa band qilingani ham qoldiq deb sanalardi.
+ */
+function KamBelgisi({ q }: { q: MaterialQoldigi }) {
+  /**
+   * ⚠️ Bo'sh qoldiq yo'q — lekin ikki xil sabab. Rulon omborda turib,
+   *    hammasi buyurtmaga band bo'lsa «tugagan» deyish omborchini
+   *    chalg'itadi: u rulonni ko'rib turibdi. Sotish uchun ikkalasi bir xil.
+   */
+  if (q.tugagan) {
+    const bandBor = q.bandKvM > 0 || q.bolakSoni > 0;
+    return (
+      <span
+        className={`ml-2 rounded-full px-2 py-0.5 text-[11px] font-medium ${
+          bandBor ? 'bg-belgi-sariq-fon text-belgi-sariq' : 'bg-belgi-qizil-fon text-belgi-qizil'
+        }`}
+        title={bandBor ? 'Omborda bor, lekin hammasi buyurtmaga band — yangi sotuvga yo‘q' : undefined}
+      >
+        {bandBor ? 'hammasi band' : 'tugagan'}
+      </span>
+    );
+  }
+  if (!q.kamQoldiq || q.kamQoldiqChegaraM === null) return null;
+  const birlik = chegaraBirligi(q.sarflashBirligi);
+  return (
+    <span
+      className="ml-2 rounded-full bg-belgi-sariq-fon px-2 py-0.5 text-[11px] font-medium text-belgi-sariq"
+      title={`Bo'sh qoldiq ${String(q.chegaraQoldiq)} ${birlik} — chegara ${String(q.kamQoldiqChegaraM)} ${birlik}`}
+    >
+      kam: {q.chegaraQoldiq} {birlik}
+    </span>
   );
 }
 

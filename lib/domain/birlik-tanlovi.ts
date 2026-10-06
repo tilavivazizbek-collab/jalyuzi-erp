@@ -250,6 +250,35 @@ export function kamQoldiqmi(
   return miqdor < chegara;
 }
 
+/**
+ * Ombordagi qoldiq — KAM QOLDIQ CHEGARASI BIRLIGIDA (ombor auditi 2026-10-06).
+ *
+ * ⚠️ XATO EDI: material formasida rulon chegarasi «uzunlik bo'yicha,
+ *    metrda» so'raladi, hisobot esa uni KV.M bilan solishtirardi:
+ *      eni 3 m, 10 m qolgan  → 30 kv.m > 20 m  → «yetarli» (aslida kam)
+ *      lamel 0.40, 30 m      → 12 kv.m < 20 m  → «kam»    (aslida yetarli)
+ *
+ * ⚠️ RULON / KV.M — uzunlik = kv.m ÷ standart rulon eni. Eni kiritilmagan
+ *    bo'lsa bo'laklar bo'yi yig'indisi olinadi (tor kesma ham to'liq
+ *    sanaladi — taxminiy, shuning uchun eni kiritilgani ma'qul).
+ *    DONA va CHIZIQLI — miqdorning o'zi (dona yoki metr).
+ *
+ * ⚠️ BAZAGA TEGMAYDI. Sanoq — o'lchov, pul emas: `number` mumkin.
+ */
+export function chegaraBirligidaQoldiq(k: {
+  readonly hisobTuri: string;
+  readonly kvM: number;
+  readonly miqdor: number;
+  readonly boyiYigindisiM: number;
+  readonly standartEniM: number | null;
+}): number {
+  if (k.hisobTuri !== 'RULON' && k.hisobTuri !== 'KV_M') return k.miqdor;
+  if (k.standartEniM !== null && k.standartEniM > 0) {
+    return Math.round((k.kvM / k.standartEniM) * 100) / 100;
+  }
+  return k.boyiYigindisiM;
+}
+
 /** Chegara qaysi birlikda yoziladi — ekrandagi yorliq uchun */
 export function chegaraBirligi(sarflashBirligi: string): string {
   return sarflashBirligi === 'DONA' ? 'dona' : 'm';

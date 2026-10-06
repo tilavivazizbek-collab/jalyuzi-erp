@@ -17,7 +17,7 @@
 
 import Decimal from 'decimal.js';
 import { ulanishOl } from '@/lib/db';
-import { kamQoldiqmi } from '@/lib/domain/birlik-tanlovi';
+import { filialQoldigi } from '../ombor/malumot';
 import { joriyKurs } from '@/lib/amal/kurs';
 import { type Davr, kunlarSoni } from '@/lib/domain/hisobot/davr';
 import {
@@ -758,6 +758,8 @@ export interface KamQoldiqQatori {
   /** Kartochkadagi chegara — `null` bo'lsa faqat nol qoldiq ko'rinadi */
   readonly chegara: number | null;
   readonly tugadimi: boolean;
+  /** Bo'sh yo'q, lekin band qilingani bor — «hammasi band» */
+  readonly hammasiBand: boolean;
 }
 
 /**
@@ -775,42 +777,23 @@ export interface KamQoldiqQatori {
 export async function kamQolganlar(
   filialId: number,
 ): Promise<readonly KamQoldiqQatori[]> {
-  const q = await ulanishOl()<
-    {
-      material_id: number;
-      nom: string;
-      sarflash_birligi: string;
-      qoldiq: string | null;
-      chegara: string | null;
-    }[]
-  >`
-    SELECT m.id AS material_id, m.nom, m.sarflash_birligi,
-           (SELECT SUM(CASE WHEN b.turi = 'DONA'
-                            THEN COALESCE(b.miqdor, 0)
-                            ELSE COALESCE(b.eni_m, 0) * COALESCE(b.boyi_m, 0) END)
-              FROM bolak b
-             WHERE b.material_id = m.id AND b.filial_id = ${filialId}
-               AND b.faol = true AND b.holat = 'BOSH')::text AS qoldiq,
-           m.kam_qoldiq_chegara_m::text AS chegara
-    FROM material m
-    WHERE m.faol = true
-    ORDER BY m.nom`;
-
-  return q
-    .map((x) => {
-      const qoldiq = Number(x.qoldiq ?? 0);
-      const chegara = x.chegara === null ? null : Number(x.chegara);
-
-      return {
-        materialId: x.material_id,
-        nom: x.nom,
-        sarflashBirligi: x.sarflash_birligi,
-        qoldiq,
-        chegara,
-        tugadimi: qoldiq <= 0,
-      };
-    })
-    .filter((x) => x.tugadimi || kamQoldiqmi(x.sarflashBirligi, x.qoldiq, x.chegara))
+  /**
+   * ⚠️ 2026-10-06 — OMBOR QOLDIG'I BILAN BITTA HISOB (`filialQoldigi`).
+   *    Ilgari bu yerda alohida SQL bor edi va rulon qoldig'ini KV.M da
+   *    olib, METRDA yozilgan chegara bilan solishtirardi: keng matoda
+   *    ogohlantirish chiqmas, tor lamelda yolg'on chiqardi.
+   */
+  return (await filialQoldigi(filialId))
+    .filter((q) => q.tugagan || q.kamQoldiq)
+    .map((q) => ({
+      materialId: q.materialId,
+      nom: q.nom,
+      sarflashBirligi: q.sarflashBirligi,
+      qoldiq: q.chegaraQoldiq,
+      chegara: q.kamQoldiqChegaraM,
+      tugadimi: q.tugagan,
+      hammasiBand: q.tugagan && (q.bandKvM > 0 || q.bolakSoni > 0),
+    }))
     /** Tugaganlar tepada — ular shoshilinch */
     .sort((a, b) => Number(b.tugadimi) - Number(a.tugadimi) || a.nom.localeCompare(b.nom));
 }

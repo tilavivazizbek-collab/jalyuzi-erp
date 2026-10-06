@@ -14,6 +14,7 @@ import {
   sarflanishTezligi,
   ustamaHisoboti,
 } from '../malumot';
+import { chegaraBirligi } from '@/lib/domain/birlik-tanlovi';
 
 export const dynamic = 'force-dynamic';
 
@@ -385,16 +386,19 @@ export default async function OmborHisoboti({
                   <tr key={k.materialId}>
                     <td className="px-4 py-2.5 font-medium">{k.nom}</td>
                     <td className="raqam px-4 py-2.5 text-right">
-                      {son(birlikda(k.qoldiq))}{' '}
+                      {son(k.qoldiq)}{' '}
+                      {/* ⚠️ Chegara birligida — rulonda METR (uzunlik), kv.m emas */}
                       <span className="text-xs text-matn-kuchsiz">
-                        {birlikNomi(k.sarflashBirligi)}
+                        {chegaraBirligi(k.sarflashBirligi)}
                       </span>
                     </td>
                     <td className="raqam px-4 py-2.5 text-right text-matn-kuchsiz">
-                      {k.chegara === null ? '-' : son(k.chegara)}
+                      {k.chegara === null ? '-' : `${son(k.chegara)} ${chegaraBirligi(k.sarflashBirligi)}`}
                     </td>
                     <td className="px-4 py-2.5">
-                      {k.tugadimi ? (
+                      {k.hammasiBand ? (
+                        <span className="text-belgi-sariq">hammasi band</span>
+                      ) : k.tugadimi ? (
                         <span className="text-belgi-qizil">tugagan</span>
                       ) : (
                         <span className="text-belgi-sariq">kam qoldi</span>

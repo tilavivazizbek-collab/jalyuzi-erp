@@ -11,6 +11,8 @@
 import { ulanishOl } from '@/lib/db';
 import { pulMatn, som } from '@/lib/domain/pul';
 import { bolakQiymati } from '@/lib/domain/tannarx';
+import { chegaraBirligidaQoldiq, kamQoldiqmi } from '@/lib/domain/birlik-tanlovi';
+import { omborda } from './qoldiq-filtr';
 import type { MaterialTanlovi, YetkazibTanlovi } from './kirim/forma';
 
 export interface MaterialQoldigi {
@@ -18,6 +20,9 @@ export interface MaterialQoldigi {
   readonly nom: string;
   readonly hisobTuri: string;
   readonly sarflashBirligi: string;
+  /** Almashtirish guruhi — «Rulonli parda matolari» kabi. Filtr uchun */
+  readonly guruhId: number | null;
+  readonly guruhNomi: string | null;
   /** TZ 7.3 — «jami» */
   readonly jamiKvM: number;
   /** TZ 7.3 — «bo'sh» */
@@ -29,8 +34,17 @@ export interface MaterialQoldigi {
   readonly bolakSoni: number;
   /** DONA va CHIZIQLI uchun */
   readonly miqdor: number;
-  /** Q-10 — kam qoldiq chegarasi, metrda */
+  /** Q-10 — kam qoldiq chegarasi: rulonda METR (uzunlik), donada DONA */
   readonly kamQoldiqChegaraM: number | null;
+  /**
+   * BO'SH qoldiq chegara birligida — `chegaraBirligidaQoldiq`.
+   * Rulonda metr (uzunlik), donada dona, chiziqlida metr.
+   */
+  readonly chegaraQoldiq: number;
+  /** Bo'sh qoldiq chegaradan kam (chegara qo'yilgan bo'lsa) */
+  readonly kamQoldiq: boolean;
+  /** Bo'sh qoldiq yo'q — sotib bo'lmaydi */
+  readonly tugagan: boolean;
 }
 
 interface QoldiqQatori {
@@ -38,12 +52,17 @@ interface QoldiqQatori {
   readonly nom: string;
   readonly hisob_turi: string;
   readonly sarflash_birligi: string;
+  readonly guruh_id: number | null;
+  readonly guruh_nomi: string | null;
+  readonly standart_eni: string | null;
   readonly jami_kv_m: string | null;
   readonly bosh_kv_m: string | null;
   readonly band_kv_m: string | null;
   readonly yolda_kv_m: string | null;
   readonly bolak_soni: number;
   readonly miqdor: string | null;
+  readonly bosh_miqdor: string | null;
+  readonly bosh_boyi: string | null;
   readonly kam_qoldiq_chegara_m: string | null;
 }
 
@@ -56,40 +75,69 @@ interface QoldiqQatori {
  * ⚠️ TZ 20.7.4 — `YOLDA` bo'lak «beruvchi filial qoldig'idan
  *    CHIQARILGAN». Shuning uchun u «jami» ga KIRMAYDI va alohida
  *    ustunda ko'rsatiladi: mol jismonan yo'lda, lekin omborda yo'q.
- *    Qatorning o'zi qoladi — omborchi uni yo'qotib qo'ymasin.
+ *
+ * ⚠️ MATERIALDAN BOSHLANADI, bo'lakdan emas (ombor auditi 2026-10-06).
+ *    Ilgari qoldig'i tugagan mato ro'yxatdan YO'QOLARDI — omborchi uchun
+ *    eng muhim narsa asosiy sahifada ko'rinmasdi. Endi qoldiqsiz faol
+ *    material ham qaytadi; sahifa uni «Tugagan» filtri bilan ko'rsatadi.
+ *
+ * ⚠️ Kam qoldiq BO'SH qoldiqdan — band qilingani boshqa buyurtmaniki.
+ *    Hisobot (`kamQolganlar`) ham shunday sanaydi.
  */
 export async function filialQoldigi(filialId: number): Promise<MaterialQoldigi[]> {
   const qatorlar = await ulanishOl()<QoldiqQatori[]>`
     SELECT m.id AS material_id, m.nom, m.hisob_turi, m.sarflash_birligi,
            m.kam_qoldiq_chegara_m,
+           m.almashtirish_guruh_id AS guruh_id, g.nom AS guruh_nomi,
+           m.standart_rulon_eni_m::text AS standart_eni,
            SUM(b.eni_m * b.boyi_m) FILTER (WHERE b.holat <> 'YOLDA')    AS jami_kv_m,
            SUM(b.eni_m * b.boyi_m) FILTER (WHERE b.holat = 'BOSH')      AS bosh_kv_m,
            SUM(b.eni_m * b.boyi_m) FILTER (WHERE b.holat = 'BAND')      AS band_kv_m,
            SUM(b.eni_m * b.boyi_m) FILTER (WHERE b.holat = 'YOLDA')     AS yolda_kv_m,
            COUNT(b.id) FILTER (WHERE b.holat <> 'YOLDA')::int           AS bolak_soni,
-           SUM(b.miqdor) FILTER (WHERE b.holat <> 'YOLDA')              AS miqdor
-    FROM bolak b
-    JOIN material m ON m.id = b.material_id
-    WHERE b.filial_id = ${filialId}
-      AND b.faol = true
-      AND b.holat IN ('BOSH', 'BAND', 'YOLDA')
-    GROUP BY m.id
+           SUM(b.miqdor) FILTER (WHERE b.holat <> 'YOLDA')              AS miqdor,
+           SUM(b.miqdor) FILTER (WHERE b.holat = 'BOSH')                AS bosh_miqdor,
+           SUM(b.boyi_m) FILTER (WHERE b.holat = 'BOSH')                AS bosh_boyi
+    FROM material m
+    LEFT JOIN almashtirish_guruh g ON g.id = m.almashtirish_guruh_id
+    LEFT JOIN bolak b
+           ON b.material_id = m.id
+          AND b.filial_id = ${filialId}
+          AND b.faol = true
+          AND b.holat IN ('BOSH', 'BAND', 'YOLDA')
+    WHERE m.faol = true
+    GROUP BY m.id, g.nom
     ORDER BY m.nom`;
 
-  return qatorlar.map((q) => ({
-    materialId: q.material_id,
-    nom: q.nom,
-    hisobTuri: q.hisob_turi,
-    sarflashBirligi: q.sarflash_birligi,
-    jamiKvM: Number(q.jami_kv_m ?? 0),
-    boshKvM: Number(q.bosh_kv_m ?? 0),
-    yoldaKvM: Number(q.yolda_kv_m ?? 0),
-    bandKvM: Number(q.band_kv_m ?? 0),
-    bolakSoni: q.bolak_soni,
-    miqdor: Number(q.miqdor ?? 0),
-    kamQoldiqChegaraM:
-      q.kam_qoldiq_chegara_m === null ? null : Number(q.kam_qoldiq_chegara_m),
-  }));
+  return qatorlar.map((q) => {
+    const kamChegara =
+      q.kam_qoldiq_chegara_m === null ? null : Number(q.kam_qoldiq_chegara_m);
+    const chegaraQoldiq = chegaraBirligidaQoldiq({
+      hisobTuri: q.hisob_turi,
+      kvM: Number(q.bosh_kv_m ?? 0),
+      miqdor: Number(q.bosh_miqdor ?? 0),
+      boyiYigindisiM: Number(q.bosh_boyi ?? 0),
+      standartEniM: q.standart_eni === null ? null : Number(q.standart_eni),
+    });
+    return {
+      materialId: q.material_id,
+      nom: q.nom,
+      hisobTuri: q.hisob_turi,
+      sarflashBirligi: q.sarflash_birligi,
+      guruhId: q.guruh_id,
+      guruhNomi: q.guruh_nomi,
+      jamiKvM: Number(q.jami_kv_m ?? 0),
+      boshKvM: Number(q.bosh_kv_m ?? 0),
+      yoldaKvM: Number(q.yolda_kv_m ?? 0),
+      bandKvM: Number(q.band_kv_m ?? 0),
+      bolakSoni: q.bolak_soni,
+      miqdor: Number(q.miqdor ?? 0),
+      kamQoldiqChegaraM: kamChegara,
+      chegaraQoldiq,
+      kamQoldiq: kamQoldiqmi(q.sarflash_birligi, chegaraQoldiq, kamChegara),
+      tugagan: chegaraQoldiq <= 0,
+    };
+  });
 }
 
 /**
@@ -1008,7 +1056,8 @@ export async function barchaFilialQoldigi(): Promise<readonly FilialQoldigi[]> {
     natija.push({
       filialId: f.id,
       filialNomi: f.nom,
-      materiallar: await filialQoldigi(f.id),
+      // «Barcha filiallar» — faqat qoldig'i borlar, avvalgidek
+      materiallar: (await filialQoldigi(f.id)).filter(omborda),
     });
   }
   return natija;
