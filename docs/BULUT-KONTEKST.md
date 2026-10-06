@@ -417,3 +417,18 @@ Bulutdagi sessiyada bu to'siq **yo'q** — u Anthropic tarmog'idan ishlaydi.
   ochiq bo'lishi kerak.
 - Bularsiz ham `npm test`, `typecheck`, `lint`, `build` **ishlayveradi** —
   ular bazasiz yuradi.
+
+## Lokal baza va mijozlar auditi — 2026-10-06
+
+- Egasining kompyuterida portativ PostgreSQL 16 bor (`C:\Users\tilav\pgsql16`,
+  `lokal-sayt.ps1`). Bulutda u ko'rinmaydi — bulutda baza testlari Render'ga
+  bog'liq qoladi.
+- Lokal sinov bazasi URUG'LI va TOZA bo'lishi shart: urug'siz testlar FK da
+  yiqiladi, ikkinchi yurishda P-07 va konstruktor testlari oldingi qoldiqqa
+  uriladi. Toza bazada 736/736.
+- Ishlab chiqarishga qo'llanmagan migratsiyalar: **0057 · 0059 · 0060 · 0061**.
+  0061 faqat qo'shadi (mijoz CRM) — tartib: 0057, 0059, deploy, 0060, 0061.
+- Mijoz qarzi buyurtmalarga FIFO taqsimlanadi — `lib/domain/qarz-taqsimot.ts`
+  (P-41). Qarz yoshi, muddati o'tgan, to'landi belgisi SHU funksiyadan;
+  SQL da taxminiy nusxa yozilmaydi.
+- Chegirma/ustama yo'nalishi ekranda tanlanadi, bazada ishorali (P-42).
