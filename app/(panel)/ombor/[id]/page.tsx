@@ -4,7 +4,8 @@ import { sahifaRuxsati } from '@/lib/kirish/joriy';
 import { ruxsatBormi } from '@/lib/ruxsat/tekshir';
 import { BekorTugmasi } from '../chiqim/bekor';
 import { TuzatishTugmasi } from './tuzatish-tugma';
-import { pulKorsat, som } from '@/lib/domain/pul';
+import Decimal from 'decimal.js';
+import { dollar, pulKorsat, som } from '@/lib/domain/pul';
 import { daraja, type Chegaralar } from '@/lib/domain/kesish';
 import { harakatNomi, miqdorMatni } from '@/lib/domain/ombor-harakat';
 import { kamQoldiqmi } from '@/lib/domain/birlik-tanlovi';
@@ -500,9 +501,7 @@ function NimaQilishKerak({
             izoh={
               ustama.sotuvNarx === null || ustama.ortachaTannarx === null
                 ? 'narx yoki tannarx yo\u2019q'
-                : `${pulKorsat(som(ustama.sotuvNarx))} ← ${pulKorsat(
-                    som(Number(ustama.ortachaTannarx).toFixed(2)),
-                  )}`
+                : `${pulKorsat(som(ustama.sotuvNarx))} ← ${pulKorsat(som(ustama.ortachaTannarx))}`
             }
           />
         )}
@@ -593,13 +592,21 @@ function TannarxVaYetkazuvchi({
 
   const birinchi = qatorlar[0];
   const oxirgi = qatorlar[qatorlar.length - 1];
+  /**
+   * ⚠️ Decimal bilan (§3). Valyutasi har xil bo'lsa foiz MA'NOSIZ —
+   *    12 $ dan 130 000 so'mga «o'sish» degan narsa yo'q.
+   */
   const ozgarish =
-    birinchi !== undefined && oxirgi !== undefined && Number(birinchi.tannarx) > 0
-      ? Math.round(
-          ((Number(oxirgi.tannarx) - Number(birinchi.tannarx)) /
-            Number(birinchi.tannarx)) *
-            100,
-        )
+    birinchi !== undefined &&
+    oxirgi !== undefined &&
+    birinchi.valyuta === oxirgi.valyuta &&
+    new Decimal(birinchi.tannarx).greaterThan(0)
+      ? new Decimal(oxirgi.tannarx)
+          .minus(birinchi.tannarx)
+          .div(birinchi.tannarx)
+          .times(100)
+          .round()
+          .toNumber()
       : null;
 
   return (
@@ -645,7 +652,9 @@ function TannarxVaYetkazuvchi({
                     <td className="px-4 py-2.5 font-mono text-xs">{q.kirimRaqam}</td>
                     <td className="px-4 py-2.5">{q.yetkazuvchi}</td>
                     <td className="raqam px-4 py-2.5">
-                      {pulKorsat(som(Number(q.tannarx).toFixed(2)))}
+                      {q.valyuta === 'USD'
+                        ? `${pulKorsat(dollar(new Decimal(q.tannarx).toFixed(2)))} $`
+                        : pulKorsat(som(new Decimal(q.tannarx).toFixed(2)))}
                     </td>
                   </tr>
                 ))}

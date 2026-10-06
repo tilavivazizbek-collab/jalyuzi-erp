@@ -15,6 +15,7 @@ import { pulKorsat, som } from '@/lib/domain/pul';
 import { kochirishJonatAmali } from './amal';
 import { BOSH_KOCHIRISH } from './holat';
 import type { TanlanadiganBolak } from './malumot';
+import Decimal from 'decimal.js';
 
 export function JonatishFormasi({
   kochirishId,
@@ -32,7 +33,12 @@ export function JonatishFormasi({
     () =>
       bolaklar
         .filter((b) => tanlangan.includes(b.id))
-        .reduce((y, b) => y + Number(b.tannarxSumma), 0),
+        /**
+         * ⚠️ Decimal (§3) — bu summa «qarz» katagiga yoziladi va SERVERGA
+         *    ketadi (filiallararo qarz). `number` bilan qo'shilsa kasr
+         *    xatosi qarzga tushardi.
+         */
+        .reduce((y, b) => y.plus(b.tannarxSumma), new Decimal(0)),
     [bolaklar, tanlangan],
   );
 

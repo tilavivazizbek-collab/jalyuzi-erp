@@ -81,7 +81,15 @@ interface UstamaQatori {
  * «hisoblanmadi» bo'lib chiqadi — jimgina dollarni so'm deb qabul
  * qilish narxni ming barobar kamaytirardi.
  */
-export async function ustamaHisoboti(filialId: number): Promise<EroziyaHisoboti> {
+export async function ustamaHisoboti(
+  filialId: number,
+  /**
+   * Faqat bitta material — material kartochkasi uchun (ombor auditi
+   * 2026-10-06). Kartochka endi O'Z hisobini yuritmaydi: oddiy AVG va
+   * valyutani hisobga olmaslik shu bilan yo'qoldi.
+   */
+  materialId: number | null = null,
+): Promise<EroziyaHisoboti> {
   const sql = ulanishOl();
   const kursMatn = await joriyKurs(sql);
 
@@ -109,6 +117,7 @@ export async function ustamaHisoboti(filialId: number): Promise<EroziyaHisoboti>
     WHERE b.filial_id = ${filialId} AND b.faol = true
       AND b.holat IN ('BOSH','BAND')
       AND b.tannarx_valyuta_snapshot = 'SOM'
+      ${materialId === null ? sql`` : sql`AND m.id = ${materialId}`}
     GROUP BY m.id
     ORDER BY m.nom`;
 

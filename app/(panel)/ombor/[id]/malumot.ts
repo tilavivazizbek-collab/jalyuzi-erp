@@ -17,6 +17,8 @@
  */
 
 import { ulanishOl } from '@/lib/db';
+import { nolmi, pulMatn } from '@/lib/domain/pul';
+import { ustamaHisoboti } from '../../hisobot/malumot';
 import {
   CHEGARA_OMBOR,
   ortachaTezlik,
@@ -217,6 +219,7 @@ export async function tannarxDinamikasi(
 // ─── 4 · Ustama — faqat egaga ─────────────────────────────────────────────
 
 export interface MaterialUstamasi {
+  /** SO'MDA — dollarli narx joriy kursda o'girilgan */
   readonly sotuvNarx: string | null;
   /** Omborda turgan bo'laklarning o'rtacha tannarxi */
   readonly ortachaTannarx: string | null;
@@ -227,33 +230,27 @@ export interface MaterialUstamasi {
 /**
  * ⚠️ TZ 11.10 — sotuvchiga TANNARX VA FOYDA KO'RSATILMAYDI.
  *    Chaqiruvchi ruxsatni tekshiradi; bu funksiya faqat hisoblaydi.
+ *
+ * ⚠️ 2026-10-06 — HISOBOT BILAN BITTA HISOB (`ustamaHisoboti`). Ilgari
+ *    bu yerda alohida SQL bor edi va ikki xato qilardi:
+ *      - sotuv narxi DOLLARDA bo'lsa ham so'mli tannarx bilan
+ *        solishtirardi (12 $ ↔ 120 000 so'm → −99%)
+ *      - oddiy AVG olardi — kichik kesma va katta rulon bir xil vaznda;
+ *        hisobot esa og'irlangan o'rtacha oladi, ikki ekran farq qilardi
+ *
+ *    Endi narx ham, tannarx ham SO'MDA (dollar — joriy kursda).
  */
 export async function materialUstamasi(
   materialId: number,
   filialId: number,
 ): Promise<MaterialUstamasi> {
-  const q = await ulanishOl()<
-    { sotuv_narx: string | null; ortacha: string | null }[]
-  >`
-    SELECT m.sotuv_narx::text,
-           (SELECT AVG(b.tannarx_birlik_snapshot)
-              FROM bolak b
-             WHERE b.material_id = m.id AND b.filial_id = ${filialId}
-               AND b.faol = true AND b.holat IN ('BOSH','BAND')
-               AND b.tannarx_valyuta_snapshot = 'SOM')::text AS ortacha
-    FROM material m
-    WHERE m.id = ${materialId}`;
-
-  const r = q[0];
-  const narx = r?.sotuv_narx ?? null;
-  const tannarx = r?.ortacha ?? null;
-
-  const foiz =
-    narx !== null && tannarx !== null && Number(tannarx) > 0
-      ? Math.round(((Number(narx) - Number(tannarx)) / Number(tannarx)) * 100)
-      : null;
-
-  return { sotuvNarx: narx, ortachaTannarx: tannarx, ustamaFoiz: foiz };
+  const q = (await ustamaHisoboti(filialId, materialId)).qatorlar[0];
+  if (q === undefined) return { sotuvNarx: null, ortachaTannarx: null, ustamaFoiz: null };
+  return {
+    sotuvNarx: nolmi(q.sotuvNarx) ? null : pulMatn(q.sotuvNarx),
+    ortachaTannarx: nolmi(q.tannarx) ? null : pulMatn(q.tannarx),
+    ustamaFoiz: q.hisoblanmadi ? null : q.ustamaFoiz,
+  };
 }
 
 // ─── 5 · Yetkazib beruvchilar ─────────────────────────────────────────────
