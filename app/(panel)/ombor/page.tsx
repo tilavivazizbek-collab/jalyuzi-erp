@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { chegaraBirligi } from '@/lib/domain/birlik-tanlovi';
 import { nolmi, nolSom, pulKorsat, qosh, som, teng } from '@/lib/domain/pul';
 import { sahifaRuxsati } from '@/lib/kirish/joriy';
-import { ruxsatBormi, yigindiQamrov } from '@/lib/ruxsat/tekshir';
+import { ruxsatBormi, tannarxniKoradimi, yigindiQamrov } from '@/lib/ruxsat/tekshir';
 import { SARFLASH_BIRLIGI_NOMI, type SarflashBirligi } from '@/lib/sxema/material';
 import {
   barchaFilialQoldigi,
@@ -80,7 +80,7 @@ export default async function OmborQoldigi({
    *    bilan bir xil qoida). Sotuvchi bu sahifani ko'radi (TZ 3.3 — qoldiq),
    *    lekin tannarxni ko'rmasligi kerak (11.10).
    */
-  const pulniKoradi = ruxsatBormi(f, 'hisobot.ombor.kor');
+  const pulniKoradi = tannarxniKoradimi(f);
 
   /**
    * TZ 20.6.2 — «Bosh filial admini barcha filiallarni bir jadvalda

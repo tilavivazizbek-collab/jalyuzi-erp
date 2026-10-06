@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { sahifaRuxsati } from '@/lib/kirish/joriy';
-import { ruxsatBormi } from '@/lib/ruxsat/tekshir';
+import { ruxsatBormi, tannarxniKoradimi } from '@/lib/ruxsat/tekshir';
 import { pulKorsat, som } from '@/lib/domain/pul';
 import { filialNomi, kirimHujjatlari } from '../malumot';
 
@@ -8,6 +8,8 @@ export const dynamic = 'force-dynamic';
 
 export default async function KirimRoyxati() {
   const f = await sahifaRuxsati('ombor.qoldiq.kor');
+  /** TZ 11.10 — sotuvchi qoldiqni ko'radi, tannarxni EMAS (ombor auditi 2026-10-06) */
+  const pulniKoradi = tannarxniKoradimi(f);
   const kirimQilaOladi = ruxsatBormi(f, 'ombor.kirim.yarat');
 
   const [hujjatlar, filial] = await Promise.all([
@@ -52,7 +54,9 @@ export default async function KirimRoyxati() {
                 <th className="px-4 py-2.5 font-medium">Sana</th>
                 <th className="px-4 py-2.5 font-medium">Yetkazib beruvchi</th>
                 <th className="px-4 py-2.5 text-right font-medium">Qator</th>
-                <th className="px-4 py-2.5 text-right font-medium">Summa</th>
+                {pulniKoradi && (
+                  <th className="px-4 py-2.5 text-right font-medium">Summa</th>
+                )}
                 <th className="px-4 py-2.5 font-medium">Holat</th>
               </tr>
             </thead>
@@ -72,9 +76,11 @@ export default async function KirimRoyxati() {
                     <td className="px-4 py-2.5 text-matn-ikki">{h.sana}</td>
                     <td className="px-4 py-2.5">{h.yetkazibNomi}</td>
                     <td className="raqam px-4 py-2.5">{h.qatorSoni}</td>
+                    {pulniKoradi && (
                     <td className={`raqam px-4 py-2.5 ${storno ? 'line-through' : ''}`}>
                       {h.valyuta === 'SOM' ? pulKorsat(som(h.jamiSumma)) : `${h.jamiSumma} $`}
                     </td>
+                    )}
                     <td className="px-4 py-2.5">
                       {storno ? (
                         <span className="text-belgi-qizil">storno</span>

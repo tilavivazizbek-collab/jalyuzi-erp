@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Tanlagich } from '../../tanlagich';
 import { sahifaRuxsati } from '@/lib/kirish/joriy';
+import { tannarxniKoradimi } from '@/lib/ruxsat/tekshir';
 import { pulKorsat, som } from '@/lib/domain/pul';
 import {
   HARAKAT_TURLARI,
@@ -61,6 +62,8 @@ export default async function OmborTarixi({
   }>;
 }) {
   const f = await sahifaRuxsati('ombor.qoldiq.kor');
+  /** TZ 11.10 — sotuvchi qoldiqni ko'radi, tannarxni EMAS (ombor auditi 2026-10-06) */
+  const pulniKoradi = tannarxniKoradimi(f);
   const s = await searchParams;
 
   const materialId = sonYoki(s.material, 0);
@@ -208,7 +211,9 @@ export default async function OmborTarixi({
                   <th className="px-4 py-2.5 font-medium">Mahsulot</th>
                   <th className="px-4 py-2.5 font-medium">Bo&apos;lak</th>
                   <th className="px-4 py-2.5 text-right font-medium">Miqdor</th>
-                  <th className="px-4 py-2.5 text-right font-medium">Tannarx</th>
+                  {pulniKoradi && (
+                    <th className="px-4 py-2.5 text-right font-medium">Tannarx</th>
+                  )}
                   <th className="px-4 py-2.5 font-medium">Kim</th>
                   <th className="px-4 py-2.5 font-medium">Izoh</th>
                 </tr>
@@ -239,9 +244,11 @@ export default async function OmborTarixi({
                     >
                       {miqdorMatni(h)}
                     </td>
+                    {pulniKoradi && (
                     <td className="raqam px-4 py-2.5 text-right text-matn-ikki">
                       {pulKorsat(som(h.tannarxSumma))}
                     </td>
+                    )}
                     <td className="px-4 py-2.5 text-matn-ikki">{h.xodimIsmi}</td>
                     <td className="px-4 py-2.5 text-[13px] text-matn-kuchsiz">{h.izoh ?? '—'}</td>
                   </tr>

@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { sahifaRuxsati } from '@/lib/kirish/joriy';
-import { ruxsatBormi } from '@/lib/ruxsat/tekshir';
+import { ruxsatBormi, tannarxniKoradimi } from '@/lib/ruxsat/tekshir';
 import { pulKorsat, som } from '@/lib/domain/pul';
 import { kirimTafsiloti } from '../../malumot';
 import { StornoFormasi } from '../storno-forma';
@@ -11,6 +11,8 @@ export const dynamic = 'force-dynamic';
 
 export default async function KirimTafsili({ params }: { params: Promise<{ id: string }> }) {
   const f = await sahifaRuxsati('ombor.qoldiq.kor');
+  /** TZ 11.10 — sotuvchi qoldiqni ko'radi, tannarxni EMAS (ombor auditi 2026-10-06) */
+  const pulniKoradi = tannarxniKoradimi(f);
   const stornoQilaOladi = ruxsatBormi(f, 'ombor.storno');
 
   const { id } = await params;
@@ -50,9 +52,13 @@ export default async function KirimTafsili({ params }: { params: Promise<{ id: s
               <tr>
                 <th className="px-4 py-2.5 font-medium">Mahsulot</th>
                 <th className="px-4 py-2.5 text-right font-medium">Miqdor</th>
-                <th className="px-4 py-2.5 text-right font-medium">Narx</th>
-                <th className="px-4 py-2.5 text-right font-medium">Transport ulushi</th>
-                <th className="px-4 py-2.5 text-right font-medium">Tannarx</th>
+                {pulniKoradi && (
+                  <>
+                    <th className="px-4 py-2.5 text-right font-medium">Narx</th>
+                    <th className="px-4 py-2.5 text-right font-medium">Transport ulushi</th>
+                    <th className="px-4 py-2.5 text-right font-medium">Tannarx</th>
+                  </>
+                )}
                 <th className="px-4 py-2.5 text-right font-medium">Brak</th>
               </tr>
             </thead>
@@ -61,9 +67,13 @@ export default async function KirimTafsili({ params }: { params: Promise<{ id: s
                 <tr key={q.id}>
                   <td className="px-4 py-2.5">{q.materialNomi}</td>
                   <td className="raqam px-4 py-2.5">{q.miqdorKirim}</td>
-                  <td className="raqam px-4 py-2.5">{pul(q.narxBirlik)}</td>
-                  <td className="raqam px-4 py-2.5">{pul(q.transportUlush)}</td>
-                  <td className="raqam px-4 py-2.5 font-medium">{pul(q.tannarxBirlik)}</td>
+                  {pulniKoradi && (
+                    <>
+                      <td className="raqam px-4 py-2.5">{pul(q.narxBirlik)}</td>
+                      <td className="raqam px-4 py-2.5">{pul(q.transportUlush)}</td>
+                      <td className="raqam px-4 py-2.5 font-medium">{pul(q.tannarxBirlik)}</td>
+                    </>
+                  )}
                   <td className="raqam px-4 py-2.5">
                     {q.defektMiqdor === 0 ? '—' : q.defektMiqdor}
                   </td>
@@ -73,15 +83,19 @@ export default async function KirimTafsili({ params }: { params: Promise<{ id: s
           </table>
         </div>
         <p className="mt-2 text-xs text-matn-kuchsiz">
-          Tannarx = narx + transport ulushi; brak SON bo&apos;yicha bo&apos;linmaydi (7.9 · P-17).
+          {pulniKoradi && 'Tannarx = narx + transport ulushi; '} brak SON bo&apos;yicha bo&apos;linmaydi (7.9 · P-17).
         </p>
       </section>
 
       <dl className="grid max-w-md grid-cols-2 gap-x-4 gap-y-2 rounded-karta border border-chegara bg-fon px-4 py-3 text-sm">
-        <dt className="text-matn-kuchsiz">Transport</dt>
-        <dd className="raqam">{pul(h.transportSumma)}</dd>
-        <dt className="text-matn-kuchsiz">Bojxona</dt>
-        <dd className="raqam">{pul(h.bojxonaSumma)}</dd>
+        {pulniKoradi && (
+          <>
+            <dt className="text-matn-kuchsiz">Transport</dt>
+            <dd className="raqam">{pul(h.transportSumma)}</dd>
+            <dt className="text-matn-kuchsiz">Bojxona</dt>
+            <dd className="raqam">{pul(h.bojxonaSumma)}</dd>
+          </>
+        )}
         <dt className="text-matn-kuchsiz">Omborda turgan bo&apos;lak</dt>
         <dd className="raqam">{h.omborda}</dd>
         <dt className="text-matn-kuchsiz">Ishlatilgan bo&apos;lak</dt>

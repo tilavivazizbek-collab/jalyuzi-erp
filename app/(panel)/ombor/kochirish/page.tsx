@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { sahifaRuxsati } from '@/lib/kirish/joriy';
+import { tannarxniKoradimi } from '@/lib/ruxsat/tekshir';
 import { pulKorsat, som } from '@/lib/domain/pul';
 import { kochirishlar } from './malumot';
 
@@ -21,6 +22,8 @@ const HOLAT_USLUBI: Record<string, string> = {
 
 export default async function KochirishRoyxati() {
   const f = await sahifaRuxsati('ombor.qoldiq.kor');
+  /** TZ 11.10 — sotuvchi qoldiqni ko'radi, tannarxni EMAS (ombor auditi 2026-10-06) */
+  const pulniKoradi = tannarxniKoradimi(f);
   const royxat = await kochirishlar(f.filialId);
 
   return (
@@ -59,7 +62,7 @@ export default async function KochirishRoyxati() {
                 <th className="px-4 py-2.5 font-medium">Kimdan</th>
                 <th className="px-4 py-2.5 font-medium">Kimga</th>
                 <th className="px-4 py-2.5 text-right font-medium">Bo&apos;lak</th>
-                <th className="px-4 py-2.5 text-right font-medium">Qarz</th>
+                {pulniKoradi && <th className="px-4 py-2.5 text-right font-medium">Qarz</th>}
                 <th className="px-4 py-2.5 font-medium">Holat</th>
               </tr>
             </thead>
@@ -80,6 +83,7 @@ export default async function KochirishRoyxati() {
                   <td className="px-4 py-2.5">{k.kimdanNom}</td>
                   <td className="px-4 py-2.5">{k.kimgaNom}</td>
                   <td className="raqam px-4 py-2.5 text-right">{k.bolakSoni}</td>
+                  {pulniKoradi && (
                   <td className="raqam px-4 py-2.5 text-right">
                     {k.qarzSumma === null ? '—' : pulKorsat(som(k.qarzSumma))}
                     {k.qarzQolda && (
@@ -91,6 +95,7 @@ export default async function KochirishRoyxati() {
                       </span>
                     )}
                   </td>
+                  )}
                   <td className="px-4 py-2.5">
                     <span
                       className={`rounded-full px-2 py-0.5 text-xs ${HOLAT_USLUBI[k.holat] ?? 'bg-fon text-matn-ikki'}`}

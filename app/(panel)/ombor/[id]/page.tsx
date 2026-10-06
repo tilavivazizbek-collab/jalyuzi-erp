@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { sahifaRuxsati } from '@/lib/kirish/joriy';
-import { ruxsatBormi } from '@/lib/ruxsat/tekshir';
+import { ruxsatBormi, tannarxniKoradimi } from '@/lib/ruxsat/tekshir';
 import { BekorTugmasi } from '../chiqim/bekor';
 import { TuzatishTugmasi } from './tuzatish-tugma';
 import Decimal from 'decimal.js';
@@ -83,7 +83,7 @@ export default async function MaterialKartochkasi({ params }: { params: Promise<
    *    2026-09-05: shu paytgacha kartochka HAR BO'LAKNING tannarxini
    *    va harakatlar summasini hammaga ko'rsatib turardi.
    */
-  const pulniKoradi = ruxsatBormi(f, 'hisobot.ombor.kor');
+  const pulniKoradi = tannarxniKoradimi(f);
   const kirimQilaOladi = ruxsatBormi(f, 'ombor.kirim.yarat');
 
   const { id } = await params;
@@ -266,7 +266,7 @@ export default async function MaterialKartochkasi({ params }: { params: Promise<
       </section>
 
       {/* ── Qisqa xulosa (7.11) ── */}
-      <Xulosa xulosa={xulosa} birlik={sarlavha.sarflashBirligi} />
+      <Xulosa xulosa={xulosa} birlik={sarlavha.sarflashBirligi} pulniKoradi={pulniKoradi} />
 
       {/* ── Tannarx dinamikasi va yetkazib beruvchilar ── */}
       {pulniKoradi && (
@@ -294,7 +294,9 @@ export default async function MaterialKartochkasi({ params }: { params: Promise<
                   <th className="px-4 py-2.5 font-medium">Turi</th>
                   <th className="px-4 py-2.5 font-medium">Bo&apos;lak</th>
                   <th className="px-4 py-2.5 text-right font-medium">Miqdor</th>
-                  <th className="px-4 py-2.5 text-right font-medium">Summa</th>
+                  {pulniKoradi && (
+                    <th className="px-4 py-2.5 text-right font-medium">Summa</th>
+                  )}
                   <th className="px-4 py-2.5 font-medium">Kim</th>
                   {chiqaraOladi && <th className="px-4 py-2.5 font-medium" />}
                 </tr>
@@ -312,7 +314,9 @@ export default async function MaterialKartochkasi({ params }: { params: Promise<
                     <td className="px-4 py-2.5">{harakatNomi(h.turi)}</td>
                     <td className="px-4 py-2.5 font-mono text-xs">{h.bolakKod}</td>
                     <td className="raqam px-4 py-2.5">{miqdorMatni(h)}</td>
-                    <td className="raqam px-4 py-2.5">{pulKorsat(som(h.tannarxSumma))}</td>
+                    {pulniKoradi && (
+                      <td className="raqam px-4 py-2.5">{pulKorsat(som(h.tannarxSumma))}</td>
+                    )}
                     <td className="px-4 py-2.5 text-matn-kuchsiz">{h.xodimIsmi}</td>
                     {chiqaraOladi && (
                       <td className="px-4 py-2.5 text-right align-top">
@@ -346,9 +350,16 @@ export default async function MaterialKartochkasi({ params }: { params: Promise<
 function Xulosa({
   xulosa,
   birlik,
+  pulniKoradi,
 }: {
   xulosa: MaterialXulosasi;
   birlik: string;
+  /**
+   * TZ 11.10 — kirim, sarf va zarar summasi TANNARXDA. Ilgari bu blok
+   * sotuvchiga ham ko'rinardi (ombor auditi 2026-10-06). Miqdorlar
+   * hammaga ko'rinadi, pul — faqat ruxsati borga.
+   */
+  pulniKoradi: boolean;
 }) {
   /** ⚠️ Chiziqli material METRDA — 2026-09-21 da 'sm' dan tuzatildi */
   const b = birlik === 'KV_M' ? 'kv.m' : birlik === 'M' ? 'm' : 'dona';
@@ -364,9 +375,11 @@ function Xulosa({
         <div className="raqam mt-0.5 text-[18px] font-semibold">
           {raqam(xulosa.kirimMiqdor)} <span className="text-[13px]">{b}</span>
         </div>
-        <div className="raqam mt-0.5 text-[12px] text-matn-kuchsiz">
-          {pulKorsat(som(xulosa.kirimSumma))}
-        </div>
+        {pulniKoradi && (
+          <div className="raqam mt-0.5 text-[12px] text-matn-kuchsiz">
+            {pulKorsat(som(xulosa.kirimSumma))}
+          </div>
+        )}
       </div>
 
       <div className="rounded-karta border border-chegara bg-sirt px-4 py-3">
@@ -379,7 +392,9 @@ function Xulosa({
         {/* «Qayerga ketdi» — eng ko'p olgan turlar */}
         <div className="mt-0.5 text-[12px] text-matn-kuchsiz">
           {xulosa.sarfUlushlari.length === 0
-            ? pulKorsat(som(xulosa.sarfSumma))
+            ? pulniKoradi
+              ? pulKorsat(som(xulosa.sarfSumma))
+              : null
             : xulosa.sarfUlushlari
                 .map((u) => `${String(u.foiz)}% — ${u.turNomi}`)
                 .join(' · ')}
@@ -397,11 +412,14 @@ function Xulosa({
         >
           {raqam(xulosa.yoqotishMiqdor)} <span className="text-[13px]">{b}</span>
         </div>
-        <div className="raqam mt-0.5 text-[12px] text-matn-kuchsiz">
-          {pulKorsat(som(xulosa.yoqotishSumma))} zarar
-        </div>
+        {pulniKoradi && (
+          <div className="raqam mt-0.5 text-[12px] text-matn-kuchsiz">
+            {pulKorsat(som(xulosa.yoqotishSumma))} zarar
+          </div>
+        )}
       </div>
 
+      {pulniKoradi && (
       <div className="rounded-karta border border-chegara bg-sirt px-4 py-3">
         <div className="text-[12px] tracking-[0.03em] text-matn-kuchsiz uppercase">
           Qoldiq qiymati
@@ -413,6 +431,7 @@ function Xulosa({
           har bo&apos;lak o&apos;z tannarxida (2.3)
         </div>
       </div>
+      )}
     </section>
   );
 }
@@ -698,8 +717,8 @@ function TannarxVaYetkazuvchi({
                     </td>
                     <td className="raqam px-4 py-2.5 whitespace-nowrap">
                       {y.valyuta === 'USD'
-                        ? `${y.oxirgiNarx} $`
-                        : pulKorsat(som(Number(y.oxirgiNarx).toFixed(2)))}
+                        ? `${pulKorsat(dollar(new Decimal(y.oxirgiNarx).toFixed(2)))} $`
+                        : pulKorsat(som(new Decimal(y.oxirgiNarx).toFixed(2)))}
                     </td>
                   </tr>
                 ))}

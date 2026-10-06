@@ -160,6 +160,19 @@ export function ruxsatBormi(f: Foydalanuvchi, kod: RuxsatKod, nishon: Nishon = {
 }
 
 /**
+ * TZ 11.10 — ombordagi PULNI (tannarx, xarid narxi, filiallararo qarz)
+ * kim ko'radi. Qoida BITTA JOYDA (ombor auditi 2026-10-06).
+ *
+ * ⚠️ NEGA KERAK: sotuvchida `ombor.qoldiq.kor` bor (sotuvda qoldiq
+ *    ko'rinsin, TZ 3.3) va shu ruxsat bilan u ombor tarixida tannarxni,
+ *    kirimda xarid narxini, ko'chirishda qarz summasini ko'rardi. Har
+ *    sahifa o'zicha tekshirgani uchun ikkitasi tekshirar, to'rttasi yo'q.
+ */
+export function tannarxniKoradimi(f: Foydalanuvchi): boolean {
+  return ruxsatBormi(f, 'hisobot.ombor.kor');
+}
+
+/**
  * TZ 14.6 uchinchi qattiq qoidasi: admin o'zining «sozlamalarni o'zgartirish»
  * huquqini olib qo'ya olmaydi.
  *

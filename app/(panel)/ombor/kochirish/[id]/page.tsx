@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { sahifaRuxsati } from '@/lib/kirish/joriy';
-import { ruxsatBormi } from '@/lib/ruxsat/tekshir';
+import { ruxsatBormi, tannarxniKoradimi } from '@/lib/ruxsat/tekshir';
 import { pulKorsat, som } from '@/lib/domain/pul';
 import { kochirishOl, tanlanadiganBolaklar } from '../malumot';
 import { JonatishFormasi } from '../jonat-forma';
@@ -19,6 +19,8 @@ const HOLAT_NOMI: Record<string, string> = {
 export default async function KochirishSahifasi({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const f = await sahifaRuxsati('ombor.qoldiq.kor');
+  /** TZ 11.10 — sotuvchi qoldiqni ko'radi, tannarxni EMAS (ombor auditi 2026-10-06) */
+  const pulniKoradi = tannarxniKoradimi(f);
 
   const kochirishId = Number(id);
   if (!Number.isInteger(kochirishId) || kochirishId <= 0) notFound();
@@ -59,6 +61,7 @@ export default async function KochirishSahifasi({ params }: { params: Promise<{ 
           <dt className="text-xs uppercase tracking-wide text-matn-kuchsiz">Bo&apos;lak</dt>
           <dd className="raqam mt-1 text-lg">{h.qatorlar.length}</dd>
         </div>
+        {pulniKoradi && (
         <div className="rounded-karta border border-chegara bg-sirt px-4 py-3">
           <dt className="text-xs uppercase tracking-wide text-matn-kuchsiz">Qarz summasi</dt>
           <dd className="raqam mt-1 text-lg">
@@ -70,6 +73,7 @@ export default async function KochirishSahifasi({ params }: { params: Promise<{ 
             </p>
           )}
         </div>
+        )}
         <div className="rounded-karta border border-chegara bg-sirt px-4 py-3">
           <dt className="text-xs uppercase tracking-wide text-matn-kuchsiz">Izoh</dt>
           <dd className="mt-1 text-sm">{h.izoh ?? '—'}</dd>
@@ -91,7 +95,7 @@ export default async function KochirishSahifasi({ params }: { params: Promise<{ 
                 <th className="px-4 py-2.5 font-medium">Mahsulot</th>
                 <th className="px-4 py-2.5 font-medium">O&apos;lcham</th>
                 <th className="px-4 py-2.5 font-medium">Qabulda</th>
-                <th className="px-4 py-2.5 text-right font-medium">Tannarx</th>
+                {pulniKoradi && <th className="px-4 py-2.5 text-right font-medium">Tannarx</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-chegara [&>tr:nth-child(even)]:bg-fon/50">
@@ -121,7 +125,9 @@ export default async function KochirishSahifasi({ params }: { params: Promise<{ 
                       <div className="text-xs text-matn-kuchsiz">{q.olchovIzoh}</div>
                     )}
                   </td>
-                  <td className="raqam px-4 py-2.5 text-right">{pulKorsat(som(q.tannarxSumma))}</td>
+                  {pulniKoradi && (
+                    <td className="raqam px-4 py-2.5 text-right">{pulKorsat(som(q.tannarxSumma))}</td>
+                  )}
                 </tr>
               ))}
             </tbody>
