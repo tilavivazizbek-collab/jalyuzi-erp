@@ -32,6 +32,7 @@ import { IshniBoshlashTugmasi, TugatdimTugmasi, type UstaTanlovi } from '../ish'
 import { TahrirTugmasi } from '../tahrir';
 import { StornoTugmasi } from '../storno';
 import { HolatTuzatishTugmasi } from '../holat-tuzat';
+import { filialNomi } from '../../ombor/malumot';
 
 export const dynamic = 'force-dynamic';
 
@@ -113,6 +114,10 @@ export default async function BuyurtmaKartochkasi({ params }: { params: Promise<
   );
 
   const filiallararo = b.sotganFilialId !== b.tikuvchiFilialId;
+  /** Nom faqat xabar ko'rinadigan holatda so'raladi — oddiy buyurtmada ortiqcha so'rov yo'q */
+  const [sotganNomi, tikuvchiNomi] = filiallararo
+    ? await Promise.all([filialNomi(b.sotganFilialId), filialNomi(b.tikuvchiFilialId)])
+    : ['', ''];
 
   return (
     <div className="flex flex-col gap-6">
@@ -276,8 +281,8 @@ export default async function BuyurtmaKartochkasi({ params }: { params: Promise<
 
       {filiallararo && (
         <p className="rounded-karta bg-brend-fon px-4 py-3 text-sm text-brend ">
-          Buyurtma <b>#{b.sotganFilialId}</b> filialda sotilgan, <b>#{b.tikuvchiFilialId}</b>{' '}
-          filialda tikiladi. Material tikuvchi filial omborida band qilinadi (20.4.2).
+          Buyurtma <b>{sotganNomi}</b> filialida sotilgan, <b>{tikuvchiNomi}</b>{' '}
+          filialida tikiladi. Material tikuvchi filial omborida band qilinadi (20.4.2).
         </p>
       )}
 

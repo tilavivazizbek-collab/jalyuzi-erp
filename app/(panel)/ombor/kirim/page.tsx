@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { sahifaRuxsati } from '@/lib/kirish/joriy';
 import { ruxsatBormi } from '@/lib/ruxsat/tekshir';
 import { pulKorsat, som } from '@/lib/domain/pul';
-import { kirimHujjatlari } from '../malumot';
+import { filialNomi, kirimHujjatlari } from '../malumot';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,7 +10,10 @@ export default async function KirimRoyxati() {
   const f = await sahifaRuxsati('ombor.qoldiq.kor');
   const kirimQilaOladi = ruxsatBormi(f, 'ombor.kirim.yarat');
 
-  const hujjatlar = await kirimHujjatlari(f.filialId);
+  const [hujjatlar, filial] = await Promise.all([
+    kirimHujjatlari(f.filialId),
+    filialNomi(f.filialId),
+  ]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -23,7 +26,7 @@ export default async function KirimRoyxati() {
             Kirim hujjatlari
           </h1>
           <p className="mt-1 text-sm text-matn-kuchsiz">
-            Filial #{f.filialId} · oxirgi {hujjatlar.length} ta
+            {filial} · oxirgi {hujjatlar.length} ta
           </p>
         </div>
         {kirimQilaOladi && (

@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { sahifaRuxsati } from '@/lib/kirish/joriy';
-import { omborMateriallari } from '../../malumot';
+import { filialNomi, omborMateriallari } from '../../malumot';
 import { VaraqaOchFormasi } from './forma';
 import { toshkentKuni } from '@/lib/domain/sana';
 
@@ -8,7 +8,10 @@ export const dynamic = 'force-dynamic';
 
 export default async function YangiInventarizatsiya() {
   const f = await sahifaRuxsati('ombor.inventarizatsiya');
-  const materiallar = await omborMateriallari(f.filialId);
+  const [materiallar, filial] = await Promise.all([
+    omborMateriallari(f.filialId),
+    filialNomi(f.filialId),
+  ]);
 
   const bugun = toshkentKuni();
 
@@ -22,7 +25,7 @@ export default async function YangiInventarizatsiya() {
           Yangi sanash
         </h1>
         <p className="mt-1 text-sm text-matn-kuchsiz">
-          Filial #{f.filialId} · admin tasdig&apos;i kutilmaydi (15.1)
+          {filial} · admin tasdig&apos;i kutilmaydi (15.1)
         </p>
       </div>
 

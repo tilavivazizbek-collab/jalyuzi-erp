@@ -23,6 +23,7 @@ import {
   type TannarxNuqtasi,
 } from './malumot';
 import {
+  filialNomi,
   materialBolaklari,
   materialHarakatlari,
   materialSarlavhasi,
@@ -109,11 +110,12 @@ export default async function MaterialKartochkasi({ params }: { params: Promise<
       yoldaMiqdori(materialId, f.filialId),
     ]);
 
-  const [bolaklar, harakatlar, sanoq, xulosa] = await Promise.all([
+  const [bolaklar, harakatlar, sanoq, xulosa, filial] = await Promise.all([
     materialBolaklari(materialId, f.filialId),
     materialHarakatlari(materialId, f.filialId),
     oxirgiSanoq(materialId, f.filialId),
     materialXulosasi(materialId, f.filialId),
+    filialNomi(f.filialId),
   ]);
 
   const olchamli = sarlavha.hisobTuri === 'RULON';
@@ -128,7 +130,7 @@ export default async function MaterialKartochkasi({ params }: { params: Promise<
           {sarlavha.nom}
         </h1>
         <p className="mt-1 text-sm text-matn-kuchsiz">
-          {bolaklar.length} ta bo&apos;lak · filial #{f.filialId}
+          {bolaklar.length} ta bo&apos;lak · {filial}
           {/* 20.7.4 — jo'natilgan, hali qabul qilinmagan */}
           {yolda.bolakSoni > 0 &&
             ` · yo'lda ${son(yolda.miqdor)} (${String(yolda.bolakSoni)} bo'lak)`}
