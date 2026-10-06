@@ -25,6 +25,7 @@ import { kunYopiqmi } from './kun-yopish';
 import { otishniTekshir, type PozitsiyaHolati } from '@/lib/domain/buyurtma';
 import { tayyorMahsulotQarziniQaytarTx } from './filial-harakat';
 import { BiznesXato } from '@/lib/xato';
+import { toshkentKuni } from '@/lib/domain/sana';
 
 /** TZ 8.10 — ortiqcha pul qayerga ketadi. */
 export type OrtiqchaYol = 'NAQD' | 'AVANS';
@@ -142,7 +143,7 @@ export async function pozitsiyaniQaytar(
         throw new BiznesXato('KASSA_TOPILMADI', 'naqd qaytarish uchun kassa kerak');
       }
 
-      const bugun = new Date().toISOString().slice(0, 10);
+      const bugun = toshkentKuni();
       if (await kunYopiqmi(tx, kirim.kassaId, bugun)) {
         throw new BiznesXato('KUN_YOPILGAN', bugun);
       }

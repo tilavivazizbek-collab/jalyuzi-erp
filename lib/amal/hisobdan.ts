@@ -21,6 +21,7 @@ import { xarajatYozTx } from './kassa';
 import { bolakQiymati } from '@/lib/domain/tannarx';
 import { BiznesXato } from '@/lib/xato';
 import { SABAB_NOMI, type ChiqarishSababi } from '@/lib/sxema/chiqim';
+import { toshkentKuni } from '@/lib/domain/sana';
 
 /**
  * TZ 7.10 — sabablar ro'yxati `lib/sxema/chiqim.ts` da (§2.2: bir joyda).
@@ -174,7 +175,7 @@ export async function hisobdanChiqar(
     await xarajatYozTx(
       tx,
       {
-        sana: new Date().toISOString().slice(0, 10),
+        sana: toshkentKuni(),
         filialId: bolak.filial_id,
         modda: chiqarishModdasi(kirim.sabab),
         // Xarajat MUSBAT son bo'lib yoziladi
@@ -314,7 +315,7 @@ export async function chiqarishniBekorQil(
       await xarajatYozTx(
         tx,
         {
-          sana: new Date().toISOString().slice(0, 10),
+          sana: toshkentKuni(),
           filialId: harakat.filial_id,
           modda: x.modda as XarajatModdasi,
           summa: new Decimal(x.summa).negated().toFixed(2),

@@ -24,6 +24,7 @@ import {
   type SanashQatori,
 } from '@/lib/domain/inventarizatsiya';
 import { BiznesXato } from '@/lib/xato';
+import { toshkentKuni } from '@/lib/domain/sana';
 
 export interface VaraqaQatori {
   readonly qatorId: number;
@@ -328,7 +329,7 @@ export async function varaqaYakunla(
       await xarajatYozTx(
         tx,
         {
-          sana: new Date().toISOString().slice(0, 10),
+          sana: toshkentKuni(),
           filialId: hujjat.filial_id,
           modda: 'INVENTARIZATSIYA_FARQI',
           summa: pulMatn(manfiyPul(yakun.jamiFarq)),

@@ -23,6 +23,7 @@
  */
 
 import postgres from 'postgres';
+import { VAQT_ZONASI } from '@/lib/domain/sana';
 
 /** PostgreSQL `int8` tur raqami. */
 const INT8_OID = 20;
@@ -66,5 +67,18 @@ export function ulanishYarat(url: string, sozlama: UlanishSozlamasi = {}): Ulani
     idle_timeout: sozlama.idleTimeout ?? 20,
     connect_timeout: sozlama.connectTimeout ?? 30,
     types: { bigint: int8Number },
+    /**
+     * ⚠️ SESSIYA TOSHKENT VAQTIDA — QISM 1 §19 (2026-10-06).
+     *
+     *    Dastur jarayoni `TZ=Asia/Tashkent` bilan ishlaydi, lekin bu
+     *    PostgreSQL ga O'TMAYDI. Render bazasi UTC da: `current_date`,
+     *    `::date`, `date_trunc('month', …)` UTC bo'yicha hisoblanardi va
+     *    Toshkentda 00:00–05:00 orasidagi amal KECHAGI kunga tushardi
+     *    (ish haqi yozuvi, kun yopish, oylik hisobot).
+     *
+     *    Ulanish parametri sifatida beriladi — har so'rovda `SET`
+     *    yuborilmaydi va hovuzdagi har yangi ulanish shu bilan ochiladi.
+     */
+    connection: { TimeZone: VAQT_ZONASI },
   });
 }

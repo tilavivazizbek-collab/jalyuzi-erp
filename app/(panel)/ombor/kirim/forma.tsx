@@ -27,6 +27,7 @@ import {
 } from '../../yetkazib/forma';
 import { yetkazibModalYaratAmali } from '../../yetkazib/amal';
 import { BIRLIK_TAVSIFI } from '@/lib/domain/birlik-tanlovi';
+import { toshkentKuni } from '@/lib/domain/sana';
 
 export interface MaterialTanlovi {
   readonly id: number;
@@ -389,7 +390,7 @@ export function KirimFormasi({
               name="sana"
               type="date"
               required
-              defaultValue={new Date().toISOString().slice(0, 10)}
+              defaultValue={toshkentKuni()}
               className={kirishUslubi(false)}
             />
           </Maydon>

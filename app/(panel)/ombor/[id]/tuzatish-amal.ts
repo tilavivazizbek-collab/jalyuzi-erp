@@ -29,6 +29,7 @@ import { ulanishOl } from '@/lib/db';
 import { varaqaOch } from '@/lib/amal/inventarizatsiya';
 import { ruxsatTalab } from '@/lib/kirish/joriy';
 import { biznesXatosimi } from '@/lib/xato';
+import { toshkentKuni } from '@/lib/domain/sana';
 
 export interface TuzatishHolati {
   readonly xato: string | null;
@@ -56,7 +57,7 @@ export async function qoldiqTuzatishAmali(
       ulanishOl(),
       {
         /** Bugungi sana — `YYYY-MM-DD` */
-        sana: new Date().toISOString().slice(0, 10),
+        sana: toshkentKuni(),
         filialId: f.filialId,
         materialIdlar: [materialId],
         izoh: "Qoldiqni to'g'rilash",

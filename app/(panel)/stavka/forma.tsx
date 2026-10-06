@@ -15,6 +15,7 @@ import { Maydon, kirishUslubi } from '../maydon';
 import { enterYuborilmasin } from '../forma-yordamchi';
 import { stavkaAmali } from './amal';
 import { BOSH_STAVKA_HOLATI } from './holat';
+import { toshkentKuni } from '@/lib/domain/sana';
 
 export interface Tanlov {
   readonly id: number;
@@ -100,7 +101,7 @@ export function StavkaFormasi({
     );
   };
 
-  const bugun = new Date().toISOString().slice(0, 10);
+  const bugun = toshkentKuni();
   const k = holat.kiritilgan ?? {};
   const u = holat.urinish ?? 0;
 

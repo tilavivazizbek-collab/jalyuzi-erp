@@ -19,6 +19,7 @@ import { chiqimQil, kassaYozuviQoshTx } from './kassa';
 import { kunYopiqmi } from './kun-yopish';
 import { type XarajatModdasi } from '@/lib/domain/balans';
 import { BiznesXato } from '@/lib/xato';
+import { toshkentKuni } from '@/lib/domain/sana';
 
 export type Valyuta = 'SOM' | 'USD';
 
@@ -61,7 +62,7 @@ export async function operatsionXarajat(
     throw new BiznesXato('TOLOV_MANFIY', kirim.modda);
   }
 
-  const bugun = new Date().toISOString().slice(0, 10);
+  const bugun = toshkentKuni();
   if (await kunYopiqmi(ulanish, kirim.kassaId, bugun)) {
     throw new BiznesXato('KUN_YOPILGAN', bugun);
   }
@@ -143,7 +144,7 @@ export async function eganingPuli(
       throw new BiznesXato('KASSA_ADMIN_EMAS', String(kirim.kassaId));
     }
 
-    const bugun = new Date().toISOString().slice(0, 10);
+    const bugun = toshkentKuni();
     if (await kunYopiqmi(tx, kirim.kassaId, bugun)) {
       throw new BiznesXato('KUN_YOPILGAN', bugun);
     }
@@ -207,7 +208,7 @@ export async function boshqaHodisa(
     throw new BiznesXato('TOLOV_MANFIY', 'boshqa');
   }
 
-  const bugun = new Date().toISOString().slice(0, 10);
+  const bugun = toshkentKuni();
   if (await kunYopiqmi(ulanish, kirim.kassaId, bugun)) {
     throw new BiznesXato('KUN_YOPILGAN', bugun);
   }

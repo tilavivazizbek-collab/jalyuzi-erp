@@ -12,6 +12,7 @@
 import { z } from 'zod';
 import { royxat } from './umumiy';
 import { STAVKA_BIRLIKLARI } from '@/lib/domain/stavka';
+import { toshkentKuni } from '@/lib/domain/sana';
 
 /** Bo'sh tanlov = «hammaga» (10.9), ID emas — NULL */
 const bosId = z
@@ -103,7 +104,7 @@ export const stavkaSxema = z
     amalQiladiDan: z
       .string()
       .trim()
-      .transform((x) => (x === '' ? new Date().toISOString().slice(0, 10) : x))
+      .transform((x) => (x === '' ? toshkentKuni() : x))
       .refine((x) => /^\d{4}-\d{2}-\d{2}$/.test(x), "Sana noto'g'ri"),
   })
   .superRefine((v, ctx) => {

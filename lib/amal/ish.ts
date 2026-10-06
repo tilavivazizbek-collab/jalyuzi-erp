@@ -45,6 +45,7 @@ import { xarajatYozTx } from './kassa';
 import { tayyorMahsulotQarziYozTx } from './filial-harakat';
 import { BiznesXato } from '@/lib/xato';
 import { donaYech } from './dona-yechish';
+import { toshkentKuni } from '@/lib/domain/sana';
 
 interface PozitsiyaQatori {
   readonly id: number;
@@ -625,7 +626,7 @@ export async function tugatdim(
         await xarajatYozTx(
           tx,
           {
-            sana: new Date().toISOString().slice(0, 10),
+            sana: toshkentKuni(),
             filialId,
             modda: 'CHIQINDI',
             // Xarajat MUSBAT son bo'lib yoziladi

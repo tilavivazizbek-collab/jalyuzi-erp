@@ -28,6 +28,7 @@ import {
 } from '@/lib/domain/kurs-farqi';
 import { dollar, kurs, pulMatn, som } from '@/lib/domain/pul';
 import { BiznesXato } from '@/lib/xato';
+import { toshkentKuni } from '@/lib/domain/sana';
 
 export interface YetkazibTolovKirimi {
   readonly yetkazibBeruvchiId: number;
@@ -235,7 +236,7 @@ export async function yetkazibToloviTx(
     await xarajatYozTx(
       tx,
       {
-        sana: new Date().toISOString().slice(0, 10),
+        sana: toshkentKuni(),
         filialId: kirim.filialId,
         modda: 'KURS_FARQI',
         summa: n.turi === 'DAROMAD' ? `-${farq}` : farq,

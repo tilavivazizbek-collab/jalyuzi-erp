@@ -28,6 +28,7 @@ import type postgres from 'postgres';
 import Decimal from 'decimal.js';
 import { xarajatYozTx } from './kassa';
 import { BiznesXato } from '@/lib/xato';
+import { toshkentKuni } from '@/lib/domain/sana';
 
 /** TZ 9.9 — ikki tugma. */
 export type DavoQarori = 'QABUL' | 'OZIMIZGA';
@@ -179,7 +180,7 @@ export async function davoniHalQil(
     await xarajatYozTx(
       tx,
       {
-        sana: new Date().toISOString().slice(0, 10),
+        sana: toshkentKuni(),
         filialId: r.filial_id,
         modda: 'YETKAZIB_BERUVCHI_DEFEKTI',
         summa: zarar,

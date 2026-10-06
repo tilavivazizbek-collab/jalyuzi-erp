@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { sahifaRuxsati } from '@/lib/kirish/joriy';
 import { omborMateriallari } from '../../malumot';
 import { VaraqaOchFormasi } from './forma';
+import { toshkentKuni } from '@/lib/domain/sana';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,7 +10,7 @@ export default async function YangiInventarizatsiya() {
   const f = await sahifaRuxsati('ombor.inventarizatsiya');
   const materiallar = await omborMateriallari(f.filialId);
 
-  const bugun = new Date().toISOString().slice(0, 10);
+  const bugun = toshkentKuni();
 
   return (
     <div className="flex flex-col gap-6">

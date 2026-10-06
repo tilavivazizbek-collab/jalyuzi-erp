@@ -7,6 +7,7 @@ import { kassaQoldiqlari } from '../../malumot';
 import { ruxsatBormi } from '@/lib/ruxsat/tekshir';
 import { pulKorsat, som, dollar } from '@/lib/domain/pul';
 import { OddiyChopTugmasi } from '../../../chop-tugma';
+import { toshkentKuni } from '@/lib/domain/sana';
 
 export const dynamic = 'force-dynamic';
 
@@ -39,7 +40,7 @@ export default async function KunlikVaraqa({
   const f = await sahifaRuxsati('kassa.oz.kor');
   const s = await searchParams;
 
-  const bugun = new Date().toISOString().slice(0, 10);
+  const bugun = toshkentKuni();
   const sana = /^\d{4}-\d{2}-\d{2}$/.test(s.sana ?? '') ? (s.sana ?? bugun) : bugun;
 
   /** §9.4 — o'z kassasi yoki hammasi: ruxsatga qarab */

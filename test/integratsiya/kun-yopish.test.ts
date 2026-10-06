@@ -3,6 +3,7 @@
  *
  * Kun yopish — kassaning yuragi.
  */
+import { toshkentKuni } from '@/lib/domain/sana';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { chiqimQil } from '@/lib/amal/kassa';
 import { kunHolati, kunniQaytaOch, kunniYop, kunYopiqmi } from '@/lib/amal/kun-yopish';
@@ -323,9 +324,7 @@ describe('kun hisobi kassa yozuvlariga tayanadi', () => {
      *    beradi: Toshkentda 00:00–05:00 orasida u KECHAGI sana edi,
      *    yozuv esa bugungi kunga tushardi — test har kecha qizil edi.
      */
-    const bugun = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Tashkent' }).format(
-      new Date(),
-    );
+    const bugun = toshkentKuni();
     const oldin = Number((await kunHolati(sql, kassaId, bugun)).chiqim);
 
     await chiqimQil(

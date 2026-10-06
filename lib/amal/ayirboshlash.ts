@@ -16,6 +16,7 @@ import Decimal from 'decimal.js';
 import { kassaYozuviQoshTx, xarajatYozTx } from './kassa';
 import { kunYopiqmi } from './kun-yopish';
 import { BiznesXato } from '@/lib/xato';
+import { toshkentKuni } from '@/lib/domain/sana';
 
 export type Valyuta = 'SOM' | 'USD';
 
@@ -102,7 +103,7 @@ export async function ayirboshlash(
     const ga = kassalar.find((k) => k.id === kirim.kimgaKassaId);
     if (dan === undefined || ga === undefined) throw new BiznesXato('KASSA_TOPILMADI');
 
-    const bugun = new Date().toISOString().slice(0, 10);
+    const bugun = toshkentKuni();
     for (const k of [kirim.kimdanKassaId, kirim.kimgaKassaId]) {
       if (await kunYopiqmi(tx, k, bugun)) throw new BiznesXato('KUN_YOPILGAN', bugun);
     }
@@ -242,7 +243,7 @@ export async function umidsizQarz(
     const xarajatId = await xarajatYozTx(
       tx,
       {
-        sana: new Date().toISOString().slice(0, 10),
+        sana: toshkentKuni(),
         filialId,
         modda: 'UMIDSIZ_QARZ',
         summa: summa.toFixed(2),

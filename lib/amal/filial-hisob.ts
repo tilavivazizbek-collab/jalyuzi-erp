@@ -11,6 +11,7 @@ import { kassaYozuviQoshTx } from './kassa';
 import { kunYopiqmi } from './kun-yopish';
 import { yozuvKursi } from './kurs';
 import { BiznesXato } from '@/lib/xato';
+import { toshkentKuni } from '@/lib/domain/sana';
 
 // ─── 22.6.3 · Qarz to'lovi ────────────────────────────────────────────────
 
@@ -89,7 +90,7 @@ export async function filialQarzTolovi(
       throw new BiznesXato('KASSA_VALYUTA_MOS_EMAS', `${dan.valyuta} → ${ga.valyuta}`);
     }
 
-    const bugun = new Date().toISOString().slice(0, 10);
+    const bugun = toshkentKuni();
     for (const k of [kirim.kimdanKassaId, kirim.kimgaKassaId]) {
       if (await kunYopiqmi(tx, k, bugun)) throw new BiznesXato('KUN_YOPILGAN', bugun);
     }

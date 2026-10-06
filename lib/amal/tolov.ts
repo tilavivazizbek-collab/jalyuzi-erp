@@ -22,6 +22,7 @@ import { kassaYozuviQoshTx } from './kassa';
 import { kunYopiqmi } from './kun-yopish';
 import { tolovniBalansValyutasiga } from '@/lib/domain/balans';
 import { BiznesXato } from '@/lib/xato';
+import { toshkentKuni } from '@/lib/domain/sana';
 
 export type Valyuta = 'SOM' | 'USD';
 
@@ -44,7 +45,7 @@ async function kunOchiqmi(
   tx: postgres.TransactionSql,
   kassaId: number,
 ): Promise<void> {
-  const bugun = new Date().toISOString().slice(0, 10);
+  const bugun = toshkentKuni();
   if (await kunYopiqmi(tx, kassaId, bugun)) {
     throw new BiznesXato('KUN_YOPILGAN', bugun);
   }

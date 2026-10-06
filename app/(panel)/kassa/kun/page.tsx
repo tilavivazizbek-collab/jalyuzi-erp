@@ -5,6 +5,7 @@ import { ulanishOl } from '@/lib/db';
 import { kunHolati } from '@/lib/amal/kun-yopish';
 import { kassaQoldiqlari } from '../malumot';
 import { KunYopishFormasi } from '../kun-forma';
+import { toshkentKuni } from '@/lib/domain/sana';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,7 +26,7 @@ export default async function KunYopishSahifasi({
   const qaytaOchaOladi = ruxsatBormi(f, 'kassa.storno');
 
   const { sana } = await searchParams;
-  const bugun = new Date().toISOString().slice(0, 10);
+  const bugun = toshkentKuni();
   const tanlangan = /^\d{4}-\d{2}-\d{2}$/.test(sana ?? '') ? (sana as string) : bugun;
 
   const kassalar = await kassaQoldiqlari(f.filialId, f.xodimId, barchaniKoradi);
