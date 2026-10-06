@@ -1,6 +1,7 @@
 import { Fragment } from 'react';
 import Link from 'next/link';
 import { chegaraBirligi } from '@/lib/domain/birlik-tanlovi';
+import { nolmi, nolSom, pulKorsat, qosh, som, teng } from '@/lib/domain/pul';
 import { sahifaRuxsati } from '@/lib/kirish/joriy';
 import { ruxsatBormi, yigindiQamrov } from '@/lib/ruxsat/tekshir';
 import { SARFLASH_BIRLIGI_NOMI, type SarflashBirligi } from '@/lib/sxema/material';
@@ -46,7 +47,7 @@ function TarkibQatori({ tarkib }: { tarkib: readonly QoldiqTarkibi[] }) {
 
   return (
     <tr className="bg-fon/70">
-      <td colSpan={7} className="px-4 pb-3 pt-1">
+      <td colSpan={8} className="px-4 pb-3 pt-1">
         <div className="flex flex-col gap-1">
           {tarkib.map((t) => (
             <div
@@ -74,6 +75,12 @@ export default async function OmborQoldigi({
 }) {
   const f = await sahifaRuxsati('ombor.qoldiq.kor');
   const kirimQilaOladi = ruxsatBormi(f, 'ombor.kirim.yarat');
+  /**
+   * ⚠️ TANNARX — faqat ombor hisobotini ko'radiganga (material kartochkasi
+   *    bilan bir xil qoida). Sotuvchi bu sahifani ko'radi (TZ 3.3 — qoldiq),
+   *    lekin tannarxni ko'rmasligi kerak (11.10).
+   */
+  const pulniKoradi = ruxsatBormi(f, 'hisobot.ombor.kor');
 
   /**
    * TZ 20.6.2 — «Bosh filial admini barcha filiallarni bir jadvalda
@@ -119,6 +126,12 @@ export default async function OmborQoldigi({
   };
   const tanla = 'rounded-maydon border border-chegara-quyuq bg-sirt px-2.5 py-1.5 text-[13px]';
 
+  /** Pul `number` bilan qo'shilmaydi (§3) — `Som` bilan */
+  const qiymatJami = (r: readonly MaterialQoldigi[]) =>
+    r.reduce((y, q) => qosh(y, som(q.qiymat)), nolSom());
+  const koringanQiymat = qiymatJami(korinadi);
+  const jamiQiymat = qiymatJami(qoldiq);
+
   const olchamli = korinadi.filter((q) => q.hisobTuri === 'RULON');
   const donali = korinadi.filter((q) => q.hisobTuri !== 'RULON');
 
@@ -132,6 +145,18 @@ export default async function OmborQoldigi({
           <p className="mt-1 text-sm text-matn-kuchsiz">
             {barchasimi ? 'Barcha filiallar' : nomi} · har filialda o&apos;z ombori (Q-25)
           </p>
+          {pulniKoradi && !barchasimi && (
+            <p className="mt-1 text-sm text-matn-ikki">
+              Omborda: <b className="raqam text-matn">{pulKorsat(jamiQiymat)} so&apos;m</b>
+              <span className="text-matn-kuchsiz"> tannarxda</span>
+              {filtrBor && !teng(koringanQiymat, jamiQiymat) && (
+                <span className="text-matn-kuchsiz">
+                  {' '}
+                  · ko&apos;rsatilganlari {pulKorsat(koringanQiymat)} so&apos;m
+                </span>
+              )}
+            </p>
+          )}
         </div>
         <div className="flex items-center gap-3">
           {barchasiniKoradi && (
@@ -278,6 +303,9 @@ export default async function OmborQoldigi({
                       <th className="px-4 py-2.5 text-right font-medium">Band</th>
                       <th className="px-4 py-2.5 text-right font-medium">Yo&apos;lda</th>
                       <th className="px-4 py-2.5 text-right font-medium">Bo&apos;lak</th>
+                      {pulniKoradi && (
+                        <th className="px-4 py-2.5 text-right font-medium">Qiymati</th>
+                      )}
                       <th className="px-4 py-2.5" />
                     </tr>
                   </thead>
@@ -307,6 +335,7 @@ export default async function OmborQoldigi({
                           )}
                         </td>
                         <td className="raqam px-4 py-2.5 text-matn-kuchsiz">{q.bolakSoni}</td>
+                        {pulniKoradi && <QiymatKatagi qiymat={q.qiymat} />}
                         <td className="px-4 py-2.5 text-right">
                           <Link
                             href={`/ombor/${String(q.materialId)}`}
@@ -336,6 +365,9 @@ export default async function OmborQoldigi({
                       <th className="px-4 py-2.5 font-medium">Mahsulot</th>
                       <th className="px-4 py-2.5 text-right font-medium">Qoldiq</th>
                       <th className="px-4 py-2.5 font-medium">Birlik</th>
+                      {pulniKoradi && (
+                        <th className="px-4 py-2.5 text-right font-medium">Qiymati</th>
+                      )}
                       <th className="px-4 py-2.5" />
                     </tr>
                   </thead>
@@ -360,6 +392,7 @@ export default async function OmborQoldigi({
                               ? 'metrda saqlanadi (Q-01)'
                               : SARFLASH_BIRLIGI_NOMI[birlik]}
                           </td>
+                          {pulniKoradi && <QiymatKatagi qiymat={q.qiymat} />}
                           <td className="px-4 py-2.5 text-right">
                             <Link
                               href={`/ombor/${String(q.materialId)}`}
@@ -379,6 +412,16 @@ export default async function OmborQoldigi({
         </>
       )}
     </div>
+  );
+}
+
+/** Qoldiqning tannarx qiymati — nol bo'lsa chiziqcha */
+function QiymatKatagi({ qiymat }: { qiymat: string }) {
+  const p = som(qiymat);
+  return (
+    <td className="raqam px-4 py-2.5 text-right text-matn-ikki">
+      {nolmi(p) ? <span className="text-matn-kuchsiz">—</span> : pulKorsat(p)}
+    </td>
   );
 }
 

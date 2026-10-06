@@ -9,6 +9,29 @@
  */
 
 import { ulanishOl } from '@/lib/db';
+import type { Ulanish } from '@/lib/db/ulanish';
+
+/**
+ * Bo'lakning ombordagi qiymati — SQL ifodasi (`b` — bolak taxallusi).
+ *
+ * ⚠️ BITTA JOY (ombor auditi 2026-10-06, 3-band). Bu formula ilgari
+ *    hisobotda va material kartochkasida ALOHIDA yozilgan edi; asosiy
+ *    sahifaga uchinchi nusxa kerak bo'ldi. Endi uchalasi shu ifodani
+ *    chaqiradi — biri tuzalib, boshqasi eski qolmaydi.
+ *
+ *    Mantiq `lib/domain/tannarx.ts` dagi `bolakQiymati` bilan bir xil:
+ *    DONA → miqdor × tannarx, qolgani → eni × bo'yi × tannarx (kv.m).
+ *    Domain funksiyasi BITTA bo'lak uchun; minglab qatorni yig'ishda
+ *    har birini koddan o'tkazish qimmat, shuning uchun SQL da.
+ *
+ * ⚠️ Faqat SO'MLI tannarx yig'iladi (1.3) — chaqiruvchi
+ *    `b.tannarx_valyuta_snapshot = 'SOM'` sharti bilan ishlatadi.
+ */
+export const bolakQiymatiIfodasi = (sql: Ulanish) =>
+  sql`(CASE WHEN b.turi = 'DONA'
+            THEN COALESCE(b.miqdor, 0)
+            ELSE COALESCE(b.eni_m, 0) * COALESCE(b.boyi_m, 0) END
+       * b.tannarx_birlik_snapshot)`;
 import { pulMatn, som } from '@/lib/domain/pul';
 import { bolakQiymati } from '@/lib/domain/tannarx';
 import { chegaraBirligidaQoldiq, kamQoldiqmi } from '@/lib/domain/birlik-tanlovi';
@@ -45,6 +68,11 @@ export interface MaterialQoldigi {
   readonly kamQoldiq: boolean;
   /** Bo'sh qoldiq yo'q — sotib bo'lmaydi */
   readonly tugagan: boolean;
+  /**
+   * Omborda turgan (bo'sh + band) qoldiqning TANNARX qiymati, so'm.
+   * MATN — pul `number` bo'lmaydi (§3). Faqat ruxsati borga ko'rsatiladi.
+   */
+  readonly qiymat: string;
 }
 
 interface QoldiqQatori {
@@ -64,6 +92,7 @@ interface QoldiqQatori {
   readonly bosh_miqdor: string | null;
   readonly bosh_boyi: string | null;
   readonly kam_qoldiq_chegara_m: string | null;
+  readonly qiymat: string | null;
 }
 
 /**
@@ -85,7 +114,8 @@ interface QoldiqQatori {
  *    Hisobot (`kamQolganlar`) ham shunday sanaydi.
  */
 export async function filialQoldigi(filialId: number): Promise<MaterialQoldigi[]> {
-  const qatorlar = await ulanishOl()<QoldiqQatori[]>`
+  const sql = ulanishOl();
+  const qatorlar = await sql<QoldiqQatori[]>`
     SELECT m.id AS material_id, m.nom, m.hisob_turi, m.sarflash_birligi,
            m.kam_qoldiq_chegara_m,
            m.almashtirish_guruh_id AS guruh_id, g.nom AS guruh_nomi,
@@ -97,7 +127,10 @@ export async function filialQoldigi(filialId: number): Promise<MaterialQoldigi[]
            COUNT(b.id) FILTER (WHERE b.holat <> 'YOLDA')::int           AS bolak_soni,
            SUM(b.miqdor) FILTER (WHERE b.holat <> 'YOLDA')              AS miqdor,
            SUM(b.miqdor) FILTER (WHERE b.holat = 'BOSH')                AS bosh_miqdor,
-           SUM(b.boyi_m) FILTER (WHERE b.holat = 'BOSH')                AS bosh_boyi
+           SUM(b.boyi_m) FILTER (WHERE b.holat = 'BOSH')                AS bosh_boyi,
+           (SUM(${bolakQiymatiIfodasi(sql)})
+              FILTER (WHERE b.holat IN ('BOSH', 'BAND')
+                        AND b.tannarx_valyuta_snapshot = 'SOM'))::numeric(14,2)::text AS qiymat
     FROM material m
     LEFT JOIN almashtirish_guruh g ON g.id = m.almashtirish_guruh_id
     LEFT JOIN bolak b
@@ -105,8 +138,15 @@ export async function filialQoldigi(filialId: number): Promise<MaterialQoldigi[]
           AND b.filial_id = ${filialId}
           AND b.faol = true
           AND b.holat IN ('BOSH', 'BAND', 'YOLDA')
-    WHERE m.faol = true
     GROUP BY m.id, g.nom
+    /*
+     * ⚠️ NOFAOL MATERIALNING QOLDIG'I HAM. Material o'chirilgan bo'lsa
+     *    ham omborda jismonan turgan rulon — pul. Faqat m.faol bilan
+     *    cheklansa u ombor sahifasidan YO'QOLARDI va qiymati hisobotdagi
+     *    «Qoldiq qiymati» dan farq qilardi (EC-OMB-Q5 ushladi, 2026-10-06).
+     *    Qoldig'i yo'q nofaol material esa ro'yxatga kirmaydi.
+     */
+    HAVING m.faol OR COUNT(b.id) > 0
     ORDER BY m.nom`;
 
   return qatorlar.map((q) => {
@@ -136,6 +176,7 @@ export async function filialQoldigi(filialId: number): Promise<MaterialQoldigi[]
       chegaraQoldiq,
       kamQoldiq: kamQoldiqmi(q.sarflash_birligi, chegaraQoldiq, kamChegara),
       tugagan: chegaraQoldiq <= 0,
+      qiymat: q.qiymat ?? '0.00',
     };
   });
 }
@@ -393,12 +434,7 @@ export async function materialXulosasi(
      *    lekin filtr himoya bo'lib turadi.
      */
     sql<{ qiymat: string | null }[]>`
-      SELECT SUM(
-               CASE WHEN b.turi = 'DONA'
-                    THEN COALESCE(b.miqdor, 0)
-                    ELSE COALESCE(b.eni_m, 0) * COALESCE(b.boyi_m, 0) END
-               * b.tannarx_birlik_snapshot
-             )::numeric(14,2)::text AS qiymat
+      SELECT SUM(${bolakQiymatiIfodasi(sql)})::numeric(14,2)::text AS qiymat
       FROM bolak b
       WHERE b.material_id = ${materialId} AND b.filial_id = ${filialId}
         AND b.faol = true AND b.holat IN ('BOSH','BAND')

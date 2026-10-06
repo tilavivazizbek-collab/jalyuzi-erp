@@ -10,7 +10,8 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { ulanishOl } from '@/lib/db';
 import type { Ulanish } from '@/lib/db/ulanish';
 import { filialQoldigi } from '@/app/(panel)/ombor/malumot';
-import { kamQolganlar } from '@/app/(panel)/hisobot/malumot';
+import { kamQolganlar, omborQiymati } from '@/app/(panel)/hisobot/malumot';
+import Decimal from 'decimal.js';
 import { sinovUlanishi } from './yordamchi';
 
 const FILIAL = 1;
@@ -78,5 +79,18 @@ describe('ombor qoldig‘i — 2-band', () => {
     expect(ids).toContain(tugaganId);
     expect(ids).not.toContain(lamelId);
     expect(h.find((q) => q.materialId === kengId)?.qoldiq).toBe(10);
+  });
+
+  it('EC-OMB-Q4: qoldiq qiymati — har bo‘lak o‘z tannarxi bilan', async () => {
+    const keng = (await filialQoldigi(FILIAL)).find((q) => q.materialId === kengId);
+    // 3 × 10 = 30 kv.m × 50 000
+    expect(keng?.qiymat).toBe('1500000.00');
+  });
+
+  it('EC-OMB-Q5: sahifadagi qiymatlar yig‘indisi = hisobotdagi «Qoldiq qiymati»', async () => {
+    const sahifa = (await filialQoldigi(FILIAL))
+      .reduce((y, q) => y.plus(q.qiymat), new Decimal(0))
+      .toFixed(2);
+    expect(sahifa).toBe(new Decimal(await omborQiymati(FILIAL)).toFixed(2));
   });
 });

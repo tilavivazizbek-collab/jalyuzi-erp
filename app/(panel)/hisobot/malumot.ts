@@ -17,7 +17,7 @@
 
 import Decimal from 'decimal.js';
 import { ulanishOl } from '@/lib/db';
-import { filialQoldigi } from '../ombor/malumot';
+import { bolakQiymatiIfodasi, filialQoldigi } from '../ombor/malumot';
 import { joriyKurs } from '@/lib/amal/kurs';
 import { type Davr, kunlarSoni } from '@/lib/domain/hisobot/davr';
 import {
@@ -88,10 +88,7 @@ export async function ustamaHisoboti(filialId: number): Promise<EroziyaHisoboti>
   const qatorlar = await sql<UstamaQatori[]>`
     SELECT m.id AS material_id, m.nom, m.sotuv_narx::text, m.sotuv_valyuta,
            m.min_ustama_foiz::text,
-           (SUM(CASE WHEN b.turi = 'DONA'
-                     THEN COALESCE(b.miqdor, 0)
-                     ELSE COALESCE(b.eni_m, 0) * COALESCE(b.boyi_m, 0) END
-                * b.tannarx_birlik_snapshot)
+           (SUM(${bolakQiymatiIfodasi(sql)})
             / NULLIF(SUM(CASE WHEN b.turi = 'DONA'
                               THEN COALESCE(b.miqdor, 0)
                               ELSE COALESCE(b.eni_m, 0) * COALESCE(b.boyi_m, 0) END), 0)
@@ -241,10 +238,7 @@ export async function muzlaganPulHisoboti(filialId: number): Promise<MuzlaganTaf
     }[]
   >`
     SELECT m.id AS material_id, m.nom,
-           SUM(CASE WHEN b.turi = 'DONA'
-                    THEN COALESCE(b.miqdor, 0)
-                    ELSE COALESCE(b.eni_m, 0) * COALESCE(b.boyi_m, 0) END
-               * b.tannarx_birlik_snapshot)::numeric(14,2)::text AS qoldiq_qiymati,
+           SUM(${bolakQiymatiIfodasi(sql)})::numeric(14,2)::text AS qoldiq_qiymati,
            COALESCE(SUM(CASE WHEN b.turi = 'OSTATKA' AND b.holat = 'BOSH'
                              THEN COALESCE(b.eni_m, 0) * COALESCE(b.boyi_m, 0)
                                   * b.tannarx_birlik_snapshot
@@ -431,14 +425,12 @@ export async function sarflanishTezligi(
  * alohida hisobot bo'ladi, bitta ro'yxatda qo'shilmaydi.
  */
 export async function omborAbc(filialId: number): Promise<AbcNatija<number>> {
-  const qatorlar = await ulanishOl()<
+  const sql = ulanishOl();
+  const qatorlar = await sql<
     { material_id: number; nom: string; qiymat: string }[]
   >`
     SELECT m.id AS material_id, m.nom,
-           SUM(CASE WHEN b.turi = 'DONA'
-                    THEN COALESCE(b.miqdor, 0)
-                    ELSE COALESCE(b.eni_m, 0) * COALESCE(b.boyi_m, 0) END
-               * b.tannarx_birlik_snapshot)::numeric(14,2)::text AS qiymat
+           SUM(${bolakQiymatiIfodasi(sql)})::numeric(14,2)::text AS qiymat
     FROM material m
     JOIN bolak b ON b.material_id = m.id
     WHERE b.filial_id = ${filialId} AND b.faol = true
@@ -460,11 +452,10 @@ export async function omborAbc(filialId: number): Promise<AbcNatija<number>> {
 
 /** Sarlavhadagi jami raqam — omborda turgan pulning tannarx qiymati. */
 export async function omborQiymati(filialId: number): Promise<string> {
-  const q = await ulanishOl()<{ jami: string | null }[]>`
-    SELECT SUM(CASE WHEN b.turi = 'DONA'
-                    THEN COALESCE(b.miqdor, 0)
-                    ELSE COALESCE(b.eni_m, 0) * COALESCE(b.boyi_m, 0) END
-               * b.tannarx_birlik_snapshot)::numeric(14,2)::text AS jami
+  const sql = ulanishOl();
+  /** ⚠️ Formula bitta joyda — `bolakQiymatiIfodasi` (ombor sahifasi bilan bir xil) */
+  const q = await sql<{ jami: string | null }[]>`
+    SELECT SUM(${bolakQiymatiIfodasi(sql)})::numeric(14,2)::text AS jami
     FROM bolak b
     WHERE b.filial_id = ${filialId} AND b.faol = true
       AND b.holat IN ('BOSH','BAND')
@@ -499,7 +490,8 @@ export interface QoldiqQatori {
 export async function qoldiqMaterialKesimida(
   filialId: number,
 ): Promise<readonly QoldiqQatori[]> {
-  const q = await ulanishOl()<
+  const sql = ulanishOl();
+  const q = await sql<
     {
       material_id: number;
       nom: string;
@@ -515,10 +507,7 @@ export async function qoldiqMaterialKesimida(
                     ELSE COALESCE(b.eni_m, 0) * COALESCE(b.boyi_m, 0) END)::text
              AS miqdor,
            COUNT(*)::int AS bolak_soni,
-           SUM(CASE WHEN b.turi = 'DONA'
-                    THEN COALESCE(b.miqdor, 0)
-                    ELSE COALESCE(b.eni_m, 0) * COALESCE(b.boyi_m, 0) END
-               * b.tannarx_birlik_snapshot)
+           SUM(${bolakQiymatiIfodasi(sql)})
              FILTER (WHERE b.tannarx_valyuta_snapshot = 'SOM')
              ::numeric(14,2)::text AS qiymat
     FROM bolak b

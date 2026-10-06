@@ -24,6 +24,7 @@ const m = (o: Partial<MaterialQoldigi> & { nom: string }): MaterialQoldigi => ({
   chegaraQoldiq: 0,
   kamQoldiq: false,
   tugagan: true,
+  qiymat: '0.00',
   ...o,
 });
 
