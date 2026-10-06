@@ -11,9 +11,8 @@ import {
   type Yonalish,
 } from '@/lib/domain/ombor-harakat';
 import {
-  BOSH_FILTR,
   omborTarixi,
-  sanaFiltri,
+  tarixFiltriniOqi,
   tarixMateriallari,
   type TarixFiltri,
 } from './malumot';
@@ -66,16 +65,7 @@ export default async function OmborTarixi({
   const pulniKoradi = tannarxniKoradimi(f);
   const s = await searchParams;
 
-  const materialId = sonYoki(s.material, 0);
-  const filtr: TarixFiltri = {
-    ...BOSH_FILTR,
-    /** ⚠️ Yaroqsiz sana filtrsiz deb qabul qilinadi — sahifa yiqilmaydi */
-    dan: sanaFiltri(s.dan),
-    gacha: sanaFiltri(s.gacha),
-    materialId: materialId > 0 ? materialId : null,
-    /** ⚠️ Noma'lum tur so'ralsa — filtrsiz, xato emas */
-    turi: HARAKAT_TURLARI.includes(s.turi as never) ? (s.turi ?? '') : '',
-  };
+  const filtr: TarixFiltri = tarixFiltriniOqi(s);
 
   const sahifa = Math.max(0, sonYoki(s.sahifa, 0));
 
@@ -108,9 +98,18 @@ export default async function OmborTarixi({
         <h1 className="mt-2 text-[22px] font-semibold tracking-[-0.02em] text-matn">
           Ombor tarixi
         </h1>
-        <p className="mt-1 text-sm text-matn-kuchsiz">
-          Har harakat: kirim, kesim, qoldiq kesma, chiqindi, ko&apos;chirish, sanoq
-        </p>
+        <div className="mt-1 flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm text-matn-kuchsiz">
+            Har harakat: kirim, kesim, qoldiq kesma, chiqindi, ko&apos;chirish, sanoq
+          </p>
+          {/* Filtrdagi HAMMA harakat — faqat shu sahifadagi 50 tasi emas */}
+          <a
+            href={sahifaYoli(0).replace(/^\/ombor\/tarix/, '/ombor/tarix/eksport')}
+            className="rounded-maydon border border-chegara-quyuq px-3.5 py-2 text-sm text-matn-ikki transition-all active:scale-[0.98] hover:bg-fon"
+          >
+            Excel&apos;ga yuklash
+          </a>
+        </div>
       </div>
 
       {/*

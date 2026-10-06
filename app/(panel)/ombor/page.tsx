@@ -125,6 +125,7 @@ export default async function OmborQoldigi({
     return t === '' ? '/ombor' : `/ombor?${t}`;
   };
   const tanla = 'rounded-maydon border border-chegara-quyuq bg-sirt px-2.5 py-1.5 text-[13px]';
+  const eksportHavola = havola(filtr.holat).replace(/^\/ombor/, '/ombor/eksport');
 
   /** Pul `number` bilan qo'shilmaydi (§3) — `Som` bilan */
   const qiymatJami = (r: readonly MaterialQoldigi[]) =>
@@ -166,6 +167,12 @@ export default async function OmborQoldigi({
             >
               {barchasimi ? nomi : 'Barcha filiallar'}
             </Link>
+          )}
+          {/* Ekranda ko'ringan ro'yxatning o'zi tushadi — joriy filtr bilan */}
+          {!barchasimi && (
+            <a href={eksportHavola} className="rounded-maydon border border-chegara-quyuq px-3.5 py-2 text-sm text-matn-ikki transition-all active:scale-[0.98] hover:bg-fon">
+              Excel&apos;ga yuklash
+            </a>
           )}
           <Link
             href="/ombor/kirim"

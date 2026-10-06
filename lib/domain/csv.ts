@@ -20,7 +20,7 @@ export function ajratuvchiniTop(birinchiQator: string): Ajratuvchi {
 
 /** CSV → kataklar jadvali. Bo'sh qatorlar tashlanadi. */
 export function csvOqi(matn: string): string[][] {
-  const t = matn.replace(/^﻿/, '');
+  const t = matn.replace(/^\uFEFF/, '');
   const birinchi = t.split(/\r?\n/, 1)[0] ?? '';
   const b = ajratuvchiniTop(birinchi);
 
@@ -73,4 +73,48 @@ export function sarlavhaKaliti(x: string): string {
     .toLowerCase()
     .replace(/[‘’ʻʼ`'"]/g, '')
     .replace(/[^a-zа-яё0-9]/g, '');
+}
+
+// ─── Yozish — Excel uchun ─────────────────────────────────────────────────
+
+export type CsvKatak = string | number | null;
+
+/** Excel uchun bayt tartibi belgisi — ko'rinmas, shuning uchun escape bilan yozilgan */
+const BOM = '\uFEFF';
+
+/** Ajratuvchi, qo'shtirnoq yoki yangi qator bo'lsa — qo'shtirnoqqa olinadi */
+function katak(x: CsvKatak): string {
+  const s = x === null ? '' : String(x);
+  return /[;"\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
+/**
+ * NUMERIC matni → Excel soni: kasr VERGUL bilan («1500000.50» → «1500000,50»).
+ * O'zbekiston/Rossiya sozlamali Excel nuqtali sonni MATN deb o'qiydi —
+ * ustunni qo'shib bo'lmay qoladi.
+ */
+export function csvSon(x: string | number | null): string {
+  if (x === null) return '';
+  return String(x).replace('.', ',');
+}
+
+/**
+ * Jadval → Excel ochadigan CSV (egasi auditi 2026-10-06).
+ *
+ * ⚠️ YANGI KUTUBXONA YO'Q:
+ *    - boshida BOM — o'zbek/kirill harflari buzilmaydi
+ *    - ajratuvchi «;» — O'zbekiston/Rossiya sozlamali Excel shuni kutadi,
+ *      «,» bilan hamma narsa bitta ustunga tushardi
+ *    - qator oxiri CRLF
+ *
+ * ⚠️ BITTA JOY — mijozlar va ombor eksporti shu funksiyadan.
+ */
+export function csvYoz(sarlavha: readonly string[], qatorlar: readonly (readonly CsvKatak[])[]): string {
+  const satrlar = [sarlavha, ...qatorlar].map((q) => q.map(katak).join(';'));
+  return `${BOM}${satrlar.join('\r\n')}\r\n`;
+}
+
+/** Fayl nomidagi sana — Toshkent kuni */
+export function csvFaylNomi(nom: string, kun: string): string {
+  return `${nom}-${kun}.csv`;
 }

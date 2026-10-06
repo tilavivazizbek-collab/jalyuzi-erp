@@ -4,10 +4,7 @@
  * ⚠️ EKRANDAGI FILTR BILAN — `filtrniOqi` ro'yxat sahifasi bilan bitta.
  *    «Qarzdorlar» ko'rib turib yuklasa, faqat qarzdorlar tushadi.
  *
- * ⚠️ YANGI KUTUBXONA YO'Q — CSV ni Excel o'zi ochadi:
- *    - boshida BOM — o'zbek/kirill harflari buzilmaydi
- *    - ajratuvchi «;», kasr «,» — O'zbekiston/Rossiya sozlamali Excel
- *      shuni kutadi; «,» bilan hamma narsa bitta ustunga tushardi
+ * ⚠️ CSV shakli bitta joyda — `csvYoz` (BOM, «;», kasr vergul).
  *
  * ⚠️ Ruxsat SHU YERDA ham tekshiriladi (§9.4).
  */
@@ -17,19 +14,14 @@ import { joriyFoydalanuvchi } from '@/lib/kirish/joriy';
 import { ruxsatBormi } from '@/lib/ruxsat/tekshir';
 import { joriyKurs } from '@/lib/amal/kurs';
 import { telefonKorsat } from '@/lib/domain/telefon';
+import { csvSon, csvYoz } from '@/lib/domain/csv';
+import { csvJavob } from '../../csv-javob';
 import { SEGMENT_NOMI, filtrniOqi, mijozlarRoyxati } from '../malumot';
 
 export const dynamic = 'force-dynamic';
 
 /** Eksport chegarasi — undan ko'p mijoz bo'lsa filtr bilan bo'lib olinadi */
 const ENG_KOP = 20_000;
-
-const katak = (x: string | number | null): string => {
-  const s = x === null ? '' : String(x);
-  return /[;"\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-};
-/** NUMERIC matn → Excel soni: kasr vergul bilan */
-const son = (x: string | null): string => (x === null ? '' : x.replace('.', ','));
 
 export async function GET(sorov: Request): Promise<NextResponse> {
   const f = await joriyFoydalanuvchi();
@@ -41,24 +33,24 @@ export async function GET(sorov: Request): Promise<NextResponse> {
   const filtr = { ...filtrniOqi(sp), sahifa: 1 };
   const natija = await mijozlarRoyxati(filtr, await joriyKurs(ulanishOl()), ENG_KOP);
 
-  const sarlavha = [
-    'Ism',
-    'Tashkilot',
-    'Telefon',
-    'Turi',
-    'Guruh',
-    "Mas'ul",
-    'Segment',
-    "Qarz, so'm",
-    'Qarz, $',
-    "Sotuv, so'm",
-    'Sotuv, $',
-    'Oxirgi xarid',
-    "Qarz limiti, so'm",
-    "To'lov muddati, kun",
-  ];
-  const qatorlar = natija.qatorlar.map((m) =>
+  const matn = csvYoz(
     [
+      'Ism',
+      'Tashkilot',
+      'Telefon',
+      'Turi',
+      'Guruh',
+      "Mas'ul",
+      'Segment',
+      "Qarz, so'm",
+      'Qarz, $',
+      "Sotuv, so'm",
+      'Sotuv, $',
+      'Oxirgi xarid',
+      "Qarz limiti, so'm",
+      "To'lov muddati, kun",
+    ],
+    natija.qatorlar.map((m) => [
       m.ism,
       m.tashkilot_nomi,
       m.telefon === null ? null : telefonKorsat(m.telefon),
@@ -66,26 +58,15 @@ export async function GET(sorov: Request): Promise<NextResponse> {
       m.guruh_nomi,
       m.masul_ismi,
       SEGMENT_NOMI[m.segment],
-      son(m.qarz_som),
-      son(m.qarz_usd),
-      son(m.sotuv_som),
-      son(m.sotuv_usd),
+      csvSon(m.qarz_som),
+      csvSon(m.qarz_usd),
+      csvSon(m.sotuv_som),
+      csvSon(m.sotuv_usd),
       m.oxirgi === null ? null : m.oxirgi.toLocaleDateString('uz-UZ'),
-      son(m.qarz_limiti),
+      csvSon(m.qarz_limiti),
       m.tolov_muddati_kun,
-    ]
-      .map(katak)
-      .join(';'),
+    ]),
   );
 
-  const matn = `﻿${[sarlavha.map(katak).join(';'), ...qatorlar].join('\r\n')}\r\n`;
-  const sana = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Tashkent' }).format(new Date());
-
-  return new NextResponse(matn, {
-    headers: {
-      'Content-Type': 'text/csv; charset=utf-8',
-      'Content-Disposition': `attachment; filename="mijozlar-${sana}.csv"`,
-      'Cache-Control': 'no-store',
-    },
-  });
+  return csvJavob(matn, 'mijozlar');
 }

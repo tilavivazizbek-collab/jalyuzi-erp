@@ -31,6 +31,10 @@ export default async function KirimRoyxati() {
             {filial} · oxirgi {hujjatlar.length} ta
           </p>
         </div>
+        <div className="flex items-center gap-3">
+        <a href="/ombor/kirim/eksport" className="rounded-maydon border border-chegara-quyuq px-3.5 py-2 text-sm text-matn-ikki transition-all active:scale-[0.98] hover:bg-fon">
+          Excel&apos;ga yuklash
+        </a>
         {kirimQilaOladi && (
           <Link
             href="/ombor/kirim/yangi"
@@ -39,6 +43,7 @@ export default async function KirimRoyxati() {
             Yangi kirim
           </Link>
         )}
+        </div>
       </div>
 
       {hujjatlar.length === 0 ? (

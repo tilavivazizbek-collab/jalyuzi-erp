@@ -14,6 +14,7 @@
  */
 
 import { ulanishOl } from '@/lib/db';
+import { HARAKAT_TURLARI } from '@/lib/domain/ombor-harakat';
 
 export interface TarixQatori {
   readonly id: number;
@@ -65,6 +66,32 @@ export function sanaFiltri(xom: string | undefined): string {
 }
 
 /** Bir sahifada nechta qator — ko'p bo'lsa ekran og'irlashadi */
+/**
+ * URL dan tarix filtri — sahifa ham, Excel eksporti ham SHU funksiyadan
+ * (ombor auditi 2026-10-06). Ikki joyda yozilsa eksport ekranda
+ * ko'ringandan boshqa ro'yxatni tushirib qo'yishi mumkin edi.
+ *
+ * ⚠️ Yaroqsiz qiymat filtrsiz deb qabul qilinadi — sahifa yiqilmaydi.
+ */
+export function tarixFiltriniOqi(s: {
+  readonly dan?: string;
+  readonly gacha?: string;
+  readonly material?: string;
+  readonly turi?: string;
+}): TarixFiltri {
+  const materialId = Number(s.material);
+  return {
+    ...BOSH_FILTR,
+    dan: sanaFiltri(s.dan),
+    gacha: sanaFiltri(s.gacha),
+    materialId:
+      s.material !== undefined && Number.isSafeInteger(materialId) && materialId > 0
+        ? materialId
+        : null,
+    turi: HARAKAT_TURLARI.includes(s.turi as never) ? (s.turi ?? '') : '',
+  };
+}
+
 export const SAHIFA_HAJMI = 50;
 
 export interface TarixNatijasi {
@@ -85,6 +112,8 @@ export async function omborTarixi(
   filialId: number,
   filtr: TarixFiltri,
   sahifa = 0,
+  /** Eksportda — bitta katta sahifa (ombor auditi 2026-10-06) */
+  hajm: number = SAHIFA_HAJMI,
 ): Promise<TarixNatijasi> {
   const sql = ulanishOl();
 
@@ -125,13 +154,13 @@ export async function omborTarixi(
       ${filtr.materialId === null ? sql`` : sql`AND m.id = ${filtr.materialId}`}
       ${filtr.turi === '' ? sql`` : sql`AND oh.turi = ${filtr.turi}`}
     ORDER BY oh.sana DESC, oh.id DESC
-    LIMIT ${SAHIFA_HAJMI + 1} OFFSET ${sahifa * SAHIFA_HAJMI}`;
+    LIMIT ${hajm + 1} OFFSET ${sahifa * hajm}`;
 
-  const davomiBor = qatorlar.length > SAHIFA_HAJMI;
+  const davomiBor = qatorlar.length > hajm;
 
   return {
     davomiBor,
-    qatorlar: qatorlar.slice(0, SAHIFA_HAJMI).map((q) => ({
+    qatorlar: qatorlar.slice(0, hajm).map((q) => ({
       id: q.id,
       sana: q.sana,
       turi: q.turi,
