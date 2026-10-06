@@ -2009,3 +2009,18 @@ Faqat qo'shadi. Bo'sh to'lov muddati = nazorat yo'q (§14a). Va'da
 (`mijoz_muloqot`) pul jadvali EMAS — qarzga tegmaydi, shuning uchun
 `bajarildi` ni yangilash ruxsat. Kredit nazorati limit kabi
 BLOKLAMAYDI — ogohlantiradi (`limitBloklaydimi = false` bilan bir xil).
+
+## P-44 — Ustama «Narxlar» jadvalidagi narxga tayanadi
+
+**2026-10-07, egasi qarori:** «sotuv narxiga tayansin, ya'ni belgilab
+qo'yilgan narxga». Ilgari ustama (hisobot va material kartochkasi)
+materialning ESKI `sotuv_narx` maydonidan olinardi; 0057–0059 dan beri
+narx «Narxlar» jadvalida — hisobot bo'sh yoki eskirgan chiqardi.
+
+**Qaror:** `ustamaUchunNarx` (`lib/domain/hisobot/ustama-eroziya.ts`) —
+sotuv ekrani bilan bir xil tartib: «Materialni o'zi sotish» jadvali
+(`qoidaniTop`, oddiy mijoz, shu filial; o'z jadvali → umumiy jadval),
+1 birlik narxi; jadvalda yo'q bo'lsa materialning o'z narxi. Hisobotda
+eski narxdan olingan qatorda «eski narx» belgisi.
+
+Rang partiyasi (dye lot) — egasi: kerak emas. Qurilmaydi.

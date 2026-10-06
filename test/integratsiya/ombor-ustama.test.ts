@@ -1,10 +1,11 @@
 /**
- * Ombor auditi 2026-10-06, 4-band — material kartochkasidagi ustama.
- * TZ 11.7.5 · 11.10 · 1.3
+ * Ombor auditi — material kartochkasidagi ustama. TZ 11.7.5 · 11.10 · 1.3
  *
- * ⚠️ Ilgari kartochka o'z hisobini yuritardi: dollar narxni so'mli tannarx
- *    bilan to'g'ridan-to'g'ri solishtirar va oddiy AVG olardi. Endi
- *    hisobot bilan bitta hisob.
+ * ⚠️ 2026-10-06: kartochka o'z hisobini yuritardi — dollar narxni so'mli
+ *    tannarx bilan to'g'ridan-to'g'ri solishtirar va oddiy AVG olardi.
+ * ⚠️ 2026-10-07 (egasi qarori): sotuv narxi «Narxlar» jadvalidan —
+ *    materialning eski `sotuv_narx` maydoni faqat jadvalda narx yo'q
+ *    bo'lsa ishlaydi (sotuv ekrani ham shunday).
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import Decimal from 'decimal.js';
@@ -28,10 +29,11 @@ beforeAll(async () => {
     INSERT INTO kurs_tarix (sana, qiymat, yaratdi_id)
     VALUES (${toshkentKuni()}, 12800, ${XODIM})
     ON CONFLICT (sana) DO NOTHING`;
+  /** Eski maydonda 99 999 so'm — ustama uni OLMASLIGI kerak */
   const m = await sql<{ id: number }[]>`
     INSERT INTO material (nom, hisob_turi, kirim_birligi, sarflash_birligi,
                           sotuv_narx, sotuv_valyuta, yaratdi_id)
-    VALUES (${`Dollarli mato ${BELGI}`}, 'RULON', 'rulon', 'KV_M', 15, 'USD', ${XODIM})
+    VALUES (${`Ustama mato ${BELGI}`}, 'RULON', 'rulon', 'KV_M', 99999, 'SOM', ${XODIM})
     RETURNING id`;
   materialId = m[0]?.id ?? 0;
   /*
@@ -44,6 +46,16 @@ beforeAll(async () => {
                        tannarx_birlik_snapshot, yaratdi_id)
     VALUES (${materialId}, ${FILIAL}, ${`US-${BELGI}-1`}, 'RULON', 3, 10, 100000, ${XODIM}),
            (${materialId}, ${FILIAL}, ${`US-${BELGI}-2`}, 'RULON', 1, 2, 200000, ${XODIM})`;
+  /** «Narxlar → Materialni o'zi sotish» — shu materialning o'z jadvali, DOLLARDA */
+  const n = await sql<{ id: number }[]>`
+    INSERT INTO mahsulot_narx (mahsulot_tur_id, hamma_turga, material_id,
+                               hisoblash_usuli, yaratdi_id)
+    VALUES (NULL, false, ${materialId}, 'MAYDON', ${XODIM})
+    RETURNING id`;
+  await sql`
+    INSERT INTO mahsulot_narx_bosqich (mahsulot_narx_id, dan, gacha, narx,
+                                       valyuta, tartib, yaratdi_id)
+    VALUES (${n[0]?.id ?? 0}, 0, NULL, 15, 'USD', 0, ${XODIM})`;
 });
 
 afterAll(async () => {
@@ -51,13 +63,13 @@ afterAll(async () => {
   await ulanishOl().end({ timeout: 5 });
 });
 
-describe('kartochkadagi ustama — 4-band', () => {
+describe('material ustamasi', () => {
   it('EC-OMB-U1: tannarx og‘irlangan o‘rtacha (106 250), oddiy AVG emas (150 000)', async () => {
     const u = await materialUstamasi(materialId, FILIAL);
     expect(u.ortachaTannarx).toBe('106250.00');
   });
 
-  it('EC-OMB-U2: dollar narx JORIY kursda so‘mga o‘giriladi, ustama musbat', async () => {
+  it('EC-OMB-U2: narx «Narxlar» jadvalidan (15 $ joriy kursda), eski 99 999 emas', async () => {
     const kurs = await joriyKurs(sql);
     expect(kurs).not.toBeNull();
     const narxSomda = new Decimal(15).times(kurs ?? 0);
@@ -65,12 +77,12 @@ describe('kartochkadagi ustama — 4-band', () => {
     expect(u.sotuvNarx).toBe(narxSomda.toFixed(2));
     const kutilgan = narxSomda.minus(106250).div(106250).times(100).toNumber();
     expect(u.ustamaFoiz).toBeCloseTo(kutilgan, 0);
-    expect(u.ustamaFoiz ?? -1).toBeGreaterThan(0);
   });
 
-  it('EC-OMB-U3: kartochka va hisobot BIR XIL foiz', async () => {
+  it('EC-OMB-U3: kartochka va hisobot BIR XIL; manba — jadval', async () => {
     const u = await materialUstamasi(materialId, FILIAL);
     const h = (await ustamaHisoboti(FILIAL)).qatorlar.find((q) => q.materialId === materialId);
     expect(u.ustamaFoiz).toBe(h?.ustamaFoiz);
+    expect(h?.narxManbai).toBe('JADVAL');
   });
 });

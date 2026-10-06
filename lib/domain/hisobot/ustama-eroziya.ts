@@ -14,8 +14,14 @@
  */
 
 import Decimal from 'decimal.js';
-import { type Som, kopaytir, nolmi, som } from '@/lib/domain/pul';
-import { ustamaChegarasi, ustamaFoizi } from '@/lib/domain/narx';
+import { type Kurs, type Som, kopaytir, nolmi, som } from '@/lib/domain/pul';
+import { katalogNarxi, ustamaChegarasi, ustamaFoizi } from '@/lib/domain/narx';
+import {
+  bosqichniTop,
+  qoidaniTop,
+  type Bosqich,
+  type TanlanadiganQoida,
+} from '@/lib/domain/narx-qoidasi';
 
 /** Chegara belgilanmagan materialga qo'llanadigan standart ustama, 5.4. */
 export const USTAMA_STANDART_CHEGARA = 30;
@@ -29,6 +35,8 @@ export interface EroziyaKirishi {
   readonly sotuvNarx: Som;
   /** Material kartochkasidagi shaxsiy chegara, bo'sh bo'lsa standart ishlaydi */
   readonly chegara: number | null;
+  /** Narx qayerdan olindi (2026-10-07) — ixtiyoriy, eski chaqiruvchilar uchun */
+  readonly narxManbai?: UstamaNarxManbai;
 }
 
 export interface EroziyaQatori {
@@ -42,6 +50,8 @@ export interface EroziyaQatori {
   readonly pastmi: boolean;
   /** Tannarx nol yoki sotuv narxi yo'q — ustama hisoblanmaydi */
   readonly hisoblanmadi: boolean;
+  /** «Narxlar» jadvalidan yoki materialning eski narxidan */
+  readonly narxManbai: UstamaNarxManbai;
 }
 
 export interface EroziyaHisoboti {
@@ -76,6 +86,7 @@ export function ustamaQatori(k: EroziyaKirishi): EroziyaQatori {
       chegara,
       pastmi: false,
       hisoblanmadi: true,
+      narxManbai: k.narxManbai ?? (nolmi(k.sotuvNarx) ? 'YOQ' : 'MATERIAL'),
     };
   }
 
@@ -89,6 +100,7 @@ export function ustamaQatori(k: EroziyaKirishi): EroziyaQatori {
     chegara,
     pastmi: ustamaFoiz < chegara,
     hisoblanmadi: false,
+    narxManbai: k.narxManbai ?? 'MATERIAL',
   };
 }
 
@@ -124,4 +136,59 @@ export function kerakliNarx(tannarx: Som, chegaraFoiz: number): Som {
   if (nolmi(tannarx)) return som(0);
   const koeffitsient = new Decimal(1).plus(new Decimal(chegaraFoiz).div(100));
   return kopaytir(tannarx, koeffitsient.toString());
+}
+
+// ─── Ustama uchun sotuv narxi — egasi qarori 2026-10-07 ───────────────────
+
+/** Narx qayerdan olindi — hisobotda ko'rsatiladi */
+export type UstamaNarxManbai = 'JADVAL' | 'MATERIAL' | 'YOQ';
+
+/**
+ * Ustamani hisoblash uchun SOTUV NARXI — 1 birlik (kv.m / m / dona) uchun.
+ *
+ * ⚠️ EGASI QARORI (2026-10-07): «belgilab qo'yilgan narxga tayansin».
+ *    Ilgari ustama materialning ESKI `sotuv_narx` maydonidan olinardi,
+ *    egasi esa 0057–0059 dan beri narxni «Narxlar» jadvalida qo'yadi —
+ *    hisobot bo'sh yoki eskirgan narx bilan chiqardi.
+ *
+ * ⚠️ SOTUV EKRANI BILAN BIR XIL TARTIB (`qoshimcha.tsx`):
+ *    1. «Materialni o'zi sotish» jadvali — `qoidaniTop()` (material jadvali,
+ *       keyin umumiy jadval; oddiy mijoz, shu filial)
+ *    2. Jadvalda yo'q bo'lsa — materialning o'z narxi (sotuv ham shunday)
+ *
+ * ⚠️ 1 BIRLIK narxi — bosqichli jadvalda eng kichik xaridning narxi.
+ *    Ko'p olganga arzonroq bosqich ustamani pasaytiradi; hisobot
+ *    «oddiy mijozga» narxni ko'rsatadi.
+ *
+ * Kurs yo'q bo'lsa dollarli narx hisoblanmaydi — `null` (xato emas,
+ * butun hisobot bitta materialdan yiqilmasin).
+ */
+/** Narx jadvalining qoidasi — tanlanadigan va bosqichli */
+export type UstamaQoidasi = TanlanadiganQoida & { readonly bosqichlar: readonly Bosqich[] };
+
+export function ustamaUchunNarx(k: {
+  readonly qoidalar: readonly UstamaQoidasi[];
+  readonly materialId: number;
+  readonly filialId: number;
+  readonly eskiNarx: string | null;
+  readonly eskiValyuta: string;
+  readonly kurs: Kurs | null;
+}): { readonly narx: Som | null; readonly manba: UstamaNarxManbai } {
+  const somda = (narx: string | null, valyuta: string): Som | null => {
+    if (narx === null) return null;
+    if (valyuta === 'USD' && k.kurs === null) return null;
+    return katalogNarxi(narx, valyuta, k.kurs);
+  };
+
+  const qoida = qoidaniTop(k.qoidalar, {
+    mijozTuriId: null,
+    filialId: k.filialId,
+    materialId: k.materialId,
+  });
+  if (qoida !== undefined) {
+    const bosqich = bosqichniTop(qoida.bosqichlar, 1);
+    if (bosqich !== null) return { narx: somda(bosqich.narx, bosqich.valyuta), manba: 'JADVAL' };
+  }
+  const eski = somda(k.eskiNarx, k.eskiValyuta);
+  return eski === null ? { narx: null, manba: 'YOQ' } : { narx: eski, manba: 'MATERIAL' };
 }

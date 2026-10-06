@@ -146,7 +146,8 @@ export default async function OmborHisoboti({
         <p className="mb-3 text-xs text-matn-kuchsiz">
           Kirimda ogohlantirish bir marta chiqadi (7.8). Bu yerda butun ro&apos;yxat
           turadi: qaysi materialning narxini ko&apos;tarish kerakligi bir ekranda
-          ko&apos;rinadi. Tannarx — omborda turgan bo&apos;laklarning o&apos;rtachasi.
+          ko&apos;rinadi. Tannarx — omborda turgan bo&apos;laklarning o&apos;rtachasi. Sotuv
+          narxi — «Narxlar → Materialni o&apos;zi sotish» da 1 birlik uchun belgilangan narx.
         </p>
         {ustama.jamiSoni === 0 ? (
           <Bosh matn="Omborda material yo'q." />
@@ -175,6 +176,19 @@ export default async function OmborHisoboti({
                     </td>
                     <td className="px-4 py-2.5 text-right tabular-nums">
                       {pulKorsat(q.sotuvNarx)}
+                      {/*
+                        ⚠️ Egasi qarori 2026-10-07 — narx «Narxlar» jadvalidan.
+                           Jadvalda yo'q bo'lsa materialning eski narxi olinadi
+                           (sotuv ham shunday qiladi) — buni ko'rinadigan qilamiz.
+                      */}
+                      {q.narxManbai === 'MATERIAL' && (
+                        <span
+                          className="block text-[11px] text-belgi-sariq"
+                          title="«Narxlar → Materialni o'zi sotish» da narx qo'yilmagan — materialning eski narxi olindi"
+                        >
+                          eski narx
+                        </span>
+                      )}
                     </td>
                     <td className="px-4 py-2.5 text-right tabular-nums">
                       {q.hisoblanmadi ? (

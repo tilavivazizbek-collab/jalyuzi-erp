@@ -41,9 +41,10 @@ import {
 import {
   type EroziyaHisoboti,
   ustamaEroziyasi,
+  ustamaUchunNarx,
 } from '@/lib/domain/hisobot/ustama-eroziya';
-import { katalogNarxi } from '@/lib/domain/narx';
-import { kurs, pulMatn, som, type Som } from '@/lib/domain/pul';
+import { materialNarxQoidalari } from '../buyurtma/yangi/malumot';
+import { kurs, pulMatn, som } from '@/lib/domain/pul';
 
 /**
  * Bo'lakning ombordagi qiymati — SQL ifodasi.
@@ -123,31 +124,35 @@ export async function ustamaHisoboti(
 
   const k = kursMatn === null ? null : kurs(kursMatn, new Date(), 'JORIY');
 
-  return ustamaEroziyasi(
-    qatorlar.map((q) => ({
-      materialId: q.material_id,
-      nom: q.nom,
-      tannarx: som(q.tannarx ?? 0),
-      sotuvNarx: sotuvNarxiSomda(q.sotuv_narx, q.sotuv_valyuta, k),
-      chegara: q.min_ustama_foiz === null ? null : Number(q.min_ustama_foiz),
-    })),
-  );
-}
+  /**
+   * ⚠️ EGASI QARORI 2026-10-07 — «belgilab qo'yilgan narxga tayansin».
+   *    Sotuv narxi «Materialni o'zi sotish» jadvalidan, SOTUV EKRANI
+   *    yuklaydigan funksiya bilan (`materialNarxQoidalari`) va bir xil
+   *    tanlov bilan (`ustamaUchunNarx` → `qoidaniTop`). Jadvalda yo'q
+   *    bo'lsa — materialning o'z narxi, sotuv ham shunday qiladi.
+   */
+  const narxQoidalari = await materialNarxQoidalari(filialId);
 
-/**
- * Kurs yo'q bo'lsa dollarli narx uchun `katalogNarxi` xato otadi (5.4).
- * Hisobot esa BUTUN ro'yxatni ko'rsatishi kerak — bitta materialdan
- * butun sahifa yiqilmasin. Shu sabab bu yerda nol qaytadi va qator
- * «hisoblanmadi» bo'lib ajraladi.
- */
-function sotuvNarxiSomda(
-  narx: string | null,
-  valyuta: string,
-  k: ReturnType<typeof kurs> | null,
-): Som {
-  if (narx === null) return som(0);
-  if (valyuta === 'USD' && k === null) return som(0);
-  return katalogNarxi(narx, valyuta, k) ?? som(0);
+  return ustamaEroziyasi(
+    qatorlar.map((q) => {
+      const n = ustamaUchunNarx({
+        qoidalar: narxQoidalari,
+        materialId: q.material_id,
+        filialId,
+        eskiNarx: q.sotuv_narx,
+        eskiValyuta: q.sotuv_valyuta,
+        kurs: k,
+      });
+      return {
+        materialId: q.material_id,
+        nom: q.nom,
+        tannarx: som(q.tannarx ?? 0),
+        sotuvNarx: n.narx ?? som(0),
+        chegara: q.min_ustama_foiz === null ? null : Number(q.min_ustama_foiz),
+        narxManbai: n.manba,
+      };
+    }),
+  );
 }
 
 // ─── 11.7.6 · Muzlab qolgan pul ───────────────────────────────────────────
