@@ -47,6 +47,14 @@ export default async function KirimTafsili({ params }: { params: Promise<{ id: s
         <h1 className="mt-2 text-[22px] font-semibold tracking-[-0.02em] text-matn">{h.raqam}</h1>
         <p className="mt-1 text-sm text-matn-kuchsiz">
           {h.sana} · {h.yetkazibNomi} · {h.valyuta}
+          {h.xarid !== null && (
+            <>
+              {' · buyurtma '}
+              <Link href={`/ombor/xarid/${String(h.xarid.id)}`} className="text-brend hover:underline">
+                {h.xarid.raqam}
+              </Link>
+            </>
+          )}
         </p>
       </div>
 

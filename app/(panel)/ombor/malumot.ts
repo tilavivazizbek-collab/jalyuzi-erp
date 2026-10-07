@@ -735,6 +735,8 @@ export interface KirimTafsiloti {
   readonly stornoSabab: string | null;
   readonly transportSumma: string;
   readonly bojxonaSumma: string;
+  /** 0063 — qaysi xarid buyurtmasi bo'yicha keldi */
+  readonly xarid: { readonly id: number; readonly raqam: string } | null;
   readonly qatorlar: readonly {
     readonly id: number;
     readonly materialNomi: string;
@@ -766,12 +768,16 @@ export async function kirimTafsiloti(
       storno_sabab: string | null;
       transport_summa: string;
       bojxona_summa: string;
+      xarid_id: number | null;
+      xarid_raqam: string | null;
     }[]
   >`
     SELECT k.id, k.raqam, k.sana::text AS sana, y.nom AS yetkazib_nomi,
-           k.valyuta, k.holat, k.storno_sabab, k.transport_summa, k.bojxona_summa
+           k.valyuta, k.holat, k.storno_sabab, k.transport_summa, k.bojxona_summa,
+           xb.id AS xarid_id, xb.raqam AS xarid_raqam
     FROM kirim k
     JOIN yetkazib_beruvchi y ON y.id = k.yetkazib_beruvchi_id
+    LEFT JOIN xarid_buyurtma xb ON xb.id = k.xarid_buyurtma_id
     WHERE k.id = ${kirimId} AND k.filial_id = ${filialId}`;
 
   const h = bosh[0];
@@ -810,6 +816,7 @@ export async function kirimTafsiloti(
     valyuta: h.valyuta,
     holat: h.holat,
     stornoSabab: h.storno_sabab,
+    xarid: h.xarid_id === null || h.xarid_raqam === null ? null : { id: h.xarid_id, raqam: h.xarid_raqam },
     transportSumma: h.transport_summa,
     bojxonaSumma: h.bojxona_summa,
     qatorlar: qatorlar.map((q) => ({

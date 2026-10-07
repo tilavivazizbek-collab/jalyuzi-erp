@@ -3,7 +3,8 @@ import { sahifaRuxsati } from '@/lib/kirish/joriy';
 import { ruxsatBormi } from '@/lib/ruxsat/tekshir';
 import { kirimMateriallari, kirimYetkazuvchilari } from '../../malumot';
 import { tolovKassalari } from '@/app/(panel)/buyurtma/malumot';
-import { KirimFormasi } from '../forma';
+import { KirimFormasi, type XariddanKirim } from '../forma';
+import { xaridTafsiloti } from '../../xarid/malumot';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,7 +19,7 @@ export const dynamic = 'force-dynamic';
 export default async function YangiKirim({
   searchParams,
 }: {
-  searchParams: Promise<{ material?: string }>;
+  searchParams: Promise<{ material?: string; xarid?: string }>;
 }) {
   const f = await sahifaRuxsati('ombor.kirim.yarat');
   // §9.4 — tugmani yashirish himoya emas, server amali ham tekshiradi
@@ -39,7 +40,33 @@ export default async function YangiKirim({
     kirimYetkazuvchilari(),
   ]);
 
-  const { material: xomMaterial } = await searchParams;
+  const { material: xomMaterial, xarid: xomXarid } = await searchParams;
+
+  /**
+   * 0063 — `?xarid=` — buyurtma kartochkasidagi «Mol keldi» tugmasi.
+   * ⚠️ Faqat o'z filialining OCHIQ buyurtmasi; kelib bo'lgan qator
+   *    ochilmaydi.
+   */
+  const xaridId = Number(xomXarid);
+  const x =
+    Number.isSafeInteger(xaridId) && xaridId > 0 ? await xaridTafsiloti(xaridId, f.filialId) : null;
+  const xarid: XariddanKirim | null =
+    x === null || x.qaror !== 'OCHIQ'
+      ? null
+      : {
+          id: x.id,
+          raqam: x.raqam,
+          yetkazibBeruvchiId: x.yetkazibBeruvchiId,
+          valyuta: x.valyuta,
+          qatorlar: x.qatorlar
+            .filter((q) => Number(q.qolgan) > 0)
+            .map((q) => ({
+              materialId: q.materialId,
+              miqdor: q.qolgan,
+              narxBirlik: q.narxBirlik,
+              narxAsosi: q.narxAsosi,
+            })),
+        };
   const soralgan = Number(xomMaterial);
   const boshMaterialId =
     Number.isSafeInteger(soralgan) && materiallar.some((m) => m.id === soralgan)
@@ -68,6 +95,7 @@ export default async function YangiKirim({
         yetkazibQoshaOladi={yetkazibQoshaOladi}
         materialQoshaOladi={materialQoshaOladi}
         boshMaterialId={boshMaterialId}
+        xarid={xarid}
       />
     </div>
   );

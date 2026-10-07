@@ -34,6 +34,79 @@ import { filial } from './asos';
 import { material, yetkazibBeruvchi } from './spravochnik';
 import { buyurtmaPozitsiya, pozitsiyaMaterial } from './buyurtma';
 
+// ─── 0063 · xarid buyurtmasi — ombor auditi 2026-10-07, 7-band ─────────────
+
+/**
+ * Yetkazib beruvchiga buyurtma (zakaz). PUL YOZILMAYDI — qarz, tannarx,
+ * qoldiq faqat kirim bilan o'zgaradi.
+ *
+ * ⚠️ Kelgan miqdor SAQLANMAYDI: har safar shu buyurtmaga bog'langan
+ *    FAOL kirimlardan hisoblanadi (storno o'zi qaytaradi).
+ */
+export const xaridBuyurtma = pgTable(
+  'xarid_buyurtma',
+  {
+    id: id(),
+    raqam: text('raqam').notNull().unique(),
+    filialId: bigint('filial_id', { mode: 'number' })
+      .notNull()
+      .references(() => filial.id),
+    yetkazibBeruvchiId: bigint('yetkazib_beruvchi_id', { mode: 'number' })
+      .notNull()
+      .references(() => yetkazibBeruvchi.id),
+    sana: date('sana').notNull(),
+    kutilganSana: date('kutilgan_sana'),
+    valyuta: text('valyuta').notNull().default('SOM'),
+    izoh: text('izoh'),
+    holat: text('holat').notNull().default('OCHIQ'),
+    yopishSabab: text('yopish_sabab'),
+    yopildi: timestamp('yopildi', { withTimezone: true }),
+    yopdiId: bigint('yopdi_id', { mode: 'number' }),
+    ...izlar,
+  },
+  (t) => [
+    check('xarid_buyurtma_holat', sql`${t.holat} IN ('OCHIQ', 'YOPILDI', 'BEKOR')`),
+    check('xarid_buyurtma_valyuta', sql`${t.valyuta} IN ('SOM', 'USD')`),
+    check(
+      'xarid_buyurtma_yopish',
+      sql`${t.holat} = 'OCHIQ' OR (${t.yopishSabab} IS NOT NULL AND ${t.yopildi} IS NOT NULL AND ${t.yopdiId} IS NOT NULL)`,
+    ),
+    check(
+      'xarid_buyurtma_kutilgan',
+      sql`${t.kutilganSana} IS NULL OR ${t.kutilganSana} >= ${t.sana}`,
+    ),
+    index('xarid_buyurtma_filial_holat').on(t.filialId, t.holat),
+    index('xarid_buyurtma_yetkazib').on(t.yetkazibBeruvchiId),
+  ],
+);
+
+export const xaridBuyurtmaQator = pgTable(
+  'xarid_buyurtma_qator',
+  {
+    id: id(),
+    xaridBuyurtmaId: bigint('xarid_buyurtma_id', { mode: 'number' })
+      .notNull()
+      .references(() => xaridBuyurtma.id),
+    materialId: bigint('material_id', { mode: 'number' })
+      .notNull()
+      .references(() => material.id),
+    /** Kirim birligida (rulon, shtanga, quti) */
+    miqdor: numeric('miqdor', { precision: 12, scale: 2 }).notNull(),
+    /** Kelishilgan narx, buyurtma valyutasida; bo'sh — kelganda aniqlanadi */
+    narxBirlik: numeric('narx_birlik', { precision: 14, scale: 2 }),
+    /** Narx nimaga: rulonga, metrga yoki kv.m ga — kirim qatori bilan bir xil (7.9) */
+    narxAsosi: text('narx_asosi').notNull().default('BIRLIK'),
+    izoh: text('izoh'),
+    ...izlar,
+  },
+  (t) => [
+    check('xarid_buyurtma_qator_asos', sql`${t.narxAsosi} IN ('BIRLIK', 'METR', 'KV_M')`),
+    check('xarid_buyurtma_qator_miqdor', sql`${t.miqdor} > 0`),
+    check('xarid_buyurtma_qator_narx', sql`${t.narxBirlik} IS NULL OR ${t.narxBirlik} >= 0`),
+    uniqueIndex('xarid_buyurtma_qator_bitta').on(t.xaridBuyurtmaId, t.materialId),
+  ],
+);
+
 // ─── 3.3 · kirim va kirim_qator — TZ 7.9 ──────────────────────────────────
 
 export const kirim = pgTable(
@@ -66,6 +139,10 @@ export const kirim = pgTable(
 
     holat: text('holat').notNull().default('FAOL'),
     stornoSabab: text('storno_sabab'),
+    /** 0063 — qaysi xarid buyurtmasi bo'yicha keldi; bo'sh — buyurtmasiz */
+    xaridBuyurtmaId: bigint('xarid_buyurtma_id', { mode: 'number' }).references(
+      () => xaridBuyurtma.id,
+    ),
     ...izlar,
   },
   (t) => [
@@ -80,6 +157,7 @@ export const kirim = pgTable(
     check('kirim_xarajat_manfiy_emas', sql`${t.transportSumma} >= 0 AND ${t.bojxonaSumma} >= 0`),
     index('kirim_filial_sana').on(t.filialId, t.sana),
     index('kirim_yetkazib').on(t.yetkazibBeruvchiId),
+    index('kirim_xarid_buyurtma').on(t.xaridBuyurtmaId).where(sql`${t.xaridBuyurtmaId} IS NOT NULL`),
   ],
 );
 

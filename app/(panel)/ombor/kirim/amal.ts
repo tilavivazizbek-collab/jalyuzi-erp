@@ -44,6 +44,9 @@ export async function kirimYaratAmali(
     tolovSumma: matnMaydon(forma, 'tolovSumma'),
     tolovKassaId: matnMaydon(forma, 'tolovKassaId'),
   };
+  /** 0063 — xarid buyurtmasidan ochilgan kirim */
+  const xaridXom = Number(matnMaydon(forma, 'xaridBuyurtmaId'));
+  const xaridBuyurtmaId = Number.isSafeInteger(xaridXom) && xaridXom > 0 ? xaridXom : undefined;
 
   const tekshiruv = kirimSxema.safeParse(xom);
   if (!tekshiruv.success) {
@@ -69,6 +72,7 @@ export async function kirimYaratAmali(
     tolovMuddati: d.tolovMuddati ?? null,
     tolovSumma: d.tolovSumma,
     tolovKassaId: d.tolovKassaId,
+    xaridBuyurtmaId,
     qatorlar: d.qatorlar.map((q) => ({
       materialId: q.materialId,
       miqdorKirim: Number(q.miqdorKirim),
@@ -92,7 +96,7 @@ export async function kirimYaratAmali(
     };
   }
 
-  revalidatePath('/ombor');
+  revalidatePath('/ombor', 'layout');
 
   // TZ 7.9 — ustama past bo'lsa hujjat SAQLANADI, lekin ogohlantirish
   // ko'rsatiladi. Bloklamaydi: mol allaqachon kelgan.
@@ -109,5 +113,5 @@ export async function kirimYaratAmali(
     };
   }
 
-  redirect('/ombor');
+  redirect(xaridBuyurtmaId === undefined ? '/ombor' : `/ombor/xarid/${String(xaridBuyurtmaId)}`);
 }

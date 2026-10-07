@@ -23,6 +23,29 @@ buyurtmani tahrirlash (8.7), material statistikasi (7.11)
 
 ---
 
+## 0$. Ombor bo'limi — audit 2026-10-07 (har band alohida)
+
+| Band | Nima | Holat |
+|---|---|---|
+| 1 | Qoldiqda qidiruv, filtr, saralash; rulon kam qoldig'i metrda | ✅ |
+| 2 | Qoldiqning tannarx qiymati — formula bitta joyda (`bolakQiymatiIfodasi`) | ✅ |
+| 3 | Sotuvchiga tannarx ko'rinmaydi — 6 sahifa (`tannarxniKoradimi`) | ✅ |
+| 4 | Excel'ga yuklash — qoldiq, tarix, kirimlar | ✅ |
+| 5 | Ustama «Narxlar» jadvalidagi narxga tayanadi (P-44); rang partiyasi — egasi: kerak emas | ✅ |
+| 6 | Saqlash joyi (0062) va QR yorliq: `/ombor/joylar`, `/ombor/bolak/[id]`, `/ombor/yorliq` | ✅ |
+| 7 | Xarid buyurtmasi (0063): `/ombor/xarid` — buyurtma → kirim, kelgan/qolgan, kechikish, chop etish | ✅ |
+| 8 | Nakladnoy chop etish, «qachon buyurtma berish» ogohi | ⏳ keyingi |
+
+**7-band tafsiloti (P-45):** buyurtma pul yozmaydi; «kelgan» saqlanmaydi —
+FAOL kirimlardan hisoblanadi (storno o'zi qaytaradi). Kirim buyurtmadan
+ochiladi (`/ombor/kirim/yangi?xarid=`) — qolgan miqdor, kelishilgan narx va
+narx usuli (rulon / metr / kv.m) bilan. Material kartochkasida «buyurtma
+qilingan, hali kelmagan» va «Buyurtma berish». Yangi buyurtmada shu
+materialdan boshqa buyurtmada yo'lda borligi ogohlantiriladi. Narx va
+summa — faqat tannarxni ko'radiganga.
+
+⚠️ 0062 va 0063 ishlab chiqarish bazasiga HALI qo'llanmagan (baza tushgan).
+
 ## 0#. Mijozlar bo'limi — egasi auditi 2026-10-06
 
 Egasi: «mijozlar pageni to'liq ko'rib chiq… hammasini qo'shib to'g'rila».

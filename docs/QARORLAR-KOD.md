@@ -2024,3 +2024,23 @@ sotuv ekrani bilan bir xil tartib: «Materialni o'zi sotish» jadvali
 eski narxdan olingan qatorda «eski narx» belgisi.
 
 Rang partiyasi (dye lot) — egasi: kerak emas. Qurilmaydi.
+
+## P-45 — Xarid buyurtmasi: «kelgan» saqlanmaydi
+
+**2026-10-07, ombor auditi 7-band (0063).** Yetkazib beruvchiga buyurtma
+(`xarid_buyurtma`, `xarid_buyurtma_qator`) — niyat, hujjat emas: qarz,
+tannarx, qoldiq faqat kirim bilan yoziladi.
+
+**Qaror:**
+- Bazada faqat egasining qarori: `OCHIQ` / `YOPILDI` / `BEKOR` (sabab shart).
+  «Kutilmoqda / Qisman / To'liq» har safar FAOL kirimlardan hisoblanadi
+  (`lib/domain/xarid.ts`, o'qish — `qatorlarniOl` bitta joyda). Kirim
+  storno bo'lsa buyurtma o'zi qaytadi — ikki son ajrab qolmaydi.
+- `kirim.xarid_buyurtma_id` — `kirimYarat` tranzaksiyasi ichida buyurtma
+  `FOR UPDATE` bilan tekshiriladi: o'z filiali, OCHIQ, yetkazib beruvchi bir xil.
+- Bir buyurtmada bir material — bitta qator (noyob indeks).
+- Narx usuli (`BIRLIK`/`METR`/`KV_M`) qatorda qotadi — kirim shu usulda
+  ochiladi. Metrga narxlangan rulon summasi odatdagi bo'y bilan TAXMIN
+  (`≈`); o'lcham yo'q bo'lsa summa aytilmaydi.
+- Kelgan narsa bor buyurtma bekor qilinmaydi — faqat yopiladi.
+

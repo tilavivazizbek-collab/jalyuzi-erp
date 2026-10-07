@@ -4,6 +4,7 @@ import { sahifaRuxsati } from '@/lib/kirish/joriy';
 import { ruxsatBormi, tannarxniKoradimi } from '@/lib/ruxsat/tekshir';
 import { BekorTugmasi } from '../chiqim/bekor';
 import { TuzatishTugmasi } from './tuzatish-tugma';
+import { yoldagiBuyurtmalar } from '../xarid/malumot';
 import Decimal from 'decimal.js';
 import { dollar, pulKorsat, som } from '@/lib/domain/pul';
 import { daraja, type Chegaralar } from '@/lib/domain/kesish';
@@ -109,6 +110,8 @@ export default async function MaterialKartochkasi({ params }: { params: Promise<
       materialYetkazuvchilari(materialId),
       yoldaMiqdori(materialId, f.filialId),
     ]);
+  /** 0063 — yetkazib beruvchiga buyurtma qilingan, hali kelmagan */
+  const buyurtmada = await yoldagiBuyurtmalar(f.filialId, materialId);
 
   const [bolaklar, harakatlar, sanoq, xulosa, filial] = await Promise.all([
     materialBolaklari(materialId, f.filialId),
@@ -137,6 +140,22 @@ export default async function MaterialKartochkasi({ params }: { params: Promise<
           {/* TZ 15.1 — oxirgi sanoq kartochkada ko'rinadi */}
           {sanoq !== null && ` · oxirgi sanoq ${sanoq.sana} (${sanoq.kim})`}
         </p>
+        {/* 0063 — ikkinchi marta buyurtma qilmaslik uchun */}
+        {buyurtmada.length > 0 && (
+          <p className="mt-1 text-sm text-belgi-kok">
+            Buyurtma qilingan, hali kelmagan:{' '}
+            {buyurtmada.map((b, i) => (
+              <span key={b.xaridId}>
+                {i > 0 && ', '}
+                {b.qolgan.replace(/\.00$/, '')} {b.kirimBirligi} (
+                <Link href={`/ombor/xarid/${String(b.xaridId)}`} className="underline">
+                  {b.raqam}
+                </Link>
+                {b.kutilganSana !== null && `, ${b.kutilganSana} ga`})
+              </span>
+            ))}
+          </p>
+        )}
         <div className="mt-3 flex flex-wrap items-start gap-3">
           {boshlangichQilaOladi && bolaklar.length === 0 && (
             <Link
@@ -163,6 +182,14 @@ export default async function MaterialKartochkasi({ params }: { params: Promise<
               className="inline-block rounded-maydon bg-brend px-3 py-1.5 text-sm font-medium text-tugma-matn transition-all hover:bg-brend-quyuq active:scale-[0.98]"
             >
               Kirim qilish
+            </Link>
+          )}
+          {kirimQilaOladi && (
+            <Link
+              href={`/ombor/xarid/yangi?material=${String(materialId)}`}
+              className="inline-block rounded-maydon border border-chegara-quyuq px-3 py-1.5 text-sm text-matn-ikki transition-all hover:bg-fon active:scale-[0.98]"
+            >
+              Buyurtma berish
             </Link>
           )}
         </div>

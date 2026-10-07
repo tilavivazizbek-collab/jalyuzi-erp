@@ -435,6 +435,13 @@
       "when": 1790196166251,
       "tag": "0062_ombor_joy",
       "breakpoints": true
+    },
+    {
+      "idx": 63,
+      "version": "7",
+      "when": 1790282566251,
+      "tag": "0063_xarid_buyurtma",
+      "breakpoints": true
     }
   ]
 }

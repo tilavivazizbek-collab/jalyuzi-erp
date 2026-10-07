@@ -40,6 +40,7 @@ import {
 import { xarajatYozTx } from './kassa';
 import { BiznesXato } from '@/lib/xato';
 import { yetkazibToloviTx } from './yetkazib-tolov';
+import { xaridKirimgaMosmiTx } from './xarid';
 
 /** Rulon uchun har bo'lak o'z o'lchami bilan (7.9). */
 export interface BolakOlchami {
@@ -87,6 +88,14 @@ export interface KirimKirimi {
    */
   readonly tolovSumma?: string;
   readonly tolovKassaId?: number;
+
+  /**
+   * 0063 — qaysi xarid buyurtmasi bo'yicha keldi. Bo'sh — buyurtmasiz.
+   *
+   * ⚠️ Buyurtma shu filialniki, OCHIQ va yetkazib beruvchisi bir xil
+   *    bo'lishi shart — tekshiruv shu tranzaksiyada.
+   */
+  readonly xaridBuyurtmaId?: number;
 }
 
 /** TZ 7.9 — ustama chegaradan past bo'lsa OGOHLANTIRISH, bloklamaydi. */
@@ -246,15 +255,24 @@ export async function kirimYarat(
     }));
     const ulushlar = xarajatniTaqsimla(domenQatorlar, xarajat);
 
+    // ── 0063 — xarid buyurtmasi ──
+    if (kirim.xaridBuyurtmaId !== undefined) {
+      await xaridKirimgaMosmiTx(tx, {
+        id: kirim.xaridBuyurtmaId,
+        filialId: kirim.filialId,
+        yetkazibBeruvchiId: kirim.yetkazibBeruvchiId,
+      });
+    }
+
     // ── Hujjat sarlavhasi ──
     const hujjat = await tx<{ id: number }[]>`
       INSERT INTO kirim (raqam, sana, filial_id, yetkazib_beruvchi_id, valyuta,
                          kurs_snapshot, transport_summa, bojxona_summa,
-                         tolov_muddati, yaratdi_id)
+                         tolov_muddati, xarid_buyurtma_id, yaratdi_id)
       VALUES (${kirim.raqam}, ${kirim.sana}, ${kirim.filialId},
               ${kirim.yetkazibBeruvchiId}, ${kirim.valyuta}, ${kirim.kursSnapshot},
               ${kirim.transportSumma}, ${kirim.bojxonaSumma},
-              ${kirim.tolovMuddati}, ${xodimId})
+              ${kirim.tolovMuddati}, ${kirim.xaridBuyurtmaId ?? null}, ${xodimId})
       RETURNING id`;
 
     const kirimId = hujjat[0]?.id;

@@ -88,6 +88,23 @@ interface Qator {
 
 const kichik = `${kirishUslubi(false)} py-1.5`;
 
+/**
+ * 0063 — kirim xarid buyurtmasidan ochilsa. Qatorlar HALI KELMAGAN
+ * miqdor bilan ochiladi; omborchi haqiqatda kelganini yozadi.
+ */
+export interface XariddanKirim {
+  readonly id: number;
+  readonly raqam: string;
+  readonly yetkazibBeruvchiId: number;
+  readonly valyuta: 'SOM' | 'USD';
+  readonly qatorlar: readonly {
+    readonly materialId: number;
+    readonly miqdor: string;
+    readonly narxBirlik: string | null;
+    readonly narxAsosi: 'BIRLIK' | 'METR' | 'KV_M';
+  }[];
+}
+
 export function KirimFormasi({
   materiallar: boshMateriallar,
   yetkazuvchilar,
@@ -95,6 +112,7 @@ export function KirimFormasi({
   materialQoshaOladi,
   kassalar,
   boshMaterialId = null,
+  xarid = null,
 }: {
   materiallar: readonly MaterialTanlovi[];
   yetkazuvchilar: readonly YetkazibTanlovi[];
@@ -114,6 +132,8 @@ export function KirimFormasi({
    * material bilan ochiladi (`?material=`).
    */
   boshMaterialId?: number | null;
+  /** 0063 — xarid buyurtmasidan ochilgan kirim (`?xarid=`) */
+  xarid?: XariddanKirim | null;
 }) {
   const [holat, yubor, kutilmoqda] = useActionState(kirimYaratAmali, BOSH_HOLAT);
 
@@ -125,7 +145,7 @@ export function KirimFormasi({
     useState<readonly MaterialTanlovi[]>(boshMateriallar);
   const [materialModali, materialModaliniOzgartir] = useState(false);
 
-  const [valyuta, setValyuta] = useState('SOM');
+  const [valyuta, setValyuta] = useState<string>(xarid?.valyuta ?? 'SOM');
   const [transport, setTransport] = useState('');
   const [bojxona, setBojxona] = useState('');
   const [tolov, setTolov] = useState('');
@@ -138,6 +158,33 @@ export function KirimFormasi({
    *    o'chirib yuborardi.
    */
   const [qatorlar, setQatorlar] = useState<Qator[]>(() => {
+    if (xarid !== null) {
+      const r: Qator[] = [];
+      for (const x of xarid.qatorlar) {
+        const m = boshMateriallar.find((y) => y.id === x.materialId);
+        if (m === undefined) continue;
+        const miqdor = x.miqdor.replace(/\.00$/, '');
+        const soni = Number(miqdor);
+        const rulon = m.hisobTuri === 'RULON';
+        r.push({
+          materialId: m.id,
+          miqdorKirim: miqdor,
+          narxBirlik: x.narxBirlik ?? boshlangichNarx(m, xarid.valyuta),
+          // ⚠️ Buyurtmadagi usul: narx shu usulda kelishilgan
+          narxAsosi: rulon ? x.narxAsosi : 'BIRLIK',
+          defektMiqdor: '',
+          defektTuri: null,
+          bolaklar:
+            rulon && Number.isInteger(soni) && soni > 0 && soni <= 50
+              ? Array.from({ length: soni }, () => ({
+                  eniM: m.odatdagiEniM ?? '',
+                  boyiM: m.odatdagiBoyiM ?? '',
+                }))
+              : [],
+        });
+      }
+      return r;
+    }
     if (boshMaterialId === null || boshMaterialId === undefined) return [];
     const m = boshMateriallar.find((x) => x.id === boshMaterialId);
     if (m === undefined) return [];
@@ -335,6 +382,13 @@ export function KirimFormasi({
   return (
     <form action={yubor} onKeyDown={enterYuborilmasin} className="flex flex-col gap-6">
       <input type="hidden" name="qatorlar" value={JSON.stringify(qatorlar)} />
+      {xarid !== null && <input type="hidden" name="xaridBuyurtmaId" value={xarid.id} />}
+      {xarid !== null && (
+        <p className="rounded-maydon bg-belgi-kok-fon px-3 py-2 text-sm text-belgi-kok">
+          {xarid.raqam} buyurtmasi bo&apos;yicha kirim. Qatorlar hali kelmagan miqdor bilan
+          ochildi — haqiqatda kelganini yozing, kam kelgani buyurtmada ochiq qoladi.
+        </p>
+      )}
 
       {holat.xato !== null && (
         <p
@@ -399,6 +453,7 @@ export function KirimFormasi({
             nom="yetkazibBeruvchiId"
             yorliq="Yetkazib beruvchi"
             bandlar={yetkazuvchilar}
+            boshlangich={xarid === null ? undefined : String(xarid.yetkazibBeruvchiId)}
             boshMatn="— tanlang —"
             yangiYorliq="Yangi yetkazib beruvchi"
             boshqaruvYoli="/yetkazib"
@@ -1055,7 +1110,7 @@ export function KirimFormasi({
  *    «metr narxi» degan tushunchasi yo'q. Kartochkadagi qiymat
  *    faqat rulonga taalluqli.
  */
-function qatorAsosi(m: MaterialTanlovi): 'BIRLIK' | 'METR' | 'KV_M' {
+export function qatorAsosi(m: MaterialTanlovi): 'BIRLIK' | 'METR' | 'KV_M' {
   if (m.hisobTuri !== 'RULON') return 'BIRLIK';
   if (m.kirimNarxAsosi === 'KV_M') return 'KV_M';
   if (m.kirimNarxAsosi === 'BIRLIK') return 'BIRLIK';
