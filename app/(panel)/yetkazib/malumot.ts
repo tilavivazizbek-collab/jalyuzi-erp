@@ -13,7 +13,9 @@
  *    songa qo'shilmaydi.
  */
 
+import Decimal from 'decimal.js';
 import { ulanishOl } from '@/lib/db';
+import type { YetkazibHolati } from './taqsimot';
 
 // ─── 9.7 · Sarlavha: ikki blok ────────────────────────────────────────────
 
@@ -46,10 +48,12 @@ export interface HamkorlikBloki {
  */
 export async function sarlavhaBloklari(
   yetkazibBeruvchiId: number,
+  /** 2026-10-07 — muddat FIFO taqsimotdan: faqat TO'LANMAGAN hujjatlar */
+  holat: YetkazibHolati,
 ): Promise<{ qarz: QarzBloki; hamkorlik: HamkorlikBloki }> {
   const sql = ulanishOl();
 
-  const [qarzlar, davo, muddat, hamkor] = await Promise.all([
+  const [qarzlar, davo, hamkor, jami] = await Promise.all([
     sql<{ valyuta: string; summa: string }[]>`
       SELECT valyuta, SUM(summa)::text AS summa
       FROM yetkazib_beruvchi_harakat
@@ -72,13 +76,6 @@ export async function sarlavhaBloklari(
             AND h.manba_id = kq.id
         )`,
 
-    sql<{ muddat: string | null; otdi: boolean }[]>`
-      SELECT MIN(k.tolov_muddati)::text AS muddat,
-             (MIN(k.tolov_muddati) < CURRENT_DATE) AS otdi
-      FROM kirim k
-      WHERE k.yetkazib_beruvchi_id = ${yetkazibBeruvchiId}
-        AND k.holat = 'FAOL' AND k.tolov_muddati IS NOT NULL`,
-
     sql<{
       hamkor: string | null;
       oxirgi: string | null;
@@ -94,16 +91,22 @@ export async function sarlavhaBloklari(
       LEFT JOIN kirim_qator kq ON kq.kirim_id = k.id
       WHERE k.yetkazib_beruvchi_id = ${yetkazibBeruvchiId}
         AND k.holat = 'FAOL'`,
-  ]);
 
-  /** 1.3 — jami kirim ham valyuta bo'yicha alohida */
-  const jami = await sql<{ valyuta: string; summa: string }[]>`
-    SELECT k.valyuta, SUM(kq.miqdor_kirim * kq.narx_birlik)::numeric(14,2)::text AS summa
-    FROM kirim k
-    JOIN kirim_qator kq ON kq.kirim_id = k.id
-    WHERE k.yetkazib_beruvchi_id = ${yetkazibBeruvchiId} AND k.holat = 'FAOL'
-    GROUP BY k.valyuta
-    ORDER BY k.valyuta`;
+    /**
+     * 1.3 — jami kirim valyuta bo'yicha alohida.
+     *
+     * ⚠️ JURNALDAGI `XARID` dan (storno teskari yozuvi bilan): ilgari
+     *    `miqdor × narx` edi — metrga narxlangan rulonda rulon SONIGA
+     *    ko'paytirilardi (P-46).
+     */
+    sql<{ valyuta: string; summa: string }[]>`
+      SELECT valyuta, SUM(summa)::numeric(14,2)::text AS summa
+      FROM yetkazib_beruvchi_harakat
+      WHERE yetkazib_beruvchi_id = ${yetkazibBeruvchiId} AND turi = 'XARID'
+      GROUP BY valyuta
+      HAVING SUM(summa) <> 0
+      ORDER BY valyuta`,
+  ]);
 
   const h = hamkor[0];
 
@@ -111,8 +114,8 @@ export async function sarlavhaBloklari(
     qarz: {
       qarzlar,
       ochiqDavo: davo[0]?.n ?? 0,
-      yaqinMuddat: muddat[0]?.muddat ?? null,
-      muddatOtdimi: muddat[0]?.otdi === true,
+      yaqinMuddat: holat.muddat.yaqinMuddat,
+      muddatOtdimi: holat.muddat.muddatOtganSoni > 0,
     },
     hamkorlik: {
       hamkorSana: h?.hamkor ?? null,
@@ -150,22 +153,30 @@ export async function qarzHarakati(
   yetkazibBeruvchiId: number,
   chegara = 100,
 ): Promise<readonly QarzQatori[]> {
+  /**
+   * ⚠️ OXIRGI `chegara` ta — 2026-10-07 gacha ENG ESKI 100 ta chiqardi:
+   *    uzoq hamkorda bugungi to'lov va kirim jadvalda umuman ko'rinmasdi.
+   *    Balans HAMMA qatorlar ustida hisoblanadi, keyin kesiladi.
+   */
   return ulanishOl()<QarzQatori[]>`
-    SELECT h.id, h.sana, h.turi, h.izoh, h.summa::text, h.valyuta,
-           (SUM(h.summa) OVER (
-              PARTITION BY h.valyuta ORDER BY h.sana, h.id
-              ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
-            ) - h.summa)::text AS oldingi,
-           SUM(h.summa) OVER (
-             PARTITION BY h.valyuta ORDER BY h.sana, h.id
-             ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
-           )::text AS keyingi,
-           COALESCE(x.ism, '—') AS kim
-    FROM yetkazib_beruvchi_harakat h
-    LEFT JOIN xodim x ON x.id = h.xodim_id
-    WHERE h.yetkazib_beruvchi_id = ${yetkazibBeruvchiId}
-    ORDER BY h.sana, h.id
-    LIMIT ${chegara}`;
+    SELECT * FROM (
+      SELECT h.id, h.sana, h.turi, h.izoh, h.summa::text, h.valyuta,
+             (SUM(h.summa) OVER (
+                PARTITION BY h.valyuta ORDER BY h.sana, h.id
+                ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+              ) - h.summa)::text AS oldingi,
+             SUM(h.summa) OVER (
+               PARTITION BY h.valyuta ORDER BY h.sana, h.id
+               ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+             )::text AS keyingi,
+             COALESCE(x.ism, '—') AS kim
+      FROM yetkazib_beruvchi_harakat h
+      LEFT JOIN xodim x ON x.id = h.xodim_id
+      WHERE h.yetkazib_beruvchi_id = ${yetkazibBeruvchiId}
+      ORDER BY h.sana DESC, h.id DESC
+      LIMIT ${chegara}
+    ) t
+    ORDER BY t.sana, t.id`;
 }
 
 // ─── 9.7 · 2-tab · Kirimlar ───────────────────────────────────────────────
@@ -186,29 +197,34 @@ export interface KirimQatori {
 /**
  * TZ 9.7 — hujjatlar ro'yxati.
  *
- * ⚠️ «To'langan» — SHU HUJJATGA bog'langan kassa chiqimlari.
- *    Umumiy balansga tushgan to'lov (9.5) bu ustunda ko'rinmaydi:
- *    u qaysi hujjatni yopgani hujjat darajasida saqlanmaydi.
+ * ⚠️ 2026-10-07 — summa, to'langan va qoldi FIFO TAQSIMOTDAN
+ *    (`./taqsimot.ts`). Ilgari: summa `miqdor × narx` (metrga narxda
+ *    xato, P-46), «to'langan» faqat SHU hujjatga bog'langan kassa
+ *    chiqimi — kartochkadan to'langan qarz hujjatni hech qachon yopmasdi.
  */
 export async function kirimlar(
   yetkazibBeruvchiId: number,
+  holat: YetkazibHolati,
   chegara = 50,
 ): Promise<readonly KirimQatori[]> {
-  return ulanishOl()<KirimQatori[]>`
+  const q = await ulanishOl()<
+    {
+      id: number;
+      raqam: string;
+      sana: string;
+      valyuta: string;
+      holat: string;
+      muddat: string | null;
+      tarkib: string;
+      yozilgan: string | null;
+    }[]
+  >`
     SELECT k.id, k.raqam, k.sana::text, k.valyuta, k.holat,
            k.tolov_muddati::text AS muddat,
            COALESCE(string_agg(DISTINCT m.nom, ', '), '—') AS tarkib,
-           COALESCE(SUM(kq.miqdor_kirim * kq.narx_birlik), 0)
-             ::numeric(14,2)::text AS summa,
-           COALESCE((
-             SELECT ABS(SUM(y.summa)) FROM kassa_yozuv y
-             WHERE y.manba_turi = 'kirim' AND y.manba_id = k.id AND y.summa < 0
-           ), 0)::numeric(14,2)::text AS tolangan,
-           (COALESCE(SUM(kq.miqdor_kirim * kq.narx_birlik), 0)
-            - COALESCE((
-                SELECT ABS(SUM(y.summa)) FROM kassa_yozuv y
-                WHERE y.manba_turi = 'kirim' AND y.manba_id = k.id AND y.summa < 0
-              ), 0))::numeric(14,2)::text AS qoldi
+           (SELECT SUM(h.summa) FROM yetkazib_beruvchi_harakat h
+             WHERE h.manba_turi = 'kirim' AND h.manba_id = k.id
+               AND h.turi = 'XARID')::text AS yozilgan
     FROM kirim k
     LEFT JOIN kirim_qator kq ON kq.kirim_id = k.id
     LEFT JOIN material m ON m.id = kq.material_id
@@ -216,6 +232,25 @@ export async function kirimlar(
     GROUP BY k.id
     ORDER BY k.sana DESC, k.id DESC
     LIMIT ${chegara}`;
+  const bandlar = new Map(
+    holat.taqsimot.bandlar.filter((b) => b.buyurtmaId !== null).map((b) => [b.buyurtmaId, b]),
+  );
+  return q.map((k) => {
+    const b = bandlar.get(k.id);
+    return {
+      id: k.id,
+      raqam: k.raqam,
+      sana: k.sana,
+      tarkib: k.tarkib,
+      valyuta: k.valyuta,
+      muddat: k.muddat,
+      holat: k.holat,
+      summa: b?.summa ?? new Decimal(k.yozilgan ?? 0).toFixed(2),
+      // Storno qilingan hujjat qarz bandi emas — to'lov ham, qoldiq ham yo'q
+      tolangan: b?.tolangan ?? '0.00',
+      qoldi: b?.qolgan ?? '0.00',
+    };
+  });
 }
 
 // ─── 9.7 · 3-tab · To'lovlar ──────────────────────────────────────────────

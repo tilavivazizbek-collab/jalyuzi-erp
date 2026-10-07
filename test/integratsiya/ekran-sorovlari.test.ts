@@ -37,6 +37,7 @@ import * as narxEkrani from '@/app/(panel)/narx/malumot';
 import * as materialKartochka from '@/app/(panel)/ombor/[id]/malumot';
 import * as mijozKartochka from '@/app/(panel)/mijoz/[id]/malumot';
 import * as yetkazibKartochka from '@/app/(panel)/yetkazib/[id]/malumot';
+import * as yetkazibTaqsimot from '@/app/(panel)/yetkazib/taqsimot';
 import { yetkazibSolishtirishAkti } from '@/lib/amal/hisob-kitob';
 import * as mijozGuruhEkrani from '@/app/(panel)/mijoz/guruh/malumot';
 import * as tarixEkrani from '@/app/(panel)/ombor/tarix/malumot';
@@ -585,10 +586,11 @@ describe('Hisobot ekranlari — TZ 11.7', () => {
     const y = await ulanishOl()<{ id: number }[]>`
       SELECT id FROM yetkazib_beruvchi ORDER BY id LIMIT 1`;
     const id = y[0]?.id ?? YOQ;
+    const holat = await yetkazibTaqsimot.yetkazibHolati(id);
 
-    await expect(yetkazibEkrani.sarlavhaBloklari(id)).resolves.toBeDefined();
+    await expect(yetkazibEkrani.sarlavhaBloklari(id, holat)).resolves.toBeDefined();
     await expect(yetkazibEkrani.qarzHarakati(id)).resolves.toBeDefined();
-    await expect(yetkazibEkrani.kirimlar(id)).resolves.toBeDefined();
+    await expect(yetkazibEkrani.kirimlar(id, holat)).resolves.toBeDefined();
     await expect(yetkazibEkrani.tolovlar(id)).resolves.toBeDefined();
     await expect(yetkazibEkrani.materialNarxTarixi(id)).resolves.toBeDefined();
     await expect(yetkazibEkrani.davolar(id)).resolves.toBeDefined();
@@ -596,13 +598,14 @@ describe('Hisobot ekranlari — TZ 11.7', () => {
   });
 
   it('9.7 — mavjud bo‘lmagan yetkazib beruvchida ham yiqilmaydi', async () => {
+    const holat = await yetkazibTaqsimot.yetkazibHolati(YOQ);
     await expect(yetkazibEkrani.qarzHarakati(YOQ)).resolves.toEqual([]);
-    await expect(yetkazibEkrani.kirimlar(YOQ)).resolves.toEqual([]);
+    await expect(yetkazibEkrani.kirimlar(YOQ, holat)).resolves.toEqual([]);
     await expect(yetkazibEkrani.tolovlar(YOQ)).resolves.toEqual([]);
     await expect(yetkazibEkrani.materialNarxTarixi(YOQ)).resolves.toEqual([]);
     await expect(yetkazibEkrani.davolar(YOQ)).resolves.toEqual([]);
     await expect(yetkazibEkrani.izohlar(YOQ)).resolves.toEqual([]);
-    await expect(yetkazibEkrani.sarlavhaBloklari(YOQ)).resolves.toBeDefined();
+    await expect(yetkazibEkrani.sarlavhaBloklari(YOQ, holat)).resolves.toBeDefined();
   });
 
   it('13.8 — usta botining navbat so‘rovi', async () => {
@@ -667,8 +670,11 @@ describe('Kartochka ekranlari — material va mijoz', () => {
    */
   it('yetkazib beruvchi kartochkasi — oltala so’rov', async () => {
     const Y = 1;
-    await expect(yetkazibKartochka.tolovIntizomimiz(Y)).resolves.toBeDefined();
-    await expect(yetkazibKartochka.kutilayotganTolovlar(Y)).resolves.toBeInstanceOf(Array);
+    // 2026-10-07 — ikkalasi FIFO taqsimotdan (`yetkazibHolati` — yagona so'rov)
+    const holat = await yetkazibTaqsimot.yetkazibHolati(Y);
+    expect(yetkazibKartochka.tolovIntizomimiz(holat)).toBeDefined();
+    expect(yetkazibKartochka.kutilayotganTolovlar(holat)).toBeInstanceOf(Array);
+    await expect(yetkazibTaqsimot.yetkazibHolatlari(null)).resolves.toBeInstanceOf(Map);
     await expect(yetkazibKartochka.narxSolishtirish(Y)).resolves.toBeInstanceOf(Array);
     await expect(yetkazibKartochka.kursFarqiJami(Y)).resolves.toBeDefined();
     await expect(yetkazibKartochka.ombordaQolgan(Y)).resolves.toBeDefined();

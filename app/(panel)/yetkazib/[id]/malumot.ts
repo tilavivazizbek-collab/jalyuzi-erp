@@ -16,7 +16,10 @@
  * ⚠️ VALYUTALAR ARALASHTIRILMAYDI (1.3-invariant).
  */
 
+import Decimal from 'decimal.js';
 import { ulanishOl } from '@/lib/db';
+import { toshkentKuni } from '@/lib/domain/sana';
+import type { YetkazibHolati } from '../taqsimot';
 
 // ─── 1 · Biz qanday to'laymiz ─────────────────────────────────────────────
 
@@ -27,6 +30,8 @@ export interface TolovIntizomimiz {
   readonly tolanganSoni: number;
   /** Muddati o'tgan, hali to'lanmagan hujjatlar */
   readonly kechikkanSoni: number;
+  /** To'langan, lekin muddatidan keyin */
+  readonly kechikibTolangan: number;
 }
 
 /**
@@ -35,58 +40,13 @@ export interface TolovIntizomimiz {
  *    Yetkazuvchi keyingi shartlarni shunga qarab beradi: muntazam
  *    kechiksak oldindan to'lov talab qilinadi.
  *
- * ⚠️ 2.2-invariant — to'langan summa saqlanmaydi, harakatlardan
- *    yig'iladi.
+ * ⚠️ 2026-10-07 — FIFO taqsimotdan (`yetkazibHolati`). Ilgari faqat
+ *    kirimga BOG'LANGAN to'lov sanalardi va hujjat summasi
+ *    `narx × miqdor + transport` edi: kartochkadan to'langan qarz
+ *    «to'lanmagan» bo'lib qolardi (P-46).
  */
-export async function tolovIntizomimiz(yetkazibId: number): Promise<TolovIntizomimiz> {
-  const q = await ulanishOl()<
-    {
-      ortacha: string | null;
-      eng_uzun: string | null;
-      tolangan_soni: number;
-      kechikkan: number;
-    }[]
-  >`
-    WITH hujjatlar AS (
-      SELECT k.id, k.sana, k.tolov_muddati,
-             SUM(kq.narx_birlik * kq.miqdor_kirim)
-               + k.transport_summa + k.bojxona_summa AS jami
-      FROM kirim k
-      JOIN kirim_qator kq ON kq.kirim_id = k.id
-      WHERE k.yetkazib_beruvchi_id = ${yetkazibId} AND k.holat = 'FAOL'
-      GROUP BY k.id
-    ),
-    tolangan AS (
-      SELECT h.id, h.sana, h.tolov_muddati, h.jami,
-             COALESCE(SUM(yh.summa), 0) AS tolov,
-             MAX(yh.sana)               AS oxirgi
-      FROM hujjatlar h
-      LEFT JOIN yetkazib_beruvchi_harakat yh
-             ON yh.manba_turi = 'kirim' AND yh.manba_id = h.id AND yh.summa < 0
-      GROUP BY h.id, h.sana, h.tolov_muddati, h.jami
-    )
-    SELECT
-      AVG(EXTRACT(EPOCH FROM (oxirgi - sana)) / 86400)
-        FILTER (WHERE ABS(tolov) >= jami AND jami > 0)::text AS ortacha,
-      MAX(EXTRACT(EPOCH FROM (oxirgi - sana)) / 86400)
-        FILTER (WHERE ABS(tolov) >= jami AND jami > 0)::text AS eng_uzun,
-      COUNT(*) FILTER (WHERE ABS(tolov) >= jami AND jami > 0)::int AS tolangan_soni,
-      COUNT(*) FILTER (
-        WHERE ABS(tolov) < jami AND tolov_muddati IS NOT NULL
-          AND tolov_muddati < current_date
-      )::int AS kechikkan
-    FROM tolangan`;
-
-  const r = q[0];
-  const son = (x: string | null | undefined): number | null =>
-    x === null || x === undefined ? null : Math.round(Number(x));
-
-  return {
-    ortachaKun: son(r?.ortacha),
-    engUzunKun: son(r?.eng_uzun),
-    tolanganSoni: r?.tolangan_soni ?? 0,
-    kechikkanSoni: r?.kechikkan ?? 0,
-  };
+export function tolovIntizomimiz(h: YetkazibHolati): TolovIntizomimiz {
+  return { ...h.intizom, kechikkanSoni: h.muddat.muddatOtganSoni };
 }
 
 // ─── 2 · Kutilayotgan to'lovlar ───────────────────────────────────────────
@@ -104,55 +64,35 @@ export interface KutilayotganTolov {
   readonly kunQoldi: number | null;
 }
 
-export async function kutilayotganTolovlar(
-  yetkazibId: number,
-  chegara = 20,
-): Promise<KutilayotganTolov[]> {
-  const q = await ulanishOl()<
-    {
-      id: number;
-      raqam: string;
-      sana: string;
-      muddat: string | null;
-      valyuta: string;
-      jami: string;
-      tolangan: string;
-      kun: string | null;
-    }[]
-  >`
-    SELECT k.id, k.raqam, k.sana::text, k.tolov_muddati::text AS muddat, k.valyuta,
-           (SUM(kq.narx_birlik * kq.miqdor_kirim)
-             + k.transport_summa + k.bojxona_summa)::text AS jami,
-           COALESCE(ABS((SELECT SUM(yh.summa) FROM yetkazib_beruvchi_harakat yh
-                          WHERE yh.manba_turi = 'kirim' AND yh.manba_id = k.id
-                            AND yh.summa < 0)), 0)::text AS tolangan,
-           CASE WHEN k.tolov_muddati IS NULL THEN NULL
-                ELSE (k.tolov_muddati - current_date)::text END AS kun
-    FROM kirim k
-    JOIN kirim_qator kq ON kq.kirim_id = k.id
-    WHERE k.yetkazib_beruvchi_id = ${yetkazibId} AND k.holat = 'FAOL'
-    GROUP BY k.id
-    ORDER BY k.tolov_muddati NULLS LAST, k.sana
-    LIMIT ${chegara}`;
-
-  return q
-    .map((r) => {
-      const jami = Number(r.jami);
-      const tolangan = Number(r.tolangan);
-      return {
-        kirimId: r.id,
-        raqam: r.raqam,
-        sana: r.sana,
-        muddat: r.muddat,
-        valyuta: r.valyuta,
-        jami: r.jami,
-        tolangan: r.tolangan,
-        qoldiq: (jami - tolangan).toFixed(2),
-        kunQoldi: r.kun === null ? null : Number(r.kun),
-      };
-    })
-    /** To'liq to'langani ro'yxatda turmaydi — u ish emas */
-    .filter((r) => Number(r.qoldiq) > 0.009);
+/** Ochiq hujjatlar — muddati yaqini (o'tgani) birinchi */
+export function kutilayotganTolovlar(h: YetkazibHolati, chegara = 20): KutilayotganTolov[] {
+  const bugun = new Date(`${toshkentKuni()}T00:00:00Z`).getTime();
+  const r: KutilayotganTolov[] = [];
+  for (const b of h.taqsimot.bandlar) {
+    if (b.buyurtmaId === null || !new Decimal(b.qolgan).gt(0)) continue;
+    const k = h.kirimlar.get(b.buyurtmaId);
+    if (k === undefined) continue;
+    r.push({
+      kirimId: b.buyurtmaId,
+      raqam: k.raqam,
+      sana: k.sana,
+      muddat: k.muddat,
+      valyuta: b.valyuta,
+      jami: b.summa,
+      tolangan: b.tolangan,
+      qoldiq: b.qolgan,
+      kunQoldi:
+        k.muddat === null
+          ? null
+          : Math.round((new Date(`${k.muddat}T00:00:00Z`).getTime() - bugun) / 86_400_000),
+    });
+  }
+  return r
+    .sort(
+      (a, b) =>
+        (a.muddat ?? '9999').localeCompare(b.muddat ?? '9999') || a.sana.localeCompare(b.sana),
+    )
+    .slice(0, chegara);
 }
 
 // ─── 3 · Narx solishtirish ────────────────────────────────────────────────

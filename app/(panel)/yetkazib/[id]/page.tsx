@@ -13,6 +13,7 @@ import { tolovKassalari } from '@/app/(panel)/buyurtma/malumot';
 import { YetkazibTolovFormasi } from '../tolov-forma';
 import { Tablar } from '../../qism';
 import { OchirTugma } from '../../ochir-tugma';
+import { yetkazibHolati } from '../taqsimot';
 import {
   davolarNatijasi,
   kursFarqiJami,
@@ -118,14 +119,16 @@ export default async function YetkazibTahrirlash({
   const sql = ulanishOl();
   const tolovQilaOladi = ruxsatBormi(f, 'kassa.tolov');
 
+  /** 2026-10-07 — qarz taqsimoti BIR MARTA, hamma bloklar shundan */
+  const holat = await yetkazibHolati(yetkazibId);
   const [qarzlar, kassalar, kurs, bloklar, qarzQatorlari, hujjatlar, tolovQatorlari, materiallar, davoQatorlari, izohQatorlari] =
     await Promise.all([
       yetkazibBalansi(sql, yetkazibId),
       tolovQilaOladi ? tolovKassalari(f.filialId, f.xodimId) : Promise.resolve([]),
       joriyKurs(sql),
-      sarlavhaBloklari(yetkazibId),
+      sarlavhaBloklari(yetkazibId, holat),
       qarzHarakati(yetkazibId),
-      kirimlar(yetkazibId),
+      kirimlar(yetkazibId, holat),
       tolovlar(yetkazibId),
       materialNarxTarixi(yetkazibId),
       davolar(yetkazibId),
@@ -145,15 +148,16 @@ export default async function YetkazibTahrirlash({
     return yetkazibTahrirlaAmali(yetkazibId, holat, forma);
   };
 
-  const [intizom, kutilayotgan, solishtirish, kursFarqi, ombor, davoNatija] =
+  const [solishtirish, kursFarqi, ombor, davoNatija] =
     await Promise.all([
-      tolovIntizomimiz(yetkazibId),
-      kutilayotganTolovlar(yetkazibId),
       narxSolishtirish(yetkazibId),
       kursFarqiJami(yetkazibId),
       ombordaQolgan(yetkazibId),
       davolarNatijasi(yetkazibId),
     ]);
+  /** 2026-10-07 — FIFO taqsimotdan (bitta manba, `../taqsimot.ts`) */
+  const intizom = tolovIntizomimiz(holat);
+  const kutilayotgan = kutilayotganTolovlar(holat);
 
   return (
     <div className="flex max-w-5xl flex-col gap-6">

@@ -101,6 +101,7 @@ function qolla(band: IchkiBand, kredit: Kredit): void {
 function valyutaUchun(
   qatorlar: readonly JurnalQatori[],
   valyuta: Valyuta,
+  qarzTuri: string,
 ): { bandlar: IchkiBand[]; avans: Decimal } {
   const buyurtmalar = new Map<number, JurnalQatori[]>();
   const bogsiz: JurnalQatori[] = [];
@@ -126,13 +127,13 @@ function valyutaUchun(
      * ⚠️ `SOTUV` qatorlari (yaratish, tahrir, storno) — buyurtma qarzi.
      *    Boshqalari (to'lov, qaytarish) — shu buyurtmaga kredit.
      */
-    const sotuv = rs.filter((r) => r.turi === 'SOTUV');
+    const sotuv = rs.filter((r) => r.turi === qarzTuri);
     const summa = sotuv.reduce((y, r) => y.plus(r.summa), new Decimal(0));
     const sana = sotuv[0]?.sana ?? rs[0]?.sana ?? new Date(0);
     const band: IchkiBand = {
       kalit: `b:${String(buyurtmaId)}`,
       buyurtmaId,
-      turi: 'SOTUV',
+      turi: qarzTuri,
       sana,
       valyuta,
       summa: Decimal.max(summa, 0),
@@ -141,7 +142,7 @@ function valyutaUchun(
     };
 
     for (const r of rs) {
-      if (r.turi === 'SOTUV') continue;
+      if (r.turi === qarzTuri) continue;
       const s = new Decimal(r.summa);
       if (s.lessThan(0)) {
         const k: Kredit = { sana: r.sana, qoldiq: s.negated() };
@@ -197,9 +198,17 @@ function valyutaUchun(
   return { bandlar, avans };
 }
 
-export function qarzniTaqsimla(qatorlar: readonly JurnalQatori[]): QarzTaqsimoti {
-  const som = valyutaUchun(qatorlar, 'SOM');
-  const usd = valyutaUchun(qatorlar, 'USD');
+/**
+ * @param qarzTuri hujjat qarzini yozadigan jurnal turi: mijozda `SOTUV`,
+ *   yetkazib beruvchida `XARID` (ombor auditi 2026-10-07 — bitta FIFO
+ *   qoidasi ikkala tomonda). `buyurtmaId` — o'sha HUJJAT (buyurtma yoki kirim).
+ */
+export function qarzniTaqsimla(
+  qatorlar: readonly JurnalQatori[],
+  qarzTuri = 'SOTUV',
+): QarzTaqsimoti {
+  const som = valyutaUchun(qatorlar, 'SOM', qarzTuri);
+  const usd = valyutaUchun(qatorlar, 'USD', qarzTuri);
 
   const ochiq = (bs: readonly IchkiBand[]): Decimal =>
     bs.reduce((y, b) => y.plus(b.qolgan), new Decimal(0));
