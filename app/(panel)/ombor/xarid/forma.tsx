@@ -40,16 +40,20 @@ export function XaridFormasi({
   yetkazuvchilar,
   yolda,
   boshMaterialIdlar,
+  boshYetkazibId = null,
 }: {
   materiallar: readonly MaterialTanlovi[];
   yetkazuvchilar: readonly YetkazibTanlovi[];
   /** materialId → hali kelmagan miqdor (boshqa ochiq buyurtmalarda) */
   yolda: Readonly<Record<number, string>>;
   boshMaterialIdlar: readonly number[];
+  /** «Buyurtma kerak» ro'yxatidan — material oxirgi marta kimdan kelgan */
+  boshYetkazibId?: number | null;
 }) {
   const [holat, yubor, kutilmoqda] = useActionState(xaridYaratAmali, BOSH);
-  const [yetkazib, setYetkazib] = useState('');
-  const [valyuta, setValyuta] = useState('SOM');
+  const boshYetkazib = yetkazuvchilar.find((y) => y.id === boshYetkazibId);
+  const [yetkazib, setYetkazib] = useState(boshYetkazib === undefined ? '' : String(boshYetkazib.id));
+  const [valyuta, setValyuta] = useState(boshYetkazib?.valyuta === 'USD' ? 'USD' : 'SOM');
   const [qatorlar, setQatorlar] = useState<Qator[]>(() =>
     boshMaterialIdlar
       .filter((id) => materiallar.some((m) => m.id === id))
@@ -58,7 +62,7 @@ export function XaridFormasi({
         miqdor: '',
         narxBirlik: boshNarx(
           materiallar.find((m) => m.id === id),
-          'SOM',
+          boshYetkazib?.valyuta === 'USD' ? 'USD' : 'SOM',
         ),
       })),
   );

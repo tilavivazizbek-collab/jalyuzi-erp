@@ -14,7 +14,7 @@ export const dynamic = 'force-dynamic';
 export default async function YangiXarid({
   searchParams,
 }: {
-  searchParams: Promise<{ material?: string }>;
+  searchParams: Promise<{ material?: string | string[]; yetkazib?: string }>;
 }) {
   const f = await sahifaRuxsati('ombor.kirim.yarat');
   const [materiallar, yetkazuvchilar, yolda] = await Promise.all([
@@ -22,9 +22,17 @@ export default async function YangiXarid({
     kirimYetkazuvchilari(),
     yoldaXaritasi(f.filialId),
   ]);
+  const sp = await searchParams;
+  /**
+   * ⚠️ Ikki shakl: `?material=1,2` (kartochka) va `?material=1&material=2`
+   *    («Buyurtma kerak» ro'yxatidagi belgilash formasi).
+   */
+  const xomMaterial = Array.isArray(sp.material) ? sp.material.join(',') : (sp.material ?? '');
+  const yetkazibXom = Number(sp.yetkazib);
+  const boshYetkazibId = yetkazuvchilar.some((y) => y.id === yetkazibXom) ? yetkazibXom : null;
   const boshMaterialIdlar = [
     ...new Set(
-      ((await searchParams).material ?? '')
+      xomMaterial
         .split(',')
         .map((x) => Number(x.trim()))
         .filter((n) => Number.isSafeInteger(n) && n > 0),
@@ -49,6 +57,7 @@ export default async function YangiXarid({
         yetkazuvchilar={yetkazuvchilar}
         yolda={Object.fromEntries(yolda)}
         boshMaterialIdlar={boshMaterialIdlar}
+        boshYetkazibId={boshYetkazibId}
       />
     </div>
   );

@@ -34,7 +34,7 @@ buyurtmani tahrirlash (8.7), material statistikasi (7.11)
 | 5 | Ustama «Narxlar» jadvalidagi narxga tayanadi (P-44); rang partiyasi — egasi: kerak emas | ✅ |
 | 6 | Saqlash joyi (0062) va QR yorliq: `/ombor/joylar`, `/ombor/bolak/[id]`, `/ombor/yorliq` | ✅ |
 | 7 | Xarid buyurtmasi (0063): `/ombor/xarid` — buyurtma → kirim, kelgan/qolgan, kechikish, chop etish | ✅ |
-| 8 | Nakladnoy chop etish, «qachon buyurtma berish» ogohi | ⏳ keyingi |
+| 8 | «Buyurtma kerak» (`/ombor/xarid/kerak`), kirim nakladnoyi, ichki yuk xati; **qarz xatosi tuzatildi** (P-46) | ✅ |
 
 **7-band tafsiloti (P-45):** buyurtma pul yozmaydi; «kelgan» saqlanmaydi —
 FAOL kirimlardan hisoblanadi (storno o'zi qaytaradi). Kirim buyurtmadan
@@ -44,7 +44,17 @@ qilingan, hali kelmagan» va «Buyurtma berish». Yangi buyurtmada shu
 materialdan boshqa buyurtmada yo'lda borligi ogohlantiriladi. Narx va
 summa — faqat tannarxni ko'radiganga.
 
+**8-band tafsiloti:** «Buyurtma kerak» — tugagan, chegaradan kam yoki
+yetkazib berilguncha tugaydigan materiallar (buyurtma nuqtasi: qoldiq ≤
+yetkazish muddati + 7 kun zaxira). Muddat o'tgan xarid buyurtmalaridan
+(mediana), tarix yo'q bo'lsa 14 kun. Yetkazib beruvchi bo'yicha guruhlanadi,
+belgilanganlardan buyurtma bir bosishda ochiladi; yo'ldagisi ko'rsatiladi.
+Kirim kartochkasida qator summasi va «Mol summasi (qarz)», A4 nakladnoy
+(imzo joylari bilan); ko'chirishda ichki yuk xati.
+
 ⚠️ 0062 va 0063 ishlab chiqarish bazasiga HALI qo'llanmagan (baza tushgan).
+⚠️ Baza qaytgach: `npm run db:kirim-qarz-tekshir` — P-46 xatosi eski
+kirimlarda qancha qarzni kam yozganini aytadi (faqat o'qiydi).
 
 ## 0#. Mijozlar bo'limi — egasi auditi 2026-10-06
 

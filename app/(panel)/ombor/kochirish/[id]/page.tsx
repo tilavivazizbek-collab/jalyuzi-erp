@@ -3,6 +3,8 @@ import { notFound } from 'next/navigation';
 import { sahifaRuxsati } from '@/lib/kirish/joriy';
 import { ruxsatBormi, tannarxniKoradimi } from '@/lib/ruxsat/tekshir';
 import { pulKorsat, som } from '@/lib/domain/pul';
+import { toshkentKuni } from '@/lib/domain/sana';
+import { OddiyChopTugmasi } from '../../../chop-tugma';
 import { kochirishOl, tanlanadiganBolaklar } from '../malumot';
 import { JonatishFormasi } from '../jonat-forma';
 import { BekorFormasi, QabulFormasi } from '../qabul-forma';
@@ -41,6 +43,12 @@ export default async function KochirishSahifasi({ params }: { params: Promise<{ 
     (h.holat === 'SOROV' || h.holat === 'YOLDA') && ruxsatBormi(f, 'ombor.kochirish.jonat');
 
   const bolaklar = jonataOladi ? await tanlanadiganBolaklar(f.filialId) : [];
+  /** 8-band — yuk xati: mol jo'natilgandan keyin (haydovchi bilan ketadi) */
+  const yukXatiBor = h.qatorlar.length > 0 && (h.holat === 'YOLDA' || h.holat === 'QABUL');
+  const olcham = (q: (typeof h.qatorlar)[number]): string =>
+    q.turi === 'DONA'
+      ? `${q.miqdor ?? '—'} ${q.sarflashBirligi === 'M' ? 'm' : 'dona'}`
+      : `${q.eniM ?? '—'} × ${q.boyiM ?? '—'} m`;
 
   return (
     <div className="flex flex-col gap-6">
@@ -54,6 +62,11 @@ export default async function KochirishSahifasi({ params }: { params: Promise<{ 
         <p className="mt-1 text-sm text-matn-kuchsiz">
           {h.kimdanNom} → {h.kimgaNom} · {HOLAT_NOMI[h.holat] ?? h.holat}
         </p>
+        {yukXatiBor && (
+          <div className="mt-3">
+            <OddiyChopTugmasi matn="Yuk xatini chop etish" />
+          </div>
+        )}
       </div>
 
       <dl className="grid gap-4 sm:grid-cols-3">
@@ -109,9 +122,7 @@ export default async function KochirishSahifasi({ params }: { params: Promise<{ 
                          material ham `turi = 'DONA'` bo'lak bo'lib
                          yotadi va miqdor METRDA: «8» aslida 8 metr.
                     */}
-                    {q.turi === 'DONA'
-                      ? `${q.miqdor ?? '—'} ${q.sarflashBirligi === 'M' ? 'm' : 'dona'}`
-                      : `${q.eniM ?? '—'} × ${q.boyiM ?? '—'} m`}
+                    {olcham(q)}
                   </td>
                   <td className="raqam px-4 py-2.5">
                     {q.haqiqiyEniM === null && q.haqiqiyBoyiM === null ? (
@@ -156,6 +167,54 @@ export default async function KochirishSahifasi({ params }: { params: Promise<{ 
       )}
 
       {bekorQilaOladi && <BekorFormasi kochirishId={h.id} />}
+
+      {/*
+        8-band — ICHKI YUK XATI. Faqat chop etilganda: mol haydovchi
+        bilan ketadi, qabul qiluvchi filial sanab imzolaydi (20.7).
+      */}
+      {yukXatiBor && (
+        <div className="varaqa hidden p-8 text-[11pt] print:block">
+          <style>{'@media print { @page { size: A4; margin: 15mm } }'}</style>
+          <p className="text-center text-[15pt] font-bold">Ichki yuk xati № {h.raqam}</p>
+          <p className="text-center">{toshkentKuni(h.sana)}</p>
+          <div className="mt-5 flex justify-between">
+            <p>Jo&apos;natuvchi: <b>{h.kimdanNom}</b></p>
+            <p>Qabul qiluvchi: <b>{h.kimgaNom}</b></p>
+          </div>
+          <table className="mt-5 w-full border-collapse text-[10pt]">
+            <thead>
+              <tr className="border-y border-black text-left">
+                <th className="py-1.5 pr-2">№</th>
+                <th className="py-1.5 pr-2">Kod</th>
+                <th className="py-1.5 pr-2">Nomi</th>
+                <th className="py-1.5 pr-2">O&apos;lchami / miqdori</th>
+                <th className="py-1.5">Qabulda (sanab yoziladi)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {h.qatorlar.map((q, i) => (
+                <tr key={q.bolakId} className="border-b border-neutral-400">
+                  <td className="py-1.5 pr-2">{i + 1}</td>
+                  <td className="py-1.5 pr-2 font-mono text-[9pt]">{q.kod}</td>
+                  <td className="py-1.5 pr-2">{q.materialNomi}</td>
+                  <td className="py-1.5 pr-2">{olcham(q)}</td>
+                  <td className="py-1.5" />
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <p className="mt-3">Jami: {h.qatorlar.length} ta bo&apos;lak</p>
+          {pulniKoradi && h.qarzSumma !== null && (
+            <p>Filiallararo summa: {pulKorsat(som(h.qarzSumma))} so&apos;m</p>
+          )}
+          {h.izoh !== null && <p className="mt-2">Izoh: {h.izoh}</p>}
+          <div className="mt-16 grid grid-cols-3 gap-4">
+            <p>Jo&apos;natdi: ______________</p>
+            <p>Olib ketdi (haydovchi): ______________</p>
+            <p>Qabul qildi: ______________</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

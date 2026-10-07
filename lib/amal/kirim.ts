@@ -19,6 +19,7 @@ import Decimal from 'decimal.js';
 import {
   birlikTannarxi,
   bolakUlushi,
+  qatorQiymati,
   type NarxAsosi,
   ustamaniTekshir,
   xarajatniTaqsimla,
@@ -27,7 +28,6 @@ import {
 } from '@/lib/domain/tannarx';
 import {
   dollar,
-  kopaytir,
   kurs,
   musbatmi,
   nolSom,
@@ -305,9 +305,23 @@ export async function kirimYarat(
         q.defektTuri,
       );
       defektZarari = qosh(defektZarari, tannarx.defektZarari);
+      /**
+       * ⚠️ HUJJAT VALYUTASIDA va narx USULIGA qarab — tannarx bilan
+       *    bitta formula (`qatorQiymati`). 2026-10-07 gacha bu yerda
+       *    `narx × miqdor` turardi: metrga narxlangan rulonda qarz
+       *    `4 $ × 3 rulon = 12 $` bo'lib yozilardi (to'g'risi 600 $).
+       */
       xaridSummasi = qosh(
         xaridSummasi,
-        kopaytir(som(q.narxBirlik), String(q.miqdorKirim)),
+        qatorQiymati({
+          id: i,
+          miqdor: q.miqdorKirim,
+          narxBirlik: som(q.narxBirlik),
+          defektMiqdor: q.defektMiqdor,
+          narxAsosi: q.narxAsosi,
+          jamiBoyiM: jamiBoyi(q),
+          jamiKvM: jamiKvM(q),
+        }),
       );
 
       const qator = await tx<{ id: number }[]>`
@@ -742,7 +756,7 @@ export async function kirimniStorno(
           (yetkazib_beruvchi_id, filial_id, turi, summa, valyuta, kurs_snapshot,
            manba_turi, manba_id, izoh, xodim_id)
         SELECT k.yetkazib_beruvchi_id, k.filial_id, 'XARID',
-               ${(-Number(x.summa)).toFixed(2)}, ${x.valyuta}, ${x.kurs},
+               ${new Decimal(x.summa).negated().toFixed(2)}, ${x.valyuta}, ${x.kurs},
                'kirim_storno', ${kirimId},
                ${`Storno ${hujjat.raqam} — ${sabab.trim()}`}, ${xodimId}
         FROM kirim k WHERE k.id = ${kirimId}`;

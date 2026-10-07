@@ -174,6 +174,15 @@ export default async function OmborQoldigi({
               Excel&apos;ga yuklash
             </a>
           )}
+          {/* 8-band — kam qolgan va kelguncha tugaydiganlar, yetkazib beruvchi bo'yicha */}
+          {!barchasimi && (
+            <Link
+              href="/ombor/xarid/kerak"
+              className="rounded-maydon border border-chegara-quyuq px-3.5 py-2 text-sm font-medium text-matn-ikki transition-all active:scale-[0.98] hover:bg-fon"
+            >
+              Buyurtma kerak
+            </Link>
+          )}
           <Link
             href="/ombor/kirim"
             className="rounded-maydon border border-chegara-quyuq px-3.5 py-2 text-sm font-medium text-matn-ikki transition-all active:scale-[0.98] hover:bg-fon"

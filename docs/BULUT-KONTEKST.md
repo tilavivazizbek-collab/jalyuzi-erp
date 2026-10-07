@@ -429,6 +429,10 @@ Bulutdagi sessiyada bu to'siq **yo'q** — u Anthropic tarmog'idan ishlaydi.
 - Ishlab chiqarishga qo'llanmagan migratsiyalar: **0057 · 0059 · 0060 · 0061 · 0062 · 0063**.
   0061 (mijoz CRM), 0062 (saqlash joyi), 0063 (xarid buyurtmasi) faqat qo'shadi —
   tartib: zaxira, 0057, 0059, deploy, 0060, 0061, 0062, 0063.
+- Baza qaytgach: `npm run db:kirim-qarz-tekshir` — P-46 (metr/kv.m narxli kirimda
+  yetkazib beruvchi qarzi kam yozilgan); tuzatish egasi qarori bilan.
+- 2026-10-07 dan Windows Application Control argon2 faylini bloklaydi: lokal sayt 500,
+  urug' yiqiladi. Sinov bazasi `CREATE DATABASE jalyuzi_sinov TEMPLATE jalyuzi` bilan.
 - Mijoz qarzi buyurtmalarga FIFO taqsimlanadi — `lib/domain/qarz-taqsimot.ts`
   (P-41). Qarz yoshi, muddati o'tgan, to'landi belgisi SHU funksiyadan;
   SQL da taxminiy nusxa yozilmaydi.

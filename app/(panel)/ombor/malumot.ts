@@ -8,6 +8,7 @@
  * va xaridda ishlatilmaydi.
  */
 
+import Decimal from 'decimal.js';
 import { ulanishOl } from '@/lib/db';
 import type { Ulanish } from '@/lib/db/ulanish';
 
@@ -33,7 +34,7 @@ export const bolakQiymatiIfodasi = (sql: Ulanish) =>
             ELSE COALESCE(b.eni_m, 0) * COALESCE(b.boyi_m, 0) END
        * b.tannarx_birlik_snapshot)`;
 import { pulMatn, som } from '@/lib/domain/pul';
-import { bolakQiymati } from '@/lib/domain/tannarx';
+import { bolakQiymati, qatorQiymati } from '@/lib/domain/tannarx';
 import { chegaraBirligidaQoldiq, kamQoldiqmi } from '@/lib/domain/birlik-tanlovi';
 import { omborda } from './qoldiq-filtr';
 import type { MaterialTanlovi, YetkazibTanlovi } from './kirim/forma';
@@ -745,7 +746,15 @@ export interface KirimTafsiloti {
     readonly transportUlush: string;
     readonly tannarxBirlik: string;
     readonly defektMiqdor: number;
+    /** 8-band — nakladnoy: birlik, narx usuli va hujjat valyutasidagi summa */
+    readonly kirimBirligi: string;
+    readonly narxAsosi: 'BIRLIK' | 'METR' | 'KV_M';
+    readonly summa: string;
+    /** Rulonlar o'lchami: «3.00 × 50.00» — nakladnoyda */
+    readonly olchamlar: readonly string[];
   }[];
+  /** Hujjat summasi — yetkazib beruvchiga qarz (transport va bojxonasiz, 9.2) */
+  readonly summa: string;
   /** Kirimdan tushgan bo'laklardan hozir omborda turganlari (7.12 ogohi) */
   readonly omborda: number;
   readonly ishlatilgan: number;
@@ -792,14 +801,42 @@ export async function kirimTafsiloti(
       transport_ulush: string;
       tannarx_birlik: string;
       defekt_miqdor: string;
+      kirim_birligi: string;
+      narx_asosi: 'BIRLIK' | 'METR' | 'KV_M';
+      olchamlar: { eni: string | null; boyi: string | null }[];
     }[]
   >`
     SELECT kq.id, m.nom AS material_nomi, kq.miqdor_kirim, kq.narx_birlik,
-           kq.transport_ulush, kq.tannarx_birlik, kq.defekt_miqdor
+           kq.transport_ulush, kq.tannarx_birlik, kq.defekt_miqdor,
+           m.kirim_birligi, kq.narx_asosi,
+           COALESCE((SELECT json_agg(json_build_object('eni', b.eni_m::text, 'boyi', b.boyi_m::text)
+                                     ORDER BY b.id)
+                       FROM bolak b
+                      WHERE b.kirim_qator_id = kq.id AND b.turi = 'RULON'), '[]'::json) AS olchamlar
     FROM kirim_qator kq
     JOIN material m ON m.id = kq.material_id
     WHERE kq.kirim_id = ${kirimId}
     ORDER BY kq.id`;
+
+  /**
+   * ⚠️ Summa — `qatorQiymati` (tannarx va qarz bilan BITTA formula):
+   *    metrga narxlangan rulonda narx × bo'ylar yig'indisi.
+   */
+  const qatorSummasi = (q: (typeof qatorlar)[number]): string => {
+    const r = q.olchamlar;
+    return pulMatn(
+      qatorQiymati({
+        id: q.id,
+        miqdor: Number(q.miqdor_kirim),
+        narxBirlik: som(q.narx_birlik),
+        defektMiqdor: Number(q.defekt_miqdor),
+        narxAsosi: q.narx_asosi,
+        jamiBoyiM: r.reduce((y, b) => y + Number(b.boyi ?? 0), 0),
+        jamiKvM: r.reduce((y, b) => y + Number(b.eni ?? 0) * Number(b.boyi ?? 0), 0),
+      }),
+    );
+  };
+  const summalar = qatorlar.map(qatorSummasi);
 
   const holatlar = await sql<{ omborda: number; ishlatilgan: number }[]>`
     SELECT COUNT(*) FILTER (WHERE b.holat IN ('BOSH', 'BAND'))::int AS omborda,
@@ -819,7 +856,7 @@ export async function kirimTafsiloti(
     xarid: h.xarid_id === null || h.xarid_raqam === null ? null : { id: h.xarid_id, raqam: h.xarid_raqam },
     transportSumma: h.transport_summa,
     bojxonaSumma: h.bojxona_summa,
-    qatorlar: qatorlar.map((q) => ({
+    qatorlar: qatorlar.map((q, i) => ({
       id: q.id,
       materialNomi: q.material_nomi,
       miqdorKirim: Number(q.miqdor_kirim),
@@ -827,7 +864,12 @@ export async function kirimTafsiloti(
       transportUlush: q.transport_ulush,
       tannarxBirlik: q.tannarx_birlik,
       defektMiqdor: Number(q.defekt_miqdor),
+      kirimBirligi: q.kirim_birligi,
+      narxAsosi: q.narx_asosi,
+      summa: summalar[i] ?? '0.00',
+      olchamlar: q.olchamlar.map((b) => `${b.eni ?? '?'} × ${b.boyi ?? '?'}`),
     })),
+    summa: summalar.reduce((y, x) => y.plus(x), new Decimal(0)).toFixed(2),
     omborda: holatlar[0]?.omborda ?? 0,
     ishlatilgan: holatlar[0]?.ishlatilgan ?? 0,
   };

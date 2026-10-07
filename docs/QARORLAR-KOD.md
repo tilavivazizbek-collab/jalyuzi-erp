@@ -2044,3 +2044,21 @@ tannarx, qoldiq faqat kirim bilan yoziladi.
   (`≈`); o'lcham yo'q bo'lsa summa aytilmaydi.
 - Kelgan narsa bor buyurtma bekor qilinmaydi — faqat yopiladi.
 
+## P-46 — Yetkazib beruvchi qarzi `qatorQiymati` dan (xato tuzatildi)
+
+**2026-10-07, ombor auditi 8-band.** Kirimda qarz `narx × miqdor` deb
+yozilardi. Narx metrga (`METR`) yoki kv.m ga (`KV_M`) berilsa — mato
+rulonlarida odatiy holat — qarz rulon SONIGA ko'paytirilardi:
+4 $/m × 3 rulon (50 m) → 12 $ (to'g'risi 600 $). Tannarx to'g'ri edi,
+chunki u `qatorQiymati` dan; qarz alohida sodda formula bilan.
+
+**Qaror:** qarz ham `qatorQiymati` dan (hujjat valyutasida) — bitta formula.
+Kirim kartochkasi va nakladnoy ham shu summani ko'rsatadi. Test: EC-KQ-01..04.
+
+**Eski ma'lumot:** `npm run db:kirim-qarz-tekshir` (faqat o'qiydi) — qaysi
+kirimda qancha kam yozilganini va yetkazib beruvchi bo'yicha jamini aytadi.
+Tuzatuvchi yozuv — egasi qarori (solishtirma dalolatnoma bo'lgan bo'lishi mumkin).
+
+Yo'l-yo'lakay: dollarli kirim kartochkasida tannarx (doim so'mda, 9.6)
+«$» bilan chiqardi — tuzatildi; storno qarzi `Number` emas, `Decimal` bilan.
+

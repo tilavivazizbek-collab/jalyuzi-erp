@@ -4,6 +4,7 @@ import { ruxsatBormi, tannarxniKoradimi } from '@/lib/ruxsat/tekshir';
 import { dollar, pulKorsat, som } from '@/lib/domain/pul';
 import { XARID_HOLAT_NOMI } from '@/lib/domain/xarid';
 import { HOLAT_RANGI } from './holat';
+import { buyurtmaKerak, yoldaEmaslar } from './kerak-malumot';
 import { xaridFiltriniOqi, xaridlarRoyxati, type XaridFiltri } from './malumot';
 
 export const dynamic = 'force-dynamic';
@@ -30,7 +31,12 @@ export default async function XaridBuyurtmalari({
   const yarataOladi = ruxsatBormi(f, 'ombor.kirim.yarat');
   const pulniKoradi = tannarxniKoradimi(f);
   const filtr = xaridFiltriniOqi((await searchParams).holat);
-  const royxat = await xaridlarRoyxati(f.filialId, filtr);
+  const [royxat, kerak] = await Promise.all([
+    xaridlarRoyxati(f.filialId, filtr),
+    buyurtmaKerak(f.filialId),
+  ]);
+  /** Buyurtma kerak, lekin hali hech qayerda yo'lda emas */
+  const kutayotgani = yoldaEmaslar(kerak);
 
   return (
     <div className="flex flex-col gap-5">
@@ -56,6 +62,15 @@ export default async function XaridBuyurtmalari({
           </Link>
         )}
       </div>
+
+      {kutayotgani > 0 && (
+        <Link
+          href="/ombor/xarid/kerak"
+          className="rounded-karta border border-belgi-sariq/40 bg-belgi-sariq-fon px-4 py-3 text-sm text-belgi-sariq hover:underline"
+        >
+          {kutayotgani} ta material tugagan yoki yetkazib berilguncha tugaydi — buyurtma berilmagan →
+        </Link>
+      )}
 
       <nav className="flex gap-1.5" aria-label="Holat">
         {FILTRLAR.map((x) => (

@@ -266,6 +266,7 @@ export async function yoldaXaritasi(filialId: number): Promise<Map<number, strin
 
 export interface YoldagiBuyurtma {
   readonly xaridId: number;
+  readonly materialId: number;
   readonly raqam: string;
   readonly kutilganSana: string | null;
   readonly qolgan: string;
@@ -281,21 +282,25 @@ export interface YoldagiBuyurtma {
  */
 export async function yoldagiBuyurtmalar(
   filialId: number,
-  materialId: number,
+  /** `null` — filialning hamma materiali («buyurtma kerak» ro'yxati) */
+  materialId: number | null,
 ): Promise<YoldagiBuyurtma[]> {
-  const s = await ulanishOl()<{ id: number; raqam: string; kutilgan_sana: string | null }[]>`
-    SELECT x.id, x.raqam, x.kutilgan_sana::text
+  const sql = ulanishOl();
+  const s = await sql<{ id: number; raqam: string; kutilgan_sana: string | null }[]>`
+    SELECT DISTINCT x.id, x.raqam, x.kutilgan_sana::text
     FROM xarid_buyurtma x
-    JOIN xarid_buyurtma_qator q ON q.xarid_buyurtma_id = x.id AND q.material_id = ${materialId}
+    JOIN xarid_buyurtma_qator q ON q.xarid_buyurtma_id = x.id
     WHERE x.filial_id = ${filialId} AND x.holat = 'OCHIQ'
+      ${materialId === null ? sql`` : sql`AND q.material_id = ${materialId}`}
     ORDER BY x.id`;
   const qatorlar = (await qatorlarniOl(s.map((x) => x.id))).filter(
-    (q) => q.materialId === materialId && new Decimal(q.qolgan).gt(0),
+    (q) => (materialId === null || q.materialId === materialId) && new Decimal(q.qolgan).gt(0),
   );
   return qatorlar.map((q) => {
     const x = s.find((y) => y.id === q.xaridId);
     return {
       xaridId: q.xaridId,
+      materialId: q.materialId,
       raqam: x?.raqam ?? '',
       kutilganSana: x?.kutilgan_sana ?? null,
       qolgan: q.qolgan,
