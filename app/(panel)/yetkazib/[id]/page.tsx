@@ -6,7 +6,7 @@ import { yetkazibTahrirlaAmali } from '../amal';
 import type { FormaHolati } from '../holat';
 import { YetkazibFormasi, type YetkazibQiymatlari } from '../forma';
 import { ruxsatBormi } from '@/lib/ruxsat/tekshir';
-import { pulKorsat, som } from '@/lib/domain/pul';
+import { dollar, pulKorsat, som } from '@/lib/domain/pul';
 import { joriyKurs } from '@/lib/amal/kurs';
 import { yetkazibBalansi } from '@/lib/amal/yetkazib-tolov';
 import { tolovKassalari } from '@/app/(panel)/buyurtma/malumot';
@@ -14,6 +14,8 @@ import { YetkazibTolovFormasi } from '../tolov-forma';
 import { Tablar } from '../../qism';
 import { OchirTugma } from '../../ochir-tugma';
 import { yetkazibHolati } from '../taqsimot';
+import { yetkazuvchiIshonchi } from '../../ombor/xarid/malumot';
+import type { Ishonchlilik } from '@/lib/domain/xarid';
 import {
   davolarNatijasi,
   kursFarqiJami,
@@ -148,12 +150,13 @@ export default async function YetkazibTahrirlash({
     return yetkazibTahrirlaAmali(yetkazibId, holat, forma);
   };
 
-  const [solishtirish, kursFarqi, ombor, davoNatija] =
+  const [solishtirish, kursFarqi, ombor, davoNatija, ishonch] =
     await Promise.all([
       narxSolishtirish(yetkazibId),
       kursFarqiJami(yetkazibId),
       ombordaQolgan(yetkazibId),
       davolarNatijasi(yetkazibId),
+      yetkazuvchiIshonchi(yetkazibId),
     ]);
   /** 2026-10-07 — FIFO taqsimotdan (bitta manba, `../taqsimot.ts`) */
   const intizom = tolovIntizomimiz(holat);
@@ -207,7 +210,7 @@ export default async function YetkazibTahrirlash({
                       Number(q.summa) > 0 ? 'text-belgi-qizil' : 'text-belgi-yashil'
                     }`}
                   >
-                    {pulKorsat(som(q.summa))}
+                    {pulKorsat(q.valyuta === 'USD' ? dollar(q.summa) : som(q.summa))}
                   </dd>
                   {Number(q.summa) < 0 && (
                     <p className="text-[12px] text-matn-kuchsiz">avans berilgan</p>
@@ -267,7 +270,10 @@ export default async function YetkazibTahrirlash({
                 <dt className="text-xs text-matn-kuchsiz">Jami kirim</dt>
                 <dd className="raqam font-medium">
                   {bloklar.hamkorlik.jamiKirim
-                    .map((j) => `${pulKorsat(som(j.summa))} ${j.valyuta === 'USD' ? '$' : "so'm"}`)
+                    .map(
+                      (j) =>
+                        `${pulKorsat(j.valyuta === 'USD' ? dollar(j.summa) : som(j.summa))} ${j.valyuta === 'USD' ? '$' : "so'm"}`,
+                    )
                     .join(' · ')}
                 </dd>
               </div>
@@ -284,6 +290,7 @@ export default async function YetkazibTahrirlash({
         ombor={ombor}
         davo={davoNatija}
       />
+      <YetkazishIshonchi i={ishonch} />
       <KutilayotganTolovlar qatorlar={kutilayotgan} />
       <NarxSolishtirish qatorlar={solishtirish} />
 
@@ -309,7 +316,7 @@ export default async function YetkazibTahrirlash({
                     Number(q.qarz) > 0 ? 'text-belgi-qizil' : 'text-belgi-yashil'
                   }`}
                 >
-                  {pulKorsat(som(q.qarz))}{' '}
+                  {pulKorsat(q.valyuta === 'USD' ? dollar(q.qarz) : som(q.qarz))}{' '}
                   <span className="text-xs font-normal text-matn-kuchsiz">
                     {q.valyuta === 'USD' ? '$' : "so'm"}
                   </span>
@@ -560,6 +567,48 @@ function QarorRaqamlari({
         }
         rang={davo.ochiq > 0 ? 'text-belgi-sariq' : undefined}
       />
+    </section>
+  );
+}
+
+/**
+ * Yetkazib beruvchi qanchalik ishonchli — xarid buyurtmalaridan (0063).
+ *
+ * ⚠️ Foiz yonida ASOS soni: «1 dan 1» — xulosa emas. Buyurtma tarixi
+ *    bo'lmasa blok umuman chizilmaydi.
+ */
+function YetkazishIshonchi({ i }: { i: Ishonchlilik }) {
+  if (i.buyurtmaSoni === 0) return null;
+  const foiz = (f: number | null, asos: number): string =>
+    f === null ? '—' : `${String(f)}% (${String(asos)} tadan)`;
+  return (
+    <section>
+      <h2 className="mb-2 text-sm font-medium text-matn-ikki">Yetkazib berish</h2>
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <Katak
+          sarlavha="Buyurtmalar"
+          qiymat={String(i.buyurtmaSoni)}
+          izoh={i.kechikayotgan > 0 ? `${String(i.kechikayotgan)} tasi hozir kechikyapti` : 'kechikayotgani yo‘q'}
+          rang={i.kechikayotgan > 0 ? 'text-belgi-qizil' : undefined}
+        />
+        <Katak
+          sarlavha="O'rtacha keladi"
+          qiymat={i.ortachaKun === null ? '—' : `${String(i.ortachaKun)} kunda`}
+          izoh="buyurtmadan birinchi kirimgacha"
+        />
+        <Katak
+          sarlavha="Vaqtida keldi"
+          qiymat={foiz(i.vaqtidaFoiz, i.vaqtidaAsos)}
+          izoh="va'da qilingan sanada yoki oldin"
+          rang={i.vaqtidaFoiz !== null && i.vaqtidaFoiz < 70 ? 'text-belgi-sariq' : undefined}
+        />
+        <Katak
+          sarlavha="To'liq keldi"
+          qiymat={foiz(i.toliqFoiz, i.toliqAsos)}
+          izoh="qolgani yopilgan — kam kelgan"
+          rang={i.toliqFoiz !== null && i.toliqFoiz < 70 ? 'text-belgi-sariq' : undefined}
+        />
+      </div>
     </section>
   );
 }

@@ -23,6 +23,20 @@ buyurtmani tahrirlash (8.7), material statistikasi (7.11)
 
 ---
 
+## 0%. Yetkazib beruvchilar — audit 2026-10-07
+
+| Nima | Holat |
+|---|---|
+| Qarz kirimlarga FIFO taqsimlanadi (mijoz bilan bitta qoida, `qarzniTaqsimla(…, 'XARID')`) — kartochkadan to'lov eng eski kirimni yopadi | ✅ |
+| Hujjat summasi jurnaldagi `XARID` dan — `miqdor × narx` (P-46) va transport qo'shilmaydi; 4 joy tuzatildi | ✅ |
+| «Eng yaqin muddat» va «muddati o'tgan» faqat to'lanmagan hujjatlardan | ✅ |
+| Qarz tarixi oxirgi 100 yozuvni ko'rsatadi (eng eskisini ko'rsatardi) | ✅ |
+| Ro'yxatda qarz (so'm / $ alohida), muddati o'tgan, oxirgi kirim, kutilayotgan buyurtma; filtr «Qarzimiz bor» / «Muddati o'tgan»; jami | ✅ |
+| Kartochkada «Yetkazib berish»: o'rtacha necha kunda keladi, vaqtida %, to'liq % (asosi bilan), kechikayotgan buyurtmalar | ✅ |
+| Kartochkada dollar qarzi so'm formatida chiqardi | ✅ |
+| Hisobotdagi ombor qiymati jami = material qatorlari yig'indisi (1 tiyin farq) | ✅ |
+| P-46 eski kirimlari uchun tuzatuvchi yozuv (ekrandan) | ⏳ egasi qarori + baza qaytishi |
+
 ## 0$. Ombor bo'limi — audit 2026-10-07 (har band alohida)
 
 | Band | Nima | Holat |

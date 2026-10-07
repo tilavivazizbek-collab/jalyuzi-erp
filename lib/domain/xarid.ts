@@ -116,3 +116,57 @@ export function narxBirligiMatni(asosi: XaridNarxAsosi, valyuta: string, kirimBi
   const v = valyuta === 'USD' ? '$' : "so'm";
   return `${v}/${asosi === 'METR' ? 'metr' : asosi === 'KV_M' ? 'kv.m' : kirimBirligi}`;
 }
+
+// ─── Yetkazib beruvchi ishonchliligi — audit 2026-10-07 ───────────────────
+
+export interface BuyurtmaTarixi {
+  readonly sana: string;
+  readonly kutilganSana: string | null;
+  /** Shu buyurtma bo'yicha birinchi FAOL kirim sanasi */
+  readonly birinchiKirim: string | null;
+  readonly holat: XaridHolati;
+}
+
+export interface Ishonchlilik {
+  /** Bekor qilinmagan buyurtmalar */
+  readonly buyurtmaSoni: number;
+  /** Buyurtmadan birinchi kirimgacha o'rtacha kun */
+  readonly ortachaKun: number | null;
+  /** Va'da sanasi bor va mol kelganlardan — o'z vaqtida kelgani, % */
+  readonly vaqtidaFoiz: number | null;
+  readonly vaqtidaAsos: number;
+  /** Yakunlanganlardan to'liq kelgani, % (yopilgani — kam kelgan) */
+  readonly toliqFoiz: number | null;
+  readonly toliqAsos: number;
+  /** Hozir kechikayotgan ochiq buyurtmalar */
+  readonly kechikayotgan: number;
+}
+
+const kunlarOrasi = (dan: string, gacha: string): number =>
+  Math.round((Date.parse(`${gacha}T00:00:00Z`) - Date.parse(`${dan}T00:00:00Z`)) / 86_400_000);
+
+/**
+ * ⚠️ Foiz faqat ASOSI bor joyda: bitta buyurtmadan «100% vaqtida» degan
+ *    xulosa chiqarilmaydi — ekran asos sonini ham ko'rsatadi.
+ */
+export function ishonchlilik(b: readonly BuyurtmaTarixi[], bugun: string): Ishonchlilik {
+  const faol = b.filter((x) => x.holat !== 'BEKOR');
+  const kelgan = faol.filter((x) => x.birinchiKirim !== null);
+  const kunlar = kelgan.map((x) => kunlarOrasi(x.sana, x.birinchiKirim ?? x.sana));
+  const vaqtAsos = kelgan.filter((x) => x.kutilganSana !== null);
+  const vaqtida = vaqtAsos.filter((x) => (x.birinchiKirim ?? '') <= (x.kutilganSana ?? '')).length;
+  // Yakunlangan: to'liq kelgan yoki yopilgan (mol kelgan bo'lsa)
+  const yakun = kelgan.filter((x) => x.holat === 'TOLIQ' || x.holat === 'YOPILDI');
+  const toliq = yakun.filter((x) => x.holat === 'TOLIQ').length;
+  const foiz = (n: number, d: number): number | null => (d === 0 ? null : Math.round((n / d) * 100));
+  return {
+    buyurtmaSoni: faol.length,
+    ortachaKun:
+      kunlar.length === 0 ? null : Math.round(kunlar.reduce((y, k) => y + k, 0) / kunlar.length),
+    vaqtidaFoiz: foiz(vaqtida, vaqtAsos.length),
+    vaqtidaAsos: vaqtAsos.length,
+    toliqFoiz: foiz(toliq, yakun.length),
+    toliqAsos: yakun.length,
+    kechikayotgan: faol.filter((x) => kechikkanmi(x.holat, x.kutilganSana, bugun)).length,
+  };
+}

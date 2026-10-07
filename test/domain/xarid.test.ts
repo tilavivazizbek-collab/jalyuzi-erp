@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  ishonchlilik,
   kechikkanmi,
   kutilyaptimi,
   narxBirligiMatni,
@@ -61,5 +62,33 @@ describe('xarid qatori summasi — taxmin', () => {
   it('birlik matni', () => {
     expect(narxBirligiMatni('METR', 'USD', 'rulon')).toBe('$/metr');
     expect(narxBirligiMatni('BIRLIK', 'SOM', 'dona')).toBe("so'm/dona");
+  });
+});
+
+describe('yetkazib beruvchi ishonchliligi', () => {
+  it('vaqtida, to‘liq, o‘rtacha kun; bekor hisobga olinmaydi', () => {
+    const r = ishonchlilik(
+      [
+        { sana: '2026-09-01', kutilganSana: '2026-09-10', birinchiKirim: '2026-09-08', holat: 'TOLIQ' },
+        { sana: '2026-09-05', kutilganSana: '2026-09-10', birinchiKirim: '2026-09-15', holat: 'YOPILDI' },
+        { sana: '2026-09-20', kutilganSana: '2026-10-01', birinchiKirim: null, holat: 'KUTILMOQDA' },
+        { sana: '2026-09-21', kutilganSana: null, birinchiKirim: null, holat: 'BEKOR' },
+      ],
+      '2026-10-07',
+    );
+    expect(r).toEqual({
+      buyurtmaSoni: 3,
+      ortachaKun: 9,
+      vaqtidaFoiz: 50,
+      vaqtidaAsos: 2,
+      toliqFoiz: 50,
+      toliqAsos: 2,
+      kechikayotgan: 1,
+    });
+  });
+  it('tarix yo‘q — foiz uydirilmaydi', () => {
+    const r = ishonchlilik([], '2026-10-07');
+    expect(r.vaqtidaFoiz).toBeNull();
+    expect(r.ortachaKun).toBeNull();
   });
 });

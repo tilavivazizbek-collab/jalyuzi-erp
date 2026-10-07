@@ -467,13 +467,24 @@ export async function omborAbc(filialId: number): Promise<AbcNatija<number>> {
 /** Sarlavhadagi jami raqam — omborda turgan pulning tannarx qiymati. */
 export async function omborQiymati(filialId: number): Promise<string> {
   const sql = ulanishOl();
-  /** ⚠️ Formula bitta joyda — `bolakQiymatiIfodasi` (ombor sahifasi bilan bir xil) */
+  /**
+   * ⚠️ Formula bitta joyda — `bolakQiymatiIfodasi` (ombor sahifasi bilan bir xil).
+   *
+   * ⚠️ JAMI = MATERIAL QATORLARI YIG'INDISI. Har material o'z qiymatini
+   *    tiyingacha yaxlitlab ko'rsatadi; jami umumiy summadan yaxlitlansa
+   *    ekrandagi qatorlarni qo'shgan odam 1 tiyin farq topardi
+   *    (EC-OMB-Q5, 2026-10-07 — kasr tannarxli bo'laklar ko'paygach chiqdi).
+   */
   const q = await sql<{ jami: string | null }[]>`
-    SELECT SUM(${bolakQiymatiIfodasi(sql)})::numeric(14,2)::text AS jami
-    FROM bolak b
-    WHERE b.filial_id = ${filialId} AND b.faol = true
-      AND b.holat IN ('BOSH','BAND')
-      AND b.tannarx_valyuta_snapshot = 'SOM'`;
+    SELECT SUM(t.qiymat)::numeric(14,2)::text AS jami
+    FROM (
+      SELECT SUM(${bolakQiymatiIfodasi(sql)})::numeric(14,2) AS qiymat
+      FROM bolak b
+      WHERE b.filial_id = ${filialId} AND b.faol = true
+        AND b.holat IN ('BOSH','BAND')
+        AND b.tannarx_valyuta_snapshot = 'SOM'
+      GROUP BY b.material_id
+    ) t`;
   return q[0]?.jami ?? '0';
 }
 

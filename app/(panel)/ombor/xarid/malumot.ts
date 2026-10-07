@@ -9,10 +9,12 @@
 import Decimal from 'decimal.js';
 import { ulanishOl } from '@/lib/db';
 import {
+  ishonchlilik,
   kechikkanmi,
   qatorHolati,
   xaridHolati,
   xaridQatorSummasi,
+  type Ishonchlilik,
   type XaridHolati,
   type XaridNarxAsosi,
   type XaridQarori,
@@ -307,4 +309,38 @@ export async function yoldagiBuyurtmalar(
       kirimBirligi: q.kirimBirligi,
     };
   });
+}
+
+/**
+ * Yetkazib beruvchi kartochkasi uchun — u qanchalik ishonchli
+ * (audit 2026-10-07). Qarz umumiy bo'lgani kabi (Q-26) — HAMMA filiallar.
+ */
+export async function yetkazuvchiIshonchi(yetkazibId: number): Promise<Ishonchlilik> {
+  const s = await ulanishOl()<SarlavhaQatori[]>`
+    SELECT ${ulanishOl().unsafe(SARLAVHA_USTUNLARI)}
+    FROM xarid_buyurtma x
+    JOIN yetkazib_beruvchi y ON y.id = x.yetkazib_beruvchi_id
+    LEFT JOIN xodim xo ON xo.id = x.yaratdi_id
+    WHERE x.yetkazib_beruvchi_id = ${yetkazibId}`;
+  const [qatorlar, birinchi] = await Promise.all([
+    qatorlarniOl(s.map((x) => x.id)),
+    ulanishOl()<{ id: number; sana: string }[]>`
+      SELECT xarid_buyurtma_id AS id, MIN(sana)::text AS sana
+      FROM kirim
+      WHERE xarid_buyurtma_id = ANY(${s.map((x) => x.id)}) AND holat = 'FAOL'
+      GROUP BY xarid_buyurtma_id`,
+  ]);
+  const kirimSanasi = new Map(birinchi.map((b) => [b.id, b.sana]));
+  return ishonchlilik(
+    s.map((x) => ({
+      sana: x.sana,
+      kutilganSana: x.kutilgan_sana,
+      birinchiKirim: kirimSanasi.get(x.id) ?? null,
+      holat: xaridHolati(
+        x.holat,
+        qatorlar.filter((q) => q.xaridId === x.id),
+      ),
+    })),
+    toshkentKuni(),
+  );
 }

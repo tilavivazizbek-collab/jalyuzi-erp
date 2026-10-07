@@ -2062,3 +2062,18 @@ Tuzatuvchi yozuv — egasi qarori (solishtirma dalolatnoma bo'lgan bo'lishi mumk
 Yo'l-yo'lakay: dollarli kirim kartochkasida tannarx (doim so'mda, 9.6)
 «$» bilan chiqardi — tuzatildi; storno qarzi `Number` emas, `Decimal` bilan.
 
+## P-47 — Yetkazib beruvchi qarzi kirimlarga FIFO taqsimlanadi
+
+**2026-10-07, yetkazib beruvchilar auditi.** Kartochka to'rt joyda hujjat
+summasini o'zicha hisoblardi (`narx × miqdor`, ba'zida `+ transport`) va
+«to'langan» deb faqat SHU kirimga bog'langan to'lovni sanardi. Oqibat:
+kartochkadan to'langan qarz hech qaysi hujjatni yopmasdi, «to'lanmagan
+hujjatlar» ro'yxati va «muddat o'tdi» belgisi abadiy qolardi.
+
+**Qaror:** mijozdagi FIFO (`qarzniTaqsimla`) qarz turi parametri bilan
+(`XARID`). Hujjat summasi — jurnaldagi yozilgan qarz; kirimga bog'langan
+to'lov, storno va da'vo (`kirim_qator` orqali) avval o'sha kirimga, qolgani
+eng eski ochiq kirimga, ortgani — avans. Bitta funksiya:
+`app/(panel)/yetkazib/taqsimot.ts` → `yetkazibHolati(lari)`; ro'yxat ham,
+kartochka ham shundan. Muddat — `lib/domain/yetkazib-qarz.ts`.
+

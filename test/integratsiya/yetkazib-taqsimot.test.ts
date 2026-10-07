@@ -9,7 +9,9 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { Ulanish } from '@/lib/db/ulanish';
 import { ulanishOl } from '@/lib/db';
 import { kirimYarat } from '@/lib/amal/kirim';
-import { yetkazibHolati } from '@/app/(panel)/yetkazib/taqsimot';
+import { yetkazibHolati, yetkazibHolatlari } from '@/app/(panel)/yetkazib/taqsimot';
+import { yetkazuvchiIshonchi } from '@/app/(panel)/ombor/xarid/malumot';
+import { xaridYarat } from '@/lib/amal/xarid';
 import { kirimlar, qarzHarakati, sarlavhaBloklari } from '@/app/(panel)/yetkazib/malumot';
 import { kutilayotganTolovlar, tolovIntizomimiz } from '@/app/(panel)/yetkazib/[id]/malumot';
 import { sinovUlanishi } from './yordamchi';
@@ -122,5 +124,57 @@ describe('yetkazib beruvchi kartochkasi — FIFO taqsimot', () => {
     expect(q).toHaveLength(1);
     // Eng oxirgisi — 2-kirim (bugungi sana bilan yozilgan); balans = 1 000 000 + 500 000 − 1 200 000
     expect(q[0]?.keyingi).toBe('300000.00');
+  });
+
+  it('EC-YT-05: ro‘yxat — hamma yetkazuvchi bitta so‘rovda, qarz kartochka bilan teng', async () => {
+    const hammasi = await yetkazibHolatlari(null);
+    expect(hammasi.get(yId)?.taqsimot.qarz.SOM).toBe('300000.00');
+  });
+
+  it('EC-YT-06: ishonchlilik — buyurtmadan kech kelgan kirim «vaqtida» emas', async () => {
+    const { id } = await xaridYarat(
+      sql,
+      {
+        filialId: FILIAL,
+        yetkazibBeruvchiId: yId,
+        sana: '2026-09-01',
+        kutilganSana: '2026-09-05',
+        valyuta: 'SOM',
+        izoh: null,
+        qatorlar: [{ materialId: matoId, miqdor: '1', narxBirlik: null, narxAsosi: 'BIRLIK' }],
+      },
+      XODIM,
+    );
+    await kirimYarat(
+      sql,
+      {
+        raqam: `K-YT-${BELGI}-XB`,
+        sana: '2026-09-09',
+        filialId: FILIAL,
+        yetkazibBeruvchiId: yId,
+        valyuta: 'SOM',
+        kursSnapshot: null,
+        transportSumma: '0',
+        bojxonaSumma: '0',
+        tolovMuddati: null,
+        xaridBuyurtmaId: id,
+        qatorlar: [
+          {
+            materialId: matoId,
+            miqdorKirim: 1,
+            narxBirlik: '100',
+            defektMiqdor: 0,
+            defektTuri: null,
+            bolaklar: [{ eniM: 3, boyiM: 10 }],
+          },
+        ],
+      },
+      XODIM,
+    );
+    const i = await yetkazuvchiIshonchi(yId);
+    expect(i.buyurtmaSoni).toBe(1);
+    expect(i.ortachaKun).toBe(8);
+    expect(i.vaqtidaFoiz).toBe(0);
+    expect(i.toliqFoiz).toBe(100);
   });
 });
