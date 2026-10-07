@@ -801,6 +801,8 @@ export interface BandBolak {
   readonly bandId: number;
   readonly pozitsiyaId: number;
   readonly kod: string;
+  /** 0062 — saqlash joyi: usta rulonni qayerdan olishini biladi */
+  readonly joyNomi: string | null;
   readonly materialNom: string;
   /** TZ 7.4 — rulonmi yoki kesma: qoldiq shunga qarab hisoblanadi */
   readonly turi: string;
@@ -862,6 +864,7 @@ export async function bandBolaklar(
       slot_kesim_eni_m: string | null;
       poz_boyi_m: string;
       poz_soni: number;
+      joy_nomi: string | null;
     }[]
   >`
     SELECT bd.id AS band_id, bd.buyurtma_pozitsiya_id AS pozitsiya_id, bo.kod,
@@ -869,9 +872,10 @@ export async function bandBolaklar(
            ms.nom AS slot_nomi, pm.birlik, pm.hisoblangan_miqdor::text,
            ms.koeffitsient::text, ms.kesish_turi,
            ms.kesim_eni_m::text AS slot_kesim_eni_m,
-           p.boyi_m::text AS poz_boyi_m, p.soni AS poz_soni
+           p.boyi_m::text AS poz_boyi_m, p.soni AS poz_soni, j.nom AS joy_nomi
     FROM band bd
     JOIN bolak bo   ON bo.id = bd.bolak_id
+    LEFT JOIN ombor_joy j ON j.id = bo.joy_id
     JOIN material m ON m.id = bo.material_id
     JOIN buyurtma_pozitsiya p ON p.id = bd.buyurtma_pozitsiya_id
     LEFT JOIN pozitsiya_material pm ON pm.id = bd.pozitsiya_material_id
@@ -907,6 +911,7 @@ export async function bandBolaklar(
       bandId: x.band_id,
       pozitsiyaId: x.pozitsiya_id,
       kod: x.kod,
+      joyNomi: x.joy_nomi,
       materialNom: x.material_nom,
       turi: x.turi,
       eniM: x.eni_m === null ? null : Number(x.eni_m),

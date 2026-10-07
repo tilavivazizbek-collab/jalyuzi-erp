@@ -165,6 +165,35 @@ export const BOLAK_HOLATLARI = [
   'CHIQINDI',
 ] as const;
 
+// ─── ombor_joy — 0062 · ombor auditi 2026-10-07 ───────────────────────────
+
+/**
+ * Saqlash joyi — stellaj / qator / polka. Har filialda o'z ro'yxati.
+ *
+ * ⚠️ RO'YXATDAN tanlanadi, erkin matn emas: «A-1», «a1» bir joy bo'lib
+ *    qolmasin (noyoblik — `lower(trim(nom))`, faqat faollar orasida).
+ */
+export const omborJoy = pgTable(
+  'ombor_joy',
+  {
+    id: id(),
+    filialId: bigint('filial_id', { mode: 'number' })
+      .notNull()
+      .references(() => filial.id),
+    nom: text('nom').notNull(),
+    izoh: text('izoh'),
+    tartib: integer('tartib').notNull().default(0),
+    ...ochirilmaydi,
+    ...izlar,
+  },
+  (t) => [
+    check('ombor_joy_nom_bosh', sql`length(trim(${t.nom})) > 0`),
+    uniqueIndex('ombor_joy_nom_bitta')
+      .on(t.filialId, sql`lower(trim(${t.nom}))`)
+      .where(sql`${t.faol}`),
+  ],
+);
+
 export const bolak = pgTable(
   'bolak',
   {
@@ -224,6 +253,8 @@ export const bolak = pgTable(
      * rulon ochilmaydi.
      */
     ochilgan: boolean('ochilgan').notNull().default(false),
+    /** 0062 — saqlash joyi. Bo'sh — joyi yozilmagan */
+    joyId: bigint('joy_id', { mode: 'number' }).references(() => omborJoy.id),
     ...ochirilmaydi,
     ...izlar,
   },

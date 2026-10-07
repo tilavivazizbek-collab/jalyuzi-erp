@@ -68,6 +68,8 @@ const MENYU: readonly Guruh[] = [
       { yol: '/ombor/tarix', nom: 'Ombor tarixi', kod: 'ombor.qoldiq.kor' },
       { yol: '/ombor/kirim', nom: 'Kirimlar', kod: 'ombor.qoldiq.kor' },
       { yol: '/ombor/kochirish', nom: "Ko'chirish", kod: 'ombor.qoldiq.kor' },
+      // 0062 — stellaj, qator, polka (ombor auditi 2026-10-07)
+      { yol: '/ombor/joylar', nom: 'Saqlash joylari', kod: 'ombor.qoldiq.kor' },
       {
         yol: '/ombor/inventarizatsiya',
         nom: 'Inventarizatsiya',

@@ -110,6 +110,8 @@ export function TugatdimTugmasi({
     kesimBoyiM: number | null;
     slotNomi: string | null;
     hisoblanganKvM: number | null;
+    /** 0062 — saqlash joyi; ixtiyoriy (eski chaqiruvchilar uchun) */
+    joyNomi?: string | null;
   }[];
   mahsulotEniM: number;
   mahsulotBoyiM: number;
@@ -392,6 +394,12 @@ export function TugatdimTugmasi({
                     <span className="raqam ml-1">
                       · {h.band.kod} · {h.band.eniM} × {h.band.boyiM} m ={' '}
                       {h.manbaKvM.toFixed(2)} kv.m
+                    </span>
+                  )}
+                  {/* 0062 — rulon qayerda turibdi */}
+                  {(h.band.joyNomi ?? null) !== null && (
+                    <span className="ml-1 rounded-full bg-belgi-kok-fon px-1.5 py-0.5 text-[11px] font-medium text-belgi-kok">
+                      joy: {h.band.joyNomi}
                     </span>
                   )}
                 </div>

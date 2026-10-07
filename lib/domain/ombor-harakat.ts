@@ -88,3 +88,23 @@ export function yonalish(h: HarakatMiqdori): Yonalish {
   if (q < 0) return 'CHIQDI';
   return 'NOL';
 }
+
+/**
+ * Bo'lak holati — ekrandagi nomi. Material kartochkasi va bo'lak sahifasi
+ * (QR) BIR XIL so'zni ko'rsatsin (ombor auditi 2026-10-07).
+ */
+export const BOLAK_HOLAT_NOMI: Record<string, string> = {
+  BOSH: "bo'sh",
+  BAND: 'band',
+  YOLDA: "yo'lda",
+  ISHLATILDI: 'ishlatilgan',
+  BRAK: 'brak',
+  CHIQINDI: 'chiqindi',
+};
+
+/** Bo'lak turi — ekrandagi nomi */
+export const BOLAK_TURI_NOMI: Record<string, string> = {
+  RULON: 'Rulon',
+  OSTATKA: 'Qoldiq kesma',
+  DONA: 'Dona',
+};

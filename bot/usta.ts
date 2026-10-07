@@ -409,6 +409,8 @@ interface TugatilayotganMato {
   readonly turi: string;
   readonly eniM: number;
   readonly boyiM: number;
+  /** 0062 — saqlash joyi (ixtiyoriy: eski sessiyada yo'q) */
+  readonly joy?: string | null;
 }
 
 interface TugatdimHolati {
@@ -441,7 +443,9 @@ function qoldiqSavoli(m: TugatilayotganMato, tartib: number, jami: number): stri
   const raqam = jami > 1 ? ` (${String(tartib + 1)}/${String(jami)})` : '';
   return (
     `🧵 *${m.nom}*${raqam}\n` +
-    `Bo‘lak: ${m.kod} · ${String(m.eniM)} × ${String(m.boyiM)} m\n\n` +
+    `Bo‘lak: ${m.kod} · ${String(m.eniM)} × ${String(m.boyiM)} m\n` +
+    (m.joy !== undefined && m.joy !== null ? `Joyi: ${m.joy}\n` : '') +
+    '\n' +
     `Qolgan bo‘lak o‘lchami?\n${MATN.usta.qoldiqNamuna}`
   );
 }
@@ -481,12 +485,14 @@ export async function tugatdimniBoshla(
       turi: string;
       eni_m: string | null;
       boyi_m: string | null;
+      joy: string | null;
     }[]
   >`
     SELECT bd.id AS band_id, m.nom, bo.kod, bo.turi,
-           bo.eni_m::text, bo.boyi_m::text
+           bo.eni_m::text, bo.boyi_m::text, j.nom AS joy
     FROM band bd
     JOIN bolak bo   ON bo.id = bd.bolak_id
+    LEFT JOIN ombor_joy j ON j.id = bo.joy_id
     JOIN material m ON m.id = bo.material_id
     WHERE bd.buyurtma_pozitsiya_id = ${pozitsiyaId} AND bd.holat = 'FAOL'
     ORDER BY bd.id`;
@@ -505,6 +511,7 @@ export async function tugatdimniBoshla(
     turi: b.turi,
     eniM: Number(b.eni_m ?? 0),
     boyiM: Number(b.boyi_m ?? 0),
+    joy: b.joy,
   }));
 
   await sessiyaYoz(

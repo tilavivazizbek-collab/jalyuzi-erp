@@ -4,6 +4,8 @@ import { sahifaRuxsati } from '@/lib/kirish/joriy';
 import { ruxsatBormi, tannarxniKoradimi } from '@/lib/ruxsat/tekshir';
 import { pulKorsat, som } from '@/lib/domain/pul';
 import { kirimTafsiloti } from '../../malumot';
+import { filialJoylari, yorliqBolaklari } from '../../joy-malumot';
+import { BolakJoyFormasi } from '../../joy-forma';
 import { StornoFormasi } from '../storno-forma';
 import { KirimTahrirFormasi } from '../tahrir-forma';
 
@@ -23,6 +25,17 @@ export default async function KirimTafsili({ params }: { params: Promise<{ id: s
   if (h === null) notFound();
 
   const storno = h.holat === 'STORNO';
+
+  /**
+   * 0062 — kirimdan tug'ilgan, omborda turgan bo'laklar: joyga qo'yish
+   * va QR yorliq. Omborchi rulonlarni tushirgach shu yerda bir bosishda
+   * joylashtiradi (ombor auditi 2026-10-07).
+   */
+  const joyQoyaOladi = ruxsatBormi(f, 'ombor.kirim.yarat');
+  const [bolaklar, joylar] = await Promise.all([
+    yorliqBolaklari(f.filialId, { kirimId }),
+    joyQoyaOladi ? filialJoylari(f.filialId) : Promise.resolve([]),
+  ]);
   const pul = (x: string): string => (h.valyuta === 'SOM' ? pulKorsat(som(x)) : `${x} $`);
 
   return (
@@ -101,6 +114,45 @@ export default async function KirimTafsili({ params }: { params: Promise<{ id: s
         <dt className="text-matn-kuchsiz">Ishlatilgan bo&apos;lak</dt>
         <dd className="raqam">{h.ishlatilgan}</dd>
       </dl>
+
+      {!storno && bolaklar.length > 0 && (
+        <section className="flex flex-col gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-sm font-medium text-matn-ikki">
+              Omborga tushgan bo&apos;laklar — joy va yorliq
+            </h2>
+            <Link
+              href={`/ombor/yorliq?kirim=${String(kirimId)}`}
+              className="rounded-maydon border border-chegara-quyuq px-3 py-1.5 text-[13px] text-matn-ikki hover:bg-fon"
+            >
+              QR yorliqlarni chop etish ({bolaklar.length})
+            </Link>
+          </div>
+          {joyQoyaOladi ? (
+            <BolakJoyFormasi
+              joylar={joylar}
+              tanlov={bolaklar.map((b) => ({
+                id: b.id,
+                matn: `${b.kod} · ${b.materialNomi} · ${
+                  b.turi === 'DONA' ? `${b.miqdor ?? '0'} dona` : `${b.eniM ?? '?'} × ${b.boyiM ?? '?'} m`
+                }`,
+                joy: b.joyNomi,
+              }))}
+            />
+          ) : (
+            <ul className="flex flex-col divide-y divide-chegara rounded-karta border border-chegara bg-sirt text-sm">
+              {bolaklar.map((b) => (
+                <li key={b.id} className="flex justify-between gap-3 px-3 py-1.5">
+                  <Link href={`/ombor/bolak/${String(b.id)}`} className="raqam text-brend hover:underline">
+                    {b.kod} · {b.materialNomi}
+                  </Link>
+                  <span className="text-xs text-matn-kuchsiz">{b.joyNomi ?? 'joyi yo‘q'}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
 
       {/*
         TZ 9.11 — «Qo'shimcha xarajat ko'pincha MOLDAN KEYIN keladi.»

@@ -7,7 +7,12 @@ import { TuzatishTugmasi } from './tuzatish-tugma';
 import Decimal from 'decimal.js';
 import { dollar, pulKorsat, som } from '@/lib/domain/pul';
 import { daraja, type Chegaralar } from '@/lib/domain/kesish';
-import { harakatNomi, miqdorMatni } from '@/lib/domain/ombor-harakat';
+import {
+  BOLAK_HOLAT_NOMI,
+  BOLAK_TURI_NOMI,
+  harakatNomi,
+  miqdorMatni,
+} from '@/lib/domain/ombor-harakat';
 import { kamQoldiqmi } from '@/lib/domain/birlik-tanlovi';
 import { SARFLASH_BIRLIGI_NOMI, type SarflashBirligi } from '@/lib/sxema/material';
 import {
@@ -36,14 +41,8 @@ import {
 
 export const dynamic = 'force-dynamic';
 
-const HOLAT_NOMI: Record<string, string> = {
-  BOSH: "bo'sh",
-  BAND: 'band',
-  YOLDA: "yo'lda",
-  ISHLATILDI: 'ishlatilgan',
-  BRAK: 'brak',
-  CHIQINDI: 'chiqindi',
-};
+/** Holat nomlari — bo'lak sahifasi (QR) bilan bitta joyda */
+const HOLAT_NOMI = BOLAK_HOLAT_NOMI;
 
 
 /**
@@ -178,7 +177,18 @@ export default async function MaterialKartochkasi({ params }: { params: Promise<
 
       {/* ── Qoldiq tarkibi (7.11) ── */}
       <section>
-        <h2 className="mb-2 text-sm font-medium text-matn-ikki">Qoldiq tarkibi</h2>
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-sm font-medium text-matn-ikki">Qoldiq tarkibi</h2>
+          {/* 0062 — omborda turgan hamma bo'lakka QR yorliq */}
+          {bolaklar.some((b) => b.holat === 'BOSH' || b.holat === 'BAND') && (
+            <Link
+              href={`/ombor/yorliq?material=${String(materialId)}`}
+              className="text-[13px] text-brend hover:underline"
+            >
+              QR yorliqlarni chop etish
+            </Link>
+          )}
+        </div>
         {bolaklar.length === 0 ? (
           <p className="rounded-karta border border-dashed border-chegara-quyuq px-4 py-8 text-center text-sm text-matn-kuchsiz">
             Bo&apos;lak yo&apos;q.
@@ -192,6 +202,7 @@ export default async function MaterialKartochkasi({ params }: { params: Promise<
                   <th className="px-4 py-2.5 font-medium">Turi</th>
                   <th className="px-4 py-2.5 font-medium">{olchamli ? "O'lcham" : 'Miqdor'}</th>
                   <th className="px-4 py-2.5 font-medium">Holat</th>
+                  <th className="px-4 py-2.5 font-medium">Joyi</th>
                   {pulniKoradi && (
                     <th className="px-4 py-2.5 text-right font-medium">Tannarx</th>
                   )}
@@ -204,14 +215,13 @@ export default async function MaterialKartochkasi({ params }: { params: Promise<
                   const belgi = darajaBelgisi(b, chegaralar);
                   return (
                     <tr key={b.id} className={b.holat === 'BOSH' ? '' : 'text-matn-kuchsiz'}>
-                      <td className="px-4 py-2.5 font-mono text-xs">{b.kod}</td>
-                      <td className="px-4 py-2.5">
-                        {b.turi === 'RULON'
-                          ? 'Rulon'
-                          : b.turi === 'OSTATKA'
-                            ? 'Qoldiq kesma'
-                            : 'Dona'}
+                      <td className="px-4 py-2.5 font-mono text-xs">
+                        {/* 0062 — QR ochadigan sahifaning o'zi: joyi, kirimi, yorlig'i */}
+                        <Link href={`/ombor/bolak/${String(b.id)}`} className="text-brend hover:underline">
+                          {b.kod}
+                        </Link>
                       </td>
+                      <td className="px-4 py-2.5">{BOLAK_TURI_NOMI[b.turi] ?? b.turi}</td>
                       <td className="raqam px-4 py-2.5">
                         {b.eniM !== null && b.boyiM !== null
                           ? `${b.eniM.toFixed(2)} × ${b.boyiM.toFixed(2)} m`
@@ -234,6 +244,9 @@ export default async function MaterialKartochkasi({ params }: { params: Promise<
                         >
                           {HOLAT_NOMI[b.holat] ?? b.holat}
                         </span>
+                      </td>
+                      <td className="px-4 py-2.5 text-matn-ikki">
+                        {b.joyNomi ?? <span className="text-matn-kuchsiz">—</span>}
                       </td>
                       {pulniKoradi && (
                         <td className="raqam px-4 py-2.5">{pulKorsat(som(b.tannarx))}</td>

@@ -264,6 +264,8 @@ export interface BolakQatori {
   readonly holat: string;
   readonly tannarx: string;
   readonly kirimRaqam: string | null;
+  /** 0062 — saqlash joyi nomi; yozilmagan bo'lsa `null` */
+  readonly joyNomi: string | null;
 }
 
 export async function materialBolaklari(
@@ -281,13 +283,15 @@ export async function materialBolaklari(
       holat: string;
       tannarx_birlik_snapshot: string;
       kirim_raqam: string | null;
+      joy_nomi: string | null;
     }[]
   >`
     SELECT b.id, b.kod, b.turi, b.eni_m, b.boyi_m, b.miqdor, b.holat,
-           b.tannarx_birlik_snapshot, k.raqam AS kirim_raqam
+           b.tannarx_birlik_snapshot, k.raqam AS kirim_raqam, j.nom AS joy_nomi
     FROM bolak b
     LEFT JOIN kirim_qator kq ON kq.id = b.kirim_qator_id
     LEFT JOIN kirim k ON k.id = kq.kirim_id
+    LEFT JOIN ombor_joy j ON j.id = b.joy_id
     WHERE b.material_id = ${materialId} AND b.filial_id = ${filialId} AND b.faol = true
     ORDER BY
       CASE b.holat WHEN 'BOSH' THEN 0 WHEN 'BAND' THEN 1 ELSE 2 END,
@@ -303,6 +307,7 @@ export async function materialBolaklari(
     holat: q.holat,
     tannarx: q.tannarx_birlik_snapshot,
     kirimRaqam: q.kirim_raqam,
+    joyNomi: q.joy_nomi,
   }));
 }
 
