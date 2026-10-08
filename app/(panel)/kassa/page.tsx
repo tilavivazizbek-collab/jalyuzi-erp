@@ -3,8 +3,13 @@ import Link from 'next/link';
 import { sahifaRuxsati } from '@/lib/kirish/joriy';
 import { ruxsatBormi } from '@/lib/ruxsat/tekshir';
 import { dollar, pulKorsat, som } from '@/lib/domain/pul';
+import Decimal from 'decimal.js';
+import { kassaKodNomi, manbaKorinishi } from '@/lib/domain/kassa-kod';
+import { toshkentKuni, VAQT_ZONASI } from '@/lib/domain/sana';
+import { kitobFiltriniOqi, kitobSorovi, kunOldin, YONALISHLAR } from './kitob-filtr';
 import {
   kassaKitobi,
+  kitobJami,
   kassaQoldiqlari,
   ochiqTopshiriqlar,
   topshirishManbalari,
@@ -18,42 +23,37 @@ import { filialNomi as filialNominiOl } from '../ombor/malumot';
 
 export const dynamic = 'force-dynamic';
 
-/** TZ 12.5 · 12.6 — kod → o'zbekcha nom. */
-const KOD_NOMI: Record<string, string> = {
-  K1: "Buyurtma to'lovi",
-  K2: "Buyurtma to'lovi (keyin)",
-  K3: "Mijoz qarzini to'lash",
-  K4: 'Mijoz avansi',
-  K5: 'Hisobdan chiqarilgan qarz qaytdi',
-  K6: "Egasi pul qo'shdi",
-  K7: 'Sotuvchidan topshiriq',
-  K8: "Boshlang'ich qoldiq",
-  K9: 'Boshqa kirim',
-  C1: "Yetkazib beruvchiga to'lov",
-  C2: 'Yetkazib beruvchiga avans',
-  C3: "Transport / bojxona to'lovi",
-  C4: "Ish haqi to'lovi",
-  C5: 'Xodimga avans',
-  C6: 'Mijozga qaytarish',
-  C7: 'Operatsion xarajat',
-  C8: 'Egasi pul oldi',
-  C9: 'Adminga topshiriq',
-  C10: 'Boshqa chiqim',
-};
+const KATAK =
+  'rounded-maydon border border-chegara-quyuq bg-sirt px-2.5 py-1.5 text-[13px] outline-none focus:ring-2 focus:ring-brend/25';
 
 const pul = (summa: string, valyuta: string): string =>
   valyuta === 'SOM' ? pulKorsat(som(summa)) : pulKorsat(dollar(summa));
 
-export default async function KassaSahifasi() {
+const VAQT = new Intl.DateTimeFormat('uz-UZ', {
+  timeZone: VAQT_ZONASI,
+  day: '2-digit',
+  month: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+});
+
+export default async function KassaSahifasi({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const f = await sahifaRuxsati('kassa.oz.kor');
+  const bugun = toshkentKuni();
+  const filtr = kitobFiltriniOqi(await searchParams, bugun);
   const kassaOchaOladi = ruxsatBormi(f, 'kassa.yarat');
   // TZ 12.14 — sotuvchi FAQAT o'z kassasini ko'radi
   const barchaniKoradi = ruxsatBormi(f, 'kassa.barcha.kor');
   const stornoQilaOladi = ruxsatBormi(f, 'kassa.storno');
 
-  const [qoldiqlar, kitob, topshiriqlar, balanslar, manbalar, nishonlar] = await Promise.all([
+  const [qoldiqlar, kitob, jami, topshiriqlar, balanslar, manbalar, nishonlar] = await Promise.all([
     kassaQoldiqlari(f.filialId, f.xodimId, barchaniKoradi),
-    kassaKitobi(f.filialId, f.xodimId, barchaniKoradi),
+    kassaKitobi(f.filialId, f.xodimId, barchaniKoradi, filtr),
+    kitobJami(f.filialId, f.xodimId, barchaniKoradi, filtr),
     barchaniKoradi ? ochiqTopshiriqlar(f.filialId) : Promise.resolve([]),
     barchaniKoradi ? xodimBalanslari(f.filialId) : Promise.resolve([]),
     // 12.7 — sotuvchi O'Z kassasidan topshiradi
@@ -232,63 +232,176 @@ export default async function KassaSahifasi() {
       )}
 
       {/* ── 12.18 · Kassa kitobi ── */}
-      <section>
-        <h2 className="mb-1 text-sm font-medium text-matn-ikki">Kassa kitobi</h2>
-        <p className="mb-3 text-xs text-matn-kuchsiz">
-          Yozuvlar o&apos;chirilmaydi va o&apos;zgartirilmaydi (§6.5) — tuzatish storno bilan.
-        </p>
+      <section className="flex flex-col gap-3">
+        <div className="flex flex-wrap items-end justify-between gap-2">
+          <div>
+            <h2 className="text-sm font-medium text-matn-ikki">Kassa kitobi</h2>
+            <p className="text-xs text-matn-kuchsiz">
+              Yozuvlar o&apos;chirilmaydi va o&apos;zgartirilmaydi (§6.5) — tuzatish storno bilan.
+            </p>
+          </div>
+          <a
+            href={`/kassa/eksport?${kitobSorovi(filtr)}`}
+            className="rounded-maydon border border-chegara-quyuq px-3 py-1.5 text-[13px] text-matn-ikki hover:bg-fon"
+          >
+            Excel&apos;ga yuklash
+          </a>
+        </div>
+
+        {/* Filtr — oddiy GET forma: havola nusxalansa ham shu ko'rinish ochiladi */}
+        <form method="get" className="flex flex-wrap items-end gap-2 rounded-karta border border-chegara bg-sirt p-3 text-[13px]">
+          <label className="flex flex-col gap-1">
+            <span className="text-matn-kuchsiz">Dan</span>
+            <input type="date" name="dan" defaultValue={filtr.dan} className={KATAK} />
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-matn-kuchsiz">Gacha</span>
+            <input type="date" name="gacha" defaultValue={filtr.gacha} className={KATAK} />
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-matn-kuchsiz">Kassa</span>
+            <select name="kassa" defaultValue={filtr.kassaId === null ? '' : String(filtr.kassaId)} className={KATAK}>
+              <option value="">Hammasi</option>
+              {qoldiqlar.map((k) => (
+                <option key={k.id} value={k.id}>
+                  {k.nom}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-matn-kuchsiz">Yo&apos;nalish</span>
+            <select name="yonalish" defaultValue={filtr.yonalish} className={KATAK}>
+              {Object.entries(YONALISHLAR).map(([k, v]) => (
+                <option key={k} value={k}>
+                  {v}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button
+            type="submit"
+            className="rounded-maydon bg-brend px-3 py-1.5 font-medium text-tugma-matn hover:bg-brend-quyuq"
+          >
+            Ko&apos;rsatish
+          </button>
+          <div className="ml-auto flex flex-wrap gap-1.5">
+            {[
+              { nom: 'Bugun', dan: bugun },
+              { nom: '7 kun', dan: kunOldin(bugun, 6) },
+              { nom: '30 kun', dan: kunOldin(bugun, 29) },
+              { nom: 'Shu oy', dan: `${bugun.slice(0, 8)}01` },
+            ].map((t) => {
+              const faol = filtr.dan === t.dan && filtr.gacha === bugun;
+              return (
+                <Link
+                  key={t.nom}
+                  href={`/kassa?${kitobSorovi(filtr, { dan: t.dan, gacha: bugun })}`}
+                  aria-current={faol ? 'page' : undefined}
+                  className={`rounded-full border px-2.5 py-1 ${
+                    faol ? 'border-brend bg-brend text-tugma-matn' : 'border-chegara-quyuq text-matn-ikki hover:bg-fon'
+                  }`}
+                >
+                  {t.nom}
+                </Link>
+              );
+            })}
+          </div>
+        </form>
+
+        {/* Davr jami — valyuta ALOHIDA (1.3); ro'yxat kesilsa ham to'liq */}
+        {jami.length > 0 && (
+          <dl className="flex flex-wrap gap-x-8 gap-y-2 text-sm">
+            {jami.map((j) => (
+              <div key={j.valyuta} className="flex flex-wrap gap-x-4">
+                <div>
+                  <dt className="text-xs text-matn-kuchsiz">Kirim, {j.valyuta === 'USD' ? '$' : "so'm"}</dt>
+                  <dd className="raqam font-semibold text-belgi-yashil">{pul(j.kirim, j.valyuta)}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-matn-kuchsiz">Chiqim, {j.valyuta === 'USD' ? '$' : "so'm"}</dt>
+                  <dd className="raqam font-semibold text-belgi-qizil">{pul(j.chiqim, j.valyuta)}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-matn-kuchsiz">Farq · {j.soni} yozuv</dt>
+                  <dd className="raqam font-semibold">
+                    {pul(new Decimal(j.kirim).minus(j.chiqim).toFixed(2), j.valyuta)}
+                  </dd>
+                </div>
+              </div>
+            ))}
+          </dl>
+        )}
 
         {kitob.length === 0 ? (
           <p className="rounded-karta border border-dashed border-chegara-quyuq px-4 py-10 text-center text-sm text-matn-kuchsiz">
-            Hali kassa yozuvi yo&apos;q.
+            Bu davrda kassa yozuvi yo&apos;q.
           </p>
         ) : (
           <div className="overflow-x-auto rounded-karta border border-chegara bg-sirt">
             <table className="w-full text-sm">
               <thead className="border-b border-chegara bg-fon text-left text-xs uppercase tracking-wide text-matn-kuchsiz">
                 <tr>
-                  <th className="px-4 py-2.5 font-medium">Sana</th>
+                  <th className="px-4 py-2.5 font-medium">Vaqt</th>
                   <th className="px-4 py-2.5 font-medium">Kassa</th>
                   <th className="px-4 py-2.5 font-medium">Hodisa</th>
-                  <th className="px-4 py-2.5 font-medium">Manba</th>
+                  <th className="px-4 py-2.5 font-medium">Manba / izoh</th>
                   <th className="px-4 py-2.5 text-right font-medium">Summa</th>
                   <th className="px-4 py-2.5 font-medium">Kim</th>
                   {stornoQilaOladi && <th className="px-4 py-2.5 font-medium" />}
                 </tr>
               </thead>
               <tbody className="divide-y divide-chegara [&>tr:nth-child(even)]:bg-fon/50">
-                {kitob.map((y) => (
-                  <tr key={y.id} className={y.stornoQilinganmi ? 'text-matn-kuchsiz' : ''}>
-                    <td className="px-4 py-2.5 text-matn-ikki">
-                      {y.sana.toLocaleDateString('uz-UZ')}
-                    </td>
-                    <td className="px-4 py-2.5 text-xs">{y.kassaNomi}</td>
-                    <td className="px-4 py-2.5">
-                      {KOD_NOMI[y.kod] ?? y.kod}
-                      {y.stornoMi && <span className="ml-2 text-xs text-belgi-qizil">storno</span>}
-                      {y.stornoQilinganmi && <span className="ml-2 text-xs">storno qilingan</span>}
-                    </td>
-                    <td className="px-4 py-2.5 font-mono text-xs text-matn-kuchsiz">
-                      {y.manbaTuri}#{y.manbaId}
-                    </td>
-                    <td
-                      className={`raqam px-4 py-2.5 font-medium ${
-                        Number(y.summa) < 0 ? 'text-belgi-qizil' : 'text-belgi-yashil'
-                      }`}
-                    >
-                      {pul(y.summa, y.valyuta)}
-                    </td>
-                    <td className="px-4 py-2.5 text-xs text-matn-kuchsiz">{y.xodimIsmi}</td>
-                    {stornoQilaOladi && (
-                      <td className="px-4 py-2.5 text-right">
-                        {!y.stornoQilinganmi && !y.stornoMi && <StornoTugmasi yozuvId={y.id} />}
+                {kitob.map((y) => {
+                  const m = manbaKorinishi(y.manbaTuri, y.manbaId, y.manbaNomi, y.manbaBogliqId);
+                  const chiqim = y.summa.startsWith('-');
+                  return (
+                    <tr key={y.id} className={y.stornoQilinganmi ? 'text-matn-kuchsiz' : ''}>
+                      <td className="raqam whitespace-nowrap px-4 py-2.5 text-matn-ikki">{VAQT.format(y.sana)}</td>
+                      <td className="px-4 py-2.5 text-xs">{y.kassaNomi}</td>
+                      <td className="px-4 py-2.5">
+                        {kassaKodNomi(y.kod)}
+                        {y.stornoMi && <span className="ml-2 text-xs text-belgi-qizil">storno</span>}
+                        {y.stornoQilinganmi && <span className="ml-2 text-xs">storno qilingan</span>}
                       </td>
-                    )}
-                  </tr>
-                ))}
+                      <td className="max-w-[320px] px-4 py-2.5 text-[13px]">
+                        {m.havola === null ? (
+                          <span className="text-matn-ikki">{m.matn}</span>
+                        ) : (
+                          <Link href={m.havola} className="text-brend hover:underline">
+                            {m.matn}
+                          </Link>
+                        )}
+                        {y.izoh !== null && y.izoh !== '' && (
+                          <span className="block truncate text-xs text-matn-kuchsiz" title={y.izoh}>
+                            {y.izoh}
+                          </span>
+                        )}
+                      </td>
+                      <td
+                        className={`raqam whitespace-nowrap px-4 py-2.5 text-right font-medium ${
+                          chiqim ? 'text-belgi-qizil' : 'text-belgi-yashil'
+                        }`}
+                      >
+                        {pul(y.summa, y.valyuta)}
+                      </td>
+                      <td className="px-4 py-2.5 text-xs text-matn-kuchsiz">{y.xodimIsmi}</td>
+                      {stornoQilaOladi && (
+                        <td className="px-4 py-2.5 text-right">
+                          {!y.stornoQilinganmi && !y.stornoMi && <StornoTugmasi yozuvId={y.id} />}
+                        </td>
+                      )}
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
+        )}
+        {kitob.length >= 500 && (
+          <p className="text-xs text-matn-kuchsiz">
+            Oxirgi 500 yozuv ko&apos;rsatildi — to&apos;liq ro&apos;yxat Excel&apos;da, jami esa davr bo&apos;yicha to&apos;liq.
+          </p>
         )}
       </section>
     </div>

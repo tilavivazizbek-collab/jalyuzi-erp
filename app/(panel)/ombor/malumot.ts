@@ -755,6 +755,12 @@ export interface KirimTafsiloti {
   }[];
   /** Hujjat summasi — yetkazib beruvchiga qarz (transport va bojxonasiz, 9.2) */
   readonly summa: string;
+  /**
+   * Yetkazib beruvchi jurnaliga AMALDA yozilgan qarz (`XARID`).
+   * ⚠️ P-46 dan oldingi metr narxli kirimlarda `summa` dan kam — kartochka
+   *    farqni ko'rsatadi. `null` — jurnalda yozuv yo'q.
+   */
+  readonly yozilganQarz: string | null;
   /** Kirimdan tushgan bo'laklardan hozir omborda turganlari (7.12 ogohi) */
   readonly omborda: number;
   readonly ishlatilgan: number;
@@ -779,11 +785,15 @@ export async function kirimTafsiloti(
       bojxona_summa: string;
       xarid_id: number | null;
       xarid_raqam: string | null;
+      yozilgan_qarz: string | null;
     }[]
   >`
     SELECT k.id, k.raqam, k.sana::text AS sana, y.nom AS yetkazib_nomi,
            k.valyuta, k.holat, k.storno_sabab, k.transport_summa, k.bojxona_summa,
-           xb.id AS xarid_id, xb.raqam AS xarid_raqam
+           xb.id AS xarid_id, xb.raqam AS xarid_raqam,
+           (SELECT SUM(h.summa) FROM yetkazib_beruvchi_harakat h
+             WHERE h.manba_turi = 'kirim' AND h.manba_id = k.id
+               AND h.turi = 'XARID' AND h.summa > 0)::text AS yozilgan_qarz
     FROM kirim k
     JOIN yetkazib_beruvchi y ON y.id = k.yetkazib_beruvchi_id
     LEFT JOIN xarid_buyurtma xb ON xb.id = k.xarid_buyurtma_id
@@ -870,6 +880,7 @@ export async function kirimTafsiloti(
       olchamlar: q.olchamlar.map((b) => `${b.eni ?? '?'} × ${b.boyi ?? '?'}`),
     })),
     summa: summalar.reduce((y, x) => y.plus(x), new Decimal(0)).toFixed(2),
+    yozilganQarz: h.yozilgan_qarz === null ? null : new Decimal(h.yozilgan_qarz).toFixed(2),
     omborda: holatlar[0]?.omborda ?? 0,
     ishlatilgan: holatlar[0]?.ishlatilgan ?? 0,
   };

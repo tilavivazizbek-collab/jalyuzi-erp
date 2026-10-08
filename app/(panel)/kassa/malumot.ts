@@ -13,6 +13,9 @@
  */
 
 import { ulanishOl } from '@/lib/db';
+import type { Ulanish } from '@/lib/db/ulanish';
+import { VAQT_ZONASI } from '@/lib/domain/sana';
+import type { KitobFiltri } from './kitob-filtr';
 
 export interface KassaQoldigi {
   readonly id: number;
@@ -75,10 +78,30 @@ export interface KassaSatri {
   readonly valyuta: string;
   readonly manbaTuri: string;
   readonly manbaId: number;
+  /** Manbaning odam o'qiydigan nomi (buyurtma raqami, mijoz ismi…) */
+  readonly manbaNomi: string | null;
+  /** Qaytarishda — pozitsiyaning buyurtmasi */
+  readonly manbaBogliqId: number | null;
   readonly izoh: string | null;
   readonly xodimIsmi: string;
   readonly stornoQilinganmi: boolean;
   readonly stornoMi: boolean;
+}
+
+/** Filtr sharti — kitob va jami BIR XIL qatorlar ustida */
+function kitobSharti(
+  sql: Ulanish,
+  filialId: number,
+  xodimId: number,
+  barchaniKoradi: boolean,
+  f: KitobFiltri,
+) {
+  return sql`
+    k.filial_id = ${filialId}
+    ${barchaniKoradi ? sql`` : sql`AND k.xodim_id = ${xodimId}`}
+    AND (y.sana AT TIME ZONE ${VAQT_ZONASI})::date BETWEEN ${f.dan}::date AND ${f.gacha}::date
+    ${f.kassaId === null ? sql`` : sql`AND y.kassa_id = ${f.kassaId}`}
+    ${f.yonalish === 'kirim' ? sql`AND y.summa > 0` : f.yonalish === 'chiqim' ? sql`AND y.summa < 0` : sql``}`;
 }
 
 /**
@@ -86,12 +109,15 @@ export interface KassaSatri {
  *
  * ⚠️ Storno qilingan yozuv RO'YXATDA QOLADI (§6.5) — u belgi bilan
  *    ko'rsatiladi, yashirilmaydi.
+ * ⚠️ Kassa auditi 2026-10-08: filtr (davr, kassa, yo'nalish), manba NOMI,
+ *    izoh. Ilgari — oxirgi 200 yozuv va `buyurtma#12` kabi ichki belgi.
  */
 export async function kassaKitobi(
   filialId: number,
   xodimId: number,
   barchaniKoradi: boolean,
-  chegara = 200,
+  filtr: KitobFiltri,
+  chegara = 500,
 ): Promise<KassaSatri[]> {
   const sql = ulanishOl();
 
@@ -105,21 +131,40 @@ export async function kassaKitobi(
       valyuta: string;
       manba_turi: string;
       manba_id: number;
+      manba_nomi: string | null;
+      manba_bogliq_id: number | null;
       izoh: string | null;
       xodim_ismi: string;
       storno_id: number | null;
       storno_qilinganmi: boolean;
     }[]
   >`
-    SELECT y.id, y.sana, k.nom AS kassa_nomi, y.kod, y.summa, y.valyuta,
+    SELECT y.id, y.sana, k.nom AS kassa_nomi, y.kod, y.summa::text, y.valyuta,
            y.manba_turi, y.manba_id, y.izoh, x.ism AS xodim_ismi, y.storno_id,
+           CASE y.manba_turi
+             WHEN 'buyurtma' THEN (SELECT b.raqam FROM buyurtma b WHERE b.id = y.manba_id)
+             WHEN 'qaytarish' THEN (SELECT b.raqam FROM buyurtma_pozitsiya p
+                                      JOIN buyurtma b ON b.id = p.buyurtma_id
+                                     WHERE p.id = y.manba_id)
+             WHEN 'mijoz' THEN (SELECT m.ism FROM mijoz m WHERE m.id = y.manba_id)
+             WHEN 'kirim' THEN (SELECT ki.raqam FROM kirim ki WHERE ki.id = y.manba_id)
+             WHEN 'yetkazib_beruvchi' THEN (SELECT yb.nom FROM yetkazib_beruvchi yb
+                                             WHERE yb.id = y.manba_id)
+             WHEN 'xodim' THEN (SELECT xx.ism FROM xodim xx WHERE xx.id = y.manba_id)
+             WHEN 'topshiriq' THEN (SELECT k1.nom || ' → ' || k2.nom FROM topshiriq t
+                                      JOIN kassa k1 ON k1.id = t.kimdan_kassa_id
+                                      JOIN kassa k2 ON k2.id = t.kimga_kassa_id
+                                     WHERE t.id = y.manba_id)
+           END AS manba_nomi,
+           CASE WHEN y.manba_turi = 'qaytarish'
+                THEN (SELECT p.buyurtma_id FROM buyurtma_pozitsiya p WHERE p.id = y.manba_id)
+           END AS manba_bogliq_id,
            EXISTS (SELECT 1 FROM kassa_yozuv s WHERE s.storno_id = y.id)
              AS storno_qilinganmi
     FROM kassa_yozuv y
     JOIN kassa k ON k.id = y.kassa_id
     JOIN xodim x ON x.id = y.xodim_id
-    WHERE k.filial_id = ${filialId}
-      ${barchaniKoradi ? sql`` : sql`AND k.xodim_id = ${xodimId}`}
+    WHERE ${kitobSharti(sql, filialId, xodimId, barchaniKoradi, filtr)}
     ORDER BY y.sana DESC, y.id DESC
     LIMIT ${chegara}`;
 
@@ -132,11 +177,45 @@ export async function kassaKitobi(
     valyuta: r.valyuta,
     manbaTuri: r.manba_turi,
     manbaId: r.manba_id,
+    manbaNomi: r.manba_nomi,
+    manbaBogliqId: r.manba_bogliq_id,
     izoh: r.izoh,
     xodimIsmi: r.xodim_ismi,
     stornoQilinganmi: r.storno_qilinganmi,
     stornoMi: r.storno_id !== null,
   }));
+}
+
+export interface KitobJami {
+  readonly valyuta: string;
+  readonly kirim: string;
+  readonly chiqim: string;
+  readonly soni: number;
+}
+
+/**
+ * Filtrdagi davr jami — valyuta bo'yicha ALOHIDA (1.3).
+ *
+ * ⚠️ Chegara (500) yo'q — jami hamma qatorlardan: ro'yxat kesilsa ham
+ *    yig'indi to'liq qoladi.
+ */
+export async function kitobJami(
+  filialId: number,
+  xodimId: number,
+  barchaniKoradi: boolean,
+  filtr: KitobFiltri,
+): Promise<KitobJami[]> {
+  const sql = ulanishOl();
+  return sql<KitobJami[]>`
+    SELECT y.valyuta,
+           COALESCE(SUM(y.summa) FILTER (WHERE y.summa > 0), 0)::numeric(14,2)::text AS kirim,
+           COALESCE(-SUM(y.summa) FILTER (WHERE y.summa < 0), 0)::numeric(14,2)::text AS chiqim,
+           COUNT(*)::int AS soni
+    FROM kassa_yozuv y
+    JOIN kassa k ON k.id = y.kassa_id
+    WHERE ${kitobSharti(sql, filialId, xodimId, barchaniKoradi, filtr)}
+    GROUP BY y.valyuta
+    ORDER BY y.valyuta DESC`;
 }
 
 // ─── 12.7 · Topshiriqlar ──────────────────────────────────────────────────

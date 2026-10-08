@@ -72,6 +72,18 @@ export default async function KirimTafsili({ params }: { params: Promise<{ id: s
         </p>
       </div>
 
+      {/*
+        P-46 — metr / kv.m narxli eski kirimda yetkazib beruvchi qarzi kam
+        yozilgan. Kartochka buni yashirmaydi: tuzatish — egasi qarori.
+      */}
+      {pulniKoradi && !storno && h.yozilganQarz !== null && h.yozilganQarz !== h.summa && (
+        <p className="rounded-karta bg-belgi-sariq-fon px-4 py-3 text-sm text-belgi-sariq">
+          <b>Qarz noto&apos;g&apos;ri yozilgan.</b> Mol summasi {pul(h.summa)}, yetkazib beruvchi
+          jurnalida esa {pul(h.yozilganQarz)}. Eski xato (metr narxida qarz rulon soniga
+          ko&apos;paytirilgan, P-46) — tuzatuvchi yozuv kerak.
+        </p>
+      )}
+
       {storno && (
         <p className="rounded-karta bg-belgi-qizil-fon px-4 py-3 text-sm text-belgi-qizil ">
           <b>Storno qilingan.</b> {h.stornoSabab ?? ''} — hujjat tarixda qoladi, o&apos;chirilmaydi

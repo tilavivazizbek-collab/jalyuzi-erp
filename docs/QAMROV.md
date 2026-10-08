@@ -23,6 +23,17 @@ buyurtmani tahrirlash (8.7), material statistikasi (7.11)
 
 ---
 
+## 0&. Kassa — audit 2026-10-08
+
+| Nima | Holat |
+|---|---|
+| Kassa kitobi: davr (dan–gacha, «Bugun / 7 kun / 30 kun / Shu oy»), kassa, yo'nalish filtri; standart — 7 kun (ilgari oxirgi 200 yozuv) | ✅ |
+| Davr jami: kirim, chiqim, farq — valyuta alohida, ro'yxat kesilsa ham to'liq | ✅ |
+| Manba — `buyurtma#12` o'rniga «Buyurtma B-…», «Mijoz: …», «Yetkazib beruvchi: …» va havola; izoh ko'rinadi; vaqt (soat:daqiqa) | ✅ |
+| Kod nomlari bitta joyda (`lib/domain/kassa-kod.ts`); K10, K11, C11, C12 ilgari xom kod bo'lib chiqardi | ✅ |
+| Kassa kitobi Excel'ga (ekrandagi filtr bilan) | ✅ |
+| Kirim kartochkasi: jurnaldagi qarz mol summasidan farq qilsa ogohlantiradi (P-46) | ✅ |
+
 ## 0%. Yetkazib beruvchilar — audit 2026-10-07
 
 | Nima | Holat |

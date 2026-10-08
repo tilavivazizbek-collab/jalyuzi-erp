@@ -38,6 +38,9 @@ import * as materialKartochka from '@/app/(panel)/ombor/[id]/malumot';
 import * as mijozKartochka from '@/app/(panel)/mijoz/[id]/malumot';
 import * as yetkazibKartochka from '@/app/(panel)/yetkazib/[id]/malumot';
 import * as yetkazibTaqsimot from '@/app/(panel)/yetkazib/taqsimot';
+import type { KitobFiltri } from '@/app/(panel)/kassa/kitob-filtr';
+
+const KITOB_FILTRI: KitobFiltri = { dan: '2000-01-01', gacha: '2100-01-01', kassaId: null, yonalish: 'hammasi' };
 import { yetkazibSolishtirishAkti } from '@/lib/amal/hisob-kitob';
 import * as mijozGuruhEkrani from '@/app/(panel)/mijoz/guruh/malumot';
 import * as tarixEkrani from '@/app/(panel)/ombor/tarix/malumot';
@@ -124,6 +127,13 @@ describe("Ko'chirish ekranlari", () => {
 // ─── 12 · Kassa ekranlari ─────────────────────────────────────────────────
 
 describe('Kassa ekranlari', () => {
+  it('kassa kitobi jami — filtr bilan yiqilmaydi', async () => {
+    await expect(kassaEkrani.kitobJami(filialId, xodimId, true, KITOB_FILTRI)).resolves.toBeInstanceOf(Array);
+    await expect(
+      kassaEkrani.kassaKitobi(filialId, xodimId, true, { ...KITOB_FILTRI, kassaId: 1, yonalish: 'chiqim' }),
+    ).resolves.toBeInstanceOf(Array);
+  });
+
   it('kassaQoldiqlari · kassaKitobi — admin va sotuvchi ko\'rinishi', async () => {
     // TZ 12.14 — sotuvchi faqat o'zinikini ko'radi, shart ikki xil SQL beradi
     await expect(
@@ -133,10 +143,10 @@ describe('Kassa ekranlari', () => {
       kassaEkrani.kassaQoldiqlari(filialId, xodimId, false),
     ).resolves.toBeDefined();
     await expect(
-      kassaEkrani.kassaKitobi(filialId, xodimId, true),
+      kassaEkrani.kassaKitobi(filialId, xodimId, true, KITOB_FILTRI),
     ).resolves.toBeDefined();
     await expect(
-      kassaEkrani.kassaKitobi(filialId, xodimId, false),
+      kassaEkrani.kassaKitobi(filialId, xodimId, false, KITOB_FILTRI),
     ).resolves.toBeDefined();
   });
 
