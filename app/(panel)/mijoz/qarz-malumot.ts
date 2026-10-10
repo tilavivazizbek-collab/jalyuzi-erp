@@ -81,27 +81,52 @@ export async function mijozQarzi(mijozId: number, chegara = 50): Promise<MijozQa
  *    to'lov, avans, umidsiz qarz — hech qaysi buyurtmaga bog'lanmaydi.
  */
 export async function mijozJurnali(mijozId: number): Promise<JurnalQatori[]> {
+  return (await mijozlarJurnali([mijozId])).get(mijozId) ?? [];
+}
+
+/**
+ * Bir nechta mijozning jurnali — BITTA so'rovda (buyurtmalar ro'yxati
+ * har qatorning to'lov holatini taqsimotdan oladi, 2026-10-10).
+ */
+export async function mijozlarJurnali(
+  mijozIdlar: readonly number[],
+): Promise<Map<number, JurnalQatori[]>> {
+  const natija = new Map<number, JurnalQatori[]>();
+  if (mijozIdlar.length === 0) return natija;
   const q = await ulanishOl()<
-    { id: number; sana: Date; turi: string; summa: string; valyuta: string; buyurtma_id: number | null }[]
+    {
+      mijoz_id: number;
+      id: number;
+      sana: Date;
+      turi: string;
+      summa: string;
+      valyuta: string;
+      buyurtma_id: number | null;
+    }[]
   >`
-    SELECT h.id, h.sana, h.turi, h.summa::text AS summa, h.valyuta,
+    SELECT h.mijoz_id, h.id, h.sana, h.turi, h.summa::text AS summa, h.valyuta,
            CASE
              WHEN h.manba_turi IN ('buyurtma', 'buyurtma_tolov') THEN h.manba_id
              WHEN h.manba_turi = 'qaytarish' THEN
                (SELECT bp.buyurtma_id FROM buyurtma_pozitsiya bp WHERE bp.id = h.manba_id)
            END AS buyurtma_id
     FROM mijoz_harakat h
-    WHERE h.mijoz_id = ${mijozId}
+    WHERE h.mijoz_id = ANY(${mijozIdlar as number[]})
     ORDER BY h.sana, h.id`;
 
-  return q.map((r) => ({
-    id: r.id,
-    sana: r.sana,
-    turi: r.turi,
-    summa: r.summa,
-    valyuta: r.valyuta === 'USD' ? 'USD' : 'SOM',
-    buyurtmaId: r.buyurtma_id,
-  }));
+  for (const r of q) {
+    const j = natija.get(r.mijoz_id) ?? [];
+    j.push({
+      id: r.id,
+      sana: r.sana,
+      turi: r.turi,
+      summa: r.summa,
+      valyuta: r.valyuta === 'USD' ? 'USD' : 'SOM',
+      buyurtmaId: r.buyurtma_id,
+    });
+    natija.set(r.mijoz_id, j);
+  }
+  return natija;
 }
 
 export interface QarzdorTaqsimoti {

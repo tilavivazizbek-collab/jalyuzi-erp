@@ -7,21 +7,30 @@
  *    «tayyor» bo'lib ko'rinardi.
  */
 
+import Decimal from 'decimal.js';
 import { ulanishOl } from '@/lib/db';
 import { kesimOlchami } from '@/lib/domain/kesish';
+import type { TolovDarajasi } from '@/lib/domain/buyurtma-tolov';
+import { buyurtmaTolovlari } from './tolov-taqsimot';
 
 export interface BuyurtmaQatori {
   readonly id: number;
   readonly raqam: string;
   readonly sana: Date;
   readonly mijozIsmi: string | null;
+  readonly mijozId: number | null;
   readonly manba: string;
   readonly valyuta: string;
   readonly tayyorlikSana: string | null;
   readonly pozitsiyaSoni: number;
   readonly jami: string;
-  /** TZ 3.12 — kassa yozuvlaridan yig'iladi (2.2-invariant) */
   readonly tolangan: string;
+  /**
+   * 2026-10-10 — FIFO taqsimotdan (`./tolov-taqsimot.ts`): mijoz
+   * kartochkasidan to'langan qarz ham hisobga olinadi.
+   */
+  readonly qolgan: string;
+  readonly tolovDaraja: TolovDarajasi;
   /** Holat → soni (8.2) */
   readonly holatlar: Readonly<Record<string, number>>;
   /** TZ 8.9 — yopilgan buyurtmadan chek chiqariladi */
@@ -70,6 +79,11 @@ export async function buyurtmalar(
   filialId: number,
   filtr: BuyurtmaFiltri = 'HAMMASI',
   chegara = 100,
+  /**
+   * Buyurtma raqami, mijoz ismi yoki telefoni (raqamlari) — qisman.
+   * ⚠️ 2026-10-10: ilgari qidiruv yo'q edi, faqat oxirgi 100 ta.
+   */
+  qidiruv = '',
 ): Promise<BuyurtmaQatori[]> {
   const sql = ulanishOl();
 
@@ -85,35 +99,30 @@ export async function buyurtmalar(
       raqam: string;
       sana: Date;
       mijoz_ismi: string | null;
+      mijoz_id: number | null;
       manba: string;
       valyuta: string;
       tayyorlik_sana: string | null;
       pozitsiya_soni: number;
       jami: string | null;
-      tolangan: string | null;
       yopilganmi: boolean;
       tolov_yozilmadi: boolean;
     }[]
   >`
-    SELECT b.id, b.raqam, b.sana, m.ism AS mijoz_ismi, b.manba, b.valyuta,
+    SELECT b.id, b.raqam, b.sana, m.ism AS mijoz_ismi, b.mijoz_id, b.manba, b.valyuta,
            (b.yopildi IS NOT NULL) AS yopilganmi,
            b.tayyorlik_sana::text AS tayyorlik_sana,
            COUNT(p.id)::int AS pozitsiya_soni,
-           SUM(p.narx_snapshot - COALESCE(p.chegirma_summa, 0))::text AS jami,
            /*
-            * TZ 3.12 — buyurtma qarzga ketishi mumkin. Sotuv
-            * tarixida «to'landimi» eng muhim ustun: sotuvchi
-            * qaysi mijozdan pul yig'ish kerakligini shu yerdan
-            * ko'radi.
-            *
-            * ⚠️ 2.2-invariant — to'langan summa saqlanmaydi,
-            *    kassa yozuvlaridan yig'iladi.
+            * ⚠️ Faqat FAOL pozitsiyalar — kartochka (tolovHolati) bilan
+            *    bir xil. 2026-10-10 gacha bekor qilingan va rad etilgan
+            *    pozitsiya ham qo'shilardi: ro'yxat bilan kartochka ikki
+            *    xil summa ko'rsatardi.
+            * ⚠️ «To'langan» bu yerda yo'q — buyurtmaTolovlari FIFO
+            *    taqsimotdan oladi (kartochkadan to'langan qarz ham).
             */
-           COALESCE((
-             SELECT SUM(y.summa) FROM kassa_yozuv y
-             WHERE y.manba_turi = 'buyurtma' AND y.manba_id = b.id
-               AND y.summa > 0
-           ), 0)::text AS tolangan,
+           (SUM(p.narx_snapshot - COALESCE(p.chegirma_summa, 0))
+              FILTER (WHERE p.holat NOT IN ('BEKOR', 'RAD_ETILGAN')))::text AS jami,
            /*
             * Oldindan to'lov yozilmay qolganmi — audit izidan.
             *
@@ -158,6 +167,18 @@ export async function buyurtmalar(
       }
       ${filtr === 'BUGUNGI' ? sql`AND b.sana::date = current_date` : sql``}
       ${
+        qidiruv.trim() === ''
+          ? sql``
+          : sql`AND (b.raqam ILIKE ${`%${qidiruv.trim()}%`}
+                     OR m.ism ILIKE ${`%${qidiruv.trim()}%`}
+                     ${
+                       qidiruv.replace(/\D/g, '').length >= 3
+                         ? sql`OR regexp_replace(COALESCE(m.telefon, ''), '\\D', '', 'g')
+                                 LIKE ${`%${qidiruv.replace(/\D/g, '')}%`}`
+                         : sql``
+                     })`
+      }
+      ${
         holatliFiltr
           ? sql`AND EXISTS (SELECT 1 FROM buyurtma_pozitsiya x
                             WHERE x.buyurtma_id = b.id AND x.holat = ${filtr})`
@@ -193,21 +214,31 @@ export async function buyurtmalar(
     holatBoyicha.set(h.buyurtma_id, joriy);
   }
 
-  return qatorlar.map((q) => ({
+  const tolovlar = await buyurtmaTolovlari(
+    qatorlar.map((q) => ({ id: q.id, mijozId: q.mijoz_id, jami: q.jami ?? '0' })),
+  );
+
+  return qatorlar.map((q) => {
+    const t = tolovlar.get(q.id);
+    return {
     id: q.id,
     raqam: q.raqam,
     sana: q.sana,
     mijozIsmi: q.mijoz_ismi,
+    mijozId: q.mijoz_id,
     manba: q.manba,
     valyuta: q.valyuta,
     tayyorlikSana: q.tayyorlik_sana,
     pozitsiyaSoni: q.pozitsiya_soni,
     jami: q.jami ?? '0',
-    tolangan: q.tolangan ?? '0',
+    tolangan: t?.tolangan ?? '0.00',
+    qolgan: t?.qolgan ?? q.jami ?? '0',
+    tolovDaraja: t?.daraja ?? 'TOLANMAGAN',
     holatlar: holatBoyicha.get(q.id) ?? {},
     yopilganmi: q.yopilganmi,
     tolovYozilmadi: q.tolov_yozilmadi,
-  }));
+    };
+  });
 }
 
 // ─── 8.14 · Kartochka ─────────────────────────────────────────────────────
@@ -653,6 +684,12 @@ export interface TolovHolati {
   readonly jami: string;
   readonly tolangan: string;
   readonly qarz: string;
+  /**
+   * Shu buyurtmaga BOG'LANMAGAN, lekin FIFO bo'yicha uni yopgan to'lov —
+   * mijoz kartochkasidan to'langan qarz. Kassa ro'yxatida ko'rinmaydi,
+   * shuning uchun alohida aytiladi (2026-10-10).
+   */
+  readonly umumiyTolovdan: string;
   readonly mijozId: number | null;
   /**
    * ⚠️ Sotuvda oldindan to'lov kiritilgan, lekin yozilmay qolgan
@@ -719,9 +756,20 @@ export async function tolovHolati(
     WHERE y.manba_turi = 'buyurtma' AND y.manba_id = ${buyurtmaId}
     ORDER BY y.qator`;
 
-  const tolangan = q.filter((r) => !r.storno_qilinganmi).reduce((y, r) => y + Number(r.summa), 0);
-
-  const jami = Number(buyurtma.jami ?? 0);
+  /**
+   * ⚠️ 2026-10-10 — to'langan va qarz FIFO taqsimotdan (ro'yxat bilan
+   *    bitta joy, `./tolov-taqsimot.ts`). Ilgari faqat shu buyurtmaga
+   *    bog'langan kassa yozuvi `Number()` bilan qo'shilardi: mijoz
+   *    kartochkadan to'lasa ham buyurtma «qarz» bo'lib qolardi.
+   */
+  const jami = new Decimal(buyurtma.jami ?? 0).toFixed(2);
+  const bogliq = q
+    .filter((r) => !r.storno_qilinganmi && r.summa !== null)
+    .reduce((y, r) => y.plus(r.summa), new Decimal(0));
+  const taqsimot = (
+    await buyurtmaTolovlari([{ id: buyurtmaId, mijozId: buyurtma.mijoz_id, jami }])
+  ).get(buyurtmaId);
+  const tolangan = taqsimot?.tolangan ?? bogliq.toFixed(2);
 
   /**
    * ⚠️ Belgi FAQAT birorta to'lov yo'qligida ko'rsatiladi. Sotuvchi
@@ -739,9 +787,10 @@ export async function tolovHolati(
   return {
     buyurtmaId,
     valyuta: buyurtma.valyuta,
-    jami: jami.toFixed(2),
-    tolangan: tolangan.toFixed(2),
-    qarz: (jami - tolangan).toFixed(2),
+    jami,
+    tolangan,
+    qarz: taqsimot?.qolgan ?? Decimal.max(new Decimal(jami).minus(bogliq), 0).toFixed(2),
+    umumiyTolovdan: Decimal.max(new Decimal(tolangan).minus(bogliq), 0).toFixed(2),
     mijozId: buyurtma.mijoz_id,
     tolovYozilmadi: (ogoh[0]?.n ?? 0) > 0,
     qatorlar: q.map((r) => ({

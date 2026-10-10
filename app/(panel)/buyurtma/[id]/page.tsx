@@ -234,10 +234,16 @@ export default async function BuyurtmaKartochkasi({ params }: { params: Promise<
             <dd className="raqam">{pul(tolov.jami)}</dd>
             <dt className="text-matn-kuchsiz">To&apos;langan</dt>
             <dd className="raqam text-belgi-yashil">{pul(tolov.tolangan)}</dd>
+            {/* 2026-10-10 — FIFO: mijoz kartochkasidan to'langan qism (kassa ro'yxatida yo'q) */}
+            {!tolov.umumiyTolovdan.startsWith('0.00') && (
+              <dd className="col-span-2 -mt-0.5 text-right text-xs text-matn-kuchsiz">
+                shundan {pul(tolov.umumiyTolovdan)} — mijozning umumiy to&apos;lovidan
+              </dd>
+            )}
             <dt className="border-t border-chegara pt-1 font-medium">Qarz</dt>
             <dd
               className={`raqam border-t border-chegara pt-1 font-semibold ${
-                Number(tolov.qarz) > 0 ? 'text-belgi-sariq' : ''
+                tolov.qarz !== '0.00' ? 'text-belgi-sariq' : ''
               }`}
             >
               {pul(tolov.qarz)}

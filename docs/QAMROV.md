@@ -23,6 +23,16 @@ buyurtmani tahrirlash (8.7), material statistikasi (7.11)
 
 ---
 
+## 0*. Buyurtmalar (sotuv) — audit 2026-10-10
+
+| Nima | Holat |
+|---|---|
+| To'lov holati FIFO taqsimotdan (mijoz kartochkasi bilan bitta qoida) — kartochkadan to'langan qarz buyurtmani yopadi; ro'yxat ham, kartochka ham (`buyurtma/tolov-taqsimot.ts`) | ✅ |
+| Ro'yxat «jami» faqat faol pozitsiyalar — bekor / rad etilgan qo'shilardi, kartochka bilan farq qilardi | ✅ |
+| Kartochka: «shundan X — mijozning umumiy to'lovidan»; `Number()` bilan pul hisobi olib tashlandi | ✅ |
+| Qidiruv: raqam, mijoz ismi, telefon (kamida 3 raqam); muddati o'tgani qizil; mijozga havola; dollar formati | ✅ |
+| Chek va kvitansiyadagi «to'langan» — hali faqat bog'langan to'lovdan | ⏳ keyingi qadam |
+
 ## 0&. Kassa — audit 2026-10-08
 
 | Nima | Holat |

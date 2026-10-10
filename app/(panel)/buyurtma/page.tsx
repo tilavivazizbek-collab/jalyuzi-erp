@@ -1,13 +1,21 @@
 import Link from 'next/link';
 import { sahifaRuxsati } from '@/lib/kirish/joriy';
 import { ruxsatBormi } from '@/lib/ruxsat/tekshir';
-import { pulKorsat, som } from '@/lib/domain/pul';
+import { dollar, pulKorsat, som } from '@/lib/domain/pul';
+import { toshkentKuni } from '@/lib/domain/sana';
 import { HOLAT_NOMI, type PozitsiyaHolati } from '@/lib/domain/buyurtma';
 import { buyurtmalar, FILTR_NOMI, type BuyurtmaFiltri } from './malumot';
 
 export const dynamic = 'force-dynamic';
 
 const FILTRLAR = Object.keys(FILTR_NOMI) as BuyurtmaFiltri[];
+
+/** Pul — buyurtma valyutasida (1.3); ilgari dollar formatsiz chiqardi */
+const pul = (x: string, valyuta: string): string =>
+  valyuta === 'USD' ? `${pulKorsat(dollar(x))} $` : pulKorsat(som(x));
+
+/** Tugagan holatlar — muddat o'tgani endi «kechikkan» emas */
+const YAKUNLANGAN = new Set(['TOPSHIRILDI', 'QAYTARILGAN', 'RAD_ETILGAN', 'BEKOR']);
 
 /**
  * TZ 8.2 — «Buyurtmaning umumiy statusi YO'Q — holat har
@@ -56,17 +64,19 @@ function BoshHarf({ ism }: { ism: string | null }) {
 export default async function BuyurtmalarRoyxati({
   searchParams,
 }: {
-  searchParams: Promise<{ filtr?: string }>;
+  searchParams: Promise<{ filtr?: string; q?: string }>;
 }) {
   const f = await sahifaRuxsati('buyurtma.kor');
   const sotaOladi = ruxsatBormi(f, 'buyurtma.yarat');
 
-  const { filtr } = await searchParams;
+  const { filtr, q } = await searchParams;
+  const qidiruv = (q ?? '').trim().slice(0, 60);
+  const bugun = toshkentKuni();
   const joriy: BuyurtmaFiltri = FILTRLAR.includes(filtr as BuyurtmaFiltri)
     ? (filtr as BuyurtmaFiltri)
     : 'HAMMASI';
 
-  const royxat = await buyurtmalar(f.filialId, joriy);
+  const royxat = await buyurtmalar(f.filialId, joriy, 100, qidiruv);
 
   return (
     <div className="flex flex-col gap-6">
@@ -86,12 +96,45 @@ export default async function BuyurtmalarRoyxati({
         )}
       </div>
 
+      {/*
+        Qidiruv — raqam, mijoz ismi yoki telefon (kamida 3 raqam).
+        Oddiy GET forma: tanlangan filtr saqlanadi.
+      */}
+      <form method="get" className="flex flex-wrap items-center gap-2">
+        {joriy !== 'HAMMASI' && <input type="hidden" name="filtr" value={joriy} />}
+        <input
+          type="search"
+          name="q"
+          defaultValue={qidiruv}
+          placeholder="Raqam, mijoz ismi yoki telefon"
+          aria-label="Buyurtma qidirish"
+          className="w-72 rounded-maydon border border-chegara-quyuq bg-sirt px-3 py-2 text-[13px] outline-none focus:ring-2 focus:ring-brend/25"
+        />
+        <button
+          type="submit"
+          className="rounded-maydon border border-chegara-quyuq px-3 py-2 text-[13px] text-matn-ikki hover:bg-fon"
+        >
+          Qidirish
+        </button>
+        {qidiruv !== '' && (
+          <Link
+            href={joriy === 'HAMMASI' ? '/buyurtma' : `/buyurtma?filtr=${joriy}`}
+            className="text-[13px] text-matn-kuchsiz hover:text-matn"
+          >
+            Tozalash
+          </Link>
+        )}
+      </form>
+
       {/* ── TZ 8.15 · Filtrlar ─────────────────────────────────── */}
       <nav className="flex flex-wrap gap-2">
         {FILTRLAR.map((x) => (
           <Link
             key={x}
-            href={x === 'HAMMASI' ? '/buyurtma' : `/buyurtma?filtr=${x}`}
+            href={`/buyurtma?${new URLSearchParams({
+              ...(x === 'HAMMASI' ? {} : { filtr: x }),
+              ...(qidiruv === '' ? {} : { q: qidiruv }),
+            }).toString()}`}
             aria-current={x === joriy ? 'page' : undefined}
             className={`rounded-full px-3.5 py-1.5 text-[13px] font-medium transition-colors ${
               x === joriy
@@ -106,7 +149,7 @@ export default async function BuyurtmalarRoyxati({
 
       {royxat.length === 0 ? (
         <p className="rounded-karta border border-dashed border-chegara-quyuq px-4 py-12 text-center text-[13px] text-matn-kuchsiz">
-          Bu filtrda buyurtma yo&apos;q.
+          {qidiruv === '' ? 'Bu filtrda buyurtma yo‘q.' : `«${qidiruv}» bo‘yicha buyurtma topilmadi.`}
         </p>
       ) : (
         <div className="overflow-x-auto rounded-karta border border-chegara bg-sirt">
@@ -126,10 +169,13 @@ export default async function BuyurtmalarRoyxati({
 
             <tbody className="divide-y divide-chegara [&>tr:nth-child(even)]:bg-fon/50">
               {royxat.map((b) => {
-                const jami = Number(b.jami);
-                const tolangan = Number(b.tolangan);
-                const toliq = tolangan >= jami && jami > 0;
-                const qisman = tolangan > 0 && tolangan < jami;
+                // 2026-10-10 — FIFO taqsimotdan; Number() bilan solishtirish yo'q
+                const toliq = b.tolovDaraja === 'TOLANDI';
+                const qisman = b.tolovDaraja === 'QISMAN';
+                const kechikdi =
+                  b.tayyorlikSana !== null &&
+                  b.tayyorlikSana < bugun &&
+                  Object.keys(b.holatlar).some((h) => !YAKUNLANGAN.has(h));
 
                 return (
                   <tr key={b.id} className="transition-colors hover:bg-fon">
@@ -150,9 +196,13 @@ export default async function BuyurtmalarRoyxati({
                     <td className="px-4 py-3">
                       <span className="flex items-center gap-2.5">
                         <BoshHarf ism={b.mijozIsmi} />
-                        <span className={b.mijozIsmi === null ? 'text-matn-kuchsiz' : ''}>
-                          {b.mijozIsmi ?? 'mijozsiz'}
-                        </span>
+                        {b.mijozId === null ? (
+                          <span className="text-matn-kuchsiz">mijozsiz</span>
+                        ) : (
+                          <Link href={`/mijoz/${String(b.mijozId)}`} className="hover:underline">
+                            {b.mijozIsmi}
+                          </Link>
+                        )}
                       </span>
                     </td>
 
@@ -163,7 +213,7 @@ export default async function BuyurtmalarRoyxati({
                     </td>
 
                     <td className="raqam px-4 py-3 font-semibold whitespace-nowrap">
-                      {b.valyuta === 'SOM' ? pulKorsat(som(b.jami)) : `${b.jami} $`}
+                      {pul(b.jami, b.valyuta)}
                     </td>
 
                     {/*
@@ -184,7 +234,7 @@ export default async function BuyurtmalarRoyxati({
                         {toliq
                           ? "To'landi"
                           : qisman
-                            ? `${pulKorsat(som(b.tolangan))} to'landi`
+                            ? `qoldi ${pul(b.qolgan, b.valyuta)}`
                             : "To'lanmagan"}
                       </span>
 
@@ -221,8 +271,13 @@ export default async function BuyurtmalarRoyxati({
                       </span>
                     </td>
 
-                    <td className="px-4 py-3 whitespace-nowrap text-matn-ikki">
+                    <td
+                      className={`px-4 py-3 whitespace-nowrap ${
+                        kechikdi ? 'font-medium text-belgi-qizil' : 'text-matn-ikki'
+                      }`}
+                    >
                       {b.tayyorlikSana ?? <span className="text-matn-kuchsiz">—</span>}
+                      {kechikdi && <span className="block text-[11px]">kechikdi</span>}
                     </td>
 
                     {/*
