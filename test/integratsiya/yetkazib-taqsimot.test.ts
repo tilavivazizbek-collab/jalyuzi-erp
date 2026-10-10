@@ -114,6 +114,8 @@ describe('yetkazib beruvchi kartochkasi — FIFO taqsimot', () => {
     expect(k.map((x) => [x.kirimId, x.qoldiq])).toEqual([[k2, '300000.00']]);
     const i = tolovIntizomimiz(h);
     expect(i.tolanganSoni).toBe(1);
+    // ⚠️ Kirim SANASIDAN (09-01) to'lovgacha (09-25) — jurnalga yozilgan kundan emas
+    expect(i.ortachaKun).toBe(24);
     // 09-10 muddat, 09-25 to'landi
     expect(i.kechikibTolangan).toBe(1);
     expect(i.kechikkanSoni).toBe(0);

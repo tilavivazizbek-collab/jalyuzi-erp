@@ -198,6 +198,9 @@ export interface KitobJami {
  *
  * ⚠️ Chegara (500) yo'q — jami hamma qatorlardan: ro'yxat kesilsa ham
  *    yig'indi to'liq qoladi.
+ * ⚠️ Storno qilingan yozuv va uning stornosi jamiga KIRMAYDI (ro'yxatda
+ *    ko'rinadi). Juftlik davr chegarasidan o'tsa ham ikkala davrda
+ *    sanalmaydi — «bo'lmagan hodisa» sifatida.
  */
 export async function kitobJami(
   filialId: number,
@@ -214,6 +217,11 @@ export async function kitobJami(
     FROM kassa_yozuv y
     JOIN kassa k ON k.id = y.kassa_id
     WHERE ${kitobSharti(sql, filialId, xodimId, barchaniKoradi, filtr)}
+      -- ⚠️ Storno JUFTLIGI sanalmaydi: teskari yozuv asl kod bilan, manfiy
+      --    summada yoziladi. Sanalsa xato kiritilgan 700 000 kirim jamida
+      --    ham, chiqim jamida ham turardi (EC-KUN-N4, 2026-10-10)
+      AND y.storno_id IS NULL
+      AND NOT EXISTS (SELECT 1 FROM kassa_yozuv s WHERE s.storno_id = y.id)
     GROUP BY y.valyuta
     ORDER BY y.valyuta DESC`;
 }

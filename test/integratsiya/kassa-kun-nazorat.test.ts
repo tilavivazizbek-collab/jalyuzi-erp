@@ -5,6 +5,8 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { Ulanish } from '@/lib/db/ulanish';
 import { ulanishOl } from '@/lib/db';
 import { kunniYop } from '@/lib/amal/kun-yopish';
+import { kassaStorno } from '@/lib/amal/kassa';
+import { kitobJami } from '@/app/(panel)/kassa/malumot';
 import { toshkentKuni } from '@/lib/domain/sana';
 import { yopilishTarixi, yopilmaganKunlar } from '@/app/(panel)/kassa/kun-malumot';
 import { sinovUlanishi } from './yordamchi';
@@ -68,5 +70,20 @@ describe('kun yopish nazorati', () => {
   it('EC-KUN-N3: bo‘sh ro‘yxat — so‘rovsiz bo‘sh javob', async () => {
     expect(await yopilishTarixi([], '2026-09-01', '2026-09-30')).toEqual([]);
     expect(await yopilmaganKunlar([], '2026-09-01', '2026-09-30')).toEqual([]);
+  });
+
+  it('EC-KUN-N4: storno qilingan yozuv kitob jamisini SHISHIRMAYDI', async () => {
+    await yozuv('2026-09-20', '700000', 5);
+    const y = await sql<{ id: number }[]>`
+      SELECT id FROM kassa_yozuv WHERE kassa_id = ${kassaId} AND summa = 700000`;
+    await kassaStorno(sql, y[0]?.id ?? 0, 'xato kiritilgan', XODIM);
+    const filialId = (await sql<{ f: number }[]>`SELECT filial_id AS f FROM kassa WHERE id = ${kassaId}`)[0]?.f ?? 0;
+    const j = await kitobJami(filialId, XODIM, true, {
+      dan: '2026-09-20', gacha: '2100-01-01', kassaId, yonalish: 'hammasi',
+    });
+    const som = j.find((x) => x.valyuta === 'SOM');
+    // Xato kiritilgan 700 000 va uning stornosi — kirim ham, chiqim ham emas
+    expect(som?.chiqim ?? '0.00').toBe('0.00');
+    expect(som?.kirim ?? '0.00').not.toContain('700000');
   });
 });

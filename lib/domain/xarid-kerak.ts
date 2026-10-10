@@ -12,6 +12,7 @@
  *    Tarix yo'q bo'lsa standart ishlatiladi va ekranda shunday deyiladi.
  */
 
+import Decimal from 'decimal.js';
 import { CHEGARA_OMBOR, type Bashorat } from './hisobot/bashorat';
 
 /** Tarix bo'lmasa — ikki hafta (ombor ogohlantirish chegarasi bilan bir xil) */
@@ -75,4 +76,34 @@ export function xaridSababi(k: {
 /** Qaysi biri birinchi: tugagan → kam → tez tugaydi; ichida — kam kun qolgani */
 export function sababTartibi(s: XaridSababi): number {
   return s === 'TUGAGAN' ? 0 : s === 'KAM' ? 1 : 2;
+}
+
+/**
+ * Tavsiyani BUYURTMA BIRLIGIGA o'giradi (rulon, shtanga, quti) — yuqoriga.
+ *
+ * ⚠️ Sarf kv.m yoki metrda hisoblanadi, buyurtma esa rulon / shtangada
+ *    beriladi. Ilgari «~58 kv.m» deyilardi va omborchi necha rulon
+ *    ekanini o'zi hisoblardi (2026-10-10 o'z-o'zini tekshiruv).
+ *
+ * ⚠️ Rulonda koeffitsient ishlatilmaydi (u 1) — odatdagi eni × bo'yi.
+ *    O'lcham yozilmagan bo'lsa `null`: taxmin uydirilmaydi.
+ */
+export function kirimBirligida(
+  sarf: string,
+  m: {
+    readonly hisobTuri: string;
+    readonly koeffitsient: string;
+    readonly standartEniM: string | null;
+    readonly odatdagiBoyiM: string | null;
+  },
+): number | null {
+  const s = new Decimal(sarf);
+  if (s.lte(0)) return 0;
+  if (m.hisobTuri === 'RULON' || m.hisobTuri === 'KV_M') {
+    if (m.standartEniM === null || m.odatdagiBoyiM === null) return null;
+    const bir = new Decimal(m.standartEniM).times(m.odatdagiBoyiM);
+    return bir.gt(0) ? s.div(bir).ceil().toNumber() : null;
+  }
+  const k = new Decimal(m.koeffitsient);
+  return k.gt(0) ? s.div(k).ceil().toNumber() : null;
 }

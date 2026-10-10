@@ -2077,3 +2077,25 @@ eng eski ochiq kirimga, ortgani — avans. Bitta funksiya:
 `app/(panel)/yetkazib/taqsimot.ts` → `yetkazibHolati(lari)`; ro'yxat ham,
 kartochka ham shundan. Muddat — `lib/domain/yetkazib-qarz.ts`.
 
+## P-48 — O'z-o'zini tekshiruv 2026-10-10: topilgan va tuzatilgan xatolar
+
+Egasi so'radi: «ishingni professional ekanligini isbotla va kamchiliklaringni
+top». Oxirgi 15 kommit qayta ko'rildi; har topilma AVVAL qizil test bilan
+isbotlandi, keyin tuzatildi.
+
+| Topilma | Isbot | Tuzatish |
+|---|---|---|
+| Kassa kitobi jamida storno juftligi ikki marta sanalardi (700 000 kirim + 700 000 chiqim) | EC-KUN-N4 qizil | juftlik jamiga kirmaydi |
+| Yetkazib beruvchi qarzi jurnal vaqtidan yoshlanardi, kirim sanasidan emas — orqa sanali kirimda intizom «0 kun» | EC-YT-03 (24 ≠ 0) | `XARID` kirim sanasidan |
+| «Buyurtma kerak» tavsiyasi kv.m da edi, buyurtma esa rulonda beriladi | EC-BK-02 | `kirimBirligida` — rulon / shtanga / quti |
+
+**Ochiq qolgan (ataylab, yozib qo'yildi):**
+- `yetkazibHolatlari(null)` ro'yxat sahifasida hamma yetkazuvchining butun
+  jurnalini o'qiydi — kichik korxonada tez, yillar o'tib sekinlashadi.
+- Kun yopish sahifasidagi kun kirim/chiqim ham storno juftligini o'z ichiga
+  oladi (hisoblangan qoldiq to'g'ri, faqat ikki ustun shishgan) — eski kod, TZ 12.17
+  formulasi; o'zgartirish egasi bilan kelishiladi.
+- Xarid buyurtmasini yaratilgandan keyin tahrirlab bo'lmaydi (faqat yopish /
+  bekor qilish va yangisi).
+- Brauzer tekshiruv skriptlari repoga kirmagan — avtomatik e2e to'plam yo'q.
+

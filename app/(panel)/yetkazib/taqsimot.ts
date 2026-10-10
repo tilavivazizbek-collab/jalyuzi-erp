@@ -19,7 +19,7 @@ import {
   type MuddatXulosasi,
   type TolovIntizomimiz,
 } from '@/lib/domain/yetkazib-qarz';
-import { toshkentKuni } from '@/lib/domain/sana';
+import { toshkentKuni, VAQT_ZONASI } from '@/lib/domain/sana';
 
 export interface KirimMalumoti {
   readonly raqam: string;
@@ -53,14 +53,26 @@ export async function yetkazibHolatlari(
         kirim_id: number | null;
       }[]
     >`
-      SELECT h.id, h.yetkazib_beruvchi_id, h.sana, h.turi, h.summa::text, h.valyuta,
+      SELECT h.id, h.yetkazib_beruvchi_id,
+             /*
+              * ⚠️ Qarz HUJJAT SANASIDAN yoshlanadi: kirim orqa sana bilan
+              *    kiritilishi mumkin, jurnal esa kiritilgan paytni yozadi.
+              *    Ilgari jurnal vaqti olinardi — to'lov intizomi va qarz
+              *    yoshi noto'g'ri chiqardi (2026-10-10 o'z-o'zini tekshiruv).
+              */
+             CASE WHEN h.turi = 'XARID' AND h.manba_turi = 'kirim'
+                  THEN (SELECT (ki.sana + time '12:00') AT TIME ZONE ${VAQT_ZONASI}
+                          FROM kirim ki WHERE ki.id = h.manba_id)
+                  ELSE h.sana
+             END AS sana,
+             h.turi, h.summa::text, h.valyuta,
              CASE WHEN h.manba_turi IN ('kirim', 'kirim_storno') THEN h.manba_id
                   WHEN h.manba_turi = 'kirim_qator' THEN kq.kirim_id
              END AS kirim_id
       FROM yetkazib_beruvchi_harakat h
       LEFT JOIN kirim_qator kq ON h.manba_turi = 'kirim_qator' AND kq.id = h.manba_id
       ${idlar === null ? sql`` : sql`WHERE h.yetkazib_beruvchi_id = ANY(${idlar as number[]})`}
-      ORDER BY h.sana, h.id`,
+      ORDER BY 3, h.id`,
     sql<
       { id: number; yetkazib_beruvchi_id: number; raqam: string; sana: string; muddat: string | null }[]
     >`

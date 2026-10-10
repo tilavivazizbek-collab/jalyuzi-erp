@@ -14,6 +14,7 @@ import { davrYasa } from '@/lib/domain/hisobot/davr';
 import { ortachaTezlik, qanchaKerak, type Bashorat } from '@/lib/domain/hisobot/bashorat';
 import { chegaraBirligi } from '@/lib/domain/birlik-tanlovi';
 import {
+  kirimBirligida,
   sababTartibi,
   xaridSababi,
   yetkazishMuddati,
@@ -44,6 +45,9 @@ export interface KerakQatori {
   readonly sarfBirligi: string;
   /** Yetkazish + 30 kunga yetishi uchun, sarflash birligida; `null` — tezlik yo'q */
   readonly tavsiya: string | null;
+  /** Xuddi shu — BUYURTMA birligida (rulon, shtanga); `null` — o'girib bo'lmaydi */
+  readonly tavsiyaKirim: number | null;
+  readonly kirimBirligi: string;
   readonly yetkazish: YetkazishMuddati;
   readonly yoldaBuyurtma: readonly YoldagiBuyurtma[];
   /** Boshqa filialdan jo'natilgan, hali qabul qilinmagan (20.7) */
@@ -94,9 +98,20 @@ export async function buyurtmaKerak(filialId: number): Promise<KerakQatori[]> {
     yoldagiBuyurtmalar(filialId, null),
     kutishKunlari(filialId),
     oxirgiYetkazuvchilar(filialId),
-    ulanishOl()<{ id: number }[]>`SELECT id FROM material WHERE faol`,
+    ulanishOl()<
+      {
+        id: number;
+        hisob_turi: string;
+        kirim_birligi: string;
+        koeffitsient: string;
+        eni: string | null;
+        boyi: string | null;
+      }[]
+    >`SELECT id, hisob_turi, kirim_birligi, koeffitsient::text,
+             standart_rulon_eni_m::text AS eni, odatdagi_rulon_boyi_m::text AS boyi
+      FROM material WHERE faol`,
   ]);
-  const faol = new Set(faollar.map((x) => x.id));
+  const faol = new Map(faollar.map((x) => [x.id, x]));
   const tezlikXaritasi = new Map(tezliklar.map((t) => [t.materialId, t]));
 
   const natija: KerakQatori[] = [];
@@ -121,6 +136,13 @@ export async function buyurtmaKerak(filialId: number): Promise<KerakQatori[]> {
     if (sababi === null) continue;
 
     const tezlik = sarfBor ? ortachaTezlik(t.sarf, TEZLIK_KUNI) : null;
+    const tavsiya =
+      tezlik === null || t === undefined
+        ? null
+        : new Decimal(qanchaKerak(t.qoldiq, tezlik, yetkazish.kun + TAVSIYA_KUNI))
+            .toDecimalPlaces(0, Decimal.ROUND_UP)
+            .toFixed(0);
+    const m = faol.get(q.materialId);
     natija.push({
       materialId: q.materialId,
       nom: q.nom,
@@ -131,12 +153,17 @@ export async function buyurtmaKerak(filialId: number): Promise<KerakQatori[]> {
       bashorat: sarfBor ? t.bashorat : null,
       kunlikSarf: tezlik === null ? null : tezlik.kunlik.toDecimalPlaces(2).toFixed(2),
       sarfBirligi: SARFLASH_BIRLIGI_NOMI[q.sarflashBirligi as SarflashBirligi] ?? q.sarflashBirligi,
-      tavsiya:
-        tezlik === null || t === undefined
+      tavsiya,
+      tavsiyaKirim:
+        tavsiya === null || m === undefined
           ? null
-          : new Decimal(qanchaKerak(t.qoldiq, tezlik, yetkazish.kun + TAVSIYA_KUNI))
-              .toDecimalPlaces(0, Decimal.ROUND_UP)
-              .toFixed(0),
+          : kirimBirligida(tavsiya, {
+              hisobTuri: m.hisob_turi,
+              koeffitsient: m.koeffitsient,
+              standartEniM: m.eni,
+              odatdagiBoyiM: m.boyi,
+            }),
+      kirimBirligi: m?.kirim_birligi ?? '',
       yetkazish,
       yoldaBuyurtma: yolda.filter((y) => y.materialId === q.materialId),
       kochirishdaYolda: q.yoldaKvM > 0,

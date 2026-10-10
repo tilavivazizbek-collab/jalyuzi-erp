@@ -139,7 +139,20 @@ export default async function BuyurtmaKerak() {
                         </span>
                       </td>
                       <td className="raqam px-4 py-2 text-right">
-                        {q.tavsiya === null || q.tavsiya === '0' ? '—' : `~${q.tavsiya} ${q.sarfBirligi}`}
+                        {q.tavsiya === null || q.tavsiya === '0' ? (
+                          '—'
+                        ) : (
+                          <>
+                            {q.tavsiyaKirim !== null && (
+                              <span className="block font-medium">
+                                ~{q.tavsiyaKirim} {q.kirimBirligi}
+                              </span>
+                            )}
+                            <span className={q.tavsiyaKirim === null ? '' : 'text-[11px] text-matn-kuchsiz'}>
+                              ~{q.tavsiya} {q.sarfBirligi}
+                            </span>
+                          </>
+                        )}
                       </td>
                       <td className="px-4 py-2 text-[13px]">
                         {q.yoldaBuyurtma.map((y) => (

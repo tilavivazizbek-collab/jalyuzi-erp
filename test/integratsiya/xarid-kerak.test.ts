@@ -85,6 +85,7 @@ beforeAll(async () => {
   tezId = await material('Tez mato', null);
   // 30 kv.m qoldiq, 90 kunda 180 kv.m → 2/kun → 15 kun < 14 + 7
   await zaxira(tezId, 10, 180);
+  await sql`UPDATE material SET odatdagi_rulon_boyi_m = 10 WHERE id = ${tezId}`;
 
   sekinId = await material('Sekin mato', null);
   // 300 kv.m qoldiq, 90 kunda 90 kv.m → 1/kun → 300 kun
@@ -113,6 +114,9 @@ describe('buyurtma kerak — 8-band', () => {
     expect(q?.yetkazish).toEqual({ kun: STANDART_YETKAZISH_KUNI, manba: 'STANDART' });
     // (14 + 30) kun × 2 kv.m − 30 kv.m = 58 kv.m
     expect(q?.tavsiya).toBe('58');
+    // 58 kv.m ÷ (3 × 10) → 2 rulon — buyurtma birligida
+    expect(q?.tavsiyaKirim).toBe(2);
+    expect(q?.kirimBirligi).toBe('rulon');
   });
 
   it('EC-BK-03: sekin sarflanadigan va hech qachon olinmagan — ro‘yxatda yo‘q', async () => {

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   STANDART_YETKAZISH_KUNI,
+  kirimBirligida,
   ZAXIRA_KUNI,
   xaridSababi,
   yetkazishMuddati,
@@ -37,5 +38,18 @@ describe('buyurtma kerakmi — 8-band', () => {
   });
   it('harakatsiz material — chegarasiz belgilanmaydi', () => {
     expect(xaridSababi({ ...asos, bashorat: b(null, 'NOMALUM') })).toBeNull();
+  });
+});
+
+describe('tavsiya buyurtma birligida', () => {
+  it('rulon — eni × bo‘yi, yuqoriga', () => {
+    expect(kirimBirligida('58', { hisobTuri: 'RULON', koeffitsient: '1', standartEniM: '3', odatdagiBoyiM: '50' })).toBe(1);
+    expect(kirimBirligida('151', { hisobTuri: 'RULON', koeffitsient: '1', standartEniM: '3', odatdagiBoyiM: '50' })).toBe(2);
+    expect(kirimBirligida('58', { hisobTuri: 'RULON', koeffitsient: '1', standartEniM: null, odatdagiBoyiM: '50' })).toBeNull();
+  });
+  it('shtanga va quti — koeffitsient bo‘yicha', () => {
+    expect(kirimBirligida('10', { hisobTuri: 'CHIZIQLI', koeffitsient: '3', standartEniM: null, odatdagiBoyiM: null })).toBe(4);
+    expect(kirimBirligida('120', { hisobTuri: 'DONA', koeffitsient: '50', standartEniM: null, odatdagiBoyiM: null })).toBe(3);
+    expect(kirimBirligida('0', { hisobTuri: 'DONA', koeffitsient: '50', standartEniM: null, odatdagiBoyiM: null })).toBe(0);
   });
 });
