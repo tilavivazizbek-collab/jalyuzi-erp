@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { sahifaRuxsati } from '@/lib/kirish/joriy';
-import { ruxsatBormi } from '@/lib/ruxsat/tekshir';
+import { rolBormi, ruxsatBormi, yigindiQamrov } from '@/lib/ruxsat/tekshir';
+import { dollar, pulKorsat, som } from '@/lib/domain/pul';
 import { KASSA_TURI_NOMI, type KassaTuri } from '@/lib/sxema/kassa-yarat';
 import { OchirTugma } from '../../ochir-tugma';
 import { kassaBoshqaruvRoyxati, kassaOchirilganSoni } from '../malumot';
@@ -27,9 +28,16 @@ export default async function KassaRoyxati({
   const sp = await searchParams;
   const ochirilganlar = sp['ochirilgan'] === '1';
 
+  /**
+   * Q-25 — boshqa filial kassasi: qamrov BARCHA bo'lsa ham faqat BOSH FILIAL
+   * ADMINIga ochiq (`lib/ruxsat/tekshir.ts` — `OZGA_FILIAL_KASSASI` qoidasi).
+   */
+  const barchaFilial =
+    f.boshFilialda && rolBormi(f, 'ADMIN') && yigindiQamrov(f, 'kassa.barcha.kor') === 'BARCHA';
+  const filialId = barchaFilial ? null : f.filialId;
   const [qatorlar, ochirilganSoni] = await Promise.all([
-    kassaBoshqaruvRoyxati(ochirilganlar),
-    kassaOchirilganSoni(),
+    kassaBoshqaruvRoyxati(ochirilganlar, filialId),
+    kassaOchirilganSoni(filialId),
   ]);
 
   return (
@@ -88,7 +96,12 @@ export default async function KassaRoyxati({
                   <td className="px-4 py-2.5 text-matn-ikki">
                     {k.xodimIsmi ?? <span className="text-matn-kuchsiz">admin</span>}
                   </td>
-                  <td className="raqam px-4 py-2.5 text-right font-medium">{k.qoldiq}</td>
+                  <td className="raqam px-4 py-2.5 text-right font-medium">
+                    {pulKorsat(k.valyuta === 'USD' ? dollar(k.qoldiq) : som(k.qoldiq))}{' '}
+                    <span className="text-xs font-normal text-matn-kuchsiz">
+                      {k.valyuta === 'USD' ? '$' : "so'm"}
+                    </span>
+                  </td>
                   <td className="px-4 py-2.5">
                     {k.faol ? (
                       <span className="text-belgi-yashil">faol</span>

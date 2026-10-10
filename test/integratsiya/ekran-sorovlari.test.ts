@@ -127,6 +127,15 @@ describe("Ko'chirish ekranlari", () => {
 // ─── 12 · Kassa ekranlari ─────────────────────────────────────────────────
 
 describe('Kassa ekranlari', () => {
+  it('kassalar ro‘yxati — filial bilan cheklanadi (Q-25)', async () => {
+    const hammasi = await kassaEkrani.kassaBoshqaruvRoyxati(false, null);
+    const begona = await kassaEkrani.kassaBoshqaruvRoyxati(false, 999_999_999);
+    expect(begona).toEqual([]);
+    const oz = await kassaEkrani.kassaBoshqaruvRoyxati(false, filialId);
+    expect(oz.length).toBeLessThanOrEqual(hammasi.length);
+    expect(await kassaEkrani.kassaOchirilganSoni(999_999_999)).toBe(0);
+  });
+
   it('kassa kitobi jami — filtr bilan yiqilmaydi', async () => {
     await expect(kassaEkrani.kitobJami(filialId, xodimId, true, KITOB_FILTRI)).resolves.toBeInstanceOf(Array);
     await expect(

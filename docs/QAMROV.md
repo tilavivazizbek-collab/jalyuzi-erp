@@ -35,6 +35,8 @@ buyurtmani tahrirlash (8.7), material statistikasi (7.11)
 | Kirim kartochkasi: jurnaldagi qarz mol summasidan farq qilsa ogohlantiradi (P-46) | ✅ |
 | Kun yopish: yopilish tarixi (30 kun) — hisoblangan, sanaldi, farq, kim, izoh; davr bo'yicha jami kamomad / ortiqcha | ✅ |
 | Yopilmagan kunlar nazorati (harakat bo'lgan, bugundan oldingi) — kun yopish va kassa sahifasida ogoh | ✅ |
+| «Kassalar» ro'yxati filial bilan cheklandi — boshqa filial kassasi faqat bosh filial admini uchun (Q-25); qoldiq formatlandi | ✅ |
+| Kassani o'chirish / qaytarish amali obyekt filialini tekshiradi (ilgari faqat ruxsat kodi) | ✅ |
 | Kamomadni hisobga olish (xarajatga yoki kassir hisobiga) | ⏳ egasi qarori |
 
 ## 0%. Yetkazib beruvchilar — audit 2026-10-07

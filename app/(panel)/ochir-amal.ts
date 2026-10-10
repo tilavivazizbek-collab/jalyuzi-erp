@@ -22,6 +22,7 @@ import {
   type OchiriladiganTur,
 } from '@/lib/amal/nofaol';
 import { biznesXatosimi } from '@/lib/xato';
+import type { Nishon } from '@/lib/ruxsat/tekshir';
 import { kutilmaganXatoniYoz } from '@/lib/xato-jurnal';
 
 export interface OchirishNatijasi {
@@ -49,12 +50,29 @@ const YOLLAR: Record<OchiriladiganTur, string> = {
   xodim: '/xodim',
 };
 
+/**
+ * Obyekt qaysi filialniki — ruxsat NISHONI.
+ *
+ * ⚠️ Kassa auditi 2026-10-10: kassa filialga tegishli, lekin o'chirish va
+ *    qaytarish faqat ruxsat KODINI tekshirardi — «o'z filiali» qamrovidagi
+ *    admin boshqa filial kassasini id bo'yicha o'chira olardi (Q-25).
+ *    Endi kassa qattiq qoidasi (`OZGA_FILIAL_KASSASI`) shu yerda ham ishlaydi.
+ */
+async function nishonOl(tur: OchiriladiganTur, id: number): Promise<Nishon> {
+  if (tur !== 'kassa') return {};
+  const q = await ulanishOl()<{ filial_id: number; xodim_id: number | null }[]>`
+    SELECT filial_id, xodim_id FROM kassa WHERE id = ${id}`;
+  const k = q[0];
+  if (k === undefined) return {};
+  return k.xodim_id === null ? { filialId: k.filial_id } : { filialId: k.filial_id, egaXodimId: k.xodim_id };
+}
+
 export async function ochirAmali(
   tur: OchiriladiganTur,
   id: number,
 ): Promise<OchirishNatijasi> {
   const tavsif = TUR_TAVSIFI[tur];
-  const f = await ruxsatTalab(tavsif.ruxsat);
+  const f = await ruxsatTalab(tavsif.ruxsat, await nishonOl(tur, id));
 
   try {
     const n = await nofaolQil(ulanishOl(), tur, id, f.xodimId);
@@ -94,7 +112,7 @@ export async function qaytarAmali(
   id: number,
 ): Promise<OchirishNatijasi> {
   const tavsif = TUR_TAVSIFI[tur];
-  const f = await ruxsatTalab(tavsif.ruxsat);
+  const f = await ruxsatTalab(tavsif.ruxsat, await nishonOl(tur, id));
 
   try {
     await qaytar(ulanishOl(), tur, id, f.xodimId);

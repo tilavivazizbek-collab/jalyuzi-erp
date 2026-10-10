@@ -584,9 +584,18 @@ export interface KassaBoshqaruvQatori {
  */
 export async function kassaBoshqaruvRoyxati(
   /** ⚠️ `true` — faqat O'CHIRILGANLARI (qaytarish uchun) */
-  ochirilganlar = false,
+  ochirilganlar: boolean,
+  /**
+   * `null` — barcha filiallar (ruxsat qamrovi `BARCHA`), aks holda faqat shu filial.
+   *
+   * ⚠️ Kassa auditi 2026-10-10: ilgari filial umuman cheklanmasdi —
+   *    `kassa.barcha.kor` «o'z filiali» qamrovida berilgan admin ham
+   *    boshqa filiallarning kassasi va qoldig'ini ko'rardi (Q-25).
+   */
+  filialId: number | null,
 ): Promise<KassaBoshqaruvQatori[]> {
-  return ulanishOl()<KassaBoshqaruvQatori[]>`
+  const sql = ulanishOl();
+  return sql<KassaBoshqaruvQatori[]>`
     SELECT k.id, k.nom, k.turi, k.valyuta, k.faol,
            f.nom AS "filialNomi",
            x.ism AS "xodimIsmi",
@@ -596,12 +605,15 @@ export async function kassaBoshqaruvRoyxati(
     JOIN filial f ON f.id = k.filial_id
     LEFT JOIN xodim x ON x.id = k.xodim_id
     WHERE k.faol = ${!ochirilganlar}
+      ${filialId === null ? sql`` : sql`AND k.filial_id = ${filialId}`}
     ORDER BY f.nom, k.nom`;
 }
 
 /** O'chirilgan kassalar soni */
-export async function kassaOchirilganSoni(): Promise<number> {
-  const q = await ulanishOl()<{ n: number }[]>`
-    SELECT COUNT(*)::int AS n FROM kassa WHERE faol = false`;
+export async function kassaOchirilganSoni(filialId: number | null): Promise<number> {
+  const sql = ulanishOl();
+  const q = await sql<{ n: number }[]>`
+    SELECT COUNT(*)::int AS n FROM kassa
+    WHERE faol = false ${filialId === null ? sql`` : sql`AND filial_id = ${filialId}`}`;
   return q[0]?.n ?? 0;
 }
