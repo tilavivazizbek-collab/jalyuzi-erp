@@ -7,6 +7,7 @@ import Decimal from 'decimal.js';
 import { kassaKodNomi, manbaKorinishi } from '@/lib/domain/kassa-kod';
 import { toshkentKuni, VAQT_ZONASI } from '@/lib/domain/sana';
 import { kitobFiltriniOqi, kitobSorovi, kunOldin, YONALISHLAR } from './kitob-filtr';
+import { yopilmaganKunlar } from './kun-malumot';
 import {
   kassaKitobi,
   kitobJami,
@@ -62,7 +63,15 @@ export default async function KassaSahifasi({
   ]);
 
   // 22.5.2 — ogohlantirishda ham, sarlavhada ham filial NOMI turadi
-  const filialNomi = await filialNominiOl(f.filialId);
+  const [filialNomi, yopilmagan] = await Promise.all([
+    filialNominiOl(f.filialId),
+    // 12.17 — nazorat: harakat bo'lgan, yopilmagan naqd kunlar (oxirgi 30 kun)
+    yopilmaganKunlar(
+      qoldiqlar.filter((k) => k.turi === 'NAQD').map((k) => k.id),
+      kunOldin(bugun, 29),
+      bugun,
+    ),
+  ]);
 
   const filialKassalari = qoldiqlar.filter((k) => k.xodimId === null);
   const xodimKassalari = qoldiqlar.filter((k) => k.xodimId !== null);
@@ -110,6 +119,15 @@ export default async function KassaSahifasi({
           </Link>
         </div>
       </div>
+
+      {yopilmagan.length > 0 && (
+        <Link
+          href="/kassa/kun"
+          className="rounded-karta border border-belgi-sariq/30 bg-belgi-sariq-fon px-4 py-3 text-sm text-belgi-sariq hover:underline"
+        >
+          {yopilmagan.length} ta kun yopilmagan (oxirgi 30 kun) — eng eskisi {yopilmagan[yopilmagan.length - 1]?.sana} →
+        </Link>
+      )}
 
       {/* ── 12.16 · Qator 1: hozir kassada nima bor ── */}
       <section className="grid gap-4 sm:grid-cols-2">

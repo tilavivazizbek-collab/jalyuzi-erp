@@ -33,6 +33,9 @@ buyurtmani tahrirlash (8.7), material statistikasi (7.11)
 | Kod nomlari bitta joyda (`lib/domain/kassa-kod.ts`); K10, K11, C11, C12 ilgari xom kod bo'lib chiqardi | ✅ |
 | Kassa kitobi Excel'ga (ekrandagi filtr bilan) | ✅ |
 | Kirim kartochkasi: jurnaldagi qarz mol summasidan farq qilsa ogohlantiradi (P-46) | ✅ |
+| Kun yopish: yopilish tarixi (30 kun) — hisoblangan, sanaldi, farq, kim, izoh; davr bo'yicha jami kamomad / ortiqcha | ✅ |
+| Yopilmagan kunlar nazorati (harakat bo'lgan, bugundan oldingi) — kun yopish va kassa sahifasida ogoh | ✅ |
+| Kamomadni hisobga olish (xarajatga yoki kassir hisobiga) | ⏳ egasi qarori |
 
 ## 0%. Yetkazib beruvchilar — audit 2026-10-07
 
