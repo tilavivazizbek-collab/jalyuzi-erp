@@ -322,6 +322,8 @@ export interface BuyurtmaTafsili {
   readonly sana: Date;
   readonly mijozIsmi: string | null;
   readonly mijozTelefon: string | null;
+  /** Kartochkadan mijozga havola (2026-10-11) */
+  readonly mijozId: number | null;
   readonly sotuvchiIsmi: string;
   readonly manba: string;
   readonly valyuta: string;
@@ -356,6 +358,7 @@ export async function buyurtmaTafsili(
       sana: Date;
       mijoz_ismi: string | null;
       mijoz_telefon: string | null;
+      mijoz_id: number | null;
       sotuvchi_ismi: string;
       manba: string;
       valyuta: string;
@@ -368,7 +371,7 @@ export async function buyurtmaTafsili(
       storno_sana: Date | null;
     }[]
   >`
-    SELECT b.id, b.raqam, b.sana, m.ism AS mijoz_ismi, m.telefon AS mijoz_telefon,
+    SELECT b.id, b.raqam, b.sana, m.ism AS mijoz_ismi, m.telefon AS mijoz_telefon, b.mijoz_id,
            x.ism AS sotuvchi_ismi, b.manba, b.valyuta, b.kurs_snapshot,
            b.tayyorlik_sana::text AS tayyorlik_sana,
            b.sotgan_filial_id, b.ishlab_chiqaruvchi_filial_id, b.yopildi,
@@ -459,6 +462,7 @@ export async function buyurtmaTafsili(
       sana: h.sana,
       mijozIsmi: h.mijoz_ismi,
       mijozTelefon: h.mijoz_telefon,
+      mijozId: h.mijoz_id,
       sotuvchiIsmi: h.sotuvchi_ismi,
       manba: h.manba,
       valyuta: h.valyuta,
@@ -520,6 +524,7 @@ export async function buyurtmaTafsili(
     sana: h.sana,
     mijozIsmi: h.mijoz_ismi,
     mijozTelefon: h.mijoz_telefon,
+    mijozId: h.mijoz_id,
     sotuvchiIsmi: h.sotuvchi_ismi,
     manba: h.manba,
     valyuta: h.valyuta,

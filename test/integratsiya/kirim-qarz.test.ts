@@ -9,6 +9,8 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { Ulanish } from '@/lib/db/ulanish';
 import { kirimniStorno, kirimYarat, type QatorKirimi } from '@/lib/amal/kirim';
+import { ulanishOl } from '@/lib/db';
+import { kirimHujjatlari, kirimTafsiloti } from '@/app/(panel)/ombor/malumot';
 import { sinovUlanishi } from './yordamchi';
 
 const FILIAL = 1;
@@ -35,6 +37,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await sql.end({ timeout: 5 });
+  await ulanishOl().end({ timeout: 5 });
 });
 
 async function qarz(q: Omit<QatorKirimi, 'materialId' | 'defektMiqdor' | 'defektTuri'>): Promise<{
@@ -95,4 +98,12 @@ describe('yetkazib beruvchi qarzi — narx usuli', () => {
       WHERE manba_id = ${kirimId} AND manba_turi IN ('kirim', 'kirim_storno')`;
     expect(Number(r[0]?.jami ?? 'NaN')).toBe(0);
   });
+
+  it('EC-KQ-05: kirimlar ro‘yxati va kartochka summasi ham narx usulidan (P-46 oilasi)', async () => {
+    const { kirimId } = await qarz({ miqdorKirim: 3, narxBirlik: '4', narxAsosi: 'METR', bolaklar: uchRulon });
+    const r = await kirimHujjatlari(FILIAL, 500);
+    expect(r.find((x) => x.id === kirimId)?.jamiSumma).toBe('600.00');
+    expect((await kirimTafsiloti(kirimId, FILIAL))?.summa).toBe('600.00');
+  });
 });
+

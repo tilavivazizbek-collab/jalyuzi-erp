@@ -5,7 +5,7 @@ import { yetmaganXabarlar } from '@/lib/amal/bildirishnoma';
 import { Eslatmalar } from '../eslatma';
 import { sahifaRuxsati } from '@/lib/kirish/joriy';
 import { ruxsatBormi } from '@/lib/ruxsat/tekshir';
-import { nolSom, pulKorsat, pulMatn, qosh, ayir, som } from '@/lib/domain/pul';
+import { dollar, nolSom, pulKorsat, pulMatn, qosh, ayir, som } from '@/lib/domain/pul';
 import {
   bekorQilinadimi,
   HOLAT_NOMI,
@@ -105,13 +105,18 @@ export default async function BuyurtmaKartochkasi({ params }: { params: Promise<
   ).flat();
 
   const somda = b.valyuta === 'SOM';
-  const pul = (x: string): string => (somda ? pulKorsat(som(x)) : `${x} $`);
+  const pul = (x: string): string => (somda ? pulKorsat(som(x)) : `${pulKorsat(dollar(x))} $`);
 
-  // §3.1 — pul JS `number` bilan qo'shilmaydi, `Som` bilan yig'iladi
-  const jami = b.pozitsiyalar.reduce(
-    (y, p) => qosh(y, ayir(som(p.narx), som(p.chegirma))),
-    nolSom(),
-  );
+  /**
+   * §3.1 — pul JS `number` bilan qo'shilmaydi, `Som` bilan yig'iladi.
+   *
+   * ⚠️ 2026-10-11 — faqat FAOL pozitsiyalar (to'lov bloki va ro'yxat
+   *    bilan bir xil). Ilgari bekor / rad etilgani ham qo'shilardi va
+   *    bitta sahifada ikki xil «Jami» turardi.
+   */
+  const FAOL_EMAS = new Set(['BEKOR', 'RAD_ETILGAN']);
+  const faollar = b.pozitsiyalar.filter((p) => !FAOL_EMAS.has(p.holat));
+  const jami = faollar.reduce((y, p) => qosh(y, ayir(som(p.narx), som(p.chegirma))), nolSom());
 
   const filiallararo = b.sotganFilialId !== b.tikuvchiFilialId;
   /** Nom faqat xabar ko'rinadigan holatda so'raladi — oddiy buyurtmada ortiqcha so'rov yo'q */
@@ -128,7 +133,14 @@ export default async function BuyurtmaKartochkasi({ params }: { params: Promise<
         <h1 className="mt-2 text-[22px] font-semibold tracking-[-0.02em] text-matn">{b.raqam}</h1>
         <p className="mt-1 text-sm text-matn-kuchsiz">
           {b.sana.toLocaleDateString('uz-UZ')} · {b.sotuvchiIsmi} · {b.manba}
-          {b.mijozIsmi !== null && ` · ${b.mijozIsmi}`}
+          {b.mijozIsmi !== null && b.mijozId !== null && (
+            <>
+              {' · '}
+              <Link href={`/mijoz/${String(b.mijozId)}`} className="text-brend hover:underline">
+                {b.mijozIsmi}
+              </Link>
+            </>
+          )}
           {b.mijozTelefon !== null && ` (${b.mijozTelefon})`}
         </p>
 
@@ -190,7 +202,14 @@ export default async function BuyurtmaKartochkasi({ params }: { params: Promise<
       {/* ── 8.14 · Pul bloki ── */}
       <dl className="grid max-w-lg grid-cols-2 gap-x-4 gap-y-2 rounded-karta border border-chegara bg-fon px-4 py-3 text-sm">
         <dt className="text-matn-kuchsiz">Pozitsiyalar</dt>
-        <dd className="raqam">{b.pozitsiyalar.length}</dd>
+        <dd className="raqam">
+          {faollar.length}
+          {faollar.length !== b.pozitsiyalar.length && (
+            <span className="ml-1 text-xs text-matn-kuchsiz">
+              (+{b.pozitsiyalar.length - faollar.length} bekor)
+            </span>
+          )}
+        </dd>
         <dt className="text-matn-kuchsiz">Jami</dt>
         <dd className="raqam font-semibold">{pul(pulMatn(jami))}</dd>
         <dt className="text-matn-kuchsiz">Tayyorlik sanasi</dt>

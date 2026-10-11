@@ -33,6 +33,8 @@ buyurtmani tahrirlash (8.7), material statistikasi (7.11)
 | Qidiruv: raqam, mijoz ismi, telefon (kamida 3 raqam); muddati o'tgani qizil; mijozga havola; dollar formati | ✅ |
 | Chek va kvitansiyadagi «to'langan» — shu taqsimotdan; hisob `lib/amal/tolov-holati.ts` ga ko'chdi (ro'yxat, kartochka, chek bitta joy) | ✅ |
 | To'lov formasidagi «qolgan» — Decimal (Number edi), dollar formati | ✅ |
+| Kartochka «Jami» faqat faol pozitsiyalar (to'lov bloki bilan bitta sahifada ikki xil jami turardi); «+N bekor»; mijozga havola; dollar formati | ✅ |
+| Kirimlar ro'yxati va Excel summasi `kirimSummalari` (qatorQiymati) dan — P-46 oilasining 5-nusxasi (miqdor × narx) | ✅ |
 
 ## 0&. Kassa — audit 2026-10-08
 

@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { sahifaRuxsati } from '@/lib/kirish/joriy';
 import { ruxsatBormi, tannarxniKoradimi } from '@/lib/ruxsat/tekshir';
-import { pulKorsat, som } from '@/lib/domain/pul';
+import { dollar, pulKorsat, som } from '@/lib/domain/pul';
 import { filialNomi, kirimHujjatlari } from '../malumot';
 
 export const dynamic = 'force-dynamic';
@@ -83,7 +83,7 @@ export default async function KirimRoyxati() {
                     <td className="raqam px-4 py-2.5">{h.qatorSoni}</td>
                     {pulniKoradi && (
                     <td className={`raqam px-4 py-2.5 ${storno ? 'line-through' : ''}`}>
-                      {h.valyuta === 'SOM' ? pulKorsat(som(h.jamiSumma)) : `${h.jamiSumma} $`}
+                      {h.valyuta === 'SOM' ? pulKorsat(som(h.jamiSumma)) : `${pulKorsat(dollar(h.jamiSumma))} $`}
                     </td>
                     )}
                     <td className="px-4 py-2.5">

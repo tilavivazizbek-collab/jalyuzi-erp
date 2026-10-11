@@ -675,6 +675,61 @@ export async function chiqimBolagi(
 
 // ─── 7.12 · Kirim hujjatlari ──────────────────────────────────────────────
 
+/**
+ * Kirim hujjati va qatorlarining summasi — HUJJAT valyutasida.
+ *
+ * ⚠️ BITTA JOY (P-46 oilasi, 2026-10-11): kartochka, ro'yxat va Excel shu
+ *    yerdan. Ilgari ro'yxat va eksport `SUM(miqdor × narx)` hisoblardi —
+ *    metrga narxlangan rulonda summa rulon SONIGA ko'paytirilardi
+ *    (4 $/m × 3 rulon = 12 $, to'g'risi 600 $). Formula — `qatorQiymati`
+ *    (tannarx va yetkazib beruvchi qarzi bilan bir).
+ * ⚠️ Rulon o'lchami — kirimdan tug'ilgan RULON bo'laklaridan.
+ */
+export async function kirimSummalari(
+  sql: Ulanish,
+  kirimIdlar: readonly number[],
+): Promise<{ qatorlar: Map<number, string>; kirimlar: Map<number, string> }> {
+  const qatorlar = new Map<number, string>();
+  const kirimlar = new Map<number, string>();
+  if (kirimIdlar.length === 0) return { qatorlar, kirimlar };
+  const q = await sql<
+    {
+      id: number;
+      kirim_id: number;
+      miqdor_kirim: string;
+      narx_birlik: string;
+      defekt_miqdor: string;
+      narx_asosi: 'BIRLIK' | 'METR' | 'KV_M';
+      boyi: string | null;
+      kv_m: string | null;
+    }[]
+  >`
+    SELECT kq.id, kq.kirim_id, kq.miqdor_kirim::text, kq.narx_birlik::text,
+           kq.defekt_miqdor::text, kq.narx_asosi,
+           (SELECT SUM(b.boyi_m) FROM bolak b
+             WHERE b.kirim_qator_id = kq.id AND b.turi = 'RULON')::text AS boyi,
+           (SELECT SUM(b.eni_m * b.boyi_m) FROM bolak b
+             WHERE b.kirim_qator_id = kq.id AND b.turi = 'RULON')::text AS kv_m
+    FROM kirim_qator kq
+    WHERE kq.kirim_id = ANY(${kirimIdlar as number[]})`;
+  for (const x of q) {
+    const summa = pulMatn(
+      qatorQiymati({
+        id: x.id,
+        miqdor: Number(x.miqdor_kirim),
+        narxBirlik: som(x.narx_birlik),
+        defektMiqdor: Number(x.defekt_miqdor),
+        narxAsosi: x.narx_asosi,
+        jamiBoyiM: Number(x.boyi ?? 0),
+        jamiKvM: Number(x.kv_m ?? 0),
+      }),
+    );
+    qatorlar.set(x.id, summa);
+    kirimlar.set(x.kirim_id, new Decimal(kirimlar.get(x.kirim_id) ?? '0').plus(summa).toFixed(2));
+  }
+  return { qatorlar, kirimlar };
+}
+
 export interface KirimQatoriRoyxat {
   readonly id: number;
   readonly raqam: string;
@@ -698,13 +753,11 @@ export async function kirimHujjatlari(
       yetkazib_nomi: string;
       valyuta: string;
       holat: string;
-      jami_summa: string | null;
       qator_soni: number;
     }[]
   >`
     SELECT k.id, k.raqam, k.sana::text AS sana, y.nom AS yetkazib_nomi,
            k.valyuta, k.holat,
-           SUM(kq.miqdor_kirim * kq.narx_birlik)::text AS jami_summa,
            COUNT(kq.id)::int AS qator_soni
     FROM kirim k
     JOIN yetkazib_beruvchi y ON y.id = k.yetkazib_beruvchi_id
@@ -714,6 +767,9 @@ export async function kirimHujjatlari(
     ORDER BY k.sana DESC, k.id DESC
     LIMIT ${chegara}`;
 
+  // P-46 — summa qatorQiymati dan (kartochka bilan bir)
+  const summalar = await kirimSummalari(ulanishOl(), qatorlar.map((q) => q.id));
+
   return qatorlar.map((q) => ({
     id: q.id,
     raqam: q.raqam,
@@ -721,7 +777,7 @@ export async function kirimHujjatlari(
     yetkazibNomi: q.yetkazib_nomi,
     valyuta: q.valyuta,
     holat: q.holat,
-    jamiSumma: q.jami_summa ?? '0',
+    jamiSumma: summalar.kirimlar.get(q.id) ?? '0.00',
     qatorSoni: q.qator_soni,
   }));
 }
@@ -828,25 +884,9 @@ export async function kirimTafsiloti(
     WHERE kq.kirim_id = ${kirimId}
     ORDER BY kq.id`;
 
-  /**
-   * ⚠️ Summa — `qatorQiymati` (tannarx va qarz bilan BITTA formula):
-   *    metrga narxlangan rulonda narx × bo'ylar yig'indisi.
-   */
-  const qatorSummasi = (q: (typeof qatorlar)[number]): string => {
-    const r = q.olchamlar;
-    return pulMatn(
-      qatorQiymati({
-        id: q.id,
-        miqdor: Number(q.miqdor_kirim),
-        narxBirlik: som(q.narx_birlik),
-        defektMiqdor: Number(q.defekt_miqdor),
-        narxAsosi: q.narx_asosi,
-        jamiBoyiM: r.reduce((y, b) => y + Number(b.boyi ?? 0), 0),
-        jamiKvM: r.reduce((y, b) => y + Number(b.eni ?? 0) * Number(b.boyi ?? 0), 0),
-      }),
-    );
-  };
-  const summalar = qatorlar.map(qatorSummasi);
+  // ⚠️ Summa — umumiy `kirimSummalari` (ro'yxat va Excel bilan bitta formula)
+  const hisob = await kirimSummalari(sql, [kirimId]);
+  const summalar = qatorlar.map((q) => hisob.qatorlar.get(q.id) ?? '0.00');
 
   const holatlar = await sql<{ omborda: number; ishlatilgan: number }[]>`
     SELECT COUNT(*) FILTER (WHERE b.holat IN ('BOSH', 'BAND'))::int AS omborda,
