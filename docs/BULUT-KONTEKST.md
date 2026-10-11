@@ -426,9 +426,10 @@ Bulutdagi sessiyada bu to'siq **yo'q** — u Anthropic tarmog'idan ishlaydi.
 - Lokal sinov bazasi URUG'LI va TOZA bo'lishi shart: urug'siz testlar FK da
   yiqiladi, ikkinchi yurishda P-07 va konstruktor testlari oldingi qoldiqqa
   uriladi. Toza bazada 736/736.
-- Ishlab chiqarishga qo'llanmagan migratsiyalar: **0057 · 0059 · 0060 · 0061 · 0062 · 0063**.
+- Ishlab chiqarishga qo'llanmagan migratsiyalar: **0057 · 0059 · 0060 · 0061 · 0062 · 0063 · 0064**.
   0061 (mijoz CRM), 0062 (saqlash joyi), 0063 (xarid buyurtmasi) faqat qo'shadi —
-  tartib: zaxira, 0057, 0059, deploy, 0060, 0061, 0062, 0063.
+  tartib: zaxira, 0057, 0059, deploy, 0060, 0061, 0062, 0063, 0064.
+- Kassa kamomadi (egasi 2026-10-11): korxona xarajati (KASSA_FARQI), kassirdan undirilmaydi.
 - Baza qaytgach: `npm run db:kirim-qarz-tekshir` — P-46 (metr/kv.m narxli kirimda
   yetkazib beruvchi qarzi kam yozilgan); tuzatish egasi qarori bilan.
 - 2026-10-07 kechqurun Windows Application Control argon2 faylini blokladi (lokal sayt 500,

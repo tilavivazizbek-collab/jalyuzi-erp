@@ -2099,3 +2099,15 @@ isbotlandi, keyin tuzatildi.
   bekor qilish va yangisi).
 - Brauzer tekshiruv skriptlari repoga kirmagan — avtomatik e2e to'plam yo'q.
 
+## P-49 — Kun yopish farqi korxona xarajati (0064)
+
+**2026-10-11, egasi qarori («2»):** kassir sanagan pul hisoblangandan farq
+qilsa, farq korxona xarajati — kassirdan undirilmaydi.
+
+**Qaror:** `kunniYop` farqni o'sha tranzaksiyada yozadi: kamomad — `C13`
+chiqim, ortiqcha — `K12` kirim (yopilgan kun 23:59:59 sanasi bilan, manba
+`kassa_kun`), va `KASSA_FARQI` xarajati (kamomad +, ortiqcha −). Kassa qoldig'i
+sanalgan pulga teng bo'ladi, keyingi kun shundan boshlanadi. `kunniQaytaOch`
+bu yozuvlarni teskari yozuv bilan bekor qiladi; qo'lda storno taqiqlangan
+(`KASSA_KUN_FARQI`). Eski yopilgan kunlarga tegilmaydi.
+

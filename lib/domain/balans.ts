@@ -129,7 +129,9 @@ export type XarajatModdasi =
   | 'YAXLITLASH'
   | 'XODIM_BALANSI_HISOBDAN'
   | 'FILIALLARARO_TRANSPORT'
-  | 'BOSHQA';
+  | 'BOSHQA'
+  /** 0064 — kun yopishdagi kassa kamomadi (+) yoki ortiqchasi (−) */
+  | 'KASSA_FARQI';
 
 /**
  * TZ 12.1 — «Pul CHIQMAYDI, lekin XARAJAT bo'ladi.»

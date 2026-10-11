@@ -12,9 +12,11 @@
  */
 
 import type postgres from 'postgres';
+import Decimal from 'decimal.js';
 import { kunFarqi, kunHisobi } from '@/lib/domain/balans';
 import { pulMatn, som } from '@/lib/domain/pul';
 import { BiznesXato } from '@/lib/xato';
+import { kassaYozuviQoshTx, xarajatYozTx } from './kassa';
 
 /**
  * `Sql` ham, `TransactionSql` ham so'rov yubora oladi.
@@ -161,6 +163,30 @@ export async function kunniYop(
     const kunId = yangi[0]?.id;
     if (kunId === undefined) throw new BiznesXato('KUN_SAQLANMADI', kirim.sana);
 
+    /**
+     * ── EGASI QARORI 2026-10-11: farq korxona XARAJATI ──
+     *
+     * Kamomad (sanaldi < hisoblangan) — kassadan chiqim + «Kassa farqi»
+     * xarajati; ortiqcha — kassaga kirim + manfiy xarajat. Shunda kassa
+     * qoldig'i SANALGAN pulga tenglashadi. Ilgari farq faqat shu jadvalga
+     * yozilardi va yo'q pul keyingi kunlarda ham «bor» bo'lib turardi.
+     *
+     * ⚠️ Yozuv YOPILGAN KUN ichida (23:59:59): o'tgan kun yopilsa ham
+     *    tuzatish bugunga emas, o'sha kunga tushadi.
+     * ⚠️ Kun qayta ochilsa bu yozuvlar teskari yozuv bilan bekor qilinadi
+     *    (`kunniQaytaOch`) — qayta yopishda farq ikki marta tushmaydi.
+     */
+    if (farqBormi) {
+      await farqniYozTx(tx, {
+        kunId,
+        kassaId: kirim.kassaId,
+        sana: kirim.sana,
+        valyuta: h.valyuta === 'USD' ? 'USD' : 'SOM',
+        farq: pulMatn(farq),
+        izoh: kirim.izoh,
+      }, xodimId);
+    }
+
     await tx`
       INSERT INTO audit_jurnal (xodim_id, filial_id, amal, obyekt_turi, obyekt_id,
                                 yangi_qiymat, izoh)
@@ -229,6 +255,9 @@ export async function kunniQaytaOch(
           ozgartirildi = now(), ozgartirdi_id = ${adminId}
       WHERE id = ${kunId}`;
 
+    // Yopishda yozilgan farq tuzatishi bekor qilinadi — qayta yopilganda yangisi yoziladi
+    await farqniBekorQilTx(tx, kunId, sabab.trim(), adminId);
+
     await tx`
       INSERT INTO audit_jurnal (xodim_id, filial_id, amal, obyekt_turi, obyekt_id,
                                 eski_qiymat, yangi_qiymat, izoh)
@@ -280,9 +309,13 @@ export async function kunHarakatlari(
   >`
     SELECT k.id, k.sana, k.kod, k.summa::text, k.izoh,
            COALESCE(x.ism, '—') AS xodim_ismi,
+           /*
+            * ⚠️ 2026-10-11: ilgari manba_turi = 'kassa_storno' qidirilardi,
+            *    storno esa storno_id bilan yoziladi — belgi HECH QACHON
+            *    chiqmasdi. Kassa kitobi bilan bir xil shart.
+            */
            EXISTS (
-             SELECT 1 FROM kassa_yozuv s
-             WHERE s.manba_turi = 'kassa_storno' AND s.manba_id = k.id
+             SELECT 1 FROM kassa_yozuv s WHERE s.storno_id = k.id
            ) AS storno_qilinganmi
     FROM kassa_yozuv k
     LEFT JOIN xodim x ON x.id = k.xodim_id
@@ -299,3 +332,108 @@ export async function kunHarakatlari(
     stornoQilinganmi: x.storno_qilinganmi,
   }));
 }
+
+// ─── 12.17 · Kun yopish farqi — egasi qarori 2026-10-11 ───────────────────
+
+/**
+ * Farqni kassa yozuvi va xarajat qilib yozadi (yopish tranzaksiyasida).
+ *
+ * @param farq sanaldi − hisoblangan: manfiy — kamomad, musbat — ortiqcha
+ */
+async function farqniYozTx(
+  tx: postgres.TransactionSql,
+  k: {
+    readonly kunId: number;
+    readonly kassaId: number;
+    readonly sana: string;
+    readonly valyuta: 'SOM' | 'USD';
+    readonly farq: string;
+    readonly izoh: string | null;
+  },
+  xodimId: number,
+): Promise<void> {
+  const f = new Decimal(k.farq);
+  const kamomad = f.isNegative();
+  // Qayta ochilib yopilgan kunda — keyingi qator raqami
+  const q = await tx<{ n: number }[]>`
+    SELECT COALESCE(MAX(qator), 0)::int AS n FROM kassa_yozuv
+    WHERE manba_turi = 'kassa_kun' AND manba_id = ${k.kunId}`;
+  const izoh = `Kun yopish farqi ${k.sana}${k.izoh === null || k.izoh.trim() === '' ? '' : ` — ${k.izoh.trim()}`}`;
+
+  const yozuvId = await kassaYozuviQoshTx(
+    tx,
+    {
+      kassaId: k.kassaId,
+      kod: kamomad ? 'C13' : 'K12',
+      summa: f.toFixed(2),
+      valyuta: k.valyuta,
+      manbaTuri: 'kassa_kun',
+      manbaId: k.kunId,
+      qator: (q[0]?.n ?? 0) + 1,
+      izoh,
+      // ⚠️ Toshkent vaqti doim +05 (yozgi vaqt yo'q)
+      sana: `${k.sana} 23:59:59+05`,
+    },
+    xodimId,
+  );
+
+  const filial = await tx<{ filial_id: number }[]>`
+    SELECT filial_id FROM kassa WHERE id = ${k.kassaId}`;
+  await xarajatYozTx(
+    tx,
+    {
+      sana: k.sana,
+      filialId: filial[0]?.filial_id ?? 0,
+      modda: 'KASSA_FARQI',
+      // Kamomad — xarajat (+), ortiqcha — xarajatni kamaytiradi (−)
+      summa: f.negated().toFixed(2),
+      valyuta: k.valyuta,
+      kassaYozuvId: yozuvId,
+      manbaTuri: 'kassa_kun',
+      manbaId: k.kunId,
+      izoh,
+    },
+    xodimId,
+  );
+}
+
+/**
+ * Kun qayta ochilganda farq tuzatishini bekor qiladi — TESKARI yozuv bilan
+ * (§6.5: kassa yozuvi o'chirilmaydi va o'zgartirilmaydi).
+ */
+async function farqniBekorQilTx(
+  tx: postgres.TransactionSql,
+  kunId: number,
+  sabab: string,
+  xodimId: number,
+): Promise<void> {
+  const yozuvlar = await tx<
+    { id: number; sana: Date; kassa_id: number; kod: string; summa: string; valyuta: string }[]
+  >`
+    SELECT y.id, y.sana, y.kassa_id, y.kod, y.summa::text, y.valyuta
+    FROM kassa_yozuv y
+    WHERE y.manba_turi = 'kassa_kun' AND y.manba_id = ${kunId}
+      AND y.storno_id IS NULL
+      AND NOT EXISTS (SELECT 1 FROM kassa_yozuv s WHERE s.storno_id = y.id)
+    FOR UPDATE`;
+
+  for (const y of yozuvlar) {
+    const teskari = await tx<{ id: number }[]>`
+      INSERT INTO kassa_yozuv (sana, kassa_id, kod, summa, valyuta, manba_turi, manba_id,
+                               qator, storno_id, izoh, xodim_id)
+      VALUES (${y.sana}, ${y.kassa_id}, ${y.kod}, ${new Decimal(y.summa).negated().toFixed(2)},
+              ${y.valyuta}, 'storno', ${y.id}, 1, ${y.id},
+              ${`Kun qayta ochildi — ${sabab}`}, ${xodimId})
+      RETURNING id`;
+    const tid = teskari[0]?.id;
+    if (tid === undefined) throw new BiznesXato('KASSA_SAQLANMADI', 'kun farqi storno');
+
+    await tx`
+      INSERT INTO xarajat (sana, filial_id, modda, summa, valyuta, kassa_yozuv_id,
+                           manba_turi, manba_id, izoh, xodim_id)
+      SELECT x.sana, x.filial_id, x.modda, -x.summa, x.valyuta, ${tid},
+             'storno', x.id, ${`Kun qayta ochildi — ${sabab}`}, ${xodimId}
+      FROM xarajat x WHERE x.kassa_yozuv_id = ${y.id}`;
+  }
+}
+

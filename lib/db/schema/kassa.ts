@@ -328,6 +328,8 @@ export const XARAJAT_MODDALARI = [
   'XODIM_BALANSI_HISOBDAN',
   'FILIALLARARO_TRANSPORT',
   'BOSHQA',
+  // 0064 — kun yopishdagi kamomad / ortiqcha (egasi qarori 2026-10-11)
+  'KASSA_FARQI',
 ] as const;
 
 export const xarajat = pgTable(
@@ -362,7 +364,7 @@ export const xarajat = pgTable(
                          'BANK_KOMISSIYASI','OPERATSION',
                          'INVENTARIZATSIYA_FARQI','YAXLITLASH',
                          'XODIM_BALANSI_HISOBDAN','FILIALLARARO_TRANSPORT',
-                         'BOSHQA')`,
+                         'BOSHQA','KASSA_FARQI')`,
     ),
     check('xarajat_valyuta', sql`${t.valyuta} IN ('SOM','USD')`),
     index('xarajat_filial_sana').on(t.filialId, t.sana),

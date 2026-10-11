@@ -101,6 +101,7 @@ export const XATO_MATNI: Record<XatoKod, string> = {
   XARID_KIRIM_BOR: 'Buyurtma bo‘yicha mol kelgan — bekor qilib bo‘lmaydi, «Yopish» ni tanlang',
   XARID_SABAB_KERAK: 'Sababni yozing',
   XARID_YETKAZIB_FARQ: 'Kirimdagi yetkazib beruvchi buyurtmadagidan boshqa',
+  KASSA_KUN_FARQI: 'Kun yopish farqi storno qilinmaydi — kunni qayta oching',
   CHIQARISH_SAQLANMADI: "Hisobdan chiqarib bo'lmadi",
   CHIQARISH_SABAB_KERAK: "Sabab kiritilishi shart",
   CHIQARISH_ALLAQACHON_BEKOR: "Bu yozuv allaqachon bekor qilingan",

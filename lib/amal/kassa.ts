@@ -36,6 +36,11 @@ export interface KassaYozuvi {
   readonly manbaId: number;
   readonly qator: number;
   readonly izoh: string | null;
+  /**
+   * Yozuv vaqti — bo'sh bo'lsa hozir. ⚠️ Faqat kun yopish farqi uchun:
+   * o'tgan kun yopilsa, tuzatish O'SHA KUN ichida turishi kerak.
+   */
+  readonly sana?: string;
 }
 
 /**
@@ -76,9 +81,10 @@ export async function kassaYozuviQoshTx(
   }
 
   const yangi = await tx<{ id: number }[]>`
-    INSERT INTO kassa_yozuv (kassa_id, kod, summa, valyuta, manba_turi, manba_id,
+    INSERT INTO kassa_yozuv (sana, kassa_id, kod, summa, valyuta, manba_turi, manba_id,
                              qator, izoh, xodim_id)
-    VALUES (${y.kassaId}, ${y.kod}, ${y.summa}, ${y.valyuta}, ${y.manbaTuri},
+    VALUES (COALESCE(${y.sana ?? null}::timestamptz, now()), ${y.kassaId}, ${y.kod},
+            ${y.summa}, ${y.valyuta}, ${y.manbaTuri},
             ${y.manbaId}, ${y.qator}, ${y.izoh}, ${xodimId})
     RETURNING id`;
 
@@ -227,6 +233,14 @@ export async function kassaStorno(
 
     const y = q[0];
     if (y === undefined) throw new BiznesXato('KASSA_YOZUV_TOPILMADI', String(yozuvId));
+    /**
+     * ⚠️ Kun yopish farqi qo'lda storno qilinmaydi — u faqat kunni qayta
+     *    ochish bilan bekor bo'ladi (`kunniQaytaOch`). Aks holda yopilgan
+     *    kun yozuvi bilan kassa qoldig'i yana ajralib ketardi.
+     */
+    if (y.manba_turi === 'kassa_kun') {
+      throw new BiznesXato('KASSA_KUN_FARQI', String(yozuvId));
+    }
 
     const bor = await tx<{ n: number }[]>`
       SELECT COUNT(*)::int AS n FROM kassa_yozuv WHERE storno_id = ${yozuvId}`;

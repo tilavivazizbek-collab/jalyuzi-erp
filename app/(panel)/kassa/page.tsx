@@ -406,7 +406,10 @@ export default async function KassaSahifasi({
                       <td className="px-4 py-2.5 text-xs text-matn-kuchsiz">{y.xodimIsmi}</td>
                       {stornoQilaOladi && (
                         <td className="px-4 py-2.5 text-right">
-                          {!y.stornoQilinganmi && !y.stornoMi && <StornoTugmasi yozuvId={y.id} />}
+                          {/* Kun yopish farqi — faqat kunni qayta ochish bilan bekor bo'ladi */}
+                          {!y.stornoQilinganmi && !y.stornoMi && y.manbaTuri !== 'kassa_kun' && (
+                            <StornoTugmasi yozuvId={y.id} />
+                          )}
                         </td>
                       )}
                     </tr>

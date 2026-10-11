@@ -4,7 +4,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { Ulanish } from '@/lib/db/ulanish';
 import { ulanishOl } from '@/lib/db';
-import { kunniYop } from '@/lib/amal/kun-yopish';
+import { kunniQaytaOch, kunniYop } from '@/lib/amal/kun-yopish';
 import { kassaStorno } from '@/lib/amal/kassa';
 import { kitobJami } from '@/app/(panel)/kassa/malumot';
 import { toshkentKuni } from '@/lib/domain/sana';
@@ -86,4 +86,58 @@ describe('kun yopish nazorati', () => {
     expect(som?.chiqim ?? '0.00').toBe('0.00');
     expect(som?.kirim ?? '0.00').not.toContain('700000');
   });
+
+  /**
+   * Egasi qarori 2026-10-11: kamomad korxona XARAJATI, kassa qoldig'i
+   * sanalgan pulga tenglashadi; qayta ochilsa — bekor, qayta yopilsa — bir marta.
+   */
+  it('EC-KUN-N5: kamomad xarajat bo‘ladi, qoldiq sanalganga teng; qayta ochish bekor qiladi', async () => {
+    const qoldiq = async (sana: string): Promise<string> =>
+      (await sql<{ q: string }[]>`
+        SELECT COALESCE(SUM(summa), 0)::numeric(14,2)::text AS q FROM kassa_yozuv
+        WHERE kassa_id = ${kassaId} AND (sana AT TIME ZONE 'Asia/Tashkent')::date <= ${sana}::date`)[0]?.q ?? '';
+    const xarajat = async (): Promise<string> =>
+      (await sql<{ s: string }[]>`
+        SELECT COALESCE(SUM(x.summa), 0)::numeric(14,2)::text AS s FROM xarajat x
+        JOIN kassa_kun kk ON x.manba_turi = 'kassa_kun' AND x.manba_id = kk.id
+           OR x.manba_turi = 'storno' AND x.manba_id IN (
+                SELECT id FROM xarajat WHERE manba_turi = 'kassa_kun' AND manba_id = kk.id)
+        WHERE kk.kassa_id = ${kassaId} AND x.modda = 'KASSA_FARQI'`)[0]?.s ?? '';
+
+    // N1 da 2026-09-10 kuni 100 000 o'rniga 90 000 sanalgan
+    expect(await qoldiq('2026-09-10')).toBe('90000.00');
+    expect(await xarajat()).toBe('10000.00');
+
+    const kun = (await sql<{ id: number }[]>`
+      SELECT id FROM kassa_kun WHERE kassa_id = ${kassaId} AND sana = '2026-09-10'`)[0]?.id ?? 0;
+    await kunniQaytaOch(sql, kun, 'qayta sanash', XODIM);
+    expect(await qoldiq('2026-09-10')).toBe('100000.00');
+    expect(await xarajat()).toBe('0.00');
+
+    // Qayta yopish — bu safar 95 000: farq faqat BIR marta, yangi summada
+    await kunniYop(sql, { kassaId, sana: '2026-09-10', sanaldi: '95000', izoh: 'qayta sanaldi' }, XODIM);
+    expect(await qoldiq('2026-09-10')).toBe('95000.00');
+    expect(await xarajat()).toBe('5000.00');
+  });
+
+  it('EC-KUN-N6: ortiqcha — kirim va manfiy xarajat', async () => {
+    await kunniYop(sql, { kassaId, sana: '2026-09-11', sanaldi: '175000', izoh: 'ortiqcha chiqdi' }, XODIM);
+    const y = await sql<{ kod: string; summa: string }[]>`
+      SELECT y.kod, y.summa::text FROM kassa_yozuv y
+      JOIN kassa_kun kk ON y.manba_turi = 'kassa_kun' AND y.manba_id = kk.id
+      WHERE kk.kassa_id = ${kassaId} AND kk.sana = '2026-09-11'`;
+    // 09-11: boshlang'ich 95 000 (kecha SANALGAN) + 75 000 = 170 000; 175 000 sanaldi → +5 000
+    expect(y).toEqual([{ kod: 'K12', summa: '5000.00' }]);
+  });
+
+  it('EC-KUN-N7: kun yopish farqini qo‘lda storno qilib bo‘lmaydi', async () => {
+    const y = await sql<{ id: number }[]>`
+      SELECT y.id FROM kassa_yozuv y
+      JOIN kassa_kun kk ON y.manba_turi = 'kassa_kun' AND y.manba_id = kk.id
+      WHERE kk.kassa_id = ${kassaId} AND y.storno_id IS NULL
+        AND NOT EXISTS (SELECT 1 FROM kassa_yozuv s WHERE s.storno_id = y.id)
+      LIMIT 1`;
+    await expect(kassaStorno(sql, y[0]?.id ?? 0, 'qo‘lda', XODIM)).rejects.toThrow(/qayta oching/);
+  });
 });
+

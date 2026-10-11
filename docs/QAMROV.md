@@ -48,7 +48,8 @@ buyurtmani tahrirlash (8.7), material statistikasi (7.11)
 | Yopilmagan kunlar nazorati (harakat bo'lgan, bugundan oldingi) — kun yopish va kassa sahifasida ogoh | ✅ |
 | «Kassalar» ro'yxati filial bilan cheklandi — boshqa filial kassasi faqat bosh filial admini uchun (Q-25); qoldiq formatlandi | ✅ |
 | Kassani o'chirish / qaytarish amali obyekt filialini tekshiradi (ilgari faqat ruxsat kodi) | ✅ |
-| Kamomadni hisobga olish (xarajatga yoki kassir hisobiga) | ⏳ egasi qarori |
+| Kun yopish farqi (egasi qarori 2026-10-11, 0064): kamomad — kassadan chiqim + «Kassa farqi» xarajati, ortiqcha — kirim + manfiy xarajat; qoldiq sanalgan pulga teng. Qayta ochishda teskari yozuv bilan bekor; qo'lda storno taqiqlangan | ✅ |
+| Kunlik varaqada storno belgisi hech qachon chiqmasdi (noto'g'ri shart) | ✅ |
 
 ## 0%. Yetkazib beruvchilar — audit 2026-10-07
 

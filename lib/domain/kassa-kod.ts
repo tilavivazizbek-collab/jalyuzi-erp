@@ -22,6 +22,7 @@ export const KASSA_KOD_NOMI: Readonly<Record<string, string>> = {
   K9: 'Boshqa kirim',
   K10: 'Ayirboshlash — kirdi',
   K11: "Filialdan qarz to'lovi",
+  K12: 'Kun yopish — ortiqcha',
   C1: "Yetkazib beruvchiga to'lov",
   C2: 'Yetkazib beruvchiga avans',
   C3: "Transport / bojxona to'lovi",
@@ -34,6 +35,7 @@ export const KASSA_KOD_NOMI: Readonly<Record<string, string>> = {
   C10: 'Boshqa chiqim',
   C11: 'Ayirboshlash — chiqdi',
   C12: "Filialga qarz to'lovi",
+  C13: 'Kun yopish — kamomad (xarajat)',
 };
 
 export function kassaKodNomi(kod: string): string {
@@ -85,6 +87,8 @@ export function manbaKorinishi(
       return { matn: 'Egasi', havola: null };
     case 'qolda':
       return { matn: "Qo'lda kiritilgan", havola: null };
+    case 'kassa_kun':
+      return { matn: 'Kun yopish farqi', havola: '/kassa/kun' };
     case 'kassa_boshlangich':
       return { matn: "Boshlang'ich qoldiq", havola: null };
     case 'storno':
