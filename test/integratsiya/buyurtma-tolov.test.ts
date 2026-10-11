@@ -10,6 +10,7 @@ import { buyurtmaYarat, type BuyurtmaKirimi } from '@/lib/amal/buyurtma';
 import type { Ulanish } from '@/lib/db/ulanish';
 import { ulanishOl } from '@/lib/db';
 import { buyurtmalar, tolovHolati } from '@/app/(panel)/buyurtma/malumot';
+import { buyurtmaKvitansiyasi } from '@/lib/amal/chek';
 import { sinovUlanishi } from './yordamchi';
 
 let sql: Ulanish;
@@ -160,6 +161,10 @@ describe('buyurtma to‘landimi — FIFO', () => {
     const k2 = await tolovHolati(b2, FILIAL);
     expect(k2?.qarz).toBe('100000.00');
     expect(k2?.umumiyTolovdan).toBe('100000.00');
+
+    // Kvitansiya ham shu hisobdan — ilgari «To'langan: 0» chiqardi
+    const kv1 = await buyurtmaKvitansiyasi(sql, b1, FILIAL);
+    expect(kv1?.tolangan.replace(/\s/g, '')).toContain('300000');
   });
 
   it('EC-BT-02: mijozsiz buyurtma — faqat o‘ziga bog‘langan to‘lov', async () => {

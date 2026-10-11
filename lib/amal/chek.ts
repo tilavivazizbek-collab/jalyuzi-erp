@@ -14,6 +14,7 @@
  */
 
 import type postgres from 'postgres';
+import { buyurtmaTolovlari } from './tolov-holati';
 import { BiznesXato } from '@/lib/xato';
 import { korxonaMalumotlari } from './sozlama';
 import { chekYasa, type Chek, type ChekPozitsiyasi, type IkkiValyutaQarz } from '@/lib/domain/chek';
@@ -62,7 +63,7 @@ export async function buyurtmaCheki(
 
   const [pozitsiyalar, tolangan, qarz, korxona] = await Promise.all([
     chekPozitsiyalari(ulanish, buyurtmaId),
-    tolanganSumma(ulanish, buyurtmaId),
+    tolanganSumma(ulanish, buyurtmaId, h.mijoz_id),
     h.mijoz_id === null ? Promise.resolve(null) : mijozQarziJami(ulanish, h.mijoz_id),
     korxonaMalumotlari(ulanish),
   ]);
@@ -215,21 +216,30 @@ async function chekPozitsiyalari(
 }
 
 /**
- * To'langan summa — kassa yozuvlaridan (2.2-invariant).
+ * To'langan summa — buyurtma kartochkasi va ro'yxat bilan BIR XIL hisob
+ * (8.14): ikkita joyda ikki xil qarz chiqsa mijoz bilan bahs bo'lardi.
  *
- * ⚠️ Storno qilingan yozuv HISOBGA OLINMAYDI, qaytarish esa manfiy
- *    yozuv bo'lib turadi va yig'indini kamaytiradi. Bu buyurtma
- *    kartochkasidagi hisob bilan bir xil (8.14) — ikkita joyda
- *    ikki xil qarz chiqsa mijoz bilan bahs bo'lardi.
+ * ⚠️ Storno qilingan yozuv hisobga olinmaydi (2.2-invariant).
  */
-async function tolanganSumma(ulanish: postgres.Sql, buyurtmaId: number): Promise<string> {
-  const q = await ulanish<{ jami: string | null }[]>`
-    SELECT SUM(y.summa)::text AS jami
-    FROM kassa_yozuv y
-    WHERE y.manba_turi = 'buyurtma' AND y.manba_id = ${buyurtmaId}
-      AND NOT EXISTS (SELECT 1 FROM kassa_yozuv s WHERE s.storno_id = y.id)`;
-
-  return q[0]?.jami ?? '0';
+async function tolanganSumma(
+  ulanish: postgres.Sql,
+  buyurtmaId: number,
+  mijozId: number | null,
+): Promise<string> {
+  /**
+   * ⚠️ 2026-10-11 — kartochka va ro'yxat bilan BITTA hisob
+   *    (`lib/amal/tolov-holati.ts`): mijozli buyurtmada FIFO taqsimot.
+   *    Ilgari faqat shu buyurtmaga bog'langan kassa yozuvi sanalardi —
+   *    mijoz kartochkadan qarzini uzgan bo'lsa ham chekda qarz turardi.
+   */
+  const j = await ulanish<{ jami: string | null }[]>`
+    SELECT SUM(p.narx_snapshot - COALESCE(p.chegirma_summa, 0))::text AS jami
+    FROM buyurtma_pozitsiya p
+    WHERE p.buyurtma_id = ${buyurtmaId} AND p.holat NOT IN ('BEKOR', 'RAD_ETILGAN')`;
+  const t = (
+    await buyurtmaTolovlari(ulanish, [{ id: buyurtmaId, mijozId, jami: j[0]?.jami ?? '0' }])
+  ).get(buyurtmaId);
+  return t?.tolangan ?? '0.00';
 }
 
 /** TZ 6.8 — mijozning umumiy qarzi, har valyuta ALOHIDA */
@@ -312,7 +322,7 @@ export async function buyurtmaKvitansiyasi(
 
   const [pozitsiyalar, tolangan, korxona] = await Promise.all([
     chekPozitsiyalari(ulanish, buyurtmaId),
-    tolanganSumma(ulanish, buyurtmaId),
+    tolanganSumma(ulanish, buyurtmaId, h.mijoz_id),
     korxonaMalumotlari(ulanish),
   ]);
 

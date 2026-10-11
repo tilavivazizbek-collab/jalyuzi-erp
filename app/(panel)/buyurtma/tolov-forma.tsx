@@ -13,7 +13,8 @@
 
 import { useActionState, useEffect, useState } from 'react';
 import { Maydon, kirishUslubi } from '../maydon';
-import { pulKorsat, som } from '@/lib/domain/pul';
+import Decimal from 'decimal.js';
+import { dollar, pulKorsat, som } from '@/lib/domain/pul';
 import { tolovAmali } from './tolov-amal';
 import { BOSH_TOLOV } from './holat';
 
@@ -69,16 +70,18 @@ export function TolovFormasi({
     yangiQator(String(kassalar[0]?.id ?? '')),
   ]);
 
-  const son = (x: string): number => {
-    const n = Number(x.trim());
-    return Number.isFinite(n) ? n : 0;
-  };
+  /**
+   * ⚠️ Pul — Decimal, `Number` emas (2026-10-11): 0.1 + 0.2 kabi
+   *    xatolar «qolgan» ni tiyinga siljitardi. Noto'g'ri matn — 0.
+   */
+  const son = (x: string): Decimal =>
+    /^\d+(\.\d{1,2})?$/.test(x.trim()) ? new Decimal(x.trim()) : new Decimal(0);
 
-  const jami = qatorlar.reduce((y, q) => y + son(q.summa), 0);
-  const qolgan = Number(qarz) - jami;
+  const jami = qatorlar.reduce((y, q) => y.plus(son(q.summa)), new Decimal(0));
+  const qolgan = new Decimal(qarz).minus(jami);
 
   const yuborilajak = qatorlar
-    .filter((q) => q.kassaId !== '' && son(q.summa) > 0)
+    .filter((q) => q.kassaId !== '' && son(q.summa).gt(0))
     .map((q) => ({
       kassaId: Number(q.kassaId),
       summa: son(q.summa).toFixed(2),
@@ -214,14 +217,14 @@ export function TolovFormasi({
         <dt className="border-t border-chegara pt-1 font-medium">Qoladi</dt>
         <dd
           className={`raqam border-t border-chegara pt-1 font-semibold ${
-            qolgan > 0 ? 'text-belgi-sariq' : ''
+            qolgan.gt(0) ? 'text-belgi-sariq' : ''
           }`}
         >
-          {pulKorsat(som(qolgan.toFixed(2)))}
+          {pulKorsat(valyuta === 'USD' ? dollar(qolgan.toFixed(2)) : som(qolgan.toFixed(2)))}
         </dd>
       </dl>
 
-      {qolgan > 0 && (
+      {qolgan.gt(0) && (
         <p className="text-xs text-belgi-sariq">
           To&apos;lov to&apos;liq emas — qolgan summa qarzga yoziladi (3.12).
         </p>

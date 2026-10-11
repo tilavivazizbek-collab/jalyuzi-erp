@@ -31,7 +31,8 @@ buyurtmani tahrirlash (8.7), material statistikasi (7.11)
 | Ro'yxat «jami» faqat faol pozitsiyalar — bekor / rad etilgan qo'shilardi, kartochka bilan farq qilardi | ✅ |
 | Kartochka: «shundan X — mijozning umumiy to'lovidan»; `Number()` bilan pul hisobi olib tashlandi | ✅ |
 | Qidiruv: raqam, mijoz ismi, telefon (kamida 3 raqam); muddati o'tgani qizil; mijozga havola; dollar formati | ✅ |
-| Chek va kvitansiyadagi «to'langan» — hali faqat bog'langan to'lovdan | ⏳ keyingi qadam |
+| Chek va kvitansiyadagi «to'langan» — shu taqsimotdan; hisob `lib/amal/tolov-holati.ts` ga ko'chdi (ro'yxat, kartochka, chek bitta joy) | ✅ |
+| To'lov formasidagi «qolgan» — Decimal (Number edi), dollar formati | ✅ |
 
 ## 0&. Kassa — audit 2026-10-08
 

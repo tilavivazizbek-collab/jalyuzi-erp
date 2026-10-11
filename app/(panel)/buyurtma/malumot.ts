@@ -11,7 +11,7 @@ import Decimal from 'decimal.js';
 import { ulanishOl } from '@/lib/db';
 import { kesimOlchami } from '@/lib/domain/kesish';
 import type { TolovDarajasi } from '@/lib/domain/buyurtma-tolov';
-import { buyurtmaTolovlari } from './tolov-taqsimot';
+import { buyurtmaTolovlari } from '@/lib/amal/tolov-holati';
 
 export interface BuyurtmaQatori {
   readonly id: number;
@@ -26,7 +26,7 @@ export interface BuyurtmaQatori {
   readonly jami: string;
   readonly tolangan: string;
   /**
-   * 2026-10-10 — FIFO taqsimotdan (`./tolov-taqsimot.ts`): mijoz
+   * 2026-10-10 — FIFO taqsimotdan (`lib/amal/tolov-holati.ts`): mijoz
    * kartochkasidan to'langan qarz ham hisobga olinadi.
    */
   readonly qolgan: string;
@@ -215,6 +215,7 @@ export async function buyurtmalar(
   }
 
   const tolovlar = await buyurtmaTolovlari(
+    sql,
     qatorlar.map((q) => ({ id: q.id, mijozId: q.mijoz_id, jami: q.jami ?? '0' })),
   );
 
@@ -758,7 +759,7 @@ export async function tolovHolati(
 
   /**
    * ⚠️ 2026-10-10 — to'langan va qarz FIFO taqsimotdan (ro'yxat bilan
-   *    bitta joy, `./tolov-taqsimot.ts`). Ilgari faqat shu buyurtmaga
+   *    bitta joy, `lib/amal/tolov-holati.ts`). Ilgari faqat shu buyurtmaga
    *    bog'langan kassa yozuvi `Number()` bilan qo'shilardi: mijoz
    *    kartochkadan to'lasa ham buyurtma «qarz» bo'lib qolardi.
    */
@@ -767,7 +768,7 @@ export async function tolovHolati(
     .filter((r) => !r.storno_qilinganmi && r.summa !== null)
     .reduce((y, r) => y.plus(r.summa), new Decimal(0));
   const taqsimot = (
-    await buyurtmaTolovlari([{ id: buyurtmaId, mijozId: buyurtma.mijoz_id, jami }])
+    await buyurtmaTolovlari(sql, [{ id: buyurtmaId, mijozId: buyurtma.mijoz_id, jami }])
   ).get(buyurtmaId);
   const tolangan = taqsimot?.tolangan ?? bogliq.toFixed(2);
 
