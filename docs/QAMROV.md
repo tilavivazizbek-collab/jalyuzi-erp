@@ -35,6 +35,7 @@ buyurtmani tahrirlash (8.7), material statistikasi (7.11)
 | To'lov formasidagi «qolgan» — Decimal (Number edi), dollar formati | ✅ |
 | Kartochka «Jami» faqat faol pozitsiyalar (to'lov bloki bilan bitta sahifada ikki xil jami turardi); «+N bekor»; mijozga havola; dollar formati | ✅ |
 | Kirimlar ro'yxati va Excel summasi `kirimSummalari` (qatorQiymati) dan — P-46 oilasining 5-nusxasi (miqdor × narx) | ✅ |
+| Yangi buyurtma: server narxni o'zi qayta hisoblaydi va qo'lda narxni iz bilan belgilaydi — tekshirildi, joyida. Ekrandagi chegirma va «qarz qoladi» Decimal (Number edi) | ✅ |
 
 ## 0&. Kassa — audit 2026-10-08
 

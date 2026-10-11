@@ -15,6 +15,7 @@
  *    biri ustun ekani noaniq bo'lib qoladi.»
  */
 
+import Decimal from 'decimal.js';
 import { enterYuborilmasin } from '../../forma-yordamchi';
 import { useActionState, useEffect, useMemo, useState } from 'react';
 import { sarflashHisobla, slotSarfi, standartQiymatlar } from '@/lib/domain/formula';
@@ -1219,8 +1220,15 @@ export function SotuvFormasi({
     });
   }
 
-  const kelishilganSom = son(kelishilgan);
-  const chegirma = kelishilganSom === null ? null : Number(pulMatn(savatJami)) - kelishilganSom;
+  /**
+   * ⚠️ Pul — Decimal (2026-10-11). Ilgari `Number` bilan ayirilardi; server
+   *    baribir qayta hisoblaydi, lekin ekrandagi raqam ham aniq bo'lsin.
+   */
+  const pulSon = (x: string): Decimal | null =>
+    /^\d+(\.\d{1,2})?$/.test(x.trim()) ? new Decimal(x.trim()) : null;
+  const kelishilganSom = pulSon(kelishilgan);
+  const chegirma =
+    kelishilganSom === null ? null : new Decimal(pulMatn(savatJami)).minus(kelishilganSom);
 
   /**
    * OLDINDAN TO'LOV — TZ 12.5.
@@ -1234,11 +1242,11 @@ export function SotuvFormasi({
   );
 
   /** Qancha qarz qoladi — sotuvchi mijozga shuni aytadi */
-  const tolovQoldiq = ((): number | null => {
-    const t = Number(tolovSumma);
-    if (tolovSumma.trim() === '' || !Number.isFinite(t) || t < 0) return null;
-    const jami = kelishilganSom ?? Number(pulMatn(savatJami));
-    return Number((jami - t).toFixed(2));
+  const tolovQoldiq = ((): Decimal | null => {
+    const t = pulSon(tolovSumma);
+    if (t === null) return null;
+    const jami = kelishilganSom ?? new Decimal(pulMatn(savatJami));
+    return jami.minus(t);
   })();
 
   /**
@@ -1252,7 +1260,7 @@ export function SotuvFormasi({
    *
    * ⚠️ To'lov kiritilmagan bo'lsa ham qarz qoladi — bepul berilmaydi.
    */
-  const qarzQoladi = tolovQoldiq === null ? savat.length > 0 : tolovQoldiq > 0.009;
+  const qarzQoladi = tolovQoldiq === null ? savat.length > 0 : tolovQoldiq.gt(0);
   /**
    * ⚠️ Qo'shish rejimida mijoz SO'RALMAYDI: u buyurtmada bor.
    *    Qarz ham o'sha buyurtmaga yoziladi (8.7 · 6.8).
@@ -2495,11 +2503,11 @@ export function SotuvFormasi({
             <div className="raqam text-left text-[24px] leading-tight font-semibold tracking-[-0.02em]">
               {pulKorsat(savatJami)}
             </div>
-            {chegirma !== null && chegirma !== 0 && (
+            {chegirma !== null && !chegirma.isZero() && (
               <div className="mt-1 text-[12px] text-belgi-sariq">
-                {chegirma > 0
+                {chegirma.gt(0)
                   ? `chegirma ${pulKorsat(som(chegirma.toFixed(2)))}`
-                  : `qo'shimcha haq ${pulKorsat(som(Math.abs(chegirma).toFixed(2)))}`}
+                  : `qo'shimcha haq ${pulKorsat(som(chegirma.abs().toFixed(2)))}`}
               </div>
             )}
           </div>
@@ -2561,14 +2569,14 @@ export function SotuvFormasi({
                 {tolovQoldiq !== null && (
                   <p
                     className={`text-[12px] ${
-                      tolovQoldiq > 0 ? 'text-belgi-sariq' : 'text-belgi-yashil'
+                      tolovQoldiq.gt(0) ? 'text-belgi-sariq' : 'text-belgi-yashil'
                     }`}
                   >
-                    {tolovQoldiq > 0
+                    {tolovQoldiq.gt(0)
                       ? `qarz qoladi: ${pulKorsat(som(tolovQoldiq.toFixed(2)))}`
-                      : tolovQoldiq === 0
+                      : tolovQoldiq.isZero()
                         ? "to'liq to'landi"
-                        : `ortiqcha: ${pulKorsat(som(Math.abs(tolovQoldiq).toFixed(2)))}`}
+                        : `ortiqcha: ${pulKorsat(som(tolovQoldiq.abs().toFixed(2)))}`}
                   </p>
                 )}
               </div>
