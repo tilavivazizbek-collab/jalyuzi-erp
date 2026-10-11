@@ -23,6 +23,16 @@ buyurtmani tahrirlash (8.7), material statistikasi (7.11)
 
 ---
 
+## 0~. Moliya hisoboti (TZ 11.4) — 2026-10-11
+
+| Nima | Holat |
+|---|---|
+| `/hisobot/moliya` — foyda-zarar: tushum, tannarx (material + usta haqi), yalpi foyda, xarajatlar moddalar bo'yicha, kurs farqi zarar va daromad ALOHIDA, sof foyda, rentabellik; oldingi davr bilan taqqoslab. Ilgari sahifa yo'q edi («tayyor emas») | ✅ |
+| Xarajat moddalari nomi bitta joyda (`XARAJAT_MODDA_NOMI`) | ✅ |
+| FIX: 11.5.2 «tur bo'yicha foyda» qaytarilgan pozitsiyani tushumga qo'shardi — foyda oshib ko'rinardi | ✅ |
+| Kassa oqimi, debitorlik, kreditorlik — mavjud ekranlarga havola (alohida hisobot emas) | ✅ |
+| Dollar xarajatlar foyda-zararga kirmaydi (ogoh chiqadi) | ⏳ kurs bilan qo'shish — keyin |
+
 ## 0*. Buyurtmalar (sotuv) — audit 2026-10-10
 
 | Nima | Holat |

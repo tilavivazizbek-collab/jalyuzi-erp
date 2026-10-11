@@ -49,7 +49,7 @@ const BANDLAR: readonly Band[] = [
     nom: 'Moliya',
     izoh: 'Foyda-zarar · kassa oqimi · xarajatlar · kurs farqi',
     kod: 'hisobot.moliya.kor',
-    tayyor: false,
+    tayyor: true,
   },
 ];
 

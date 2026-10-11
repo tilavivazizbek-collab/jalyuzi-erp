@@ -45,6 +45,8 @@ import {
 } from '@/lib/domain/hisobot/ustama-eroziya';
 import { materialNarxQoidalari } from '../buyurtma/yangi/malumot';
 import { kurs, pulMatn, som } from '@/lib/domain/pul';
+import type { FoydaZararKirimi } from '@/lib/domain/hisobot/foyda-zarar';
+import { VAQT_ZONASI } from '@/lib/domain/sana';
 
 /**
  * Bo'lakning ombordagi qiymati — SQL ifodasi.
@@ -1172,10 +1174,17 @@ export async function turBoyichaFoyda(
     }[]
   >`
     SELECT t.id AS tur_id, t.nom,
-           SUM(p.soni)::int AS soni,
+           /*
+            * ⚠️ QAYTARILGAN pozitsiya tushumga va soniga KIRMAYDI — pul
+            *    mijozga qaytarilgan (2026-10-11). Tannarxi esa qoladi:
+            *    material sarflangan, bu yo'qotish. Ilgari qaytarilgan
+            *    buyum ham sotuv bo'lib turardi va foyda oshib ko'rinardi.
+            */
+           COALESCE(SUM(p.soni) FILTER (WHERE p.holat <> 'QAYTARILGAN'), 0)::int AS soni,
            SUM((COALESCE(p.narx_snapshot, 0) - COALESCE(p.chegirma_summa, 0))
                * CASE WHEN b.valyuta = 'USD'
                       THEN COALESCE(b.kurs_snapshot, 0) ELSE 1 END)
+             FILTER (WHERE p.holat <> 'QAYTARILGAN')
              ::numeric(14,2)::text AS tushum,
            SUM(
              COALESCE((
@@ -1564,3 +1573,74 @@ export async function sotuvchiErkinliklari(
     ushlabQoldi: x.ushlab ?? '0',
   }));
 }
+
+// ─── 11.4.1 · 11.4.4 · 11.4.7 · Foyda-zarar ──────────────────────────────
+
+export interface FoydaZararXom extends FoydaZararKirimi {
+  /** Dollarda yozilgan xarajatlar soni — hisobotga kirmagan (1.3), ogoh */
+  readonly dollarXarajatSoni: number;
+}
+
+/**
+ * TZ 11.4.1 — foyda-zarar ma'lumoti (hisob — `lib/domain/hisobot/foyda-zarar.ts`).
+ *
+ * ⚠️ TUSHUM VA TANNARX SOTUV DAVRIDA (11.4.1 — ish haqi «mahsulot sotilgan
+ *    oyda»): 11.5.2 bilan BIR XIL manba — material `ombor_harakat` dan,
+ *    usta haqi pozitsiyaga bog'langan `ISH_HAQI` xarajatidan.
+ * ⚠️ Shuning uchun xarajatlar ro'yxatidan pozitsiya ish haqi CHIQARILADI —
+ *    aks holda ikki marta sanalardi. Kurs farqi ham alohida (11.4.7).
+ * ⚠️ Xarajat — o'z sanasi bo'yicha (operatsion, brak, kassa farqi…).
+ */
+export async function foydaZararMalumoti(filialId: number, davr: Davr): Promise<FoydaZararXom> {
+  const sql = ulanishOl();
+  const [savdo, xarajat] = await Promise.all([
+    sql<{ tushum: string | null; material: string | null; ish_haqi: string | null }[]>`
+      SELECT
+        SUM((COALESCE(p.narx_snapshot, 0) - COALESCE(p.chegirma_summa, 0))
+            * CASE WHEN b.valyuta = 'USD' THEN COALESCE(b.kurs_snapshot, 0) ELSE 1 END)
+          FILTER (WHERE p.holat <> 'QAYTARILGAN')::numeric(14,2)::text AS tushum,
+        SUM(COALESCE((SELECT -SUM(oh.tannarx_summa) FROM ombor_harakat oh
+                       WHERE oh.manba_turi = 'buyurtma_pozitsiya' AND oh.manba_id = p.id), 0))
+          ::numeric(14,2)::text AS material,
+        SUM(COALESCE((SELECT SUM(x.summa) FROM xarajat x
+                       WHERE x.modda = 'ISH_HAQI'
+                         AND x.manba_turi = 'buyurtma_pozitsiya' AND x.manba_id = p.id), 0))
+          ::numeric(14,2)::text AS ish_haqi
+      FROM buyurtma b
+      JOIN buyurtma_pozitsiya p ON p.buyurtma_id = b.id
+      WHERE b.sotgan_filial_id = ${filialId}
+        AND b.sana >= ${davr.boshi} AND b.sana < ${davr.oxiri}
+        AND p.holat NOT IN ('BEKOR', 'RAD_ETILGAN')`,
+    sql<{ modda: string; valyuta: string; jami: string; musbat: string | null; manfiy: string | null; soni: number }[]>`
+      SELECT x.modda, x.valyuta,
+             SUM(x.summa)::numeric(14,2)::text AS jami,
+             SUM(x.summa) FILTER (WHERE x.summa > 0)::numeric(14,2)::text AS musbat,
+             (-SUM(x.summa) FILTER (WHERE x.summa < 0))::numeric(14,2)::text AS manfiy,
+             COUNT(*)::int AS soni
+      FROM xarajat x
+      WHERE x.filial_id = ${filialId}
+        AND x.sana >= (${davr.boshi}::timestamptz AT TIME ZONE ${VAQT_ZONASI})::date
+        AND x.sana < (${davr.oxiri}::timestamptz AT TIME ZONE ${VAQT_ZONASI})::date
+        -- pozitsiya ish haqi tannarxda (va uning stornosi ham)
+        AND NOT (x.modda = 'ISH_HAQI' AND x.manba_turi = 'buyurtma_pozitsiya')
+        AND NOT (x.modda = 'ISH_HAQI' AND x.manba_turi = 'storno' AND EXISTS (
+              SELECT 1 FROM xarajat a WHERE a.id = x.manba_id AND a.manba_turi = 'buyurtma_pozitsiya'))
+      GROUP BY x.modda, x.valyuta`,
+  ]);
+
+  const s0 = savdo[0];
+  const somda = xarajat.filter((x) => x.valyuta === 'SOM');
+  const kursQator = somda.find((x) => x.modda === 'KURS_FARQI');
+  return {
+    tushum: s0?.tushum ?? '0',
+    material: s0?.material ?? '0',
+    ishHaqi: s0?.ish_haqi ?? '0',
+    xarajatlar: somda
+      .filter((x) => x.modda !== 'KURS_FARQI')
+      .map((x) => ({ modda: x.modda, summa: x.jami })),
+    kursZarar: kursQator?.musbat ?? '0',
+    kursDaromad: kursQator?.manfiy ?? '0',
+    dollarXarajatSoni: xarajat.filter((x) => x.valyuta !== 'SOM').reduce((y, x) => y + x.soni, 0),
+  };
+}
+
