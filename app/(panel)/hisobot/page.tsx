@@ -58,6 +58,13 @@ const BANDLAR: readonly Band[] = [
     kod: 'hisobot.moliya.kor',
     tayyor: true,
   },
+  {
+    yol: '/hisobot/nazorat',
+    nom: 'Nazorat',
+    izoh: "Odatdan tashqari amallar: storno, kassa farqi, qo'lda narx, bekor qilish, tungi yozuv…",
+    kod: 'audit.kor',
+    tayyor: true,
+  },
 ];
 
 export default async function Hisobotlar() {
