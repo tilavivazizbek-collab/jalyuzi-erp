@@ -12,7 +12,8 @@ import { ulanishOl } from '@/lib/db';
 import { davrYasa } from '@/lib/domain/hisobot/davr';
 import { foydaZarar } from '@/lib/domain/hisobot/foyda-zarar';
 import { toshkentKuni } from '@/lib/domain/sana';
-import { foydaZararMalumoti, turBoyichaFoyda } from '@/app/(panel)/hisobot/malumot';
+import { foydaZararMalumoti, kassaOqimi, turBoyichaFoyda } from '@/app/(panel)/hisobot/malumot';
+import { kassaStorno } from '@/lib/amal/kassa';
 import { sinovUlanishi } from './yordamchi';
 
 let sql: Ulanish;
@@ -181,4 +182,25 @@ describe('foyda-zarar — 11.4.1', () => {
     const t = (r: typeof turKeyin) => r.find((x) => x.turId === turId)?.tushum ?? '0';
     expect(D(t(turKeyin), t(turOldin))).toBe('300000.00');
   });
+
+  it('EC-FZ-02: kassa oqimi — boshlang‘ich + kirim − chiqim = yakuniy = bazadagi qoldiq', async () => {
+    // Davr chegarasidan o'tadigan storno juftligi: yozuv o'tgan oyda, storno bugun
+    const y = await sql<{ id: number }[]>`
+      INSERT INTO kassa_yozuv (sana, kassa_id, kod, summa, valyuta, manba_turi, manba_id, xodim_id)
+      VALUES (now() - interval '40 days', ${naqdKassa}, 'K9', 77000, 'SOM', 'sinov', ${Number(String(Date.now()).slice(-8))}, ${XODIM})
+      RETURNING id`;
+    await kassaStorno(sql, y[0]?.id ?? 0, 'xato', XODIM);
+
+    const davr = davrYasa('OY', new Date());
+    for (const o of await kassaOqimi(FILIAL, davr)) {
+      const hisob = (Number(o.boshlangich) + Number(o.kirim) - Number(o.chiqim)).toFixed(2);
+      expect(hisob).toBe(o.yakuniy);
+      const real = await sql<{ q: string }[]>`
+        SELECT COALESCE(SUM(y.summa), 0)::numeric(14,2)::text AS q
+        FROM kassa_yozuv y JOIN kassa k ON k.id = y.kassa_id
+        WHERE k.filial_id = ${FILIAL} AND y.valyuta = ${o.valyuta} AND y.sana < ${davr.oxiri}`;
+      expect(o.yakuniy).toBe(real[0]?.q);
+    }
+  });
 });
+

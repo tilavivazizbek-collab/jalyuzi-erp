@@ -1644,3 +1644,75 @@ export async function foydaZararMalumoti(filialId: number, davr: Davr): Promise<
   };
 }
 
+
+// ─── 11.4.2 · Kassa oqimi ─────────────────────────────────────────────────
+
+export interface KassaOqimiQatori {
+  readonly kalit: string;
+  /** Sof summa: + kirim, − chiqim */
+  readonly summa: string;
+}
+
+export interface KassaOqimi {
+  readonly valyuta: string;
+  readonly boshlangich: string;
+  readonly kirim: string;
+  readonly chiqim: string;
+  readonly yakuniy: string;
+  /** Hodisa (kassa kodi) bo'yicha */
+  readonly kodlar: readonly KassaOqimiQatori[];
+  /** Kassa turi (NAQD / KARTA / BANK) bo'yicha */
+  readonly turlar: readonly KassaOqimiQatori[];
+}
+
+/**
+ * TZ 11.4.2 — «Kirim va chiqim, turi va usuli (naqd/karta/bank) kesimida.
+ * Boshlang'ich va yakuniy qoldiq.»
+ *
+ * ⚠️ INVARIANT: boshlang'ich + kirim − chiqim = yakuniy — HAR DOIM aniq.
+ *    Shuning uchun storno yozuvlari ham kiradi (har kod bo'yicha SOF summa):
+ *    juftlik o'zini o'zi yo'qqa chiqaradi, davr chegarasidan o'tsa ham
+ *    qoldiq buzilmaydi. Kirim — musbat sof kodlar yig'indisi, chiqim — manfiy.
+ * ⚠️ Valyuta bo'yicha ALOHIDA (1.3).
+ */
+export async function kassaOqimi(filialId: number, davr: Davr): Promise<KassaOqimi[]> {
+  const sql = ulanishOl();
+  const [bosh, harakat] = await Promise.all([
+    sql<{ valyuta: string; summa: string }[]>`
+      SELECT y.valyuta, SUM(y.summa)::numeric(14,2)::text AS summa
+      FROM kassa_yozuv y JOIN kassa k ON k.id = y.kassa_id
+      WHERE k.filial_id = ${filialId} AND y.sana < ${davr.boshi}
+      GROUP BY y.valyuta`,
+    sql<{ valyuta: string; kod: string; turi: string; summa: string }[]>`
+      SELECT y.valyuta, y.kod, k.turi, SUM(y.summa)::numeric(14,2)::text AS summa
+      FROM kassa_yozuv y JOIN kassa k ON k.id = y.kassa_id
+      WHERE k.filial_id = ${filialId} AND y.sana >= ${davr.boshi} AND y.sana < ${davr.oxiri}
+      GROUP BY y.valyuta, y.kod, k.turi`,
+  ]);
+
+  const valyutalar = [...new Set([...bosh.map((x) => x.valyuta), ...harakat.map((x) => x.valyuta)])].sort().reverse();
+  return valyutalar.map((v) => {
+    const h = harakat.filter((x) => x.valyuta === v);
+    const yigindi = (kalit: (x: (typeof h)[number]) => string): KassaOqimiQatori[] => {
+      const m = new Map<string, Decimal>();
+      for (const x of h) m.set(kalit(x), (m.get(kalit(x)) ?? new Decimal(0)).plus(x.summa));
+      return [...m]
+        .filter(([, s]) => !s.isZero())
+        .map(([k, s]) => ({ kalit: k, summa: s.toFixed(2) }))
+        .sort((a, b) => new Decimal(b.summa).comparedTo(a.summa));
+    };
+    const kodlar = yigindi((x) => x.kod);
+    const kirim = kodlar.filter((k) => new Decimal(k.summa).gt(0)).reduce((y, k) => y.plus(k.summa), new Decimal(0));
+    const chiqim = kodlar.filter((k) => new Decimal(k.summa).lt(0)).reduce((y, k) => y.minus(k.summa), new Decimal(0));
+    const boshlangich = new Decimal(bosh.find((x) => x.valyuta === v)?.summa ?? '0');
+    return {
+      valyuta: v,
+      boshlangich: boshlangich.toFixed(2),
+      kirim: kirim.toFixed(2),
+      chiqim: chiqim.toFixed(2),
+      yakuniy: boshlangich.plus(kirim).minus(chiqim).toFixed(2),
+      kodlar,
+      turlar: yigindi((x) => x.turi),
+    };
+  });
+}

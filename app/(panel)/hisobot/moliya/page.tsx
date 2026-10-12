@@ -11,7 +11,10 @@ import {
 import { foydaZarar, ozgarishFoizi, xarajatModdaNomi } from '@/lib/domain/hisobot/foyda-zarar';
 import { pulKorsat, som } from '@/lib/domain/pul';
 import { toshkentKuni } from '@/lib/domain/sana';
-import { foydaZararMalumoti } from '../malumot';
+import { foydaZararMalumoti, kassaOqimi } from '../malumot';
+import { kassaKodNomi } from '@/lib/domain/kassa-kod';
+import { KASSA_TURI_NOMI, type KassaTuri } from '@/lib/sxema/kassa-yarat';
+import { dollar } from '@/lib/domain/pul';
 
 export const dynamic = 'force-dynamic';
 
@@ -56,10 +59,13 @@ export default async function MoliyaHisoboti({
   const davr = davrYasa(davrTuri, new Date());
   const oldin = oldingiDavr(davr);
 
-  const [joriyXom, oldinXom] = await Promise.all([
+  const [joriyXom, oldinXom, oqim] = await Promise.all([
     foydaZararMalumoti(f.filialId, davr),
     foydaZararMalumoti(f.filialId, oldin),
+    kassaOqimi(f.filialId, davr),
   ]);
+  const valPul = (x: string, v: string): string =>
+    v === 'USD' ? `${pulKorsat(dollar(x))} $` : pulKorsat(som(x));
   const j = foydaZarar(joriyXom);
   const o = foydaZarar(oldinXom);
 
@@ -200,14 +206,86 @@ export default async function MoliyaHisoboti({
         )}
       </section>
 
+      {/* ── 11.4.2 · Kassa oqimi ── */}
+      <section>
+        <h2 className="mb-1 text-sm font-medium text-matn-ikki">Kassa oqimi</h2>
+        <p className="mb-3 text-xs text-matn-kuchsiz">
+          Pul harakati (foyda emas): boshlang&apos;ich + kirim − chiqim = yakuniy. Storno
+          juftliklari o&apos;zini o&apos;zi yopadi. Valyuta alohida.
+        </p>
+        {oqim.length === 0 ? (
+          <p className="rounded-karta border border-dashed border-chegara-quyuq px-4 py-6 text-center text-sm text-matn-kuchsiz">
+            Kassa yozuvi yo&apos;q.
+          </p>
+        ) : (
+          <div className="flex flex-col gap-4">
+            {oqim.map((o2) => (
+              <div key={o2.valyuta} className="rounded-karta border border-chegara bg-sirt p-4">
+                <dl className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
+                  {[
+                    { nom: 'Boshlang‘ich', qiymat: o2.boshlangich, rang: '' },
+                    { nom: 'Kirim', qiymat: o2.kirim, rang: 'text-belgi-yashil' },
+                    { nom: 'Chiqim', qiymat: o2.chiqim, rang: 'text-belgi-qizil' },
+                    { nom: 'Yakuniy', qiymat: o2.yakuniy, rang: 'font-semibold' },
+                  ].map(({ nom, qiymat, rang }) => (
+                    <div key={nom}>
+                      <dt className="text-xs text-matn-kuchsiz">
+                        {nom}, {o2.valyuta === 'USD' ? '$' : "so'm"}
+                      </dt>
+                      <dd className={`raqam ${rang}`}>{valPul(qiymat, o2.valyuta)}</dd>
+                    </div>
+                  ))}
+                </dl>
+                <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                  <table className="w-full text-[13px]">
+                    <thead className="text-left text-xs uppercase tracking-wide text-matn-kuchsiz">
+                      <tr>
+                        <th className="py-1 font-medium">Hodisa</th>
+                        <th className="py-1 text-right font-medium">Sof summa</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-chegara">
+                      {o2.kodlar.map((k) => (
+                        <tr key={k.kalit}>
+                          <td className="py-1">{kassaKodNomi(k.kalit)}</td>
+                          <td className={`raqam py-1 text-right ${k.summa.startsWith('-') ? 'text-belgi-qizil' : 'text-belgi-yashil'}`}>
+                            {valPul(k.summa, o2.valyuta)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  <table className="w-full text-[13px]">
+                    <thead className="text-left text-xs uppercase tracking-wide text-matn-kuchsiz">
+                      <tr>
+                        <th className="py-1 font-medium">Kassa turi</th>
+                        <th className="py-1 text-right font-medium">Sof harakat</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-chegara">
+                      {o2.turlar.map((t) => (
+                        <tr key={t.kalit}>
+                          <td className="py-1">{KASSA_TURI_NOMI[t.kalit as KassaTuri] ?? t.kalit}</td>
+                          <td className="raqam py-1 text-right">{valPul(t.summa, o2.valyuta)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
       {/* ── 11.4.2 · 11.4.5 · 11.4.6 — mavjud ekranlarga ── */}
       <section className="grid gap-3 sm:grid-cols-3">
         <Link
           href={`/kassa?dan=${dan}&gacha=${gacha}`}
           className="rounded-karta border border-chegara bg-sirt px-4 py-3 text-sm hover:bg-fon"
         >
-          <b>Kassa oqimi</b>
-          <span className="block text-xs text-matn-kuchsiz">shu davr kassa kitobi — kirim, chiqim, Excel →</span>
+          <b>Kassa kitobi</b>
+          <span className="block text-xs text-matn-kuchsiz">shu davr yozuvlari batafsil, Excel →</span>
         </Link>
         <Link href="/mijoz/qarzdorlik" className="rounded-karta border border-chegara bg-sirt px-4 py-3 text-sm hover:bg-fon">
           <b>Debitorlik</b>
