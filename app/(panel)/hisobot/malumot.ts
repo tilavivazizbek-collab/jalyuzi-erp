@@ -46,7 +46,11 @@ import {
 import { materialNarxQoidalari } from '../buyurtma/yangi/malumot';
 import { kurs, pulMatn, som } from '@/lib/domain/pul';
 import type { FoydaZararKirimi } from '@/lib/domain/hisobot/foyda-zarar';
-import { VAQT_ZONASI } from '@/lib/domain/sana';
+import { VAQT_ZONASI, toshkentKuni as toshkentKuniOl } from '@/lib/domain/sana';
+import { qarzniTaqsimla, type QarzBandi } from '@/lib/domain/qarz-taqsimot';
+import { kunQosh } from '@/lib/domain/hisobot/pul-prognozi';
+import { qarzdorlarJurnali } from '../mijoz/qarz-malumot';
+import { yetkazibHolatlari } from '../yetkazib/taqsimot';
 
 /**
  * Bo'lakning ombordagi qiymati — SQL ifodasi.
@@ -1715,4 +1719,146 @@ export async function kassaOqimi(filialId: number, davr: Davr): Promise<KassaOqi
       turlar: yigindi((x) => x.turi),
     };
   });
+}
+
+// ─── Pul prognozi (30 kun) — 2026-10-12 ──────────────────────────────────
+
+export interface PrognozHodisasi {
+  readonly sana: string;
+  readonly turi: 'KIRIM' | 'CHIQIM';
+  readonly nom: string;
+  readonly hujjat: string;
+  readonly havola: string;
+  readonly summa: string;
+}
+
+export interface PulPrognoziXom {
+  readonly bugun: string;
+  readonly boshlangich: string;
+  readonly kirimlar: readonly PrognozHodisasi[];
+  readonly chiqimlar: readonly PrognozHodisasi[];
+  /** Oxirgi 90 kun: sotuvda olingan to'lov (K1) o'rtachasi */
+  readonly kunlikKirim: string;
+  /** Oxirgi 90 kun: ish haqi, avans, operatsion chiqim (C4, C5, C7) o'rtachasi */
+  readonly kunlikChiqim: string;
+  /** Muddati o'tgan, undirilmagan mijoz qarzi — prognozga kirmaydi */
+  readonly muddatiOtganKirim: string;
+  /** To'lov muddati belgilanmagan — prognozga kirmaydi */
+  readonly muddatsizKirim: string;
+  readonly muddatsizChiqim: string;
+}
+
+const ORTACHA_KUN = 90;
+
+/**
+ * Pul prognozi ma'lumoti (hisob — `lib/domain/hisobot/pul-prognozi.ts`).
+ *
+ * ⚠️ Mijoz va yetkazib beruvchi qarzlari — BITTA FIFO taqsimotdan (kartochka
+ *    va ro'yxatlar bilan bir xil). Faqat SO'M (1.3) va shu FILIAL hujjatlari.
+ * ⚠️ Muddat: mijozda — sotuv sanasi + mijozning to'lov muddati (kun),
+ *    yetkazib beruvchida — kirimdagi to'lov muddati. Muddat yo'q — prognozga
+ *    kirmaydi, alohida summa bo'lib ko'rsatiladi (uydirilmaydi).
+ */
+export async function pulPrognoziMalumoti(filialId: number): Promise<PulPrognoziXom> {
+  const sql = ulanishOl();
+  const bugun = toshkentKuniOl();
+  const [kassa, ortacha, qarzdorlar, yetkazuvchilar] = await Promise.all([
+    sql<{ q: string | null }[]>`
+      SELECT SUM(y.summa)::numeric(14,2)::text AS q
+      FROM kassa_yozuv y JOIN kassa k ON k.id = y.kassa_id
+      WHERE k.filial_id = ${filialId} AND y.valyuta = 'SOM'`,
+    sql<{ kirim: string | null; chiqim: string | null }[]>`
+      SELECT SUM(y.summa) FILTER (WHERE y.kod = 'K1')::text AS kirim,
+             (-SUM(y.summa) FILTER (WHERE y.kod IN ('C4', 'C5', 'C7')))::text AS chiqim
+      FROM kassa_yozuv y JOIN kassa k ON k.id = y.kassa_id
+      WHERE k.filial_id = ${filialId} AND y.valyuta = 'SOM'
+        AND y.sana >= now() - make_interval(days => ${ORTACHA_KUN})`,
+    qarzdorlarJurnali(),
+    yetkazibHolatlari(null),
+  ]);
+
+  // ── Kirimlar: mijozlar qarzi ──
+  const kirimBandlar: { band: QarzBandi; mijoz: string; muddatKun: number | null }[] = [];
+  for (const m of qarzdorlar) {
+    for (const b of qarzniTaqsimla(m.jurnal).bandlar) {
+      if (b.valyuta !== 'SOM' || !new Decimal(b.qolgan).gt(0)) continue;
+      kirimBandlar.push({ band: b, mijoz: m.ism, muddatKun: m.tolovMuddatiKun });
+    }
+  }
+  const buyurtmaIdlar = kirimBandlar.flatMap((x) => (x.band.buyurtmaId === null ? [] : [x.band.buyurtmaId]));
+  const buyurtmalar = new Map(
+    (buyurtmaIdlar.length === 0
+      ? []
+      : await sql<{ id: number; raqam: string; filial: number }[]>`
+          SELECT id, raqam, sotgan_filial_id AS filial FROM buyurtma WHERE id = ANY(${buyurtmaIdlar})`
+    ).map((b) => [b.id, b]),
+  );
+  const kirimlar: PrognozHodisasi[] = [];
+  let otgan = new Decimal(0);
+  let muddatsizKirim = new Decimal(0);
+  for (const { band, mijoz, muddatKun } of kirimBandlar) {
+    const b = band.buyurtmaId === null ? undefined : buyurtmalar.get(band.buyurtmaId);
+    if (b !== undefined && b.filial !== filialId) continue;
+    if (muddatKun === null || b === undefined) {
+      muddatsizKirim = muddatsizKirim.plus(band.qolgan);
+      continue;
+    }
+    const sana = kunQosh(toshkentKuniOl(band.sana), muddatKun);
+    if (sana < bugun) {
+      otgan = otgan.plus(band.qolgan);
+      continue;
+    }
+    kirimlar.push({ sana, turi: 'KIRIM', nom: mijoz, hujjat: b.raqam, havola: `/buyurtma/${String(b.id)}`, summa: band.qolgan });
+  }
+
+  // ── Chiqimlar: yetkazib beruvchilarga qarz ──
+  const kirimIdlar: number[] = [];
+  for (const h of yetkazuvchilar.values()) {
+    for (const b of h.taqsimot.bandlar) if (b.buyurtmaId !== null) kirimIdlar.push(b.buyurtmaId);
+  }
+  const kirimFilial = new Map(
+    (kirimIdlar.length === 0
+      ? []
+      : await sql<{ id: number; filial: number; nom: string }[]>`
+          SELECT k.id, k.filial_id AS filial, y.nom FROM kirim k
+          JOIN yetkazib_beruvchi y ON y.id = k.yetkazib_beruvchi_id
+          WHERE k.id = ANY(${kirimIdlar})`
+    ).map((k) => [k.id, k]),
+  );
+  const chiqimlar: PrognozHodisasi[] = [];
+  let muddatsizChiqim = new Decimal(0);
+  for (const h of yetkazuvchilar.values()) {
+    for (const b of h.taqsimot.bandlar) {
+      if (b.valyuta !== 'SOM' || !new Decimal(b.qolgan).gt(0) || b.buyurtmaId === null) continue;
+      const kf = kirimFilial.get(b.buyurtmaId);
+      if (kf === undefined || kf.filial !== filialId) continue;
+      const km = h.kirimlar.get(b.buyurtmaId);
+      if (km === undefined || km.muddat === null) {
+        muddatsizChiqim = muddatsizChiqim.plus(b.qolgan);
+        continue;
+      }
+      chiqimlar.push({
+        sana: km.muddat,
+        turi: 'CHIQIM',
+        nom: kf.nom,
+        hujjat: km.raqam,
+        havola: `/ombor/kirim/${String(b.buyurtmaId)}`,
+        summa: b.qolgan,
+      });
+    }
+  }
+
+  const o = ortacha[0];
+  return {
+    bugun,
+    boshlangich: kassa[0]?.q ?? '0',
+    kirimlar: kirimlar.sort((a, b) => a.sana.localeCompare(b.sana)),
+    chiqimlar: chiqimlar.sort((a, b) => a.sana.localeCompare(b.sana)),
+    // Taxmin — butun so'mgacha (tiyin aniqligi bu yerda soxta aniqlik)
+    kunlikKirim: new Decimal(o?.kirim ?? 0).div(ORTACHA_KUN).toDecimalPlaces(0).toFixed(2),
+    kunlikChiqim: new Decimal(o?.chiqim ?? 0).div(ORTACHA_KUN).toDecimalPlaces(0).toFixed(2),
+    muddatiOtganKirim: otgan.toFixed(2),
+    muddatsizKirim: muddatsizKirim.toFixed(2),
+    muddatsizChiqim: muddatsizChiqim.toFixed(2),
+  };
 }

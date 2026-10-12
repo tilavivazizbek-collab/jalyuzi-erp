@@ -12,7 +12,9 @@ import { ulanishOl } from '@/lib/db';
 import { davrYasa } from '@/lib/domain/hisobot/davr';
 import { foydaZarar } from '@/lib/domain/hisobot/foyda-zarar';
 import { toshkentKuni } from '@/lib/domain/sana';
-import { foydaZararMalumoti, kassaOqimi, turBoyichaFoyda } from '@/app/(panel)/hisobot/malumot';
+import { foydaZararMalumoti, kassaOqimi, pulPrognoziMalumoti, turBoyichaFoyda } from '@/app/(panel)/hisobot/malumot';
+import { kirimYarat } from '@/lib/amal/kirim';
+import { kunQosh } from '@/lib/domain/hisobot/pul-prognozi';
 import { kassaStorno } from '@/lib/amal/kassa';
 import { sinovUlanishi } from './yordamchi';
 
@@ -201,6 +203,43 @@ describe('foyda-zarar — 11.4.1', () => {
         WHERE k.filial_id = ${FILIAL} AND y.valyuta = ${o.valyuta} AND y.sana < ${davr.oxiri}`;
       expect(o.yakuniy).toBe(real[0]?.q);
     }
+  });
+
+  it('EC-FZ-03: pul prognozi — mijoz qarzi o‘z muddatida kirim, yetkazib beruvchi qarzi — chiqim', async () => {
+    await sql`UPDATE mijoz SET tolov_muddati_kun = 10 WHERE id = ${mijozId}`;
+    const b = await buyurtmaYaratSinov('333000', true);
+    const raqam = (await sql<{ r: string }[]>`SELECT raqam AS r FROM buyurtma WHERE id = ${b}`)[0]?.r ?? '';
+
+    const y = await sql<{ id: number }[]>`
+      INSERT INTO yetkazib_beruvchi (nom, yaratdi_id) VALUES (${`Prognoz yetkazuvchi ${String(Date.now())}`}, ${XODIM})
+      RETURNING id`;
+    const muddat = kunQosh(toshkentKuni(), 5);
+    const k = await kirimYarat(
+      sql,
+      {
+        raqam: `K-PR-${String(Date.now())}`,
+        sana: toshkentKuni(),
+        filialId: FILIAL,
+        yetkazibBeruvchiId: y[0]?.id ?? 0,
+        valyuta: 'SOM',
+        kursSnapshot: null,
+        transportSumma: '0',
+        bojxonaSumma: '0',
+        tolovMuddati: muddat,
+        qatorlar: [
+          { materialId: matoId, miqdorKirim: 1, narxBirlik: '222000', defektMiqdor: 0, defektTuri: null, bolaklar: [{ eniM: 3, boyiM: 10 }] },
+        ],
+      },
+      XODIM,
+    );
+
+    const p = await pulPrognoziMalumoti(FILIAL);
+    const kirim = p.kirimlar.find((x) => x.hujjat === raqam);
+    expect(kirim?.sana).toBe(kunQosh(toshkentKuni(), 10));
+    expect(kirim?.summa).toBe('333000.00');
+    const chiqim = p.chiqimlar.find((x) => x.havola === `/ombor/kirim/${String(k.kirimId)}`);
+    expect(chiqim?.sana).toBe(muddat);
+    expect(chiqim?.summa).toBe('222000.00');
   });
 });
 

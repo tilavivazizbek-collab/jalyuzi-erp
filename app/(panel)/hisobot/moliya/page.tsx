@@ -11,7 +11,9 @@ import {
 import { foydaZarar, ozgarishFoizi, xarajatModdaNomi } from '@/lib/domain/hisobot/foyda-zarar';
 import { pulKorsat, som } from '@/lib/domain/pul';
 import { toshkentKuni } from '@/lib/domain/sana';
-import { foydaZararMalumoti, kassaOqimi } from '../malumot';
+import { foydaZararMalumoti, kassaOqimi, pulPrognoziMalumoti } from '../malumot';
+import { pulPrognozi } from '@/lib/domain/hisobot/pul-prognozi';
+import { PrognozGrafik } from './prognoz-grafik';
 import { kassaKodNomi } from '@/lib/domain/kassa-kod';
 import { KASSA_TURI_NOMI, type KassaTuri } from '@/lib/sxema/kassa-yarat';
 import { dollar } from '@/lib/domain/pul';
@@ -59,11 +61,25 @@ export default async function MoliyaHisoboti({
   const davr = davrYasa(davrTuri, new Date());
   const oldin = oldingiDavr(davr);
 
-  const [joriyXom, oldinXom, oqim] = await Promise.all([
+  const [joriyXom, oldinXom, oqim, prognozXom] = await Promise.all([
     foydaZararMalumoti(f.filialId, davr),
     foydaZararMalumoti(f.filialId, oldin),
     kassaOqimi(f.filialId, davr),
+    pulPrognoziMalumoti(f.filialId),
   ]);
+  const prognoz = pulPrognozi({
+    bugun: prognozXom.bugun,
+    boshlangich: prognozXom.boshlangich,
+    kirimlar: prognozXom.kirimlar,
+    chiqimlar: prognozXom.chiqimlar,
+    kunlikKirim: prognozXom.kunlikKirim,
+    kunlikChiqim: prognozXom.kunlikChiqim,
+  });
+  const oxirgiKun = prognoz.kunlar[prognoz.kunlar.length - 1];
+  const yaqinHodisalar = [...prognozXom.kirimlar, ...prognozXom.chiqimlar]
+    .filter((h) => h.sana <= (oxirgiKun?.sana ?? h.sana))
+    .sort((a, b) => a.sana.localeCompare(b.sana) || a.turi.localeCompare(b.turi))
+    .slice(0, 15);
   const valPul = (x: string, v: string): string =>
     v === 'USD' ? `${pulKorsat(dollar(x))} $` : pulKorsat(som(x));
   const j = foydaZarar(joriyXom);
@@ -132,6 +148,80 @@ export default async function MoliyaHisoboti({
           </Link>
         ))}
       </div>
+
+      {/* ── Pul prognozi — keyingi 30 kun ── */}
+      <section className="flex flex-col gap-3 rounded-karta border border-chegara bg-sirt p-4">
+        <div>
+          <h2 className="text-sm font-medium text-matn">Pul prognozi — keyingi 30 kun</h2>
+          <p className="text-xs text-matn-kuchsiz">
+            Bugungi kassa + muddati keladigan mijoz to&apos;lovlari − yetkazib beruvchiga to&apos;lovlar.
+            «Odatdagi oqim» — oxirgi 90 kunning o&apos;rtacha kunlik savdo tushumi (+{pul(prognozXom.kunlikKirim)})
+            va doimiy chiqimi (−{pul(prognozXom.kunlikChiqim)}: ish haqi, avans, operatsion). Taxmin — va&apos;da emas.
+          </p>
+        </div>
+        {(prognoz.yetmaydi !== null || prognoz.malumYetmaydi !== null) && (
+          <p role="alert" className="rounded-maydon bg-belgi-qizil-fon px-3 py-2 text-sm text-belgi-qizil">
+            ⚠{' '}
+            {prognoz.yetmaydi !== null
+              ? `${prognoz.yetmaydi.sana} kuni kassada pul yetmaydi (${pul(prognoz.yetmaydi.qoldiq)}).`
+              : `Faqat ma'lum to'lovlar bo'yicha ${prognoz.malumYetmaydi?.sana ?? ''} kuni pul yetmaydi — yangi savdo bo'lmasa.`}{' '}
+            Oldindan: mijozlardan qarz undiring yoki yetkazib beruvchi bilan muddatni kelishing.
+          </p>
+        )}
+        <dl className="grid gap-3 sm:grid-cols-3">
+          <div>
+            <dt className="text-xs text-matn-kuchsiz">Bugun kassada (so&apos;m)</dt>
+            <dd className="raqam text-lg font-semibold">{pul(prognozXom.boshlangich)}</dd>
+          </div>
+          <div>
+            <dt className="text-xs text-matn-kuchsiz">30 kundan keyin (odatdagi oqim bilan)</dt>
+            <dd className={`raqam text-lg font-semibold ${oxirgiKun?.odatdagi.startsWith('-') === true ? 'text-belgi-qizil' : ''}`}>
+              {pul(oxirgiKun?.odatdagi ?? '0')}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs text-matn-kuchsiz">Eng past nuqta</dt>
+            <dd className={`raqam text-lg font-semibold ${prognoz.engPast.qoldiq.startsWith('-') ? 'text-belgi-qizil' : ''}`}>
+              {pul(prognoz.engPast.qoldiq)}
+              <span className="ml-1 text-xs font-normal text-matn-kuchsiz">{prognoz.engPast.sana}</span>
+            </dd>
+          </div>
+        </dl>
+        <PrognozGrafik kunlar={prognoz.kunlar} />
+        {yaqinHodisalar.length > 0 && (
+          <details className="text-sm">
+            <summary className="cursor-pointer text-matn-ikki">Kutilayotgan to&apos;lovlar ({yaqinHodisalar.length})</summary>
+            <table className="mt-2 w-full text-[13px]">
+              <tbody className="divide-y divide-chegara">
+                {yaqinHodisalar.map((h) => (
+                  <tr key={`${h.turi}-${h.hujjat}-${h.sana}`}>
+                    <td className="raqam py-1 text-matn-ikki">{h.sana}</td>
+                    <td className="py-1">
+                      <Link href={h.havola} className="hover:underline">
+                        {h.nom}
+                      </Link>{' '}
+                      <span className="text-xs text-matn-kuchsiz">{h.hujjat}</span>
+                    </td>
+                    <td className={`raqam py-1 text-right ${h.turi === 'KIRIM' ? 'text-belgi-yashil' : 'text-belgi-qizil'}`}>
+                      {h.turi === 'KIRIM' ? '+' : '−'}
+                      {pul(h.summa)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </details>
+        )}
+        {(!prognozXom.muddatiOtganKirim.startsWith('0.00') ||
+          !prognozXom.muddatsizKirim.startsWith('0.00') ||
+          !prognozXom.muddatsizChiqim.startsWith('0.00')) && (
+          <p className="text-xs text-matn-kuchsiz">
+            Prognozga kirmagan: muddati o&apos;tgan mijoz qarzi {pul(prognozXom.muddatiOtganKirim)} (undirilsa — qo&apos;shimcha
+            pul), muddatsiz mijoz qarzi {pul(prognozXom.muddatsizKirim)}, muddatsiz yetkazib beruvchi qarzi{' '}
+            {pul(prognozXom.muddatsizChiqim)}.
+          </p>
+        )}
+      </section>
 
       {/* Asosiy raqam — sof foyda */}
       <section className="grid gap-4 sm:grid-cols-3">

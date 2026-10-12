@@ -32,6 +32,7 @@ buyurtmani tahrirlash (8.7), material statistikasi (7.11)
 | FIX: 11.5.2 «tur bo'yicha foyda» qaytarilgan pozitsiyani tushumga qo'shardi — foyda oshib ko'rinardi | ✅ |
 | Kassa oqimi (11.4.2): boshlang'ich + kirim − chiqim = yakuniy (invariant testlangan, chegaradan o'tgan storno bilan), hodisa va kassa turi kesimida, valyuta alohida | ✅ |
 | Debitorlik, kreditorlik — mavjud ekranlarga havola | ✅ |
+| Pul prognozi (30 kun): bugungi kassa + muddati keladigan mijoz qarzlari (FIFO) − yetkazib beruvchiga to'lovlar; «odatdagi oqim» bilan ikkinchi chiziq; «X kuni pul yetmaydi» ogohi; grafik (kursor bilan), kutilayotgan to'lovlar jadvali; muddatsiz / muddati o'tgan summalar alohida | ✅ |
 | Dollar xarajatlar foyda-zararga kirmaydi (ogoh chiqadi) | ⏳ kurs bilan qo'shish — keyin |
 
 ## 0*. Buyurtmalar (sotuv) — audit 2026-10-10
