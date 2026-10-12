@@ -28,7 +28,7 @@ type Soruvchi = postgres.Sql | postgres.TransactionSql;
  *    bo'lmaydi. Bu jim yo'qotish emas — sayt baribir hammasini
  *    ko'rsatadi (13.1: «bot yagona interfeys emas»).
  */
-async function filialAdminlari(
+export async function filialAdminlari(
   soruvchi: Soruvchi,
   filialId: number,
 ): Promise<readonly { xodimId: number; telegramId: number }[]> {

@@ -38,6 +38,7 @@ describe('TZ 13.9 — botdan FAQAT ikki amal bajariladi', () => {
       'YETKAZIB_MUDDAT',
       'STAVKASIZ_ISH',
       'KUN_FARQI',
+      'KECHKI_HISOBOT',
     ]);
   });
 });

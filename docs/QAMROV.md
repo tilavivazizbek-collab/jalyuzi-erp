@@ -35,6 +35,7 @@ buyurtmani tahrirlash (8.7), material statistikasi (7.11)
 | Pul prognozi (30 kun): bugungi kassa + muddati keladigan mijoz qarzlari (FIFO) − yetkazib beruvchiga to'lovlar; «odatdagi oqim» bilan ikkinchi chiziq; «X kuni pul yetmaydi» ogohi; grafik (kursor bilan), kutilayotgan to'lovlar jadvali; muddatsiz / muddati o'tgan summalar alohida | ✅ |
 | Ma'lumot salomatligi (/hisobot/salomatlik): P-46 kirimlari, manfiy kassa, yozilmay qolgan oldindan to'lov, tannarxsiz tayyor pozitsiyalar (6 oy), kurssiz dollarli buyurtma, yopilmagan kunlar, muddatsiz mijoz/kirim qarzi (qoldiq — FIFO taqsimotdan), dollar xarajat; har biri tuzatish joyiga havola; moliya sahifasida banner. Faqat o'qiydi — EC-SAL-01/02 | ✅ |
 | Nazorat (/hisobot/nazorat, audit.kor): odatdan tashqari amallar — kassa storno, kun yopish farqi, kun qayta ochish, tungi (22–07) kassa yozuvi, buyurtma bekor (kelgan pul bilan), qo'lda narx, chegirma limitdan, holat qo'lda, umidsiz qarz, ombor storno, orqa sanali kirim, ruxsat/sozlama/parol, kirish bloki; xodim kesimi ism bo'yicha (reyting yo'q — 11.5.6) — EC-NAZ-01/02 | ✅ |
+| Kechki hisobot (Telegram, /api/cron/kechki-hisobot, x-cron-secret): kassa yopilish soatidan keyin filial adminlariga kun yakuni — yangi buyurtmalar, pul oqimi, kassadagi pul, keyingi 7 kun to'lovlari, «pul yetmaydi», muddati o'tgan qarz, ma'lumot muammolari, odatdan tashqari amallar; kuniga bir marta — EC-KECH-01/02 | ✅ |
 | Dollar xarajatlar foyda-zararga kirmaydi (ogoh chiqadi) | ⏳ kurs bilan qo'shish — keyin |
 
 ## 0*. Buyurtmalar (sotuv) — audit 2026-10-10

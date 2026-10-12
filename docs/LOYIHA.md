@@ -740,8 +740,9 @@ Oddiy API yo'llari qilib yoziladi — kim chaqirishi muhim emas (§2.3):
 | `/api/cron/muddat-nazorat` | 09:00 | muddati o'tgan buyurtmalar | 8.16 |
 | `/api/cron/qarz-eslatma` | 10:00 | mijozga qarz eslatmasi | 13.6 |
 | `/api/cron/kam-qoldiq` | 08:00 | chegaradan past materiallar | 5.5, 14.7 |
+| `/api/cron/kechki-hisobot` | 18:00–23:45, har 15 daqiqa | kun yakuni adminlarga — filialning `kassa_yopilish_soati` dan keyin, kuniga bir marta (✅ 2026-10-12) | 13.9 |
 
-Himoya: har chaqiruv `CRON_SECRET` sarlavhasi bilan keladi.
+Himoya: har chaqiruv `CRON_SECRET` sarlavhasi bilan keladi (`x-cron-secret`, `lib/kirish/cron.ts`).
 
 Bepul davrda chaqiruvchi — `cron-job.org`. Serverga o'tganda — `crontab`. **Kod o'zgarmaydi.**
 

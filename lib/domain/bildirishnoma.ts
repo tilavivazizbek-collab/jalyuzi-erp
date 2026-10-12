@@ -22,6 +22,8 @@ export const ADMIN_HODISALARI = [
   'YETKAZIB_MUDDAT',
   'STAVKASIZ_ISH',
   'KUN_FARQI',
+  // Kun yakuni — kassa yopilish soatida (hisobot/kechki-malumot.ts)
+  'KECHKI_HISOBOT',
 ] as const;
 
 export type AdminHodisasi = (typeof ADMIN_HODISALARI)[number];
