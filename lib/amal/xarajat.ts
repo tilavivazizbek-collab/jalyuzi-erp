@@ -77,7 +77,7 @@ export async function operatsionXarajat(
       yozuv: {
         kassaId: kirim.kassaId,
         kod: 'C7',
-        summa: (-Number(kirim.summa)).toFixed(2),
+        summa: new Decimal(kirim.summa).negated().toFixed(2),
         valyuta: kirim.valyuta,
         manbaTuri: 'qolda',
         manbaId,

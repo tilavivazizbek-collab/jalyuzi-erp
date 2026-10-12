@@ -414,7 +414,7 @@ export async function qaytaKesishHal(
           INSERT INTO xodim_harakat (xodim_id, filial_id, turi, summa, valyuta,
                                      manba_turi, manba_id, izoh, xodim_yozdi_id)
           VALUES (${h.xodim_id}, ${filialId}, 'HAQ_BEKOR',
-                  ${(-Number(h.summa)).toFixed(2)}, ${h.valyuta},
+                  ${new Decimal(h.summa).negated().toFixed(2)}, ${h.valyuta},
                   'xodim_harakat', ${h.id},
                   ${`Qayta kesish — haq bekor qilindi (Q-15)`}, ${adminId})`;
 
@@ -423,7 +423,7 @@ export async function qaytaKesishHal(
           INSERT INTO xarajat (sana, filial_id, modda, summa, valyuta,
                                kassa_yozuv_id, manba_turi, manba_id, izoh, xodim_id)
           VALUES (current_date, ${filialId}, 'ISH_HAQI',
-                  ${(-Number(h.summa)).toFixed(2)}, ${h.valyuta}, NULL,
+                  ${new Decimal(h.summa).negated().toFixed(2)}, ${h.valyuta}, NULL,
                   'qayta_kesish', ${kirim.sorovId},
                   ${'Haq bekor qilindi (8.17.5)'}, ${adminId})`;
       }
@@ -450,7 +450,7 @@ export async function qaytaKesishHal(
         INSERT INTO xodim_harakat (xodim_id, filial_id, turi, summa, valyuta,
                                    manba_turi, manba_id, izoh, xodim_yozdi_id)
         VALUES (${usta}, ${filialId}, 'USHLANMA',
-                ${(-Number(kirim.ushlanmaSumma)).toFixed(2)}, 'SOM',
+                ${new Decimal(kirim.ushlanmaSumma).negated().toFixed(2)}, 'SOM',
                 'qayta_kesish', ${kirim.sorovId},
                 ${'Brak ushlanmasi (10.13)'}, ${adminId})`;
 
@@ -458,7 +458,7 @@ export async function qaytaKesishHal(
         INSERT INTO xarajat (sana, filial_id, modda, summa, valyuta,
                              kassa_yozuv_id, manba_turi, manba_id, izoh, xodim_id)
         VALUES (current_date, ${filialId}, 'ISH_HAQI',
-                ${(-Number(kirim.ushlanmaSumma)).toFixed(2)}, 'SOM', NULL,
+                ${new Decimal(kirim.ushlanmaSumma).negated().toFixed(2)}, 'SOM', NULL,
                 'qayta_kesish', ${kirim.sorovId},
                 ${'Ushlanma ish haqi xarajatini kamaytiradi (8.17.6)'}, ${adminId})`;
     }

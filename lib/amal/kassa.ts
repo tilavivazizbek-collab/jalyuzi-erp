@@ -169,7 +169,7 @@ export async function chiqimQil(
         filialId: kirim.filialId,
         modda: kirim.modda,
         // Xarajat MUSBAT son bo'lib yoziladi
-        summa: Math.abs(Number(kirim.yozuv.summa)).toFixed(2),
+        summa: new Decimal(kirim.yozuv.summa).abs().toFixed(2),
         valyuta: kirim.yozuv.valyuta,
         kassaYozuvId,
         manbaTuri: kirim.yozuv.manbaTuri,
@@ -252,7 +252,7 @@ export async function kassaStorno(
     const yangi = await tx<{ id: number }[]>`
       INSERT INTO kassa_yozuv (kassa_id, kod, summa, valyuta, manba_turi, manba_id,
                                qator, storno_id, izoh, xodim_id)
-      VALUES (${y.kassa_id}, ${y.kod}, ${(-Number(y.summa)).toFixed(2)}, ${y.valyuta},
+      VALUES (${y.kassa_id}, ${y.kod}, ${new Decimal(y.summa).negated().toFixed(2)}, ${y.valyuta},
               'storno', ${yozuvId}, 1, ${yozuvId},
               ${`Storno — ${sabab.trim()}`}, ${xodimId})
       RETURNING id`;
@@ -271,7 +271,7 @@ export async function kassaStorno(
         INSERT INTO xarajat (sana, filial_id, modda, summa, valyuta,
                              kassa_yozuv_id, manba_turi, manba_id, izoh, xodim_id)
         VALUES (${x.sana}, ${x.filial_id}, ${x.modda},
-                ${(-Number(x.summa)).toFixed(2)}, ${y.valyuta}, ${stornoId},
+                ${new Decimal(x.summa).negated().toFixed(2)}, ${y.valyuta}, ${stornoId},
                 'storno', ${x.id}, ${`Storno — ${sabab.trim()}`}, ${xodimId})`;
     }
 
@@ -425,7 +425,7 @@ export async function topshiriqniQabulQil(
       {
         kassaId: t.kimdan_kassa_id,
         kod: 'C9',
-        summa: (-Number(t.summa)).toFixed(2),
+        summa: new Decimal(t.summa).negated().toFixed(2),
         valyuta,
         manbaTuri: 'topshiriq',
         manbaId: topshiriqId,
@@ -440,7 +440,7 @@ export async function topshiriqniQabulQil(
       {
         kassaId: t.kimga_kassa_id,
         kod: 'K7',
-        summa: Number(t.summa).toFixed(2),
+        summa: new Decimal(t.summa).toFixed(2),
         valyuta,
         manbaTuri: 'topshiriq',
         manbaId: topshiriqId,
