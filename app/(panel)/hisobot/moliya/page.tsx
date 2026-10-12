@@ -14,6 +14,7 @@ import { toshkentKuni } from '@/lib/domain/sana';
 import { foydaZararMalumoti, kassaOqimi, pulPrognoziMalumoti } from '../malumot';
 import { pulPrognozi } from '@/lib/domain/hisobot/pul-prognozi';
 import { PrognozGrafik } from './prognoz-grafik';
+import { malumotSalomatligi } from '../salomatlik-malumot';
 import { kassaKodNomi } from '@/lib/domain/kassa-kod';
 import { KASSA_TURI_NOMI, type KassaTuri } from '@/lib/sxema/kassa-yarat';
 import { dollar } from '@/lib/domain/pul';
@@ -67,6 +68,8 @@ export default async function MoliyaHisoboti({
     kassaOqimi(f.filialId, davr),
     pulPrognoziMalumoti(f.filialId),
   ]);
+  const muammolar = await malumotSalomatligi(f.filialId);
+  const xavfSoni = muammolar.filter((m) => m.daraja === 'XAVF').length;
   const prognoz = pulPrognozi({
     bugun: prognozXom.bugun,
     boshlangich: prognozXom.boshlangich,
@@ -148,6 +151,22 @@ export default async function MoliyaHisoboti({
           </Link>
         ))}
       </div>
+
+      {/* Ma'lumot salomatligi — hisobotga ishonch darajasi */}
+      {muammolar.length > 0 && (
+        <Link
+          href="/hisobot/salomatlik"
+          className={`rounded-karta border px-4 py-2.5 text-sm hover:underline ${
+            xavfSoni > 0
+              ? 'border-belgi-qizil/30 bg-belgi-qizil-fon text-belgi-qizil'
+              : 'border-belgi-sariq/30 bg-belgi-sariq-fon text-belgi-sariq'
+          }`}
+        >
+          Ma&apos;lumotda {muammolar.length} xil muammo
+          {xavfSoni > 0 && ` (${String(xavfSoni)} tasi raqamlarni buzadi)`} — bu hisobot shunga qarab
+          noaniq bo&apos;lishi mumkin →
+        </Link>
+      )}
 
       {/* ── Pul prognozi — keyingi 30 kun ── */}
       <section className="flex flex-col gap-3 rounded-karta border border-chegara bg-sirt p-4">

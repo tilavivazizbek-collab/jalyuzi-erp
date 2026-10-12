@@ -33,6 +33,7 @@ buyurtmani tahrirlash (8.7), material statistikasi (7.11)
 | Kassa oqimi (11.4.2): boshlang'ich + kirim − chiqim = yakuniy (invariant testlangan, chegaradan o'tgan storno bilan), hodisa va kassa turi kesimida, valyuta alohida | ✅ |
 | Debitorlik, kreditorlik — mavjud ekranlarga havola | ✅ |
 | Pul prognozi (30 kun): bugungi kassa + muddati keladigan mijoz qarzlari (FIFO) − yetkazib beruvchiga to'lovlar; «odatdagi oqim» bilan ikkinchi chiziq; «X kuni pul yetmaydi» ogohi; grafik (kursor bilan), kutilayotgan to'lovlar jadvali; muddatsiz / muddati o'tgan summalar alohida | ✅ |
+| Ma'lumot salomatligi (/hisobot/salomatlik): P-46 kirimlari, manfiy kassa, yozilmay qolgan oldindan to'lov, tannarxsiz tayyor pozitsiyalar (6 oy), kurssiz dollarli buyurtma, yopilmagan kunlar, muddatsiz mijoz/kirim qarzi (qoldiq — FIFO taqsimotdan), dollar xarajat; har biri tuzatish joyiga havola; moliya sahifasida banner. Faqat o'qiydi — EC-SAL-01/02 | ✅ |
 | Dollar xarajatlar foyda-zararga kirmaydi (ogoh chiqadi) | ⏳ kurs bilan qo'shish — keyin |
 
 ## 0*. Buyurtmalar (sotuv) — audit 2026-10-10

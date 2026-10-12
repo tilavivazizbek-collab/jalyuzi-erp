@@ -124,6 +124,7 @@ const MENYU: readonly Guruh[] = [
       { yol: '/hisobot/ombor', nom: 'Ombor hisobotlari', kod: 'hisobot.ombor.kor' },
       // TZ 11.4 — foyda-zarar (hisobotlar auditi 2026-10-11)
       { yol: '/hisobot/moliya', nom: 'Moliya (foyda-zarar)', kod: 'hisobot.moliya.kor' },
+      { yol: '/hisobot/salomatlik', nom: "Ma'lumot salomatligi", kod: 'hisobot.moliya.kor' },
     ],
   },
   {

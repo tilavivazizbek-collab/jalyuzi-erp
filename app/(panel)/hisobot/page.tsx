@@ -47,7 +47,14 @@ const BANDLAR: readonly Band[] = [
   {
     yol: '/hisobot/moliya',
     nom: 'Moliya',
-    izoh: 'Foyda-zarar · kassa oqimi · xarajatlar · kurs farqi',
+    izoh: 'Pul prognozi · foyda-zarar · kassa oqimi · xarajatlar · kurs farqi',
+    kod: 'hisobot.moliya.kor',
+    tayyor: true,
+  },
+  {
+    yol: '/hisobot/salomatlik',
+    nom: "Ma'lumot salomatligi",
+    izoh: "Hisobotlarni buzadigan muammolar: tannarxsiz sotuv, muddatsiz qarz, yopilmagan kun…",
     kod: 'hisobot.moliya.kor',
     tayyor: true,
   },
