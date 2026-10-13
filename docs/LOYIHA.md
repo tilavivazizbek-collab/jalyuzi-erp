@@ -737,10 +737,11 @@ Oddiy API yo'llari qilib yoziladi — kim chaqirishi muhim emas (§2.3):
 | `/api/cron/zaxira` | 03:00 | `pg_dump` + Telegram | §17 |
 | `/api/cron/band-muddati` | 04:00 | 30 kundan oshgan band — adminga | 7.3, EC-OMB-18 |
 | `/api/cron/kun-eslatma` | 20:00 | kassani yopmaganlarga eslatma | 12.17 |
-| `/api/cron/muddat-nazorat` | 09:00 | muddati o'tgan buyurtmalar | 8.16 |
+| `/api/cron/muddat-nazorat` | 09:00 | muddati o'tgan buyurtmalar — sotgan filial adminlariga, ro'yxatdagi «Muddati o'tgan» sharti bilan (✅ 2026-10-13) | 8.16 |
 | `/api/cron/qarz-eslatma` | 10:00 | mijozga qarz eslatmasi | 13.6 |
-| `/api/cron/kam-qoldiq` | 08:00 | chegaradan past materiallar | 5.5, 14.7 |
+| `/api/cron/kam-qoldiq` | 08:00 | «Buyurtma kerak» ro'yxati (yo'lda bo'lmaganlari), tavsiya buyurtma birligida; faqat ombori bor filiallarga (✅ 2026-10-13) | 5.5, 14.7, 13.9 |
 | `/api/cron/kechki-hisobot` | 18:00–23:45, har 15 daqiqa | kun yakuni adminlarga — filialning `kassa_yopilish_soati` dan keyin, kuniga bir marta (✅ 2026-10-12) | 13.9 |
+| `/api/cron/yetkazib-muddat` | 09:00 | yetkazib beruvchiga to'lov muddati 3 kun ichida yoki o'tgan — qoldiq qarz FIFO taqsimotdan (✅ 2026-10-13) | 13.9 |
 
 Himoya: har chaqiruv `CRON_SECRET` sarlavhasi bilan keladi (`x-cron-secret`, `lib/kirish/cron.ts`).
 

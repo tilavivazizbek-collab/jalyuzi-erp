@@ -9,6 +9,8 @@ import {
   ADMIN_HODISALARI,
   bekorMatni,
   hisobdanChiqarildiMatni,
+  kamQoldiqMatni,
+  kechikkanBuyurtmalarMatni,
   md,
   kunFarqiMatni,
   pulTopshirildiMatni,
@@ -21,6 +23,7 @@ import {
   tugmaliMi,
   ustamaPastMatni,
   yetkazibMuddatMatni,
+  yetkazibMuddatlariMatni,
 } from '@/lib/domain/bildirishnoma';
 
 // ─── 13.9 · Qaysi xabarda tugma bo'ladi ───────────────────────────────────
@@ -41,6 +44,7 @@ describe('TZ 13.9 — botdan FAQAT ikki amal bajariladi', () => {
       'STAVKASIZ_ISH',
       'KUN_FARQI',
       'KECHKI_HISOBOT',
+      'KECHIKKAN_BUYURTMA',
     ]);
   });
 });
@@ -148,6 +152,44 @@ describe('yetkazib beruvchi muddati', () => {
   it('kechikkan bo‘lsa necha kun kechikkani aytiladi', () => {
     const m = yetkazibMuddatMatni({ nomi: 'A', summa: '1', kunQoldi: -12 });
     expect(m).toContain('12 kun KECHIKDI');
+  });
+
+  it('kunlik ro‘yxat — eng shoshilinchi birinchi', () => {
+    const m = yetkazibMuddatlariMatni([
+      { nomi: 'B', hujjat: 'K-2', summa: "1 so'm", kunQoldi: 2 },
+      { nomi: 'A_x', hujjat: 'K-1', summa: "2 so'm", kunQoldi: -3 },
+    ]);
+    expect(m).toContain('— 2 ta hujjat');
+    expect(m.indexOf('K-1')).toBeLessThan(m.indexOf('K-2'));
+    expect(m).toContain(String.raw`A\_x · K-1: 2 so'm — 🔴 3 kun KECHIKDI`);
+  });
+});
+
+// ─── 13.9 · Kam qoldiq · 8.16 · Kechikkan buyurtma (kunlik ro'yxat) ───────
+
+describe('kunlik ro‘yxat xabarlari', () => {
+  it('kam qoldiq — tavsiya bo‘lsa ko‘rsatiladi; 15 tadan ortig‘i «yana N ta»', () => {
+    const qatorlar = Array.from({ length: 17 }, (_, i) => ({
+      materialNomi: `Mato ${String(i + 1)}`,
+      qoldiq: '3 m',
+      tavsiya: i === 0 ? '2 rulon' : null,
+    }));
+    const m = kamQoldiqMatni(qatorlar);
+    expect(m).toContain('BUYURTMA KERAK* — 17 ta material');
+    expect(m).toContain('• Mato 1: 3 m → 2 rulon');
+    expect(m).toContain('• Mato 2: 3 m\n');
+    expect(m).not.toContain('Mato 16');
+    expect(m).toContain('… yana 2 ta');
+  });
+
+  it('kechikkan buyurtmalar — eng ko‘p kechikkani birinchi', () => {
+    const m = kechikkanBuyurtmalarMatni([
+      { raqam: 'B-1', mijoz: 'Ali', kun: 2 },
+      { raqam: 'B-2', mijoz: 'Vali', kun: 9 },
+    ]);
+    expect(m).toContain('KECHIKKAN BUYURTMALAR* — 2 ta');
+    expect(m.indexOf('B-2')).toBeLessThan(m.indexOf('B-1'));
+    expect(m).toContain('• B-2 · Vali — 9 kun');
   });
 });
 

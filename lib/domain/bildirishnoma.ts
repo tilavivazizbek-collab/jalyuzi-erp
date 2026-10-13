@@ -38,6 +38,8 @@ export const ADMIN_HODISALARI = [
   'KUN_FARQI',
   // Kun yakuni — kassa yopilish soatida (hisobot/kechki-malumot.ts)
   'KECHKI_HISOBOT',
+  // TZ 8.16 — tayyorlik sanasi o'tgan buyurtmalar (kunlik cron)
+  'KECHIKKAN_BUYURTMA',
 ] as const;
 
 export type AdminHodisasi = (typeof ADMIN_HODISALARI)[number];
@@ -130,17 +132,39 @@ export function hisobdanChiqarildiMatni(k: {
   ].join('\n');
 }
 
-/** 13.9 — kam qolgan material. Faqat xabar. */
-export function kamQoldiqMatni(k: {
+/** Telefonda o'qiladigan ro'yxat — shundan ko'pi «yana N ta» bo'ladi */
+const ROYXAT_CHEGARASI = 15;
+
+function qisqaRoyxat(qatorlar: readonly string[]): string[] {
+  return qatorlar.length <= ROYXAT_CHEGARASI
+    ? [...qatorlar]
+    : [...qatorlar.slice(0, ROYXAT_CHEGARASI), `… yana ${String(qatorlar.length - ROYXAT_CHEGARASI)} ta`];
+}
+
+export interface KamQoldiqQatori {
   readonly materialNomi: string;
+  /** Birligi bilan: «12.5 m», «3 dona» */
   readonly qoldiq: string;
-  readonly chegara: string;
-}): string {
+  /** Buyurtma birligida: «2 rulon»; tezlik bo'lmasa `null` */
+  readonly tavsiya: string | null;
+}
+
+/**
+ * 13.9 — kam qolgan material. Faqat xabar. 2026-10-13: BITTA xabarda
+ * hammasi (kunlik cron) — material boshiga alohida xabar telefonni to'ldirardi.
+ * ⚠️ Ro'yxat — «Buyurtma kerak» sahifasidan (yo'lda bo'lmaganlari).
+ */
+export function kamQoldiqMatni(qatorlar: readonly KamQoldiqQatori[]): string {
   return [
-    '📦 *KAM QOLDIQ*',
+    `📦 *BUYURTMA KERAK* — ${String(qatorlar.length)} ta material`,
     '',
-    `${md(k.materialNomi)}: ${k.qoldiq}`,
-    `Chegara: ${k.chegara}`,
+    ...qisqaRoyxat(
+      qatorlar.map(
+        (q) => `• ${md(q.materialNomi)}: ${q.qoldiq}${q.tavsiya === null ? '' : ` → ${q.tavsiya}`}`,
+      ),
+    ),
+    '',
+    'Saytda: Ombor → Xarid → Buyurtma kerak',
   ].join('\n');
 }
 
@@ -160,20 +184,65 @@ export function ustamaPastMatni(k: {
   ].join('\n');
 }
 
-/** 13.9 — yetkazib beruvchiga to'lov muddati. Faqat xabar. */
+function muddatHolati(kunQoldi: number): string {
+  return kunQoldi < 0
+    ? `🔴 ${String(Math.abs(kunQoldi))} kun KECHIKDI`
+    : kunQoldi === 0
+      ? '🔴 Bugun oxirgi kun'
+      : `${String(kunQoldi)} kun qoldi`;
+}
+
+/** 13.9 — yetkazib beruvchiga to'lov muddati (bitta hujjat). Faqat xabar. */
 export function yetkazibMuddatMatni(k: {
   readonly nomi: string;
   readonly summa: string;
   readonly kunQoldi: number;
 }): string {
-  const qachon =
-    k.kunQoldi < 0
-      ? `🔴 ${String(Math.abs(k.kunQoldi))} kun KECHIKDI`
-      : k.kunQoldi === 0
-        ? '🔴 Bugun oxirgi kun'
-        : `${String(k.kunQoldi)} kun qoldi`;
+  return ['🧾 *TO‘LOV MUDDATI*', '', `${md(k.nomi)}: ${k.summa}`, muddatHolati(k.kunQoldi)].join('\n');
+}
 
-  return ['🧾 *TO‘LOV MUDDATI*', '', `${md(k.nomi)}: ${k.summa}`, qachon].join('\n');
+export interface MuddatQatori {
+  readonly nomi: string;
+  readonly hujjat: string;
+  /** Formatlangan, valyutasi bilan */
+  readonly summa: string;
+  readonly kunQoldi: number;
+}
+
+/**
+ * 13.9 — kunlik: muddati yaqin va o'tgan yetkazib beruvchi to'lovlari
+ * BITTA xabarda, eng shoshilinchi birinchi. 2026-10-13.
+ */
+export function yetkazibMuddatlariMatni(qatorlar: readonly MuddatQatori[]): string {
+  const tartibli = [...qatorlar].sort((a, b) => a.kunQoldi - b.kunQoldi);
+  return [
+    `🧾 *TO‘LOV MUDDATI* — ${String(qatorlar.length)} ta hujjat`,
+    '',
+    ...qisqaRoyxat(
+      tartibli.map((q) => `• ${md(q.nomi)} · ${md(q.hujjat)}: ${q.summa} — ${muddatHolati(q.kunQoldi)}`),
+    ),
+    '',
+    'Saytda: Yetkazib beruvchilar',
+  ].join('\n');
+}
+
+export interface KechikkanQatori {
+  readonly raqam: string;
+  readonly mijoz: string;
+  /** Tayyorlik sanasidan necha kun o'tdi */
+  readonly kun: number;
+}
+
+/** TZ 8.16 — tayyorlik sanasi o'tgan buyurtmalar, eng ko'p kechikkani birinchi. 2026-10-13 */
+export function kechikkanBuyurtmalarMatni(qatorlar: readonly KechikkanQatori[]): string {
+  const tartibli = [...qatorlar].sort((a, b) => b.kun - a.kun);
+  return [
+    `⏰ *KECHIKKAN BUYURTMALAR* — ${String(qatorlar.length)} ta`,
+    '',
+    ...qisqaRoyxat(tartibli.map((q) => `• ${md(q.raqam)} · ${md(q.mijoz)} — ${String(q.kun)} kun`)),
+    '',
+    'Saytda: Buyurtmalar → Muddati o‘tgan',
+  ].join('\n');
 }
 
 /**

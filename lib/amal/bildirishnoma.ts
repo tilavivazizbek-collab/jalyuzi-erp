@@ -98,8 +98,14 @@ const TIZIM_XODIM = 1;
  *    og'ir hisob behuda takrorlanmasin.
  * ⚠️ `matnYasa` `null` qaytarsa — aytadigan gap yo'q (kam qoldiq yo'q),
  *    xabar yozilmaydi.
+ * ⚠️ BIR VAQTDA BITTA YURISH (advisory lock). Chaqiruvchi javob kechiksa
+ *    so'rovni qayta yuboradi (cron-job.org 30 s); ikki yurish bir paytda
+ *    «bugun yozilmagan» deb ko'rib, IKKI xabar yozardi — 2026-10-13 testda
+ *    ushlandi. Qulf olinmasa — boshqa yurish ishlayapti, darhol chiqiladi.
  *
  * @param qoshimchaShart qaysi filiallar (masalan, kassa yopilish soati o'tgani)
+ * @param filialIdlar `undefined` — hamma filial (cron); berilsa faqat shular
+ *    (sinov, qo'lda qayta yuborish)
  */
 export async function kunigaBirMartaOgohlantir(
   sql: postgres.Sql,
@@ -108,34 +114,42 @@ export async function kunigaBirMartaOgohlantir(
     readonly manbaTuri: string;
     readonly bugun: string;
     readonly qoshimchaShart?: postgres.PendingQuery<postgres.Row[]>;
+    readonly filialIdlar?: readonly number[];
     readonly matnYasa: (filialId: number) => Promise<string | null>;
   },
-): Promise<{ filiallar: number; xabarlar: number }> {
-  const filiallar = await sql<{ id: number }[]>`
-    SELECT f.id FROM filial f
-    WHERE f.faol AND f.ochirildi IS NULL
-      ${k.qoshimchaShart ?? sql``}
-      AND NOT EXISTS (
-        SELECT 1 FROM bot_xabar x
-        WHERE x.manba_turi = ${k.manbaTuri} AND x.manba_id = f.id
-          AND (x.yaratildi AT TIME ZONE ${VAQT_ZONASI})::date = ${k.bugun}::date)
-    ORDER BY f.id`;
+): Promise<{ filiallar: number; xabarlar: number; band?: true }> {
+  return sql.begin(async (tx) => {
+    const qulf = await tx<{ ok: boolean }[]>`
+      SELECT pg_try_advisory_xact_lock(hashtext(${`cron:${k.manbaTuri}`})) AS ok`;
+    if (qulf[0]?.ok !== true) return { filiallar: 0, xabarlar: 0, band: true as const };
 
-  let xabarlar = 0;
-  let soni = 0;
-  for (const f of filiallar) {
-    if ((await filialAdminlari(sql, f.id)).length === 0) continue;
-    const matn = await k.matnYasa(f.id);
-    if (matn === null) continue;
-    const { yozildi } = await adminlarniOgohlantir(
-      sql,
-      { filialId: f.id, hodisa: k.hodisa, matn, manbaTuri: k.manbaTuri, manbaId: f.id },
-      TIZIM_XODIM,
-    );
-    xabarlar += yozildi;
-    if (yozildi > 0) soni += 1;
-  }
-  return { filiallar: soni, xabarlar };
+    const filiallar = await tx<{ id: number }[]>`
+      SELECT f.id FROM filial f
+      WHERE f.faol AND f.ochirildi IS NULL
+        ${k.qoshimchaShart ?? tx``}
+        ${k.filialIdlar === undefined ? tx`` : tx`AND f.id = ANY(${k.filialIdlar as number[]})`}
+        AND NOT EXISTS (
+          SELECT 1 FROM bot_xabar x
+          WHERE x.manba_turi = ${k.manbaTuri} AND x.manba_id = f.id
+            AND (x.yaratildi AT TIME ZONE ${VAQT_ZONASI})::date = ${k.bugun}::date)
+      ORDER BY f.id`;
+
+    let xabarlar = 0;
+    let soni = 0;
+    for (const f of filiallar) {
+      if ((await filialAdminlari(tx, f.id)).length === 0) continue;
+      const matn = await k.matnYasa(f.id);
+      if (matn === null) continue;
+      const { yozildi } = await adminlarniOgohlantir(
+        tx,
+        { filialId: f.id, hodisa: k.hodisa, matn, manbaTuri: k.manbaTuri, manbaId: f.id },
+        TIZIM_XODIM,
+      );
+      xabarlar += yozildi;
+      if (yozildi > 0) soni += 1;
+    }
+    return { filiallar: soni, xabarlar };
+  });
 }
 
 /**

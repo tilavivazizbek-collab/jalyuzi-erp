@@ -99,12 +99,16 @@ export async function kechkiHisobotMalumoti(filialId: number): Promise<KechkiKir
  *
  * @returns navbatga yozilgan xabarlar soni (filial × admin)
  */
-export async function kechkiHisobotlarniNavbatgaQoy(hozir: Date = new Date()): Promise<{ filiallar: number; xabarlar: number }> {
+export async function kechkiHisobotlarniNavbatgaQoy(
+  hozir: Date = new Date(),
+  filialIdlar?: readonly number[],
+): ReturnType<typeof kunigaBirMartaOgohlantir> {
   const sql = ulanishOl();
   return kunigaBirMartaOgohlantir(sql, {
     hodisa: 'KECHKI_HISOBOT',
     manbaTuri: MANBA,
     bugun: toshkentKuni(hozir),
+    filialIdlar,
     qoshimchaShart: sql`
       AND f.sotadi
       AND (${hozir}::timestamptz AT TIME ZONE ${VAQT_ZONASI})::time >= f.kassa_yopilish_soati`,

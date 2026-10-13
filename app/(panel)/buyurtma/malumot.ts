@@ -12,6 +12,22 @@ import { ulanishOl } from '@/lib/db';
 import { kesimOlchami } from '@/lib/domain/kesish';
 import type { TolovDarajasi } from '@/lib/domain/buyurtma-tolov';
 import { buyurtmaTolovlari } from '@/lib/amal/tolov-holati';
+import { toshkentKuni } from '@/lib/domain/sana';
+
+/**
+ * «Muddati o'tgan» buyurtma sharti (`b` — buyurtma). BITTA JOY: ro'yxat
+ * filtri va kunlik «Kechikkan buyurtmalar» xabari (2026-10-13) — ikkalasi
+ * bir xil son ko'rsatsin.
+ * ⚠️ TZ 3.13 — sanasi YO'Q buyurtma kechikkan hisoblanmaydi.
+ */
+export function muddatiOtganSharti(bugun: string) {
+  return ulanishOl()`
+    AND b.tayyorlik_sana IS NOT NULL
+    AND b.tayyorlik_sana < ${bugun}::date
+    AND EXISTS (SELECT 1 FROM buyurtma_pozitsiya x
+                WHERE x.buyurtma_id = b.id
+                  AND x.holat NOT IN ('TOPSHIRILDI','QAYTARILGAN','RAD_ETILGAN','BEKOR'))`;
+}
 
 export interface BuyurtmaQatori {
   readonly id: number;
@@ -184,17 +200,7 @@ export async function buyurtmalar(
                             WHERE x.buyurtma_id = b.id AND x.holat = ${filtr})`
           : sql``
       }
-      ${
-        filtr === 'MUDDATI_OTGAN'
-          ? // TZ 3.13 — sanasi YO'Q buyurtma kechikkan hisoblanmaydi
-            sql`AND b.tayyorlik_sana IS NOT NULL
-                AND b.tayyorlik_sana < current_date
-                AND EXISTS (SELECT 1 FROM buyurtma_pozitsiya x
-                            WHERE x.buyurtma_id = b.id
-                              AND x.holat NOT IN ('TOPSHIRILDI','QAYTARILGAN',
-                                                  'RAD_ETILGAN','BEKOR'))`
-          : sql``
-      }
+      ${filtr === 'MUDDATI_OTGAN' ? muddatiOtganSharti(toshkentKuni()) : sql``}
     GROUP BY b.id, m.ism
     ORDER BY b.sana DESC, b.id DESC
     LIMIT ${chegara}`;
