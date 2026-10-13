@@ -53,6 +53,10 @@ export const ADMIN_HODISALARI = [
   'KECHIKKAN_BUYURTMA',
   // TZ 21.8 — har oyning 1-kuni, o'tgan oy reja va fakti
   'OYLIK_YAKUN',
+  // TZ 7.3 · EC-OMB-18 — muddati o'tgan band avtomatik bo'shatildi
+  'BAND_MUDDATI',
+  // TZ 12.17 — kassa yopilish soatida yopilmagan kassalar
+  'KUN_ESLATMA',
 ] as const;
 
 export type AdminHodisasi = (typeof ADMIN_HODISALARI)[number];
@@ -422,3 +426,46 @@ export function oylikYakunMatni(k: {
     'Batafsil — saytda: Hisobotlar → Reja va fakt',
   ].join('\n');
 }
+
+// ─── TZ 7.3 · EC-OMB-18 · Band muddati ────────────────────────────────────
+
+/**
+ * Muddati o'tgan bandlar AVTOMATIK bo'shatildi — admin bilsin: bo'lak
+ * endi boshqa buyurtmaga ketishi mumkin, eski buyurtmaga materialni
+ * qayta band qilish kerak bo'ladi.
+ */
+export function bandMuddatiMatni(
+  qatorlar: readonly { readonly bolakKod: string; readonly buyurtmaRaqam: string; readonly tartib: number }[],
+): string {
+  return [
+    `⏳ *BAND MUDDATI O‘TDI* — ${String(qatorlar.length)} ta bo‘lak bo‘shatildi`,
+    '',
+    ...qisqaRoyxat(qatorlar.map((q) => `• ${md(q.bolakKod)} — ${md(q.buyurtmaRaqam)} · poz. ${String(q.tartib)}`)),
+    '',
+    'Buyurtma hali kerak bo‘lsa — materialni qayta band qiling.',
+  ].join('\n');
+}
+
+// ─── TZ 12.17 · Kun eslatmasi ─────────────────────────────────────────────
+
+/**
+ * Kassa yopilish soatida: bugun harakat bo'lgan, lekin yopilmagan
+ * kassalar. 12.17 — kun yopish MAJBURIY EMAS, bu faqat eslatma.
+ */
+export function kunEslatmaMatni(k: {
+  readonly bugungi: readonly { readonly kassa: string; readonly yozuvSoni: number }[];
+  /** Oxirgi kunlarda yopilmay qolgan (bugundan oldingi) kunlar soni */
+  readonly oldingi: number;
+}): string {
+  const q: string[] = ['🔐 *KASSA KUNI YOPILMAGAN*', ''];
+  if (k.bugungi.length > 0) {
+    q.push('Bugun:', ...qisqaRoyxat(k.bugungi.map((x) => `• ${md(x.kassa)} — ${String(x.yozuvSoni)} ta yozuv`)));
+  }
+  if (k.oldingi > 0) {
+    if (k.bugungi.length > 0) q.push('');
+    q.push(`Oldingi kunlardan yopilmagan: ${String(k.oldingi)} ta`);
+  }
+  q.push('', 'Saytda: Kassa → Kun yopish');
+  return q.join('\n');
+}
+

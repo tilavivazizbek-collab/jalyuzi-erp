@@ -10,6 +10,7 @@ import { toshkentKuni } from '@/lib/domain/sana';
 import {
   kamQoldiqXabarlari,
   kechikkanBuyurtmaXabarlari,
+  kunEslatmaXabarlari,
   yetkazibMuddatXabarlari,
 } from '@/app/(panel)/hisobot/kunlik-xabar';
 import { buyurtmaKerak } from '@/app/(panel)/ombor/xarid/kerak-malumot';
@@ -178,5 +179,24 @@ describe('kunlik admin xabarlari', () => {
       kechikkanBuyurtmaXabarlari(undefined, [fid]),
     ]);
     expect(await xabarlar('kechikkan_buyurtma', fid)).toHaveLength(1);
+  }, 120_000);
+
+  it('EC-KX-06 · 12.17: kun eslatmasi — yopilish soatidan oldin yo‘q, keyin bugungi kassa bilan', async () => {
+    const k = await sql<{ id: number }[]>`
+      INSERT INTO kassa (filial_id, turi, valyuta, nom, yaratdi_id)
+      VALUES (${filialId}, 'NAQD', 'SOM', ${`Kunlik naqd ${BELGI}`}, ${XODIM}) RETURNING id`;
+    await sql`
+      INSERT INTO kassa_yozuv (kassa_id, kod, summa, valyuta, manba_turi, manba_id, xodim_id)
+      VALUES (${k[0]?.id ?? 0}, 'K9', 1000, 'SOM', 'sinov', ${Number(BELGI) + 7}, ${XODIM})`;
+    const bugun = toshkentKuni();
+
+    // 12:00 — standart yopilish soati (20:00) hali kelmagan
+    await kunEslatmaXabarlari(new Date(`${bugun}T12:00:00+05:00`), [filialId]);
+    expect(await xabarlar('kun_eslatma', filialId)).toHaveLength(0);
+
+    await kunEslatmaXabarlari(new Date(`${bugun}T21:00:00+05:00`), [filialId]);
+    const x = await xabarlar('kun_eslatma', filialId);
+    expect(x).toHaveLength(1);
+    expect(x[0]?.matn).toContain(`Kunlik naqd ${BELGI} — 1 ta yozuv`);
   }, 120_000);
 });

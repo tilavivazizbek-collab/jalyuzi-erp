@@ -15,12 +15,14 @@ import { kunigaBirMartaOgohlantir } from '@/lib/amal/bildirishnoma';
 import {
   kamQoldiqMatni,
   kechikkanBuyurtmalarMatni,
+  kunEslatmaMatni,
   yetkazibMuddatlariMatni,
   type MuddatQatori,
 } from '@/lib/domain/bildirishnoma';
 import { kunQosh } from '@/lib/domain/hisobot/pul-prognozi';
 import { dollar, pulKorsat, som } from '@/lib/domain/pul';
-import { toshkentKuni } from '@/lib/domain/sana';
+import { VAQT_ZONASI, toshkentKuni } from '@/lib/domain/sana';
+import { yopilmaganKunlar } from '../kassa/kun-malumot';
 import { buyurtmaKerak } from '../ombor/xarid/kerak-malumot';
 import { yetkazibHolatlari, type YetkazibHolati } from '../yetkazib/taqsimot';
 import { muddatiOtganSharti } from '../buyurtma/malumot';
@@ -140,6 +142,41 @@ export async function kechikkanBuyurtmaXabarlari(hozir: Date = new Date(), filia
       return kechikkanBuyurtmalarMatni(
         r.map((x) => ({ raqam: x.raqam, mijoz: x.mijoz ?? '—', kun: kunFarqi(bugun, x.sana) })),
       );
+    },
+  });
+}
+
+/** Oxirgi necha kundagi yopilmagan kunlar eslatiladi (bugundan tashqari) */
+const ESLATMA_OYNA_KUN = 6;
+
+/**
+ * TZ 12.17 — kassa yopilish soatidan keyin: bugun harakat bo'lgan, lekin
+ * yopilmagan kassalar (va oxirgi kunlardan qolganlari) — filial adminiga.
+ * ⚠️ Yopilmagan kun — `yopilmaganKunlar` (kassa sahifasidagi ogoh bilan
+ *    bir xil); unga «bugun» ham kirsin deb oxiri ertaga qilib beriladi.
+ */
+export async function kunEslatmaXabarlari(hozir: Date = new Date(), filialIdlar?: readonly number[]): Natija {
+  const sql = ulanishOl();
+  const bugun = toshkentKuni(hozir);
+  return kunigaBirMartaOgohlantir(sql, {
+    hodisa: 'KUN_ESLATMA',
+    manbaTuri: 'kun_eslatma',
+    bugun,
+    filialIdlar,
+    qoshimchaShart: sql`
+      AND (${hozir}::timestamptz AT TIME ZONE ${VAQT_ZONASI})::time >= f.kassa_yopilish_soati`,
+    matnYasa: async (filialId) => {
+      const k = await sql<{ id: number }[]>`SELECT id FROM kassa WHERE filial_id = ${filialId} AND faol`;
+      const kunlar = await yopilmaganKunlar(
+        k.map((x) => x.id),
+        kunQosh(bugun, -ESLATMA_OYNA_KUN),
+        kunQosh(bugun, 1),
+      );
+      if (kunlar.length === 0) return null;
+      return kunEslatmaMatni({
+        bugungi: kunlar.filter((x) => x.sana === bugun).map((x) => ({ kassa: x.kassaNomi, yozuvSoni: x.yozuvSoni })),
+        oldingi: kunlar.filter((x) => x.sana !== bugun).length,
+      });
     },
   });
 }

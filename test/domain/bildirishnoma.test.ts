@@ -7,7 +7,9 @@
 import { describe, expect, it } from 'vitest';
 import {
   ADMIN_HODISALARI,
+  bandMuddatiMatni,
   bekorMatni,
+  kunEslatmaMatni,
   filialliMatn,
   hisobdanChiqarildiMatni,
   kamQoldiqMatni,
@@ -48,6 +50,8 @@ describe('TZ 13.9 — botdan FAQAT ikki amal bajariladi', () => {
       'KECHKI_HISOBOT',
       'KECHIKKAN_BUYURTMA',
       'OYLIK_YAKUN',
+      'BAND_MUDDATI',
+      'KUN_ESLATMA',
     ]);
   });
 });
@@ -321,5 +325,25 @@ describe('oylik yakun xabari', () => {
     expect(m).toContain('   Samarqand: 54 200 000 / 50 000 000 · 108.4% 🟢');
     expect(m).toContain("Farg'ona: 18 900 000 / 30 000 000 · 63.0% 🔴");
     expect(m).toContain(String.raw`Yangi\_filial: 1 000 (reja yo‘q)`);
+  });
+});
+
+// ─── 7.3 · Band muddati · 12.17 · Kun eslatmasi ───────────────────────────
+
+describe('band muddati va kun eslatmasi', () => {
+  it('band muddati — bo‘lak, buyurtma, pozitsiya; qayta band qilish aytiladi', () => {
+    const m = bandMuddatiMatni([{ bolakKod: 'R-118', buyurtmaRaqam: 'B-12', tartib: 2 }]);
+    expect(m).toContain('1 ta bo‘lak bo‘shatildi');
+    expect(m).toContain('• R-118 — B-12 · poz. 2');
+    expect(m).toContain('qayta band qiling');
+  });
+
+  it('kun eslatmasi — bugungi va oldingi kunlar; faqat oldingi bo‘lsa ham chiqadi', () => {
+    const m = kunEslatmaMatni({ bugungi: [{ kassa: 'Naqd_1', yozuvSoni: 7 }], oldingi: 2 });
+    expect(m).toContain(String.raw`• Naqd\_1 — 7 ta yozuv`);
+    expect(m).toContain('Oldingi kunlardan yopilmagan: 2 ta');
+    const f = kunEslatmaMatni({ bugungi: [], oldingi: 1 });
+    expect(f).not.toContain('Bugun:');
+    expect(f).toContain('Oldingi kunlardan yopilmagan: 1 ta');
   });
 });

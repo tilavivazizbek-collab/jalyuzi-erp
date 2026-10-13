@@ -352,8 +352,17 @@ export async function bandniBoshatTx(
  */
 export const BOSHATISH_CHEGARASI = 200;
 
+export interface BoshatilganBand {
+  readonly buyurtmaPozitsiyaId: number;
+  readonly bolakKod: string;
+  /** Bo'lak filiali — xabar shu filial adminiga (2026-10-13) */
+  readonly filialId: number;
+  readonly buyurtmaRaqam: string;
+  readonly tartib: number;
+}
+
 export interface MuddatNatijasi {
-  readonly boshatilgan: readonly { buyurtmaPozitsiyaId: number; bolakKod: string }[];
+  readonly boshatilgan: readonly BoshatilganBand[];
   /** Chegaraga yetildi — yana chaqirish kerak */
   readonly yanaBormi: boolean;
 }
@@ -363,7 +372,7 @@ export async function muddatiOtganBandlarniBoshat(
   xodimId: number,
   hozir: Date = new Date(),
   chegara: number = BOSHATISH_CHEGARASI,
-): Promise<readonly { buyurtmaPozitsiyaId: number; bolakKod: string }[]> {
+): Promise<readonly BoshatilganBand[]> {
   const n = await muddatiOtganlarniBoshatBatafsil(ulanish, xodimId, hozir, chegara);
   return n.boshatilgan;
 }
@@ -376,10 +385,22 @@ export async function muddatiOtganlarniBoshatBatafsil(
   chegara: number = BOSHATISH_CHEGARASI,
 ): Promise<MuddatNatijasi> {
   return ulanish.begin(async (tx) => {
-    const eskirgan = await tx<{ id: number; bolak_id: number; buyurtma_pozitsiya_id: number; kod: string }[]>`
-      SELECT b.id, b.bolak_id, b.buyurtma_pozitsiya_id, bo.kod
+    const eskirgan = await tx<
+      {
+        id: number;
+        bolak_id: number;
+        buyurtma_pozitsiya_id: number;
+        kod: string;
+        filial_id: number;
+        raqam: string;
+        tartib: number;
+      }[]
+    >`
+      SELECT b.id, b.bolak_id, b.buyurtma_pozitsiya_id, bo.kod, bo.filial_id, bu.raqam, p.tartib
       FROM band b
       JOIN bolak bo ON bo.id = b.bolak_id
+      JOIN buyurtma_pozitsiya p ON p.id = b.buyurtma_pozitsiya_id
+      JOIN buyurtma bu ON bu.id = p.buyurtma_id
       WHERE b.holat = 'FAOL' AND b.amal_qiladi < ${hozir}
       ORDER BY b.amal_qiladi
       LIMIT ${chegara}
@@ -401,6 +422,9 @@ export async function muddatiOtganlarniBoshatBatafsil(
       boshatilgan: eskirgan.map((e) => ({
         buyurtmaPozitsiyaId: e.buyurtma_pozitsiya_id,
         bolakKod: e.kod,
+        filialId: e.filial_id,
+        buyurtmaRaqam: e.raqam,
+        tartib: e.tartib,
       })),
       yanaBormi: eskirgan.length === chegara,
     };

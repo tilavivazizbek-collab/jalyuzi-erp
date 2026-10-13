@@ -13,6 +13,7 @@ import {
   pozitsiyaniBandQil,
   type SlotSorovi,
 } from '@/lib/amal/band';
+import { bandMuddatiniTekshir } from '@/lib/amal/band-muddati';
 import type { Ulanish } from '@/lib/db/ulanish';
 import { pozitsiyaTolqini, sinovUlanishi } from './yordamchi';
 
@@ -377,6 +378,22 @@ describe("TZ 7.3 — 30 kundan oshgan band avtomatik bo'shaydi", () => {
 
     const b = await sql<{ holat: string }[]>`SELECT holat FROM bolak WHERE id = ${bolakId}`;
     expect(b[0]?.holat).toBe('BOSH');
+  });
+
+  it('EC-OMB-18 · cron: bo‘shatilgan band filiali va buyurtmasi bilan qaytadi (xabar uchun)', async () => {
+    await bolakYarat(matoId, 'RULON', 3.0, 30.0);
+    const p = yangiPozitsiya();
+    const eski = new Date('2026-01-01T10:00:00+05:00');
+    await pozitsiyaniBandQil(sql, p, FILIAL, [slot(matoId, 1.2, 2.0)], XODIM, eski);
+
+    const n = await muddatiOtganlarniBoshatBatafsil(sql, XODIM, new Date(eski.getTime() + 31 * 86_400_000));
+    const b = n.boshatilgan.find((x) => x.buyurtmaPozitsiyaId === p);
+    expect(b).toMatchObject({ filialId: FILIAL, tartib: expect.any(Number) as number });
+    expect(b?.buyurtmaRaqam.length).toBeGreaterThan(0);
+
+    // Orkestrator: qayta chaqirilsa bo'shatiladigan narsa qolmagan
+    const r = await bandMuddatiniTekshir(sql, new Date(eski.getTime() + 31 * 86_400_000));
+    expect(r.yanaBormi).toBe(false);
   });
 
   it("muddati o'tmagan bandga tegilmaydi", async () => {
