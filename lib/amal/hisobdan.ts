@@ -15,7 +15,9 @@
 
 import type postgres from 'postgres';
 import Decimal from 'decimal.js';
-import { manfiy, pulMatn, som, type Som } from '@/lib/domain/pul';
+import { manfiy, pulKorsat, pulMatn, som, type Som } from '@/lib/domain/pul';
+import { hisobdanChiqarildiMatni } from '@/lib/domain/bildirishnoma';
+import { adminlarniOgohlantir } from './bildirishnoma';
 import { chiqarishModdasi, type XarajatModdasi } from '@/lib/domain/balans';
 import { xarajatYozTx } from './kassa';
 import { bolakQiymati } from '@/lib/domain/tannarx';
@@ -203,6 +205,30 @@ export async function hisobdanChiqar(
                 davo_qilinadimi: kirim.davoQilinadimi,
               })},
               ${izohMatni})`;
+
+    /**
+     * TZ 13.9 · 7.10 — «Nazorat keyin: adminga xabar ketadi». 2026-10-13
+     * gacha bu xabar YO'Q edi (matn yozilgan, chaqirilmagan).
+     * ⚠️ Navbatga — tranzaksiya ichida (2.1-invariant).
+     */
+    const kim = await tx<{ ism: string }[]>`SELECT ism FROM xodim WHERE id = ${xodimId}`;
+    await adminlarniOgohlantir(
+      tx,
+      {
+        filialId: bolak.filial_id,
+        hodisa: 'HISOBDAN_CHIQARILDI',
+        matn: hisobdanChiqarildiMatni({
+          materialNomi: bolak.material_nomi,
+          bolakKod: bolak.kod,
+          sabab: izohMatni,
+          kim: kim[0]?.ism ?? '—',
+          zarar: `${pulKorsat(zarar)} so'm`,
+        }),
+        manbaTuri: 'ombor_harakat',
+        manbaId: harakatId,
+      },
+      xodimId,
+    );
 
     return {
       harakatId,

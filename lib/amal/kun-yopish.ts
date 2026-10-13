@@ -14,9 +14,11 @@
 import type postgres from 'postgres';
 import Decimal from 'decimal.js';
 import { kunFarqi, kunHisobi } from '@/lib/domain/balans';
-import { pulMatn, som } from '@/lib/domain/pul';
+import { dollar, pulKorsat, pulMatn, som } from '@/lib/domain/pul';
+import { kunFarqiMatni } from '@/lib/domain/bildirishnoma';
 import { BiznesXato } from '@/lib/xato';
 import { kassaYozuviQoshTx, xarajatYozTx } from './kassa';
+import { adminlarniOgohlantir } from './bildirishnoma';
 
 /**
  * `Sql` ham, `TransactionSql` ham so'rov yubora oladi.
@@ -185,6 +187,33 @@ export async function kunniYop(
         farq: pulMatn(farq),
         izoh: kirim.izoh,
       }, xodimId);
+
+      /**
+       * TZ 13.9 · 12.17 — «Kun yopishda farq — faqat xabar». 2026-10-13
+       * gacha matn (`kunFarqiMatni`) yozilgan, lekin hech qayerdan
+       * chaqirilmasdi: kamomad haqida admin bilmay qolardi.
+       * ⚠️ Navbatga — tranzaksiya ichida (2.1-invariant), yuborish keyin.
+       */
+      const k = await tx<{ nom: string; filial_id: number }[]>`
+        SELECT nom, filial_id FROM kassa WHERE id = ${kirim.kassaId}`;
+      const pul = (s: string): string =>
+        `${pulKorsat(h.valyuta === 'USD' ? dollar(s) : som(s))} ${h.valyuta === 'USD' ? '$' : "so'm"}`;
+      await adminlarniOgohlantir(
+        tx,
+        {
+          filialId: k[0]?.filial_id ?? 0,
+          hodisa: 'KUN_FARQI',
+          matn: kunFarqiMatni({
+            kassaNomi: `${k[0]?.nom ?? ''} · ${kirim.sana}`,
+            kutilgan: pul(h.hisoblangan),
+            sanalgan: pul(kirim.sanaldi),
+            farq: pul(pulMatn(farq)),
+          }),
+          manbaTuri: 'kassa_kun',
+          manbaId: kunId,
+        },
+        xodimId,
+      );
     }
 
     await tx`

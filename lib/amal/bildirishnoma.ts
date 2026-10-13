@@ -15,6 +15,7 @@
 import type postgres from 'postgres';
 import { xabarNavbatgaQoy } from './bot';
 import type { AdminHodisasi } from '@/lib/domain/bildirishnoma';
+import { VAQT_ZONASI } from '@/lib/domain/sana';
 
 type Soruvchi = postgres.Sql | postgres.TransactionSql;
 
@@ -80,6 +81,61 @@ export async function adminlarniOgohlantir(
   }
 
   return { yozildi: adminlar.length };
+}
+
+/** Rejalashtirilgan xabarlar shu xodim nomidan yoziladi (bot/mijoz.ts dagi kabi) */
+const TIZIM_XODIM = 1;
+
+/**
+ * Rejalashtirilgan (cron) xabar — har filial adminlariga KUNIGA BIR MARTA.
+ * LOYIHA §13, 2026-10-13.
+ *
+ * ⚠️ BITTA JOY: kechki hisobot, kam qoldiq, to'lov muddati, kechikkan
+ *    buyurtmalar — hammasi shu orqali. Cron qayta chaqirsa (yoki bir
+ *    necha marta) ikkinchi xabar ketmaydi: bugun shu `manbaTuri` bilan
+ *    shu filialga yozilgan xabar bo'lsa, o'tkaziladi.
+ * ⚠️ Telegrami ulangan admin yo'q filialda `matnYasa` CHAQIRILMAYDI —
+ *    og'ir hisob behuda takrorlanmasin.
+ * ⚠️ `matnYasa` `null` qaytarsa — aytadigan gap yo'q (kam qoldiq yo'q),
+ *    xabar yozilmaydi.
+ *
+ * @param qoshimchaShart qaysi filiallar (masalan, kassa yopilish soati o'tgani)
+ */
+export async function kunigaBirMartaOgohlantir(
+  sql: postgres.Sql,
+  k: {
+    readonly hodisa: AdminHodisasi;
+    readonly manbaTuri: string;
+    readonly bugun: string;
+    readonly qoshimchaShart?: postgres.PendingQuery<postgres.Row[]>;
+    readonly matnYasa: (filialId: number) => Promise<string | null>;
+  },
+): Promise<{ filiallar: number; xabarlar: number }> {
+  const filiallar = await sql<{ id: number }[]>`
+    SELECT f.id FROM filial f
+    WHERE f.faol AND f.ochirildi IS NULL
+      ${k.qoshimchaShart ?? sql``}
+      AND NOT EXISTS (
+        SELECT 1 FROM bot_xabar x
+        WHERE x.manba_turi = ${k.manbaTuri} AND x.manba_id = f.id
+          AND (x.yaratildi AT TIME ZONE ${VAQT_ZONASI})::date = ${k.bugun}::date)
+    ORDER BY f.id`;
+
+  let xabarlar = 0;
+  let soni = 0;
+  for (const f of filiallar) {
+    if ((await filialAdminlari(sql, f.id)).length === 0) continue;
+    const matn = await k.matnYasa(f.id);
+    if (matn === null) continue;
+    const { yozildi } = await adminlarniOgohlantir(
+      sql,
+      { filialId: f.id, hodisa: k.hodisa, matn, manbaTuri: k.manbaTuri, manbaId: f.id },
+      TIZIM_XODIM,
+    );
+    xabarlar += yozildi;
+    if (yozildi > 0) soni += 1;
+  }
+  return { filiallar: soni, xabarlar };
 }
 
 /**

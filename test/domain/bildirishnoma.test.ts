@@ -229,6 +229,7 @@ describe('Markdown ekranlash — «_», «*», «`», «[» xabarni buzmasin', (
       bolakKod: 'B-1',
       sabab: '*yirtiq* [chet]',
       kim: 'Ali`',
+      zarar: "120 000 so'm",
     });
     expect(m).toContain('📉 *HISOBDAN CHIQARILDI*');
     // ⚠️ String.raw — «\_» oddiy satrda «_» ga aylanib, test bo'sh o'tardi

@@ -117,12 +117,15 @@ export function hisobdanChiqarildiMatni(k: {
   readonly bolakKod: string;
   readonly sabab: string;
   readonly kim: string;
+  /** Formatlangan, «so'm» bilan — foyda-zararga tushgan yo'qotish */
+  readonly zarar: string;
 }): string {
   return [
     '📉 *HISOBDAN CHIQARILDI*',
     '',
     `${md(k.materialNomi)} · ${md(k.bolakKod)}`,
     `Sabab: ${md(k.sabab)}`,
+    `Zarar: ${k.zarar}`,
     `Kim: ${md(k.kim)}`,
   ].join('\n');
 }
