@@ -14,6 +14,7 @@
 import { useActionState, useState } from 'react';
 import { Maydon, kirishUslubi } from '../maydon';
 import { dollar, pulKorsat, som } from '@/lib/domain/pul';
+import { QOLDA_XARAJAT_MODDALARI, type QoldaXarajatModdasi } from '@/lib/domain/balans';
 import { ayirboshlashAmali, qolMaHodisaAmali, xarajatAmali } from './amal';
 import { BOSH_AYIRBOSHLASH, BOSH_HOLAT } from './holat';
 
@@ -25,8 +26,8 @@ export interface QoldaKassa {
   readonly xodimId: number | null;
 }
 
-/** TZ 12.10 — xarajat moddalari (admin boshqaradi). */
-const MODDA_NOMI: Record<string, string> = {
+/** TZ 12.10 — qo'lda yoziladigan moddalar; ro'yxat `QOLDA_XARAJAT_MODDALARI` da (server bilan bitta) */
+const MODDA_NOMI: Readonly<Record<QoldaXarajatModdasi, string>> = {
   OPERATSION: 'Operatsion (ijara, kommunal, internet…)',
   TRANSPORT_BOJXONA: 'Transport / bojxona',
   BANK_KOMISSIYASI: 'Bank komissiyasi',
@@ -92,9 +93,9 @@ export function XarajatFormasi({ kassalar }: { kassalar: readonly QoldaKassa[] }
 
         <Maydon nom="x-modda" yorliq="Modda">
           <select id="x-modda" name="modda" className={`${kirishUslubi(false)} w-64`}>
-            {Object.entries(MODDA_NOMI).map(([kod, nom]) => (
+            {QOLDA_XARAJAT_MODDALARI.map((kod) => (
               <option key={kod} value={kod}>
-                {nom}
+                {MODDA_NOMI[kod]}
               </option>
             ))}
           </select>

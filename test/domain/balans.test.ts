@@ -208,3 +208,15 @@ describe('TZ 7.10 — hisobdan chiqarish qaysi moddaga tushadi', () => {
     expect(pulChiqmaydimi('INVENTARIZATSIYA_FARQI')).toBe(true);
   });
 });
+
+describe('TZ 12.10 · §9.4 — kassadan qo‘lda yoziladigan moddalar', () => {
+  it('faqat to‘rttasi; tizim moddalari (ish haqi, kassa/kurs farqi) rad etiladi', async () => {
+    const { qoldaModdami, QOLDA_XARAJAT_MODDALARI } = await import('@/lib/domain/balans');
+    expect([...QOLDA_XARAJAT_MODDALARI]).toEqual(['OPERATSION', 'TRANSPORT_BOJXONA', 'BANK_KOMISSIYASI', 'BOSHQA']);
+    for (const m of ['ISH_HAQI', 'KASSA_FARQI', 'KURS_FARQI', 'UMIDSIZ_QARZ', 'OMBOR_BRAKI', '']) {
+      expect(qoldaModdami(m)).toBe(false);
+    }
+    // Hammasi pul chiqadigan moddalar — kassadan yoziladi
+    for (const m of QOLDA_XARAJAT_MODDALARI) expect(pulChiqmaydimi(m)).toBe(false);
+  });
+});

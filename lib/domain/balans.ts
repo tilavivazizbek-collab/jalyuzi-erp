@@ -151,6 +151,22 @@ const PULSIZ_XARAJAT: readonly XarajatModdasi[] = [
   'XODIM_BALANSI_HISOBDAN',
 ];
 
+/**
+ * TZ 12.10 — kassadan QO'LDA yoziladigan xarajat moddalari. BITTA JOY:
+ * forma ham, server amali ham shundan oladi.
+ *
+ * ⚠️ 2026-10-13 gacha server `XARAJAT_MODDALARI` ning HAMMASINI qabul
+ *    qilardi: so'rovni qo'lda yuborib `ISH_HAQI` (u «Tugatdim» da
+ *    allaqachon xarajat — ikki marta sanalardi), `KASSA_FARQI`,
+ *    `KURS_FARQI` kabi tizim moddalarini yozish mumkin edi (§9.4).
+ */
+export const QOLDA_XARAJAT_MODDALARI = ['OPERATSION', 'TRANSPORT_BOJXONA', 'BANK_KOMISSIYASI', 'BOSHQA'] as const;
+export type QoldaXarajatModdasi = (typeof QOLDA_XARAJAT_MODDALARI)[number];
+
+export function qoldaModdami(x: string): x is QoldaXarajatModdasi {
+  return (QOLDA_XARAJAT_MODDALARI as readonly string[]).includes(x);
+}
+
 export function pulChiqmaydimi(modda: XarajatModdasi): boolean {
   return PULSIZ_XARAJAT.includes(modda);
 }

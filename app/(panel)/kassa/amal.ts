@@ -15,8 +15,7 @@ import {
 import { kunniQaytaOch, kunniYop } from '@/lib/amal/kun-yopish';
 import { ayirboshlash } from '@/lib/amal/ayirboshlash';
 import { boshqaHodisa, eganingPuli, operatsionXarajat } from '@/lib/amal/xarajat';
-import { XARAJAT_MODDALARI } from '@/lib/db/schema/kassa';
-import type { XarajatModdasi } from '@/lib/domain/balans';
+import { qoldaModdami } from '@/lib/domain/balans';
 import { ruxsatTalab } from '@/lib/kirish/joriy';
 import { ruxsatBormi } from '@/lib/ruxsat/tekshir';
 import { matnMaydon } from '../forma-yordamchi';
@@ -286,7 +285,8 @@ export async function xarajatAmali(
   if (!PUL.test(summa)) {
     return { xato: 'Summani kiriting', bajarildi: false };
   }
-  if (!(XARAJAT_MODDALARI as readonly string[]).includes(moddaMatn)) {
+  // §9.4 — faqat qo'lda yoziladigan moddalar (tizim moddalari emas)
+  if (!qoldaModdami(moddaMatn)) {
     return { xato: 'Moddani tanlang', bajarildi: false };
   }
 
@@ -297,7 +297,7 @@ export async function xarajatAmali(
         kassaId,
         summa,
         valyuta: matnMaydon(forma, 'valyuta') === 'USD' ? 'USD' : 'SOM',
-        modda: moddaMatn as XarajatModdasi,
+        modda: moddaMatn,
         izoh,
       },
       f.filialId,
