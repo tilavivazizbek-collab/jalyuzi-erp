@@ -357,8 +357,10 @@ O'lchangani: TCP ochiladi → SSLRequest ga 'S' → TLS 893 ms da o'tadi
 (CN `aws-eu-central-1-1-postgres.render.com`, bu PROKSI) →
 StartupMessage javobsiz. Proksi tirik, baza orqasida jim.
 
-⚠️ **AVTOMATIK ZAXIRA YOZILMAGAN.** `BACKUP_CHANNEL_ID`
-`lib/muhit.ts` da tekshiriladi, lekin uni hech narsa ishlatmaydi.
+⚠️ **AVTOMATIK ZAXIRA AMALDA HALI YO'Q.** 2026-10-13 da
+`/api/cron/zaxira` yozildi (pg_dump → gzip → `BACKUP_CHANNEL_ID`,
+Dockerfile ga postgresql17-client), lekin deploy qilinmagan va
+cron-job.org da sozlanmagan.
 `lib/db/metr-zaxira.ts` to'liq zaxira emas — faqat 0043 ning
 qaytarish nuqtasi. `render.yaml` da baza yo'q: panelda qo'lda
 ochilgan.
