@@ -106,3 +106,24 @@ describe('TZ 21.5 — fakt yig‘ish', () => {
     expect(f.sotuvchilar.get('1|11')).toBe('70000.00');
   });
 });
+
+describe('TZ 21.10 — reja sozlamasi tekshiruvi', () => {
+  it('0 < past < yaxshi ≤ 200, butun foiz', async () => {
+    const { rejaSozlamasiniTekshir } = await import('@/lib/amal/reja-sozlama');
+    expect(rejaSozlamasiniTekshir({ past: ' 70 ', yaxshi: '90', oylikXabar: false })).toEqual({
+      past: 70,
+      yaxshi: 90,
+      oylikXabar: false,
+    });
+    for (const [past, yaxshi] of [['90', '80'], ['80', '80'], ['0', '95'], ['80', '201'], ['80.5', '95'], ['', '95']]) {
+      expect(() => rejaSozlamasiniTekshir({ past: past ?? '', yaxshi: yaxshi ?? '', oylikXabar: true })).toThrow();
+    }
+  });
+
+  it('chegara sozlamadan — oylik xabar rangi o‘zgaradi', async () => {
+    const { oylikYakunMatni } = await import('@/lib/domain/bildirishnoma');
+    const q = [{ nom: 'A', reja: '100', fakt: '85', ichki: false }];
+    expect(oylikYakunMatni({ oyNomi: 'Iyul 2026', qatorlar: q })).toContain('85.0% 🟡');
+    expect(oylikYakunMatni({ oyNomi: 'Iyul 2026', qatorlar: q, chegara: { past: 70, yaxshi: 85 } })).toContain('85.0% 🟢');
+  });
+});

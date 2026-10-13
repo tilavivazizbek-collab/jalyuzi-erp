@@ -8,6 +8,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { Ulanish } from '@/lib/db/ulanish';
 import { ulanishOl } from '@/lib/db';
 import { otganOydanNusxa, rejalarniSaqla } from '@/lib/amal/reja';
+import { STANDART_REJA_SOZLAMASI, rejaSozlamalari, rejaSozlamasiniSaqla } from '@/lib/amal/reja-sozlama';
 import { oyQosh } from '@/lib/domain/reja';
 import { sinovUlanishi } from './yordamchi';
 
@@ -148,5 +149,22 @@ describe('TZ 21 — reja saqlash', () => {
       { turi: 'KORXONA', tushum: '198000000.00', foyda: '49500000.00' },
       { turi: 'SOTUVCHI', tushum: '60500000.00', foyda: null },
     ]);
+  });
+
+  it('TZ 21.10: chegaralar va oylik xabar saqlanadi, auditga tushadi', async () => {
+    // ⚠️ Sozlama butun bazaga tegishli — oxirida STANDART qaytariladi
+    try {
+      const r = await rejaSozlamasiniSaqla(sql, { past: 70, yaxshi: 90, oylikXabar: false }, XODIM, filialId);
+      expect(r.ozgardi).toBe(true);
+      expect(await rejaSozlamalari(sql)).toEqual({ past: 70, yaxshi: 90, oylikXabar: false });
+      expect((await rejaSozlamasiniSaqla(sql, { past: 70, yaxshi: 90, oylikXabar: false }, XODIM, filialId)).ozgardi).toBe(false);
+      const a = await sql<{ yangi: { past: number } }[]>`
+        SELECT yangi_qiymat AS yangi FROM audit_jurnal
+        WHERE amal = 'SOZLAMA_OZGARDI' AND izoh = 'Reja sozlamalari (21.10)' ORDER BY id DESC LIMIT 1`;
+      expect(a[0]?.yangi.past).toBe(70);
+    } finally {
+      await rejaSozlamasiniSaqla(sql, STANDART_REJA_SOZLAMASI, XODIM, filialId);
+    }
+    expect(await rejaSozlamalari(sql)).toEqual(STANDART_REJA_SOZLAMASI);
   });
 });

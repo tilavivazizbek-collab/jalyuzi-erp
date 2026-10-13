@@ -5,6 +5,9 @@ import { oyBoshi, oyNomi, oyQosh, rejaKaliti, yigindiTekshir } from '@/lib/domai
 import { toshkentKuni } from '@/lib/domain/sana';
 import { rejaEkrani, rejaQamrovi } from './malumot';
 import { RejaFormasi, type FormaBolimi } from './forma';
+import { RejaSozlamaFormasi } from './sozlama-forma';
+import { ulanishOl } from '@/lib/db';
+import { rejaSozlamalari } from '@/lib/amal/reja-sozlama';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,7 +24,7 @@ export default async function Rejalar({ searchParams }: { searchParams: Promise<
   const bugun = toshkentKuni();
   const { oy: xom } = await searchParams;
   const oy = xom !== undefined && /^\d{4}-\d{2}-01$/.test(xom) ? xom : oyBoshi(bugun);
-  const e = await rejaEkrani(oy, oyQosh(oy, -1), q);
+  const [e, sozlama] = await Promise.all([rejaEkrani(oy, oyQosh(oy, -1), q), rejaSozlamalari(ulanishOl())]);
   const r = (kalit: string) => e.rejalar.get(kalit);
 
   const bolimlar: FormaBolimi[] = [];
@@ -119,6 +122,10 @@ export default async function Rejalar({ searchParams }: { searchParams: Promise<
         sababKerak={bugun >= oy}
         nusxa={q.korxona && e.otganOydaBor}
       />
+
+      {q.korxona && (
+        <RejaSozlamaFormasi past={sozlama.past} yaxshi={sozlama.yaxshi} oylikXabar={sozlama.oylikXabar} />
+      )}
     </div>
   );
 }

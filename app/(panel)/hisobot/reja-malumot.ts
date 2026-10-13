@@ -15,6 +15,7 @@
 import Decimal from 'decimal.js';
 import { ulanishOl } from '@/lib/db';
 import { kunigaBirMartaOgohlantir } from '@/lib/amal/bildirishnoma';
+import { rejaSozlamalari } from '@/lib/amal/reja-sozlama';
 import { oylikYakunMatni } from '@/lib/domain/bildirishnoma';
 import { toshkentKuni } from '@/lib/domain/sana';
 import { pozitsiyaNatijasiUstunlari } from '@/lib/amal/filial-harakat';
@@ -255,11 +256,15 @@ export async function oylikYakunXabarlari(
   const sql = ulanishOl();
   const bugun = toshkentKuni(hozir);
   const oy = oyQosh(oyBoshi(bugun), -1);
+  // TZ 21.10 — «Oylik yakun xabari yuborilsinmi»
+  const sozlama = await rejaSozlamalari(sql);
+  if (!sozlama.oylikXabar) return { filiallar: 0, xabarlar: 0 };
   const matn = (q: readonly RejaFaktQatori[]): string | null => {
     const bor = q.filter((x) => x.rejaTushum !== null || !new Decimal(x.faktTushum).isZero());
     if (bor.length === 0) return null;
     return oylikYakunMatni({
       oyNomi: oyNomi(oy),
+      chegara: sozlama,
       qatorlar: bor.map((x) => ({
         nom: x.nom,
         reja: x.rejaTushum,

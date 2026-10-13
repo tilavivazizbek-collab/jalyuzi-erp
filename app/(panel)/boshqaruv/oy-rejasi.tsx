@@ -23,6 +23,8 @@ export function OyRejasi(k: {
   readonly bugun: string;
   readonly hisobotHavolasi: boolean;
   readonly qoyishHavolasi: boolean;
+  /** TZ 21.10 — sozlamadan */
+  readonly chegara: { readonly past: number; readonly yaxshi: number };
 }) {
   const { r } = k;
   if (r.reja === null || new Decimal(r.reja).isZero()) {
@@ -45,8 +47,8 @@ export function OyRejasi(k: {
   // Sur'at bo'yicha rang: fakt / kutilgan
   const suratRang =
     s === null || new Decimal(s.kutilgan).isZero()
-      ? bajarilishRangi(foiz)
-      : bajarilishRangi(new Decimal(r.fakt).div(s.kutilgan).times(100).toFixed(1));
+      ? bajarilishRangi(foiz, k.chegara.past, k.chegara.yaxshi)
+      : bajarilishRangi(new Decimal(r.fakt).div(s.kutilgan).times(100).toFixed(1), k.chegara.past, k.chegara.yaxshi);
   const kenglik = Decimal.min(100, new Decimal(foiz)).toFixed(1);
   const orqada = s !== null && new Decimal(s.farq).isNegative();
 

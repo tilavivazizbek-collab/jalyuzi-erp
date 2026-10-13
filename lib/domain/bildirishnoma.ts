@@ -383,7 +383,12 @@ const BAJARILISH_BELGISI = { QIZIL: '🔴', SARIQ: '🟡', YASHIL: '🟢' } as c
  * TZ 21.8 — har oyning 1-kuni: o'tgan oy reja va fakti.
  * ⚠️ Raqamlar «Reja va fakt» hisoboti bilan bir manbadan (21.5).
  */
-export function oylikYakunMatni(k: { readonly oyNomi: string; readonly qatorlar: readonly OylikQator[] }): string {
+export function oylikYakunMatni(k: {
+  readonly oyNomi: string;
+  readonly qatorlar: readonly OylikQator[];
+  /** TZ 21.10 — sozlamadan; berilmasa standart 80 / 95 */
+  readonly chegara?: { readonly past: number; readonly yaxshi: number };
+}): string {
   // Oylik yakun — butun so'mda (tiyin telefondagi xabarda shovqin)
   const pul = (s: string): string => pulKorsat(som(new Decimal(s).toDecimalPlaces(0).toFixed(2)));
   return [
@@ -391,7 +396,7 @@ export function oylikYakunMatni(k: { readonly oyNomi: string; readonly qatorlar:
     '',
     ...k.qatorlar.map((q) => {
       const foiz = bajarilish(q.reja, q.fakt);
-      const rang = bajarilishRangi(foiz);
+      const rang = bajarilishRangi(foiz, k.chegara?.past, k.chegara?.yaxshi);
       const qism =
         q.reja === null || foiz === null || rang === null
           ? `${pul(q.fakt)} (reja yo‘q)`

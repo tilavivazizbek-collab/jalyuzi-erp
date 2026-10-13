@@ -13,6 +13,7 @@ import { ruxsatTalab } from '@/lib/kirish/joriy';
 import { biznesXatosimi } from '@/lib/xato';
 import { kutilmaganXatoniYoz } from '@/lib/xato-jurnal';
 import { otganOydanNusxa, rejalarniSaqla, type RejaQatori } from '@/lib/amal/reja';
+import { rejaSozlamasiniSaqla, rejaSozlamasiniTekshir } from '@/lib/amal/reja-sozlama';
 import { REJA_TURLARI, rejaSummasiniOqi, type RejaTuri } from '@/lib/domain/reja';
 import { matnMaydon } from '../../forma-yordamchi';
 import { xatoXabari } from '../../xato-xabari';
@@ -71,5 +72,32 @@ export async function rejaAmali(oldingi: RejaHolati, forma: FormData): Promise<R
   } catch (x) {
     if (!biznesXatosimi(x)) await kutilmaganXatoniYoz(x, 'reja');
     return xato(await xatoXabari(x, 'sozlama/reja/amal', 'Rejani saqlab bo‘lmadi'));
+  }
+}
+
+/**
+ * TZ 21.10 — bajarilish chegaralari va oylik xabar. Korxona darajasidagi
+ * sozlama — faqat bosh filial admini (rejaQamrovi.korxona).
+ */
+export async function rejaSozlamaAmali(oldingi: RejaHolati, forma: FormData): Promise<RejaHolati> {
+  const f = await ruxsatTalab('reja.boshqar');
+  const urinish = oldingi.urinish + 1;
+  if (!rejaQamrovi(f).korxona) {
+    return { xato: 'Reja sozlamalarini faqat bosh admin o‘zgartiradi', xabar: null, urinish };
+  }
+  try {
+    const yangi = rejaSozlamasiniTekshir({
+      past: matnMaydon(forma, 'past'),
+      yaxshi: matnMaydon(forma, 'yaxshi'),
+      oylikXabar: matnMaydon(forma, 'oylik') === 'ha',
+    });
+    const { ozgardi } = await rejaSozlamasiniSaqla(ulanishOl(), yangi, f.xodimId, f.filialId);
+    revalidatePath('/sozlama/reja');
+    revalidatePath('/hisobot/reja');
+    revalidatePath('/boshqaruv');
+    return { xato: null, xabar: ozgardi ? 'Sozlamalar saqlandi' : 'O‘zgarish yo‘q', urinish };
+  } catch (x) {
+    if (!biznesXatosimi(x)) await kutilmaganXatoniYoz(x, 'reja-sozlama');
+    return { xato: await xatoXabari(x, 'sozlama/reja/amal', 'Sozlamani saqlab bo‘lmadi'), xabar: null, urinish };
   }
 }

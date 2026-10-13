@@ -14,6 +14,8 @@ import {
   type BajarilishRangi,
 } from '@/lib/domain/reja';
 import { rejaFaktQatorlari, type RejaFaktQatori } from '../reja-malumot';
+import { ulanishOl } from '@/lib/db';
+import { rejaSozlamalari, type RejaSozlamalari } from '@/lib/amal/reja-sozlama';
 
 export const dynamic = 'force-dynamic';
 
@@ -39,6 +41,7 @@ function Jadval(k: {
   readonly qatorlar: readonly { readonly q: RejaFaktQatori; readonly reja: string | null; readonly fakt: string }[];
   readonly oy: string;
   readonly bugun: string;
+  readonly chegara: RejaSozlamalari;
 }) {
   const joriy = oyBoshi(k.bugun) === k.oy;
   return (
@@ -60,7 +63,7 @@ function Jadval(k: {
           <tbody>
             {k.qatorlar.map(({ q, reja, fakt }) => {
               const foiz = bajarilish(reja, fakt);
-              const rang = bajarilishRangi(foiz);
+              const rang = bajarilishRangi(foiz, k.chegara.past, k.chegara.yaxshi);
               const s = joriy ? surat({ reja, fakt, oy: k.oy, bugun: k.bugun }) : null;
               const farq = reja === null || new Decimal(reja).isZero() ? null : new Decimal(fakt).minus(reja).toFixed(2);
               return (
@@ -118,7 +121,10 @@ export default async function RejaFakt({ searchParams }: { searchParams: Promise
   const bugun = toshkentKuni();
   const { oy: xom } = await searchParams;
   const oy = xom !== undefined && /^\d{4}-\d{2}-01$/.test(xom) ? xom : oyBoshi(bugun);
-  const q = await rejaFaktQatorlari(oy, hammasi ? null : [f.filialId]);
+  const [q, chegara] = await Promise.all([
+    rejaFaktQatorlari(oy, hammasi ? null : [f.filialId]),
+    rejaSozlamalari(ulanishOl()),
+  ]);
   const joriy = oyBoshi(bugun) === oy;
 
   const tushum = q.map((x) => ({ q: x, reja: x.rejaTushum, fakt: x.faktTushum }));
@@ -135,7 +141,7 @@ export default async function RejaFakt({ searchParams }: { searchParams: Promise
         <h1 className="mt-2 text-[22px] font-semibold tracking-[-0.02em] text-matn">Reja va fakt · {oyNomi(oy)}</h1>
         <p className="mt-1 text-sm text-matn-kuchsiz">
           Fakt — mijozga TOPSHIRILGAN oy bo&apos;yicha; qaytarish qaytarilgan oyda ayiriladi (21.5).
-          {joriy && ` Bugun ${bugun.slice(8, 10)}-kun.`} 🔴 &lt; 80% · 🟡 80–95% · 🟢 ≥ 95%
+          {joriy && ` Bugun ${bugun.slice(8, 10)}-kun.`} 🔴 &lt; {chegara.past}% · 🟡 {chegara.past}–{chegara.yaxshi}% · 🟢 ≥ {chegara.yaxshi}%
         </p>
       </div>
 
@@ -164,9 +170,9 @@ export default async function RejaFakt({ searchParams }: { searchParams: Promise
         </p>
       ) : (
         <>
-          <Jadval sarlavha="Tushum" qatorlar={tushum} oy={oy} bugun={bugun} />
+          <Jadval sarlavha="Tushum" qatorlar={tushum} oy={oy} bugun={bugun} chegara={chegara} />
           {foydaKorinadi && foyda.length > 0 && (
-            <Jadval sarlavha="Foyda (filial kesimida — taqsimlangan, 20.17)" qatorlar={foyda} oy={oy} bugun={bugun} />
+            <Jadval sarlavha="Foyda (filial kesimida — taqsimlangan, 20.17)" qatorlar={foyda} oy={oy} bugun={bugun} chegara={chegara} />
           )}
         </>
       )}

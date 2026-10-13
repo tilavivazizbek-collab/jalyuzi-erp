@@ -7,6 +7,8 @@ import { oyBoshi } from '@/lib/domain/reja';
 import { toshkentKuni } from '@/lib/domain/sana';
 import { dashboardRejasi } from '../hisobot/reja-malumot';
 import { OyRejasi } from './oy-rejasi';
+import { ulanishOl } from '@/lib/db';
+import { rejaSozlamalari } from '@/lib/amal/reja-sozlama';
 import {
   KorsatkichKartasi,
   PulBelgisi,
@@ -32,11 +34,12 @@ export default async function BoshqaruvSahifasi() {
   const f = await kirganBolishiShart();
 
   const bugun = toshkentKuni();
-  const [kim, k, reja] = await Promise.all([
+  const [kim, k, reja, chegara] = await Promise.all([
     kimIshlamoqda(f.xodimId, f.filialId),
     kunKorsatkichlari(f.filialId),
     // TZ 21.7 — oy rejasi birinchi qatorda
     dashboardRejasi(f, oyBoshi(bugun)),
+    rejaSozlamalari(ulanishOl()),
   ]);
 
   /**
@@ -93,6 +96,7 @@ export default async function BoshqaruvSahifasi() {
           bugun={bugun}
           hisobotHavolasi={ruxsatBormi(f, 'reja.kor')}
           qoyishHavolasi={ruxsatBormi(f, 'reja.boshqar')}
+          chegara={chegara}
         />
       )}
 
