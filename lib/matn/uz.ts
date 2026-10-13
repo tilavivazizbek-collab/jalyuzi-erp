@@ -106,6 +106,7 @@ export const XATO_MATNI: Record<XatoKod, string> = {
   REJA_SOTUVCHI_FILIALI: 'Sotuvchi bu filialda ishlamaydi',
   REJA_SOTUVCHI_FOYDA: 'Sotuvchiga foyda rejasi qo‘yilmaydi — faqat tushum',
   REJA_MANFIY: 'Reja manfiy bo‘lmaydi',
+  XARAJAT_TURI_NOTOGRI: 'Xarajat turi noto‘g‘ri',
   KASSA_KUN_FARQI: 'Kun yopish farqi storno qilinmaydi — kunni qayta oching',
   CHIQARISH_SAQLANMADI: "Hisobdan chiqarib bo'lmadi",
   CHIQARISH_SABAB_KERAK: "Sabab kiritilishi shart",

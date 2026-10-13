@@ -40,6 +40,8 @@ export const OCHIRILADIGAN_TURLAR = [
   'kassa',
   'filial',
   'xodim',
+  // 0066 — egasi qo'shadigan xarajat turlari
+  'xarajatTuri',
 ] as const;
 
 export type OchiriladiganTur = (typeof OCHIRILADIGAN_TURLAR)[number];
@@ -461,6 +463,18 @@ export const TUR_TAVSIFI: Record<OchiriladiganTur, TurTavsifi> = {
 
       return null;
     },
+  },
+
+  /**
+   * 0066 — xarajat turi. To'siq YO'Q: eski xarajatlar turini saqlab
+   * qoladi (yozuv bazada, faqat `faol = false`), foyda-zararda o'tgan
+   * davr o'z holicha ko'rinadi; faqat yangi xarajatga tanlab bo'lmaydi.
+   */
+  xarajatTuri: {
+    jadval: 'xarajat_turi',
+    nom: 'Xarajat turi',
+    ruxsat: 'sozlama.ozgartir',
+    bandmi: () => Promise.resolve(null),
   },
 };
 

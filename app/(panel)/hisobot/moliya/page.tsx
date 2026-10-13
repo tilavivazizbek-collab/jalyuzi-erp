@@ -1,3 +1,4 @@
+import { Fragment } from 'react';
 import Link from 'next/link';
 import Decimal from 'decimal.js';
 import { sahifaRuxsati } from '@/lib/kirish/joriy';
@@ -93,6 +94,12 @@ export default async function MoliyaHisoboti({
   const moddaSumma = (fz: typeof j, m: string): string =>
     fz.xarajatlar.find((x) => x.modda === m)?.summa ?? '0.00';
   moddalar.sort((a, b) => new Decimal(moddaSumma(j, b)).comparedTo(moddaSumma(j, a)));
+  // 0066 — operatsion xarajat turlari, ikkala davrdan (biri bo'lmasa 0)
+  const operatsionTurlari = [
+    ...new Set([...joriyXom.operatsionTurlari, ...oldinXom.operatsionTurlari].map((t) => t.nom)),
+  ];
+  const turSumma = (x: typeof joriyXom, nom: string | null): string =>
+    x.operatsionTurlari.find((t) => t.nom === nom)?.summa ?? '0.00';
 
   // Kassa oqimi — kassa kitobi shu davr bilan
   const dan = toshkentKuni(davr.boshi);
@@ -291,14 +298,22 @@ export default async function MoliyaHisoboti({
               <Qator nom="Yalpi foyda" jv={j.yalpiFoyda} ov={o.yalpiFoyda} qalin />
               <Qator nom="Xarajatlar" jv={j.xarajatJami} ov={o.xarajatJami} teskari />
               {moddalar.map((m) => (
-                <Qator
-                  key={m}
-                  nom={xarajatModdaNomi(m)}
-                  jv={moddaSumma(j, m)}
-                  ov={moddaSumma(o, m)}
-                  ichki
-                  teskari
-                />
+                <Fragment key={m}>
+                  <Qator nom={xarajatModdaNomi(m)} jv={moddaSumma(j, m)} ov={moddaSumma(o, m)} ichki teskari />
+                  {/* 0066 — Operatsion ichida egasi qo'shgan turlar (faqat tur ishlatilgan bo'lsa) */}
+                  {m === 'OPERATSION' &&
+                    operatsionTurlari.some((t) => t !== null) &&
+                    operatsionTurlari.map((t) => (
+                      <Qator
+                        key={t ?? '—'}
+                        nom={`· ${t ?? 'turi ko‘rsatilmagan'}`}
+                        jv={turSumma(joriyXom, t)}
+                        ov={turSumma(oldinXom, t)}
+                        ichki
+                        teskari
+                      />
+                    ))}
+                </Fragment>
               ))}
               {/* 11.4.7 — kurs farqi xarajat va daromad ALOHIDA */}
               <Qator nom="Kurs farqi — zarar" jv={j.kursZarar} ov={o.kursZarar} teskari />

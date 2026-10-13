@@ -106,6 +106,8 @@ export const XATO_BAND = {
   REJA_SOTUVCHI_FILIALI: 'TZ 21.9 EC-REJ-03',
   REJA_SOTUVCHI_FOYDA: 'TZ 21.2',
   REJA_MANFIY: 'TZ 21.3',
+  // ── Xarajat turlari — 0066 ──
+  XARAJAT_TURI_NOTOGRI: 'TZ 12.10 · 0066',
   // ── Kun yopish farqi — egasi qarori 2026-10-11 ──
   KASSA_KUN_FARQI: 'TZ 12.17',
   CHIQARISH_SAQLANMADI: 'TZ 7.10',

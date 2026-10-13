@@ -3,6 +3,8 @@ import { sahifaRuxsati } from '@/lib/kirish/joriy';
 import { ruxsatBormi } from '@/lib/ruxsat/tekshir';
 import { kassaQoldiqlari } from '../malumot';
 import { AyirboshlashFormasi, QoldaHodisaFormasi, XarajatFormasi } from '../qolda-forma';
+import { ulanishOl } from '@/lib/db';
+import { xarajatTurlari } from '@/lib/amal/xarajat-turi';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,7 +12,11 @@ export default async function KassaAmallariSahifasi() {
   const f = await sahifaRuxsati('kassa.oz.kor');
   const adminmi = ruxsatBormi(f, 'kassa.barcha.kor');
 
-  const kassalar = await kassaQoldiqlari(f.filialId, f.xodimId, adminmi);
+  const [kassalar, turlar] = await Promise.all([
+    kassaQoldiqlari(f.filialId, f.xodimId, adminmi),
+    // 0066 — egasi qo'shgan xarajat turlari
+    xarajatTurlari(ulanishOl()),
+  ]);
   const royxat = kassalar.map((k) => ({
     id: k.id,
     nom: k.nom,
@@ -40,7 +46,7 @@ export default async function KassaAmallariSahifasi() {
           Ijara, kommunal, internet, yoqilg&apos;i, ta&apos;mirlash, reklama… Bu{' '}
           <b>haqiqiy xarajat</b>: kassadan ham chiqadi, foyda-zararga ham tushadi (12.10).
         </p>
-        <XarajatFormasi kassalar={royxat} />
+        <XarajatFormasi kassalar={royxat} turlar={turlar} turQoshaOladi={ruxsatBormi(f, 'sozlama.ozgartir')} />
       </section>
 
       {adminmi && (

@@ -104,6 +104,8 @@ export interface XarajatYozuvi {
   readonly manbaTuri: string | null;
   readonly manbaId: number | null;
   readonly izoh: string | null;
+  /** 0066 — faqat OPERATSION da (baza CHECK); berilmasa NULL */
+  readonly xarajatTuriId?: number | null;
 }
 
 /**
@@ -125,9 +127,10 @@ export async function xarajatYozTx(
 
   const yangi = await tx<{ id: number }[]>`
     INSERT INTO xarajat (sana, filial_id, modda, summa, valyuta, kassa_yozuv_id,
-                         manba_turi, manba_id, izoh, xodim_id)
+                         manba_turi, manba_id, izoh, xodim_id, xarajat_turi_id)
     VALUES (${x.sana}, ${x.filialId}, ${x.modda}, ${x.summa}, ${x.valyuta},
-            ${x.kassaYozuvId}, ${x.manbaTuri}, ${x.manbaId}, ${x.izoh}, ${xodimId})
+            ${x.kassaYozuvId}, ${x.manbaTuri}, ${x.manbaId}, ${x.izoh}, ${xodimId},
+            ${x.xarajatTuriId ?? null})
     RETURNING id`;
 
   const id = yangi[0]?.id;
@@ -148,6 +151,8 @@ export async function chiqimQil(
     readonly filialId: number;
     readonly sana: string;
     readonly modda: XarajatModdasi;
+    /** 0066 — Operatsion xarajat turi */
+    readonly xarajatTuriId?: number | null;
   },
   xodimId: number,
 ): Promise<{ kassaYozuvId: number; xarajatId: number | null }> {
@@ -175,6 +180,7 @@ export async function chiqimQil(
         manbaTuri: kirim.yozuv.manbaTuri,
         manbaId: kirim.yozuv.manbaId,
         izoh: kirim.yozuv.izoh,
+        xarajatTuriId: kirim.xarajatTuriId ?? null,
       },
       xodimId,
     );
@@ -262,17 +268,19 @@ export async function kassaStorno(
 
     // Xarajat ham teskari yoziladi — foyda-zarar to'g'ri qolsin
     const xarajatlar = await tx<
-      { id: number; sana: string; filial_id: number; modda: string; summa: string }[]
-    >`SELECT id, sana::text AS sana, filial_id, modda, summa
+      { id: number; sana: string; filial_id: number; modda: string; summa: string; turi: number | null }[]
+    >`SELECT id, sana::text AS sana, filial_id, modda, summa, xarajat_turi_id AS turi
       FROM xarajat WHERE kassa_yozuv_id = ${yozuvId}`;
 
     for (const x of xarajatlar) {
       await tx`
         INSERT INTO xarajat (sana, filial_id, modda, summa, valyuta,
-                             kassa_yozuv_id, manba_turi, manba_id, izoh, xodim_id)
+                             kassa_yozuv_id, manba_turi, manba_id, izoh, xodim_id, xarajat_turi_id)
         VALUES (${x.sana}, ${x.filial_id}, ${x.modda},
                 ${new Decimal(x.summa).negated().toFixed(2)}, ${y.valyuta}, ${stornoId},
-                'storno', ${x.id}, ${`Storno — ${sabab.trim()}`}, ${xodimId})`;
+                'storno', ${x.id}, ${`Storno — ${sabab.trim()}`}, ${xodimId},
+                -- 0066 — tur ham ko'chadi: turlar kesimida storno juftligi nolga chiqsin
+                ${x.turi})`;
     }
 
     /**

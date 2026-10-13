@@ -456,6 +456,13 @@
       "when": 1790840000000,
       "tag": "0065_reja",
       "breakpoints": true
+    },
+    {
+      "idx": 66,
+      "version": "7",
+      "when": 1790850000000,
+      "tag": "0066_xarajat_turi",
+      "breakpoints": true
     }
   ]
 }

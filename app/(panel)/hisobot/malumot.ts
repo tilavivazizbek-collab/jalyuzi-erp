@@ -1583,6 +1583,11 @@ export async function sotuvchiErkinliklari(
 export interface FoydaZararXom extends FoydaZararKirimi {
   /** Dollarda yozilgan xarajatlar soni — hisobotga kirmagan (1.3), ogoh */
   readonly dollarXarajatSoni: number;
+  /**
+   * 0066 — «Operatsion» xarajat egasi qo'shgan turlar bo'yicha (so'mda).
+   * `nom: null` — turi ko'rsatilmagan. Yig'indisi OPERATSION qatoriga teng.
+   */
+  readonly operatsionTurlari: readonly { readonly nom: string | null; readonly summa: string }[];
 }
 
 /**
@@ -1597,7 +1602,7 @@ export interface FoydaZararXom extends FoydaZararKirimi {
  */
 export async function foydaZararMalumoti(filialId: number, davr: Davr): Promise<FoydaZararXom> {
   const sql = ulanishOl();
-  const [savdo, xarajat] = await Promise.all([
+  const [savdo, xarajat, turlar] = await Promise.all([
     sql<{ tushum: string | null; material: string | null; ish_haqi: string | null }[]>`
       SELECT
         SUM((COALESCE(p.narx_snapshot, 0) - COALESCE(p.chegirma_summa, 0))
@@ -1630,6 +1635,17 @@ export async function foydaZararMalumoti(filialId: number, davr: Davr): Promise<
         AND NOT (x.modda = 'ISH_HAQI' AND x.manba_turi = 'storno' AND EXISTS (
               SELECT 1 FROM xarajat a WHERE a.id = x.manba_id AND a.manba_turi = 'buyurtma_pozitsiya'))
       GROUP BY x.modda, x.valyuta`,
+    // 0066 — operatsion xarajat turlar bo'yicha; storno juftlari nolga chiqadi
+    sql<{ nom: string | null; summa: string }[]>`
+      SELECT t.nom, SUM(x.summa)::numeric(14,2)::text AS summa
+      FROM xarajat x
+      LEFT JOIN xarajat_turi t ON t.id = x.xarajat_turi_id
+      WHERE x.filial_id = ${filialId} AND x.modda = 'OPERATSION' AND x.valyuta = 'SOM'
+        AND x.sana >= (${davr.boshi}::timestamptz AT TIME ZONE ${VAQT_ZONASI})::date
+        AND x.sana < (${davr.oxiri}::timestamptz AT TIME ZONE ${VAQT_ZONASI})::date
+      GROUP BY t.nom
+      HAVING SUM(x.summa) <> 0
+      ORDER BY SUM(x.summa) DESC`,
   ]);
 
   const s0 = savdo[0];
@@ -1645,6 +1661,7 @@ export async function foydaZararMalumoti(filialId: number, davr: Davr): Promise<
     kursZarar: kursQator?.musbat ?? '0',
     kursDaromad: kursQator?.manfiy ?? '0',
     dollarXarajatSoni: xarajat.filter((x) => x.valyuta !== 'SOM').reduce((y, x) => y + x.soni, 0),
+    operatsionTurlari: turlar,
   };
 }
 

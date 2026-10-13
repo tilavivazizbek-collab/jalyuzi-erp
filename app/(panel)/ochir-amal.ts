@@ -48,6 +48,7 @@ const YOLLAR: Record<OchiriladiganTur, string> = {
   kassa: '/kassa',
   filial: '/filial',
   xodim: '/xodim',
+  xarajatTuri: '/xarajat-turi',
 };
 
 /**

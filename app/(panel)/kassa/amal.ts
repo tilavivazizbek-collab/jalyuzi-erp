@@ -299,6 +299,8 @@ export async function xarajatAmali(
         valyuta: matnMaydon(forma, 'valyuta') === 'USD' ? 'USD' : 'SOM',
         modda: moddaMatn,
         izoh,
+        // 0066 — bo'sh — turi ko'rsatilmagan; tekshiruv amal qatlamida
+        xarajatTuriId: /^\d+$/.test(matnMaydon(forma, 'xarajatTuriId')) ? Number(matnMaydon(forma, 'xarajatTuriId')) : null,
       },
       f.filialId,
       f.xodimId,

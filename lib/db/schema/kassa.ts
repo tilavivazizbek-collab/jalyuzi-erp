@@ -332,6 +332,25 @@ export const XARAJAT_MODDALARI = [
   'KASSA_FARQI',
 ] as const;
 
+/**
+ * 0066 — egasi o'zi qo'shadigan xarajat turlari (ijara, elektr, reklama…).
+ * ⚠️ Faqat OPERATSION moddasining ichki bo'linishi — tizim moddalari
+ *    (ish haqi, kurs farqi…) o'zgarmaydi.
+ */
+export const xarajatTuri = pgTable(
+  'xarajat_turi',
+  {
+    id: id(),
+    nom: text('nom').notNull(),
+    ...ochirilmaydi,
+    ...izlar,
+  },
+  (t) => [
+    check('xarajat_turi_nom', sql`length(trim(${t.nom})) BETWEEN 1 AND 120`),
+    uniqueIndex('xarajat_turi_nom_yagona').on(sql`lower(${t.nom})`).where(sql`${t.faol}`),
+  ],
+);
+
 export const xarajat = pgTable(
   'xarajat',
   {
@@ -354,8 +373,12 @@ export const xarajat = pgTable(
     yaratildi: timestamp('yaratildi', { withTimezone: true })
       .notNull()
       .default(sql`now()`),
+    /** 0066 — faqat OPERATSION da; NULL — turi ko'rsatilmagan */
+    xarajatTuriId: bigint('xarajat_turi_id', { mode: 'number' }).references(() => xarajatTuri.id),
   },
   (t) => [
+    check('xarajat_turi_operatsion', sql`${t.xarajatTuriId} IS NULL OR ${t.modda} = 'OPERATSION'`),
+    index('xarajat_turi_idx').on(t.xarajatTuriId).where(sql`${t.xarajatTuriId} IS NOT NULL`),
     check(
       'xarajat_modda',
       sql`${t.modda} IN ('ISH_HAQI','TRANSPORT_BOJXONA','OMBOR_BRAKI',

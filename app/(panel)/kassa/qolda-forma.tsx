@@ -17,6 +17,8 @@ import { dollar, pulKorsat, som } from '@/lib/domain/pul';
 import { QOLDA_XARAJAT_MODDALARI, type QoldaXarajatModdasi } from '@/lib/domain/balans';
 import { ayirboshlashAmali, qolMaHodisaAmali, xarajatAmali } from './amal';
 import { BOSH_AYIRBOSHLASH, BOSH_HOLAT } from './holat';
+import { TanlovModal, type TanlovBandi } from '../tanlov-modal';
+import { XarajatTuriFormasi } from '../xarajat-turi/forma';
 
 export interface QoldaKassa {
   readonly id: number;
@@ -39,9 +41,20 @@ const pul = (summa: string, valyuta: string): string =>
 
 // ─── TZ 12.10 · Operatsion xarajat ────────────────────────────────────────
 
-export function XarajatFormasi({ kassalar }: { kassalar: readonly QoldaKassa[] }) {
+export function XarajatFormasi({
+  kassalar,
+  turlar,
+  turQoshaOladi,
+}: {
+  kassalar: readonly QoldaKassa[];
+  /** 0066 — egasi qo'shgan xarajat turlari (faqat Operatsion uchun) */
+  turlar: readonly TanlovBandi[];
+  /** «+ Yangi tur» — `sozlama.ozgartir` bor bo'lsa (himoya serverda) */
+  turQoshaOladi: boolean;
+}) {
   const [holat, yubor, kutilmoqda] = useActionState(xarajatAmali, BOSH_HOLAT);
   const [kassaId, kassaniOzgartir] = useState(String(kassalar[0]?.id ?? ''));
+  const [modda, moddaniOzgartir] = useState<string>(QOLDA_XARAJAT_MODDALARI[0]);
 
   const kassa = kassalar.find((k) => k.id === Number(kassaId));
 
@@ -92,7 +105,15 @@ export function XarajatFormasi({ kassalar }: { kassalar: readonly QoldaKassa[] }
         </Maydon>
 
         <Maydon nom="x-modda" yorliq="Modda">
-          <select id="x-modda" name="modda" className={`${kirishUslubi(false)} w-64`}>
+          <select
+            id="x-modda"
+            name="modda"
+            value={modda}
+            onChange={(e) => {
+              moddaniOzgartir(e.target.value);
+            }}
+            className={`${kirishUslubi(false)} w-64`}
+          >
             {QOLDA_XARAJAT_MODDALARI.map((kod) => (
               <option key={kod} value={kod}>
                 {MODDA_NOMI[kod]}
@@ -100,6 +121,21 @@ export function XarajatFormasi({ kassalar }: { kassalar: readonly QoldaKassa[] }
             ))}
           </select>
         </Maydon>
+
+        {/* 0066 — tur faqat Operatsion moddada (baza CHECK ham shunday) */}
+        {modda === 'OPERATSION' && (
+          <TanlovModal
+            nom="xarajatTuriId"
+            yorliq="Turi"
+            bandlar={turlar}
+            boshMatn="— ko‘rsatilmagan —"
+            yangiYorliq="Yangi tur"
+            modalSarlavha="Yangi xarajat turi"
+            qoshaOladi={turQoshaOladi}
+            boshqaruvYoli="/xarajat-turi"
+            forma={(saqla, yop) => <XarajatTuriFormasi saqlandi={saqla} bekor={yop} />}
+          />
+        )}
 
         <Maydon nom="x-summa" yorliq="Summa">
           <input

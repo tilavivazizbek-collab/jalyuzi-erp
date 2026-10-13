@@ -13,6 +13,7 @@
  *    Qaysi biri xarajat ekanini `lib/domain/balans.ts` hal qiladi (§2.2).
  */
 
+import { xarajatTuriniTekshir } from './xarajat-turi';
 import type postgres from 'postgres';
 import Decimal from 'decimal.js';
 import { chiqimQil, kassaYozuviQoshTx } from './kassa';
@@ -51,6 +52,8 @@ export async function operatsionXarajat(
     readonly valyuta: Valyuta;
     readonly modda: XarajatModdasi;
     readonly izoh: string;
+    /** 0066 — egasi qo'shgan tur; faqat OPERATSION da */
+    readonly xarajatTuriId?: number | null;
   },
   filialId: number,
   xodimId: number,
@@ -66,6 +69,7 @@ export async function operatsionXarajat(
   if (await kunYopiqmi(ulanish, kirim.kassaId, bugun)) {
     throw new BiznesXato('KUN_YOPILGAN', bugun);
   }
+  await xarajatTuriniTekshir(ulanish, kirim.xarajatTuriId ?? null, kirim.modda);
 
   // Manba «qo'lda» — 12.3: «Qo'lda kiritilgan yozuvda manba "qo'lda"
   // bo'ladi va u hech qaysi modulga ta'sir qilmaydi.»
@@ -87,6 +91,7 @@ export async function operatsionXarajat(
       filialId,
       sana: bugun,
       modda: kirim.modda,
+      xarajatTuriId: kirim.xarajatTuriId ?? null,
     },
     xodimId,
   );

@@ -147,6 +147,8 @@ const MENYU: readonly Guruh[] = [
       { yol: '/filial/hisob', nom: 'Filiallararo hisob', kod: 'filial.hisob' },
       // TZ 21.3 — oylik reja (korxona, filial, sotuvchi)
       { yol: '/sozlama/reja', nom: 'Rejalar', kod: 'reja.boshqar' },
+      // 0066 — egasi o'zi qo'shadigan xarajat turlari (QAMROV 4-qadam)
+      { yol: '/xarajat-turi', nom: 'Xarajat turlari', kod: 'sozlama.kor' },
     ],
   },
 ];
