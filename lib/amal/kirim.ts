@@ -38,6 +38,8 @@ import {
   type Som,
 } from '@/lib/domain/pul';
 import { xarajatYozTx } from './kassa';
+import { adminlarniOgohlantir } from './bildirishnoma';
+import { ustamaPastMatni } from '@/lib/domain/bildirishnoma';
 import { BiznesXato } from '@/lib/xato';
 import { yetkazibToloviTx } from './yetkazib-tolov';
 import { xaridKirimgaMosmiTx } from './xarid';
@@ -551,6 +553,34 @@ export async function kirimYarat(
           kursSnapshot: kirim.kursSnapshot,
           izoh: `Kirim ${kirim.raqam} uchun to'lov`,
           kirimId,
+        },
+        xodimId,
+      );
+    }
+
+    /**
+     * TZ 13.9 · 7.9 — «Ustama chegaradan past — adminga xabar». 2026-10-13
+     * gacha ogohlantirish faqat KIRIMNI KIRITGAN odamning ekranida chiqardi
+     * (odatda omborchi) — narxni o'zgartira oladigan admin bilmasdi.
+     * ⚠️ Navbatga — tranzaksiya ichida (2.1-invariant); bitta kirim — bitta xabar.
+     */
+    if (ogohlantirishlar.length > 0) {
+      await adminlarniOgohlantir(
+        tx,
+        {
+          filialId: kirim.filialId,
+          hodisa: 'USTAMA_PAST',
+          matn: ustamaPastMatni({
+            kirimRaqam: kirim.raqam,
+            qatorlar: ogohlantirishlar.map((o) => ({
+              materialNomi: o.materialNomi,
+              turNomi: o.turNomi,
+              ustama: o.ustamaFoiz.toFixed(1),
+              chegara: String(o.chegara),
+            })),
+          }),
+          manbaTuri: 'kirim',
+          manbaId: kirimId,
         },
         xodimId,
       );

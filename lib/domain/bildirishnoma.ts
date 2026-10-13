@@ -182,16 +182,31 @@ export function kamQoldiqMatni(qatorlar: readonly KamQoldiqQatori[]): string {
 }
 
 /** 13.9 · 7.8 — ustama chegaradan past. Faqat xabar. */
-export function ustamaPastMatni(k: {
+export interface UstamaQatori {
   readonly materialNomi: string;
+  /** Mijoz turi narxi (6.2); `null` — standart narx */
+  readonly turNomi: string | null;
+  /** Bir xona kasr bilan, masalan «12.5» */
   readonly ustama: string;
   readonly chegara: string;
-}): string {
+}
+
+/**
+ * 13.9 · 7.9 — kirimdan keyin yangi tannarx bo'yicha ustama chegaradan
+ * past. Faqat xabar (kirim BLOKLANMAYDI — mol kelib bo'lgan).
+ * 2026-10-13: bitta kirim — BITTA xabar (material boshiga emas).
+ */
+export function ustamaPastMatni(k: { readonly kirimRaqam: string; readonly qatorlar: readonly UstamaQatori[] }): string {
   return [
     '📊 *USTAMA CHEGARADAN PAST*',
+    `Kirim ${md(k.kirimRaqam)} — yangi tannarx bo‘yicha`,
     '',
-    `${md(k.materialNomi)}: ${k.ustama}%`,
-    `Eng kami: ${k.chegara}%`,
+    ...qisqaRoyxat(
+      k.qatorlar.map(
+        (q) =>
+          `• ${md(q.materialNomi)}${q.turNomi === null ? '' : ` (${md(q.turNomi)} narxi)`}: ${q.ustama}% · eng kami ${q.chegara}%`,
+      ),
+    ),
     '',
     'Sotuv narxini yoki tannarxni ko‘rib chiqing (7.8).',
   ].join('\n');

@@ -178,4 +178,45 @@ describe('TZ 13.9 — amal paytidagi admin xabarlari', () => {
     expect(bosh?.manba_turi).toBe('topshiriq_nusxa');
     expect(bosh?.matn).toContain('Tasdiqlash — filial adminida');
   });
+
+  it('EC-AX-06: kirimda ustama chegaradan past — adminga BITTA xabar', async () => {
+    const y = await sql<{ id: number }[]>`
+      INSERT INTO yetkazib_beruvchi (nom, yaratdi_id) VALUES (${`AX ustama ${BELGI}`}, ${XODIM}) RETURNING id`;
+    // Tannarx 1000/m ÷ 3 m = 333 so'm/kv.m; sotuv 300 — ustama manfiy
+    const m = await sql<{ id: number }[]>`
+      INSERT INTO material (nom, hisob_turi, kirim_birligi, sarflash_birligi, koeffitsient, sotuv_narx, yaratdi_id)
+      VALUES (${`AX arzon ${BELGI}`}, 'RULON', 'rulon', 'KV_M', '1', '300', ${XODIM}) RETURNING id`;
+    const { kirimId, ogohlantirishlar } = await kirimYarat(
+      sql,
+      {
+        raqam: `K-AXU-${BELGI}`,
+        sana: toshkentKuni(),
+        filialId,
+        yetkazibBeruvchiId: y[0]?.id ?? 0,
+        valyuta: 'SOM',
+        kursSnapshot: null,
+        transportSumma: '0',
+        bojxonaSumma: '0',
+        tolovMuddati: null,
+        qatorlar: [
+          {
+            materialId: m[0]?.id ?? 0,
+            miqdorKirim: 1,
+            narxBirlik: '1000',
+            narxAsosi: 'METR',
+            defektMiqdor: 0,
+            defektTuri: null,
+            bolaklar: [{ eniM: 3, boyiM: 50 }],
+          },
+        ],
+      },
+      XODIM,
+    );
+    expect(ogohlantirishlar.length).toBeGreaterThan(0);
+    const x = await sql<{ matn: string }[]>`
+      SELECT matn FROM bot_xabar WHERE manba_turi = 'kirim' AND manba_id = ${kirimId} AND xodim_id <> ${boshAdminId ?? 0}`;
+    expect(x).toHaveLength(1);
+    expect(x[0]?.matn).toContain('USTAMA CHEGARADAN PAST');
+    expect(x[0]?.matn).toContain(`AX arzon ${BELGI}`);
+  });
 });

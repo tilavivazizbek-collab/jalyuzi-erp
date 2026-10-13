@@ -211,9 +211,17 @@ describe('boshqa admin xabarlari', () => {
     expect(m).toContain('−50 000');
   });
 
-  it('ustama past — nima qilish kerakligi aytiladi', () => {
-    const m = ustamaPastMatni({ materialNomi: 'Ko‘k to‘r', ustama: '12', chegara: '30' });
-    expect(m).toContain('Ko‘k to‘r');
+  it('ustama past — bitta kirim, bitta xabar; tur narxi ko‘rsatiladi', () => {
+    const m = ustamaPastMatni({
+      kirimRaqam: 'K-12',
+      qatorlar: [
+        { materialNomi: 'Ko‘k to‘r', turNomi: null, ustama: '12.0', chegara: '30' },
+        { materialNomi: 'Ko‘k to‘r', turNomi: 'Optom', ustama: '-4.5', chegara: '30' },
+      ],
+    });
+    expect(m).toContain('Kirim K-12');
+    expect(m).toContain('• Ko‘k to‘r: 12.0% · eng kami 30%');
+    expect(m).toContain('• Ko‘k to‘r (Optom narxi): -4.5% · eng kami 30%');
     expect(m).toContain('7.8');
   });
 });
