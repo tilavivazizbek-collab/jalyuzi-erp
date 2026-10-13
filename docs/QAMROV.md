@@ -37,6 +37,7 @@ buyurtmani tahrirlash (8.7), material statistikasi (7.11)
 | Nazorat (/hisobot/nazorat, audit.kor): odatdan tashqari amallar — kassa storno, kun yopish farqi, kun qayta ochish, tungi (22–07) kassa yozuvi, buyurtma bekor (kelgan pul bilan), qo'lda narx, chegirma limitdan, holat qo'lda, umidsiz qarz, ombor storno, orqa sanali kirim, ruxsat/sozlama/parol, kirish bloki; xodim kesimi ism bo'yicha (reyting yo'q — 11.5.6) — EC-NAZ-01/02 | ✅ |
 | Kechki hisobot (Telegram, /api/cron/kechki-hisobot, x-cron-secret): kassa yopilish soatidan keyin filial adminlariga kun yakuni — yangi buyurtmalar, pul oqimi, kassadagi pul, keyingi 7 kun to'lovlari, «pul yetmaydi», muddati o'tgan qarz, ma'lumot muammolari, odatdan tashqari amallar; kuniga bir marta — EC-KECH-01/02 | ✅ |
 | Admin xabarlari TZ 13.9: kun yopish farqi va hisobdan chiqarish (zarar bilan) amal paytida; kunlik cron — kam qoldiq (/api/cron/kam-qoldiq), to'lov muddati (/api/cron/yetkazib-muddat), kechikkan buyurtmalar (/api/cron/muddat-nazorat); kuniga bir marta, advisory lock bilan parallel chaqiruvda ham bitta xabar; Telegram Markdown ekranlash (md) — EC-AX-01..03, EC-KX-01..05 | ✅ |
+| TZ 20.14.3: bosh admin barcha filial xabarlarini oladi, xabarda filial nomi (bir nechta filial bo'lsa); tugmali xabarlar (pul topshirig'i, qayta kesish) bosh adminga TUGMASIZ nusxa; bot tugmalari filialni tekshiradi (§9.4) — EC-AX-04/05 | ✅ |
 | Dollar xarajatlar foyda-zararga kirmaydi (ogoh chiqadi) | ⏳ kurs bilan qo'shish — keyin |
 
 ## 0*. Buyurtmalar (sotuv) — audit 2026-10-10

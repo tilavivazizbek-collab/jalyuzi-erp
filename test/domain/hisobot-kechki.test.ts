@@ -4,7 +4,6 @@ import { cronKalitiTogrimi } from '@/lib/kirish/cron';
 
 const asos: KechkiKirimi = {
   sana: '2026-10-12',
-  filial: 'Markaz',
   buyurtmaSoni: 0,
   buyurtmaSumma: '0',
   mijozdanTushdi: '0',
@@ -22,7 +21,8 @@ const asos: KechkiKirimi = {
 describe('kechki hisobot matni', () => {
   it('tinch kun — nol qatorlar va ogohlantirish yo‘q', () => {
     const m = kechkiHisobotMatni(asos);
-    expect(m).toContain('Kun yakuni — 12.10.2026, Markaz');
+    // Filial nomi bu yerda emas — umumiy sarlavhada (filialliMatn)
+    expect(m.startsWith('📊 Kun yakuni — 12.10.2026\n')).toBe(true);
     expect(m).toContain('Bugun yangi buyurtma yo‘q');
     expect(m).not.toContain('Mijozlardan');
     expect(m).not.toContain('Keyingi 7 kun');

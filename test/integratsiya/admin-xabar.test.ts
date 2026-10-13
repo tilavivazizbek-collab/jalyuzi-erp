@@ -11,6 +11,7 @@ import { ulanishOl } from '@/lib/db';
 import { kunniYop } from '@/lib/amal/kun-yopish';
 import { kirimYarat } from '@/lib/amal/kirim';
 import { hisobdanChiqar } from '@/lib/amal/hisobdan';
+import { adminlarniOgohlantir } from '@/lib/amal/bildirishnoma';
 import { toshkentKuni } from '@/lib/domain/sana';
 import { sinovUlanishi } from './yordamchi';
 
@@ -34,7 +35,14 @@ beforeAll(async () => {
   await sql`INSERT INTO xodim_rol (xodim_id, rol_id, yaratdi_id) VALUES (${x[0]?.id ?? 0}, ${rol[0]?.id ?? 0}, ${XODIM})`;
 }, 60_000);
 
+/** Bosh filial admini — EC-AX-04 da yaratiladi, oxirida o'chiriladi */
+let boshAdminId: number | null = null;
+
 afterAll(async () => {
+  // ⚠️ Qoldirilsa keyingi test fayllaridagi «xabar 0 ta» kutilmalari buziladi
+  if (boshAdminId !== null) {
+    await sql`UPDATE xodim SET telegram_id = NULL, faol = false WHERE id = ${boshAdminId}`;
+  }
   await sql.end({ timeout: 5 });
   await ulanishOl().end({ timeout: 5 });
 });
@@ -119,5 +127,55 @@ describe('TZ 13.9 — amal paytidagi admin xabarlari', () => {
     // Material nomidagi «_» ekranlangan — Telegram xabarni rad etmaydi
     expect(x[0]?.matn).toContain(String.raw`AX\_mato`);
     expect(x[0]?.matn).toMatch(/Zarar: .+ so'm/);
+  });
+
+  it('EC-AX-04: TZ 20.14.3 — bosh admin boshqa filial xabarini ham oladi, filial nomi bilan', async () => {
+    const bosh = await sql<{ id: number }[]>`SELECT id FROM filial WHERE bosh LIMIT 1`;
+    const rol = await sql<{ id: number }[]>`SELECT id FROM rol WHERE kod = 'ADMIN'`;
+    const b = await sql<{ id: number }[]>`
+      INSERT INTO xodim (filial_id, ism, telefon, telegram_id, yaratdi_id)
+      VALUES (${bosh[0]?.id ?? 0}, ${`Bosh admin ${BELGI}`}, ${`9982${BELGI}9`}, ${Number(`6${BELGI}09`)}, ${XODIM})
+      RETURNING id`;
+    boshAdminId = b[0]?.id ?? null;
+    await sql`INSERT INTO xodim_rol (xodim_id, rol_id, yaratdi_id) VALUES (${boshAdminId}, ${rol[0]?.id ?? 0}, ${XODIM})`;
+
+    // Alohida filial — bitta filialda bitta NAQD SOM kassa (kassa_filial_bitta)
+    const f2 = await sql<{ id: number }[]>`
+      INSERT INTO filial (nom, sotadi, ishlab_chiqaradi, bosh, yaratdi_id)
+      VALUES (${`AX ikkinchi ${BELGI}`}, true, true, false, ${XODIM}) RETURNING id`;
+    const k = await sql<{ id: number }[]>`
+      INSERT INTO kassa (filial_id, turi, valyuta, nom, yaratdi_id)
+      VALUES (${f2[0]?.id ?? 0}, 'NAQD', 'SOM', ${`AX bosh ${BELGI}`}, ${XODIM}) RETURNING id`;
+    const kecha = toshkentKuni(new Date(Date.now() - KUN));
+    await sql`
+      INSERT INTO kassa_yozuv (sana, kassa_id, kod, summa, valyuta, manba_turi, manba_id, xodim_id)
+      VALUES (${`${kecha} 12:00+05`}, ${k[0]?.id ?? 0}, 'K9', 1000, 'SOM', 'sinov', ${Number(BELGI) + 1}, ${XODIM})`;
+    const { kunId } = await kunniYop(sql, { kassaId: k[0]?.id ?? 0, sana: kecha, sanaldi: '900', izoh: 'kam' }, XODIM);
+
+    const x = await sql<{ xodim_id: number; matn: string }[]>`
+      SELECT xodim_id, matn FROM bot_xabar WHERE manba_turi = 'kassa_kun' AND manba_id = ${kunId}`;
+    // Ikkinchi filialning o'z Telegramli admini yo'q — xabarni faqat bosh admin oladi
+    expect(x).toHaveLength(1);
+    expect(x[0]?.xodim_id).toBe(boshAdminId);
+    expect(x[0]?.matn.startsWith(`🏢 AX ikkinchi ${BELGI}\n`)).toBe(true);
+  });
+
+  it('EC-AX-05: tugmali xabar — bosh adminga TUGMASIZ nusxa, o‘z adminiga tugmali', async () => {
+    const manbaId = Number(BELGI);
+    const { yozildi } = await adminlarniOgohlantir(
+      sql,
+      { filialId, hodisa: 'PUL_TOPSHIRILDI', matn: 'Sinov topshiriq', manbaTuri: 'topshiriq', manbaId },
+      XODIM,
+    );
+    expect(yozildi).toBe(2);
+    const x = await sql<{ xodim_id: number; manba_turi: string; matn: string }[]>`
+      SELECT xodim_id, manba_turi, matn FROM bot_xabar
+      WHERE manba_id = ${manbaId} AND manba_turi IN ('topshiriq', 'topshiriq_nusxa')`;
+    const bosh = x.find((q) => q.xodim_id === boshAdminId);
+    const oz = x.find((q) => q.xodim_id !== boshAdminId);
+    expect(oz?.manba_turi).toBe('topshiriq');
+    expect(oz?.matn).not.toContain('filial adminida');
+    expect(bosh?.manba_turi).toBe('topshiriq_nusxa');
+    expect(bosh?.matn).toContain('Tasdiqlash — filial adminida');
   });
 });

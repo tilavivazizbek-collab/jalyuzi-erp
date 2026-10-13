@@ -8,6 +8,7 @@ import { describe, expect, it } from 'vitest';
 import {
   ADMIN_HODISALARI,
   bekorMatni,
+  filialliMatn,
   hisobdanChiqarildiMatni,
   kamQoldiqMatni,
   kechikkanBuyurtmalarMatni,
@@ -278,6 +279,11 @@ describe('Markdown ekranlash — «_», «*», «`», «[» xabarni buzmasin', (
     expect(m).toContain(String.raw`Mato\_premium`);
     expect(m).toContain(String.raw`Sabab: \*yirtiq\* \[chet]`);
     expect(m).toContain('Kim: Ali\\`');
+  });
+
+  it('TZ 20.14.3 — filial nomi faqat bir nechta filial bo‘lsa (ekranlangan)', () => {
+    expect(filialliMatn('Sam_arqand', 3, 'X')).toBe(String.raw`🏢 Sam\_arqand` + '\nX');
+    expect(filialliMatn('Bosh', 1, 'X')).toBe('X');
   });
 
   it('mijozga bekor sababi ham ekranlanadi; oddiy matn o‘zgarmaydi', () => {

@@ -25,6 +25,15 @@ export function md(matn: string): string {
   return matn.replace(/([_*`[])/g, '\\$1');
 }
 
+/**
+ * TZ 20.14.3 — admin xabari tepasida filial nomi («🔔 Samarqand · …»).
+ * ⚠️ Faqat bir nechta filial bo'lsa: yagona filialda har xabarda bir xil
+ *    nom faqat shovqin.
+ */
+export function filialliMatn(filial: string, faolFiliallar: number, matn: string): string {
+  return faolFiliallar > 1 ? `🏢 ${md(filial)}\n${matn}` : matn;
+}
+
 // ─── 13.9 · Admin bildirishnomalari ───────────────────────────────────────
 
 export const ADMIN_HODISALARI = [

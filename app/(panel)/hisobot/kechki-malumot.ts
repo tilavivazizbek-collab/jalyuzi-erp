@@ -34,8 +34,7 @@ export async function kechkiHisobotMalumoti(filialId: number): Promise<KechkiKir
   const sql = ulanishOl();
   const hozir = new Date();
   const bugunDavr = davrYasa('BUGUN', hozir);
-  const [filial, savdo, kassa, prognozXom, salomatlik, nazorat] = await Promise.all([
-    sql<{ nom: string }[]>`SELECT nom FROM filial WHERE id = ${filialId}`,
+  const [savdo, kassa, prognozXom, salomatlik, nazorat] = await Promise.all([
     sql<{ n: number; s: string | null }[]>`
       SELECT COUNT(DISTINCT b.id)::int AS n,
              SUM((COALESCE(p.narx_snapshot, 0) - COALESCE(p.chegirma_summa, 0))
@@ -76,7 +75,6 @@ export async function kechkiHisobotMalumoti(filialId: number): Promise<KechkiKir
   const k = kassa[0];
   return {
     sana: prognozXom.bugun,
-    filial: filial[0]?.nom ?? '',
     buyurtmaSoni: savdo[0]?.n ?? 0,
     buyurtmaSumma: savdo[0]?.s ?? '0',
     mijozdanTushdi: k?.mijoz ?? '0',

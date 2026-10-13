@@ -14,7 +14,7 @@
 
 import type postgres from 'postgres';
 import { xabarNavbatgaQoy } from './bot';
-import type { AdminHodisasi } from '@/lib/domain/bildirishnoma';
+import { filialliMatn, tugmaliMi, type AdminHodisasi } from '@/lib/domain/bildirishnoma';
 import { VAQT_ZONASI } from '@/lib/domain/sana';
 
 type Soruvchi = postgres.Sql | postgres.TransactionSql;
@@ -22,8 +22,11 @@ type Soruvchi = postgres.Sql | postgres.TransactionSql;
 /**
  * TZ 13.9 — bildirishnoma **adminlarga** boradi.
  *
- * ⚠️ Q-25 — faqat SHU filial adminlariga. Boshqa filialning qayta
- *    kesish so'rovi bu odamga tegishli emas va u hal qila olmaydi.
+ * ⚠️ TZ 20.14.3 — «Bosh admin barcha filial xabarlarini oladi. Filial
+ *    admini faqat o'zinikini.» Bosh admin — bosh filialdagi ADMIN
+ *    (`lib/ruxsat/tekshir.ts` dagi ta'rif bilan bir xil). 2026-10-13 gacha
+ *    faqat shu filial adminlariga borardi: bosh admin boshqa filialdagi
+ *    kassa kamomadi yoki brak haqida bilmasdi.
  *
  * ⚠️ Telegrami ulanmagan admin ro'yxatga tushmaydi: unga yuborib
  *    bo'lmaydi. Bu jim yo'qotish emas — sayt baribir hammasini
@@ -32,19 +35,20 @@ type Soruvchi = postgres.Sql | postgres.TransactionSql;
 export async function filialAdminlari(
   soruvchi: Soruvchi,
   filialId: number,
-): Promise<readonly { xodimId: number; telegramId: number }[]> {
-  const q = await soruvchi<{ id: number; telegram_id: number }[]>`
-    SELECT DISTINCT x.id, x.telegram_id
+): Promise<readonly { xodimId: number; telegramId: number; ozFiliali: boolean }[]> {
+  const q = await soruvchi<{ id: number; telegram_id: number; oz: boolean }[]>`
+    SELECT DISTINCT x.id, x.telegram_id, (x.filial_id = ${filialId}) AS oz
     FROM xodim x
+    JOIN filial xf    ON xf.id = x.filial_id
     JOIN xodim_rol xr ON xr.xodim_id = x.id
     JOIN rol r        ON r.id = xr.rol_id
-    WHERE x.filial_id = ${filialId}
+    WHERE (x.filial_id = ${filialId} OR xf.bosh)
       AND x.faol = true
       AND x.telegram_id IS NOT NULL
       AND r.kod = 'ADMIN'
       AND r.faol = true`;
 
-  return q.map((x) => ({ xodimId: x.id, telegramId: x.telegram_id }));
+  return q.map((x) => ({ xodimId: x.id, telegramId: x.telegram_id, ozFiliali: x.oz }));
 }
 
 /**
@@ -65,15 +69,32 @@ export async function adminlarniOgohlantir(
   yaratdiId: number,
 ): Promise<{ yozildi: number }> {
   const adminlar = await filialAdminlari(soruvchi, kirim.filialId);
+  if (adminlar.length === 0) return { yozildi: 0 };
 
+  // TZ 20.14.3 — xabarda filial nomi (bosh admin qaysi filialdan ekanini bilsin)
+  const f = await soruvchi<{ nom: string; faollar: number }[]>`
+    SELECT nom, (SELECT COUNT(*)::int FROM filial WHERE faol AND ochirildi IS NULL) AS faollar
+    FROM filial WHERE id = ${kirim.filialId}`;
+  const matn = filialliMatn(f[0]?.nom ?? '', f[0]?.faollar ?? 1, kirim.matn);
+
+  const manbaTuri = kirim.manbaTuri ?? kirim.hodisa.toLowerCase();
   for (const a of adminlar) {
+    /**
+     * ⚠️ Bosh adminga BOSHQA filialdan — faqat ma'lumot, TUGMASIZ nusxa.
+     *    «Pul topshirildi» ni pulni QO'LIDA olgan odam tasdiqlaydi; bosh
+     *    admin Toshkentdan turib Samarqand kassasiga kelmagan pulni
+     *    «qabul qildim» deb qo'ya olmasin. Qayta kesish ham — material
+     *    o'sha filial omborida. Tugma `manba_turi` bo'yicha quriladi
+     *    (`bot/yuboruvchi.ts`) — `_nusxa` uni o'chiradi.
+     */
+    const nusxa = !a.ozFiliali && tugmaliMi(kirim.hodisa);
     await xabarNavbatgaQoy(
       soruvchi,
       {
         telegramId: a.telegramId,
-        matn: kirim.matn,
+        matn: nusxa ? `${matn}\n\nℹ️ Tasdiqlash — filial adminida` : matn,
         xodimId: a.xodimId,
-        manbaTuri: kirim.manbaTuri ?? kirim.hodisa.toLowerCase(),
+        manbaTuri: nusxa ? `${manbaTuri}_nusxa` : manbaTuri,
         manbaId: kirim.manbaId ?? null,
       },
       yaratdiId,

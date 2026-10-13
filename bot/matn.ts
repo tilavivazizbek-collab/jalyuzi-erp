@@ -101,6 +101,7 @@ export const MATN = {
     radEt: '❌ Rad etish',
     tasdiqlandi: 'Tasdiqlandi.',
     radEtildi: 'Rad etildi.',
+    boshqaFilial: 'Bu boshqa filialniki — tasdiqlash o‘sha filial adminida.',
   },
 
   // ── 13.1 · Panel almashish ────────────────────────────────────────────

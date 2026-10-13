@@ -126,6 +126,31 @@ export function qaytaKesishXabari(sorovId: number, matn: string) {
   };
 }
 
+/**
+ * Tugma amali qaysi filialga tegishli. §9.4 — tugma ma'lumotiga
+ * ishonilmaydi: callback raqamini qo'lda yuborib boshqa filialning
+ * so'rovini tasdiqlab bo'lmasin (2026-10-13 gacha tekshiruv yo'q edi).
+ *
+ * ⚠️ Pul topshirig'i — QABUL QILUVCHI kassa filiali (pulni qo'lida
+ *    olgan odam tasdiqlaydi). Qayta kesish — ishlab chiqaruvchi filial
+ *    (xabar ham o'sha filialga boradi, `qaytaKesishSora`).
+ */
+async function amalFiliali(turi: 'qayta_kesish' | 'topshiriq', id: number): Promise<number | null> {
+  const sql = ulanishOl();
+  const q =
+    turi === 'topshiriq'
+      ? await sql<{ f: number }[]>`
+          SELECT k.filial_id AS f FROM topshiriq t JOIN kassa k ON k.id = t.kimga_kassa_id
+          WHERE t.id = ${id}`
+      : await sql<{ f: number }[]>`
+          SELECT b.ishlab_chiqaruvchi_filial_id AS f
+          FROM qayta_kesish qk
+          JOIN buyurtma_pozitsiya p ON p.id = qk.buyurtma_pozitsiya_id
+          JOIN buyurtma b ON b.id = p.buyurtma_id
+          WHERE qk.id = ${id}`;
+  return q[0]?.f ?? null;
+}
+
 // ─── Panelni ulash ────────────────────────────────────────────────────────
 
 export interface AdminKimligi {
@@ -171,6 +196,10 @@ export function adminPaneliniUla(
 
       const tasdiqlansinmi = ctx.match[1] === 'ha';
       const sorovId = Number(ctx.match[2]);
+      if ((await amalFiliali('qayta_kesish', sorovId)) !== a.filialId) {
+        await ctx.reply(MATN.admin.boshqaFilial);
+        return;
+      }
 
       const { takrormi } = await birMartaBajar(
         ulanishOl(),
@@ -209,6 +238,10 @@ export function adminPaneliniUla(
       if (a === null || tg === undefined) return;
 
       const topshiriqId = Number(ctx.match[1]);
+      if ((await amalFiliali('topshiriq', topshiriqId)) !== a.filialId) {
+        await ctx.reply(MATN.admin.boshqaFilial);
+        return;
+      }
 
       const { takrormi } = await birMartaBajar(
         ulanishOl(),
