@@ -13,7 +13,13 @@ import { sinovUlanishi } from './yordamchi';
 let sql: Ulanish;
 let kassaId = 0;
 
-const FILIAL = 1;
+/**
+ * ⚠️ Har yurishda O'Z filiali va kassasi (2026-10-13). Ilgari filial 1
+ *    dagi umumiy BANK kassasi qayta ishlatilardi: avvalgi yurishlar
+ *    tasodifiy sanalarda qoldirgan yozuvlar ba'zan shu yurishning
+ *    sanasiga tushib, K-09 «tasodifan» qizarardi.
+ */
+let FILIAL = 0;
 const XODIM = 1;
 
 let hisoblagich = 0;
@@ -56,15 +62,10 @@ const yangiSana = (): string => {
 beforeAll(async () => {
   sql = sinovUlanishi();
 
-  const bor = await sql<{ id: number }[]>`
-    SELECT id FROM kassa
-    WHERE filial_id = ${FILIAL} AND xodim_id IS NULL AND turi = 'BANK'
-      AND valyuta = 'SOM'`;
-
-  if (bor[0] !== undefined) {
-    kassaId = bor[0].id;
-    return;
-  }
+  const f = await sql<{ id: number }[]>`
+    INSERT INTO filial (nom, sotadi, ishlab_chiqaradi, bosh, yaratdi_id)
+    VALUES (${`Kun sinov ${String(Date.now())}`}, true, true, false, ${XODIM}) RETURNING id`;
+  FILIAL = f[0]?.id ?? 0;
 
   const q = await sql<{ id: number }[]>`
     INSERT INTO kassa (filial_id, xodim_id, turi, valyuta, nom, yaratdi_id)
