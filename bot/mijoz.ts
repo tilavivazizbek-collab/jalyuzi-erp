@@ -17,6 +17,7 @@ import type { PozitsiyaHolati } from '@/lib/domain/buyurtma';
 import { pulKorsat, som, dollar } from '@/lib/domain/pul';
 import { matoNarxi } from '@/lib/domain/narx';
 import { amaldagiOffset } from '@/lib/domain/mijoz';
+import { md } from '@/lib/domain/bildirishnoma';
 import { MATN } from './matn';
 import { xavfsiz, type BotKontekst } from './yordamchi';
 
@@ -361,9 +362,10 @@ export async function boglanishKorsat(ctx: BotKontekst): Promise<void> {
   const tel = olish('korxona_telefon');
   const manzil = olish('korxona_manzil');
 
-  if (nom !== null) qatorlar.push(nom);
-  if (tel !== null) qatorlar.push(`Telefon: ${tel}`);
-  if (manzil !== null) qatorlar.push(`Manzil: ${manzil}`);
+  // ⚠️ Korxona rekvizitlari egasi kiritadi — Markdown uchun ekranlanadi
+  if (nom !== null) qatorlar.push(md(nom));
+  if (tel !== null) qatorlar.push(`Telefon: ${md(tel)}`);
+  if (manzil !== null) qatorlar.push(`Manzil: ${md(manzil)}`);
 
   if (qatorlar.length === 2) {
     qatorlar.push('Aloqa ma‘lumotlari hali kiritilmagan.');

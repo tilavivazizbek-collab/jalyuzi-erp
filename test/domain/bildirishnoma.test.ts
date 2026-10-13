@@ -15,6 +15,7 @@ import {
   kamQoldiqMatni,
   kechikkanBuyurtmalarMatni,
   md,
+  qalin,
   oylikYakunMatni,
   kunFarqiMatni,
   pulTopshirildiMatni,
@@ -293,6 +294,12 @@ describe('Markdown ekranlash — «_», «*», «`», «[» xabarni buzmasin', (
     expect(m).toContain(String.raw`Mato\_premium`);
     expect(m).toContain(String.raw`Sabab: \*yirtiq\* \[chet]`);
     expect(m).toContain('Kim: Ali\\`');
+  });
+
+  it('qalin — entity ichidagi maxsus belgi olib tashlanadi; bo‘sh qolsa yulduzsiz', () => {
+    expect(qalin('Asosiy_mato *yangi*')).toBe('*Asosiymato yangi*');
+    expect(qalin('[Rolik]')).toBe('*Rolik*');
+    expect(qalin('**')).toBe('');
   });
 
   it('TZ 20.14.3 — filial nomi faqat bir nechta filial bo‘lsa (ekranlangan)', () => {

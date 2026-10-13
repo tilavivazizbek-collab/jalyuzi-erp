@@ -11,6 +11,8 @@
  *    o'qiydi. Uzun jumla va texnik atama yo'q.
  */
 
+import { qalin } from '@/lib/domain/bildirishnoma';
+
 export const MATN = {
   // ── 13.2 · Ro'yxatdan o'tish ──────────────────────────────────────────
   salom:
@@ -39,7 +41,8 @@ export const MATN = {
 
   // ── 13.4 · Buyurtma oqimi ─────────────────────────────────────────────
   turTanla: 'Qanday mahsulot kerak?',
-  matoTanla: (slot: string): string => `*${slot}* uchun mato tanlang:`,
+  // ⚠️ Slot nomi admin kiritadi — `qalin` maxsus belgini olib tashlaydi (Markdown)
+  matoTanla: (slot: string): string => `${qalin(slot)} uchun mato tanlang:`,
   matoYoq: "Bu mahsulot uchun hozircha mato yo'q.",
   boshqaTur: '🔄 Boshqa turni tanlash',
   eniSora: 'Enini METRDA yozing (masalan 2.1):',

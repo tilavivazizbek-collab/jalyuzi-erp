@@ -28,6 +28,16 @@ export function md(matn: string): string {
 }
 
 /**
+ * Foydalanuvchi matni QALIN (`*...*`) ichida. Eski Markdown entity ichida
+ * ekranlashni bilmaydi — shuning uchun maxsus belgilar OLIB TASHLANADI
+ * (nom ko'rinishi biroz o'zgaradi, lekin xabar rad etilmaydi). 2026-10-13
+ */
+export function qalin(matn: string): string {
+  const t = matn.replace(/[_*`[\]]/g, '').trim();
+  return t === '' ? '' : `*${t}*`;
+}
+
+/**
  * TZ 20.14.3 — admin xabari tepasida filial nomi («🔔 Samarqand · …»).
  * ⚠️ Faqat bir nechta filial bo'lsa: yagona filialda har xabarda bir xil
  *    nom faqat shovqin.
