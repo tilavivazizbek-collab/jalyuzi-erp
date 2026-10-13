@@ -29,3 +29,4 @@ export * from './narx';
 export * from './kassa';
 export * from './filial-hisob';
 export * from './bot';
+export * from './reja';

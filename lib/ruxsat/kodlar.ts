@@ -229,6 +229,10 @@ export const RUXSATLAR = {
   'hisobot.mijoz.kor': { nom: 'Mijozlar hisobotlari', guruh: 'Hisobot', band: '11.6' },
   'hisobot.moliya.kor': { nom: 'Moliya hisobotlari', guruh: 'Hisobot', band: '11.4' },
 
+  // ── Rejalar — TZ 21 (2026-10-13) ───────────────────────────────────────
+  'reja.kor': { nom: "Reja va faktni ko'rish", guruh: 'Hisobot', band: '21.6' },
+  'reja.boshqar': { nom: "Reja qo'yish va o'zgartirish", guruh: 'Sozlamalar', band: '21.3' },
+
   // ── Spravochniklar — TZ 4, 5, 6, 9 ─────────────────────────────────────
   'material.kor': { nom: "Materiallarni ko'rish", guruh: 'Spravochnik', band: '5.1' },
   'material.yarat': { nom: "Material qo'shish", guruh: 'Spravochnik', band: '5.1' },

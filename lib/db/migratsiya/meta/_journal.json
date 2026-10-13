@@ -449,6 +449,13 @@
       "when": 1790750000000,
       "tag": "0064_kassa_farqi",
       "breakpoints": true
+    },
+    {
+      "idx": 65,
+      "version": "7",
+      "when": 1790840000000,
+      "tag": "0065_reja",
+      "breakpoints": true
     }
   ]
 }

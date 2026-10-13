@@ -88,6 +88,13 @@ export const AUDIT_AMALLARI = {
     sababMajburiy: true,
   },
   KUN_YOPILDI: { nom: 'Kun yopildi', band: 'TZ 2.4, 12.17', sababMajburiy: false },
+  /** TZ 21 — reja (0065, 2026-10-13) */
+  REJA_QOYILDI: { nom: 'Reja qo‘yildi', band: 'TZ 21.3', sababMajburiy: false },
+  /**
+   * TZ 21.4 — eski qiymat saqlanadi. Sabab faqat OY BOSHLANGACH majburiy
+   * (`lib/amal/reja.ts` tekshiradi) — oydan oldingi tuzatish sababsiz.
+   */
+  REJA_OZGARDI: { nom: 'Reja o‘zgartirildi', band: 'TZ 21.4', sababMajburiy: false },
   /** Q-03 — material yetmagani BUYURTMA BERILAYOTGANDA bilinadi */
   SLOT_MATERIALI_YETMADI: {
     nom: 'Slot materiali yetmadi',
