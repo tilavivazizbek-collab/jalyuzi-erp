@@ -11,6 +11,20 @@
 
 import Decimal from 'decimal.js';
 
+/**
+ * Telegram «Markdown» (eski) uchun FOYDALANUVCHI matnini ekranlaydi.
+ *
+ * ⚠️ Yuboruvchi hamma xabarni `parse_mode: 'Markdown'` bilan jo'natadi.
+ *    Ism, sabab yoki material nomida «_», «*», «`», «[» bo'lsa Telegram
+ *    xabarni rad etardi («can't parse entities») va u jim «yetmadi»
+ *    bo'lib qolardi (2026-10-12 topildi).
+ * ⚠️ Faqat ERKIN matnga — sarlavhadagi «*...*» ga emas: entity ichida
+ *    ekranlash ishlamaydi, shuning uchun buyurtma raqami «*» ichida qoladi.
+ */
+export function md(matn: string): string {
+  return matn.replace(/([_*`[])/g, '\\$1');
+}
+
 // ─── 13.9 · Admin bildirishnomalari ───────────────────────────────────────
 
 export const ADMIN_HODISALARI = [
@@ -57,9 +71,9 @@ export function qaytaKesishSoroviMatni(k: {
   const qatorlar = [
     '⚠️ *QAYTA KESISH SO‘ROVI*',
     '',
-    `${k.buyurtmaRaqami} · poz. ${String(k.tartib)}`,
-    `Usta: ${k.ustaIsmi}`,
-    `Sabab: ${k.sabab}`,
+    `${md(k.buyurtmaRaqami)} · poz. ${String(k.tartib)}`,
+    `Usta: ${md(k.ustaIsmi)}`,
+    `Sabab: ${md(k.sabab)}`,
   ];
 
   /**
@@ -85,12 +99,12 @@ export function pulTopshirildiMatni(k: {
   const qatorlar = [
     '💵 *PUL TOPSHIRILDI*',
     '',
-    `${k.sotuvchiIsmi}: ${k.summa} ${k.valyuta}`,
+    `${md(k.sotuvchiIsmi)}: ${k.summa} ${k.valyuta}`,
   ];
 
   // 22.5.2 — boshqa filialdan kelgan pul qarz tug'diradi
   if (k.begonaFilial !== null) {
-    qatorlar.push('', `⚠️ ${k.begonaFilial} sotuvchisi — qarz yoziladi (22.5)`);
+    qatorlar.push('', `⚠️ ${md(k.begonaFilial)} sotuvchisi — qarz yoziladi (22.5)`);
   }
 
   qatorlar.push('', 'Pul siz tasdiqlaguningizcha uning kassasida turadi.');
@@ -107,9 +121,9 @@ export function hisobdanChiqarildiMatni(k: {
   return [
     '📉 *HISOBDAN CHIQARILDI*',
     '',
-    `${k.materialNomi} · ${k.bolakKod}`,
-    `Sabab: ${k.sabab}`,
-    `Kim: ${k.kim}`,
+    `${md(k.materialNomi)} · ${md(k.bolakKod)}`,
+    `Sabab: ${md(k.sabab)}`,
+    `Kim: ${md(k.kim)}`,
   ].join('\n');
 }
 
@@ -122,7 +136,7 @@ export function kamQoldiqMatni(k: {
   return [
     '📦 *KAM QOLDIQ*',
     '',
-    `${k.materialNomi}: ${k.qoldiq}`,
+    `${md(k.materialNomi)}: ${k.qoldiq}`,
     `Chegara: ${k.chegara}`,
   ].join('\n');
 }
@@ -136,7 +150,7 @@ export function ustamaPastMatni(k: {
   return [
     '📊 *USTAMA CHEGARADAN PAST*',
     '',
-    `${k.materialNomi}: ${k.ustama}%`,
+    `${md(k.materialNomi)}: ${k.ustama}%`,
     `Eng kami: ${k.chegara}%`,
     '',
     'Sotuv narxini yoki tannarxni ko‘rib chiqing (7.8).',
@@ -156,7 +170,7 @@ export function yetkazibMuddatMatni(k: {
         ? '🔴 Bugun oxirgi kun'
         : `${String(k.kunQoldi)} kun qoldi`;
 
-  return ['🧾 *TO‘LOV MUDDATI*', '', `${k.nomi}: ${k.summa}`, qachon].join('\n');
+  return ['🧾 *TO‘LOV MUDDATI*', '', `${md(k.nomi)}: ${k.summa}`, qachon].join('\n');
 }
 
 /**
@@ -173,8 +187,8 @@ export function stavkasizIshMatni(k: {
   return [
     '⚠️ *STAVKASIZ ISH*',
     '',
-    `${k.buyurtmaRaqami} · ${k.turNomi}`,
-    `Usta: ${k.ustaIsmi}`,
+    `${md(k.buyurtmaRaqami)} · ${md(k.turNomi)}`,
+    `Usta: ${md(k.ustaIsmi)}`,
     '',
     'Haq 0 hisoblandi — stavkani qo‘yib, haqni qo‘lda qo‘shing (10.12).',
   ].join('\n');
@@ -190,7 +204,7 @@ export function kunFarqiMatni(k: {
   return [
     '🔴 *KUN YOPISHDA FARQ*',
     '',
-    k.kassaNomi,
+    md(k.kassaNomi),
     `Tizimda: ${k.kutilgan}`,
     `Sanaldi: ${k.sanalgan}`,
     `Farq: ${k.farq}`,
@@ -259,7 +273,7 @@ export function tayyorMatni(raqam: string): string {
 
 /** 13.6 — bekor qilindi. */
 export function bekorMatni(raqam: string, sabab: string): string {
-  return `❌ Buyurtmangiz bekor qilindi: *${raqam}*\nSabab: ${sabab}`;
+  return `❌ Buyurtmangiz bekor qilindi: *${raqam}*\nSabab: ${md(sabab)}`;
 }
 
 /** 13.6 — qarz eslatmasi. */

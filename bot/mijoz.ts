@@ -7,6 +7,7 @@
  *    konstruktordan quriladi.
  */
 
+import Decimal from 'decimal.js';
 import { Markup, type Telegraf } from 'telegraf';
 import { message } from 'telegraf/filters';
 import { ulanishOl } from '@/lib/db';
@@ -163,22 +164,19 @@ export async function balansKorsat(
     `📋 Jami buyurtmalar: ${String(buyurtmalar[0]?.n ?? 0)} ta`,
   ];
 
-  if (Number(somQarz) > 0) {
-    qatorlar.push(`🔴 Qarz: ${pulKorsat(som(somQarz))}`);
-  }
-  if (Number(dollarQarz) > 0) {
-    qatorlar.push(`🔴 Qarz: ${pulKorsat(dollar(dollarQarz))}`);
-  }
-  if (Number(somQarz) < 0 || Number(dollarQarz) < 0) {
-    // Manfiy — avans (6.8)
-    const avansSom = Math.abs(Math.min(Number(somQarz), 0));
-    if (avansSom > 0) {
-      qatorlar.push(`🟢 Avans: ${pulKorsat(som(avansSom.toFixed(2)))}`);
-    }
-  }
-  if (Number(somQarz) <= 0 && Number(dollarQarz) <= 0) {
-    qatorlar.push(MATN.qarzYoq);
-  }
+  /**
+   * ⚠️ Pul Decimal orqali (QISM 1 §3.1). Ilgari `Number()` bilan
+   *    solishtirilardi va DOLLAR avansi umuman ko'rsatilmasdi —
+   *    faqat so'mdagisi chiqardi (2026-10-13).
+   */
+  const s = new Decimal(somQarz);
+  const d = new Decimal(dollarQarz);
+  if (s.gt(0)) qatorlar.push(`🔴 Qarz: ${pulKorsat(som(somQarz))}`);
+  if (d.gt(0)) qatorlar.push(`🔴 Qarz: ${pulKorsat(dollar(dollarQarz))}`);
+  // Manfiy — avans (6.8)
+  if (s.lt(0)) qatorlar.push(`🟢 Avans: ${pulKorsat(som(s.abs().toFixed(2)))}`);
+  if (d.lt(0)) qatorlar.push(`🟢 Avans: ${pulKorsat(dollar(d.abs().toFixed(2)))}`);
+  if (s.lte(0) && d.lte(0)) qatorlar.push(MATN.qarzYoq);
 
   await ctx.reply(qatorlar.join('\n'), {
     parse_mode: 'Markdown',

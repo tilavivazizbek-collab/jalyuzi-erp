@@ -20,6 +20,7 @@ import { pozitsiyaStavkasi } from '@/lib/amal/stavka';
 import { birMartaBajar, sessiyaOl, sessiyaYoz } from '@/lib/amal/bot';
 import { amalKaliti, qoldiqOqi, qoldiqYaroqlimi, tasdiqmi } from '@/lib/domain/bot';
 import { pulKorsat, som } from '@/lib/domain/pul';
+import { md } from '@/lib/domain/bildirishnoma';
 import { MATN, TAKROR } from './matn';
 import { xavfsiz, type BotKontekst } from './yordamchi';
 
@@ -239,7 +240,7 @@ export async function ishlarimniKorsat(
 
   for (const i of q) {
     await ctx.reply(
-      `*${i.raqam}* · poz. ${String(i.tartib)} — ${i.tur}\n` +
+      `*${i.raqam}* · poz. ${String(i.tartib)} — ${md(i.tur)}\n` +
         `📐 ${i.eni_m} × ${i.boyi_m} m`,
       {
         parse_mode: 'Markdown',
@@ -310,7 +311,7 @@ export async function tugatganlarimniKorsat(
       i.haq === null ? '' : ` · ${pulKorsat(som(i.haq))}`;
     const sana =
       i.sana === null ? '' : ` · ${new Intl.DateTimeFormat('uz-UZ').format(i.sana)}`;
-    return `${i.raqam} · poz. ${String(i.tartib)} — ${i.tur}${haq}${sana}`;
+    return `${md(i.raqam)} · poz. ${String(i.tartib)} — ${md(i.tur)}${haq}${sana}`;
   });
 
   await ctx.reply(['✔️ *TUGATGANLARIM*', '', ...qatorlar].join('\n'), {

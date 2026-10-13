@@ -10,6 +10,7 @@
 
 import Decimal from 'decimal.js';
 import { pulKorsat, som } from '@/lib/domain/pul';
+import { md } from '@/lib/domain/bildirishnoma';
 
 export interface KechkiKirimi {
   readonly sana: string;
@@ -40,7 +41,7 @@ const bor = (s: string): boolean => !new Decimal(s).isZero();
 const qisqaSana = (s: string): string => `${s.slice(8, 10)}.${s.slice(5, 7)}`;
 
 export function kechkiHisobotMatni(k: KechkiKirimi): string {
-  const q: string[] = [`📊 Kun yakuni — ${qisqaSana(k.sana)}.${k.sana.slice(0, 4)}, ${k.filial}`, ''];
+  const q: string[] = [`📊 Kun yakuni — ${qisqaSana(k.sana)}.${k.sana.slice(0, 4)}, ${md(k.filial)}`, ''];
 
   q.push(
     k.buyurtmaSoni === 0

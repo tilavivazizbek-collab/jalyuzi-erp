@@ -16,7 +16,8 @@ import { qaytaKesishHal } from '@/lib/amal/qayta-kesish';
 import { topshiriqniQabulQil } from '@/lib/amal/kassa';
 import { birMartaBajar } from '@/lib/amal/bot';
 import { amalKaliti } from '@/lib/domain/bot';
-import { pulKorsat, som } from '@/lib/domain/pul';
+import { dollar, pulKorsat, som } from '@/lib/domain/pul';
+import { md } from '@/lib/domain/bildirishnoma';
 import { MATN, TAKROR } from './matn';
 import { xavfsiz, type BotKontekst } from './yordamchi';
 
@@ -78,7 +79,8 @@ export async function kassaQoldigi(
   }
 
   const qatorlar = q.map(
-    (k) => `${k.nom} · ${k.valyuta}: ${Number(k.qoldiq).toLocaleString('uz-UZ')}`,
+    // ⚠️ Pul Decimal orqali (pulKorsat) — ilgari Number().toLocaleString edi
+    (k) => `${md(k.nom)} · ${k.valyuta}: ${pulKorsat(k.valyuta === 'USD' ? dollar(k.qoldiq) : som(k.qoldiq))}`,
   );
 
   await ctx.reply(['💵 *KASSA QOLDIG‘I*', '', ...qatorlar].join('\n'), {

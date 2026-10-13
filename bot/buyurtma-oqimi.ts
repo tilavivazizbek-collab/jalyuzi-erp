@@ -46,7 +46,8 @@ import { amaldagiOffset } from '@/lib/domain/mijoz';
 import type { SarflashBirligi } from '@/lib/domain/birlik';
 import { qoidaniTop } from '@/lib/domain/narx-qoidasi';
 import { kesimOlchami } from '@/lib/domain/kesish';
-import { kurs, pulKorsat, som, type Kurs } from '@/lib/domain/pul';
+import { kurs, pulKorsat, qosh, som, type Kurs } from '@/lib/domain/pul';
+import { md } from '@/lib/domain/bildirishnoma';
 import { joriyKurs } from '@/lib/amal/kurs';
 import { MATN, TAKROR } from './matn';
 import { xavfsiz, type BotKontekst } from './yordamchi';
@@ -440,7 +441,8 @@ async function savatniKorsat(
   }
 
   const qatorlar: string[] = ['🛒 *SAVAT*', ''];
-  let jami = 0;
+  // ⚠️ Pul Decimal orqali — ilgari `jami += Number(narx)` edi (QISM 1 §3.1)
+  let jami = som(0);
 
   toliq.savat.forEach((p, i) => {
     const tur = turlar.find((t) => t.id === p.mahsulotTurId);
@@ -455,15 +457,15 @@ async function savatniKorsat(
             null,
             kontekst.filialId,
           );
-    jami += Number(narx);
+    jami = qosh(jami, som(narx));
 
     qatorlar.push(
-      `${String(i + 1)}. ${p.turNomi} · ${String(p.eniM)}×${String(p.boyiM)} m`,
+      `${String(i + 1)}. ${md(p.turNomi)} ·${String(p.eniM)}×${String(p.boyiM)} m`,
       `   ${pulKorsat(som(narx))}`,
     );
   });
 
-  qatorlar.push('', `*Jami: ${pulKorsat(som(jami.toFixed(2)))}*`);
+  qatorlar.push('', `*Jami: ${pulKorsat(jami)}*`);
 
   const tg = ctx.from?.id;
   if (tg !== undefined) await qoralamaYoz(tg, toliq);

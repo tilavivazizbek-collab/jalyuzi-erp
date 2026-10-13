@@ -8,6 +8,8 @@ import { describe, expect, it } from 'vitest';
 import {
   ADMIN_HODISALARI,
   bekorMatni,
+  hisobdanChiqarildiMatni,
+  md,
   kunFarqiMatni,
   pulTopshirildiMatni,
   qabulQilindiMatni,
@@ -215,5 +217,28 @@ describe('TZ 13.6 — mijozga holat xabarlari', () => {
     expect(tayyorMatni('B-1')).toContain('tayyor');
     expect(bekorMatni('B-1', 'Mijoz voz kechdi')).toContain('Mijoz voz kechdi');
     expect(qarzEslatmaMatni('1 450 000')).toContain('1 450 000');
+  });
+});
+
+// ─── Telegram Markdown — foydalanuvchi matni ekranlanadi (2026-10-12) ─────
+
+describe('Markdown ekranlash — «_», «*», «`», «[» xabarni buzmasin', () => {
+  it('foydalanuvchi kiritgan matndagi maxsus belgi ekranlanadi, sarlavha — yo‘q', () => {
+    const m = hisobdanChiqarildiMatni({
+      materialNomi: 'Mato_premium',
+      bolakKod: 'B-1',
+      sabab: '*yirtiq* [chet]',
+      kim: 'Ali`',
+    });
+    expect(m).toContain('📉 *HISOBDAN CHIQARILDI*');
+    // ⚠️ String.raw — «\_» oddiy satrda «_» ga aylanib, test bo'sh o'tardi
+    expect(m).toContain(String.raw`Mato\_premium`);
+    expect(m).toContain(String.raw`Sabab: \*yirtiq\* \[chet]`);
+    expect(m).toContain('Kim: Ali\\`');
+  });
+
+  it('mijozga bekor sababi ham ekranlanadi; oddiy matn o‘zgarmaydi', () => {
+    expect(bekorMatni('B-1', 'o‘lcham_xato')).toContain(String.raw`Sabab: o‘lcham\_xato`);
+    expect(md('Oddiy matn — 1 200 so‘m')).toBe('Oddiy matn — 1 200 so‘m');
   });
 });
