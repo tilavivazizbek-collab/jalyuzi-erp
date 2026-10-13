@@ -734,7 +734,7 @@ Oddiy API yo'llari qilib yoziladi — kim chaqirishi muhim emas (§2.3):
 
 | Yo'l | Vaqt | Nima qiladi | Band |
 |---|---|---|---|
-| `/api/cron/zaxira` | 03:00 | `pg_dump` + Telegram | §17 |
+| `/api/cron/zaxira` | 03:00 | `pg_dump` + gzip → yopiq Telegram kanal (BACKUP_CHANNEL_ID); 10 KB dan kichik — xato; muvaffaqiyatsiz — TELEGRAM_ADMIN_CHAT_ID ga xabar, parolsiz (✅ 2026-10-13). ⚠️ 30 kunlik o'chirish Telegramda mumkin emas (bot 48 soatdan eskisini o'chira olmaydi) — 2-qatlamda | §17 |
 | `/api/cron/band-muddati` | 04:00 | muddati o'tgan band avtomatik bo'shaydi, bo'lak filiali adminiga bitta xabar (✅ 2026-10-13) | 7.3, EC-OMB-18 |
 | `/api/cron/kun-eslatma` | 18:00–23:45, har 15 daqiqa | kassa yopilish soatidan keyin bugun yopilmagan kassalar (va oxirgi 6 kunlik) — filial adminiga, kuniga bir marta (✅ 2026-10-13) | 12.17 |
 | `/api/cron/muddat-nazorat` | 09:00 | muddati o'tgan buyurtmalar — sotgan filial adminlariga, ro'yxatdagi «Muddati o'tgan» sharti bilan (✅ 2026-10-13) | 8.16 |

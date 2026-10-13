@@ -29,6 +29,10 @@ ENV TZ=Asia/Tashkent
 ENV HOSTNAME=0.0.0.0
 ENV PORT=3000
 
+# TZ §17 — `/api/cron/zaxira` pg_dump ishlatadi (2026-10-13). 17-versiya
+# eskiroq serverlardan ham nusxa oladi; teskarisi ishlamaydi.
+RUN apk add --no-cache postgresql17-client
+
 RUN addgroup -g 1001 -S erp && adduser -u 1001 -S erp -G erp
 
 # ⚠️ `public/` bo'sh bo'lsa ham MAVJUD bo'lishi shart: Docker
