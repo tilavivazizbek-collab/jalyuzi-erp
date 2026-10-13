@@ -714,7 +714,7 @@ export async function pozitsiyaYozTx(
           VALUES (${k.ishlabChiqaruvchiFilialId}, ${partiya.bolakId}, 'KESIM',
                   ${qmDonami ? null : (-olindi).toFixed(2)},
                   ${qmDonami ? -olindi : null},
-                  ${(-olindi * Number(partiya.tannarx)).toFixed(2)},
+                  ${new Decimal(partiya.miqdor).times(partiya.tannarx).negated().toFixed(2)},
                   'buyurtma_pozitsiya', ${pozitsiyaId},
                   ${
                     qmDonami

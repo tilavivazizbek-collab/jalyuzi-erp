@@ -12,6 +12,7 @@
  *    ma'lumotlari.» Usta mahsulot qanchaga sotilganini bilmaydi.
  */
 
+import Decimal from 'decimal.js';
 import { Markup, type Telegraf } from 'telegraf';
 import { ulanishOl } from '@/lib/db';
 import { ishniOl, tugatdim, type KesimKirimi } from '@/lib/amal/ish';
@@ -339,8 +340,8 @@ export async function ustaBalansi(
     WHERE xodim_id = ${ustaId} AND valyuta = 'SOM'
     GROUP BY turi`;
 
-  const olish = (turi: string): number =>
-    Number(q.find((x) => x.turi === turi)?.summa ?? 0);
+  // ⚠️ Pul Decimal orqali (QISM 1 §3.1) — ilgari Number() bilan qo'shilardi
+  const olish = (turi: string): Decimal => new Decimal(q.find((x) => x.turi === turi)?.summa ?? 0);
 
   /**
    * ⚠️ 2026-09-03 — bu yerda 'ISH_HAQI' qidirilardi va usta
@@ -351,11 +352,11 @@ export async function ustaBalansi(
    *    kesishda bekor qilingani esa 'HAQ_BEKOR' bo'lib MANFIY
    *    yoziladi (Q-15) — shuning uchun u shu yerda qo'shiladi.
    */
-  const haq = olish('HAQ') + olish('HAQ_BEKOR');
-  const olingan = Math.abs(olish('TOLOV')) + Math.abs(olish('AVANS'));
-  const ushlangan = Math.abs(olish('USHLANMA')) + Math.abs(olish('JARIMA'));
+  const haq = olish('HAQ').plus(olish('HAQ_BEKOR'));
+  const olingan = olish('TOLOV').abs().plus(olish('AVANS').abs());
+  const ushlangan = olish('USHLANMA').abs().plus(olish('JARIMA').abs());
 
-  const jami = q.reduce((s, x) => s + Number(x.summa), 0);
+  const jami = q.reduce((s, x) => s.plus(x.summa), new Decimal(0));
 
   const qatorlar = [
     '💰 *BALANSIM*',
@@ -364,7 +365,7 @@ export async function ustaBalansi(
     `Olganim: ${pulKorsat(som(olingan.toFixed(2)))}`,
   ];
 
-  if (ushlangan > 0) {
+  if (ushlangan.gt(0)) {
     qatorlar.push(`Ushlangan: ${pulKorsat(som(ushlangan.toFixed(2)))}`);
   }
 

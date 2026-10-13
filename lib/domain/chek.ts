@@ -326,12 +326,12 @@ export function qatorYasa(p: ChekPozitsiyasi, valyuta: Valyuta): ChekQatori {
  * Bir birlik narxi — KO'RSATISH uchun, ikki xonagacha.
  *
  * ⚠️ Hisobda ishlatilmaydi: jami baribir `narx_snapshot` dan
- *    olinadi (2.3). Shuning uchun bu yerda `Decimal` shart emas.
+ *    olinadi (2.3). Baribir Decimal — pul qoidasida istisno bo'lmasin
+ *    (QISM 1 §3.1, 2026-10-13).
  */
 function donaNarxi(jami: string, soni: number): string {
   if (!Number.isFinite(soni) || soni <= 0) return jami;
-  const d = Number(jami) / soni;
-  return d.toFixed(2);
+  return new Decimal(jami).div(soni).toFixed(2);
 }
 
 // ─── Qarz qatorlari ───────────────────────────────────────────────────────

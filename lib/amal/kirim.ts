@@ -540,8 +540,9 @@ export async function kirimYarat(
      *    Alohida qilinса, biri o'tib ikkinchisi yiqilishi
      *    mumkin edi va balans jimgina buzilardi (2.1-invariant).
      */
-    const tolov = Number(kirim.tolovSumma ?? '0');
-    if (tolov > 0 && kirim.tolovKassaId !== undefined) {
+    // ⚠️ Pul Decimal orqali (QISM 1 §3.1)
+    const tolov = new Decimal(kirim.tolovSumma ?? '0');
+    if (tolov.gt(0) && kirim.tolovKassaId !== undefined) {
       await yetkazibToloviTx(
         tx,
         {

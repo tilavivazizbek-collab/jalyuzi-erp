@@ -19,6 +19,7 @@
  *    Shuning uchun XARID musbat, TO'LOV MANFIY yoziladi.
  */
 
+import Decimal from 'decimal.js';
 import type postgres from 'postgres';
 import { kassaYozuviQoshTx, xarajatYozTx } from './kassa';
 import {
@@ -73,10 +74,12 @@ export async function yetkazibToloviTx(
   kirim: YetkazibTolovKirimi,
   xodimId: number,
 ): Promise<YetkazibTolovNatijasi> {
-  const summa = Number(kirim.summa);
-  if (!Number.isFinite(summa) || summa <= 0) {
+  // ⚠️ Pul Decimal orqali (QISM 1 §3.1)
+  const summaXom = /^\d+(\.\d{1,2})?$/.test(kirim.summa.trim()) ? new Decimal(kirim.summa.trim()) : null;
+  if (summaXom === null || summaXom.lte(0)) {
     throw new BiznesXato('KASSA_SUMMA_NOL', `summa: ${kirim.summa}`);
   }
+  const summa = summaXom;
 
   if (kirim.valyuta === 'USD' && kirim.kursSnapshot === null) {
     throw new BiznesXato('KURS_KERAK', "dollarli to'lovda kurs kerak (9.6)");
@@ -114,7 +117,7 @@ export async function yetkazibToloviTx(
       kassaId: kirim.kassaId,
       /** 12.6 — C1: yetkazib beruvchiga to'lov */
       kod: 'C1',
-      summa: (-summa).toFixed(2),
+      summa: summa.negated().toFixed(2),
       valyuta: kirim.valyuta,
       manbaTuri,
       manbaId,
@@ -135,7 +138,7 @@ export async function yetkazibToloviTx(
         (yetkazib_beruvchi_id, filial_id, turi, summa, valyuta, kurs_snapshot,
          manba_turi, manba_id, izoh, xodim_id)
       VALUES (${kirim.yetkazibBeruvchiId}, ${kirim.filialId}, 'TOLOV',
-              ${(-summa).toFixed(2)}, ${kirim.valyuta}, ${kirim.kursSnapshot},
+              ${summa.negated().toFixed(2)}, ${kirim.valyuta}, ${kirim.kursSnapshot},
               ${manbaTuri}, ${manbaId}, ${kirim.izoh}, ${xodimId})`;
 
     return { kassaYozuvId, qarzKamaydi: summa.toFixed(2), kursFarqi: '0.00' };

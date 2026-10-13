@@ -758,7 +758,7 @@ export async function tugatdim(
           VALUES (${filialId}, ${partiya.bolakId}, 'KESIM',
                   ${donami ? null : (-olindi).toFixed(2)},
                   ${donami ? -olindi : null},
-                  ${(-olindi * Number(partiya.tannarx)).toFixed(2)},
+                  ${new Decimal(partiya.miqdor).times(partiya.tannarx).negated().toFixed(2)},
                   'buyurtma_pozitsiya', ${kirim.pozitsiyaId},
                   ${donami ? 'Slot materiali ishlatildi (dona)' : 'Slot materiali ishlatildi (metr)'},
                   ${xodimId})`;
@@ -823,7 +823,7 @@ export async function tugatdim(
           VALUES (${filialId}, ${partiya.bolakId}, 'KESIM',
                   ${aksDonami ? null : (-olindi).toFixed(2)},
                   ${aksDonami ? -olindi : null},
-                  ${(-olindi * Number(partiya.tannarx)).toFixed(2)},
+                  ${new Decimal(partiya.miqdor).times(partiya.tannarx).negated().toFixed(2)},
                   'buyurtma_pozitsiya', ${kirim.pozitsiyaId},
                   ${aksDonami ? 'Aksessuar ishlatildi' : 'Aksessuar ishlatildi (metr)'},
                   ${xodimId})`;
