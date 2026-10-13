@@ -32,7 +32,10 @@ type Soruvchi = postgres.Sql | postgres.TransactionSql;
 export interface PozitsiyaHisobi {
   readonly sotganFilialId: number;
   readonly ishlabChiqaruvchiFilialId: number;
+  /** SO'MDA — dollarli buyurtmada kurs bilan o'girilgan */
   readonly tushum: string;
+  /** Buyurtma valyutasidan so'mga: so'mli buyurtmada 1 */
+  readonly kurs: string;
   readonly tannarx: string;
   readonly ishHaqi: string;
 }
@@ -52,13 +55,22 @@ export async function pozitsiyaHisobi(
       sotgan_filial_id: number;
       ishlab_chiqaruvchi_filial_id: number;
       tushum: string;
+      kurs: string;
       tannarx: string;
       ish_haqi: string;
     }[]
   >`
     SELECT b.sotgan_filial_id,
            b.ishlab_chiqaruvchi_filial_id,
-           (p.narx_snapshot - COALESCE(p.chegirma_summa, 0))::text AS tushum,
+           /*
+            * ⚠️ 2026-10-13: tushum KURSSIZ olinardi — $50 «50 so'm» bo'lib
+            *    so'mli tannarx yonida turardi va qarz 50 so'mga cheklanardi.
+            *    Kurs — buyurtma snapshoti (2.3), USD da NULL bo'lmaydi
+            *    (buyurtma_usd_kurs cheki).
+            */
+           ((p.narx_snapshot - COALESCE(p.chegirma_summa, 0))
+             * CASE WHEN b.valyuta = 'USD' THEN b.kurs_snapshot ELSE 1 END)::numeric(14,2)::text AS tushum,
+           (CASE WHEN b.valyuta = 'USD' THEN b.kurs_snapshot ELSE 1 END)::text AS kurs,
            COALESCE((
              SELECT -SUM(oh.tannarx_summa) FROM ombor_harakat oh
              WHERE oh.manba_turi = 'buyurtma_pozitsiya' AND oh.manba_id = p.id
@@ -84,6 +96,7 @@ export async function pozitsiyaHisobi(
     sotganFilialId: r.sotgan_filial_id,
     ishlabChiqaruvchiFilialId: r.ishlab_chiqaruvchi_filial_id,
     tushum: r.tushum,
+    kurs: r.kurs,
     tannarx: r.tannarx,
     ishHaqi: r.ish_haqi,
   };
@@ -164,8 +177,10 @@ export async function tayyorMahsulotQarziniQaytarTx(
   if (q === undefined) return { teskariId: null };
 
   const h = await pozitsiyaHisobi(tx, pozitsiyaId);
+  // Ushlanma buyurtma valyutasida keladi (qaytarish.ts) — qarz so'mda
+  const ushlabSom = new Decimal(ushlabQolindi).times(h.kurs).toDecimalPlaces(2).toFixed(2);
 
-  const natija = qaytarishQarzi(som(q.summa), som(ushlabQolindi), {
+  const natija = qaytarishQarzi(som(q.summa), som(ushlabSom), {
     tannarx: som(h.tannarx),
     ishHaqi: som(h.ishHaqi),
   });

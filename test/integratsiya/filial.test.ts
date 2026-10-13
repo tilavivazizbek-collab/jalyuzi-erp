@@ -518,6 +518,30 @@ describe('K-11 — tayyor mahsulot qarzi bazada (22.3.1)', () => {
     expect(Number(n.summa)).toBe(300_000);
   });
 
+  /**
+   * 2026-10-13 topildi: dollarli buyurtmada tushum KURSSIZ olinardi —
+   * $50 «50 so'm» bo'lib so'mli tannarx yonida turardi, buyurtma zararli
+   * ko'rinib, qarz 50 so'mga cheklanardi.
+   */
+  it('dollarli buyurtma — tushum kurs bilan so‘mga o‘giriladi (qarz va qaytarish)', async () => {
+    const pozitsiyaId = await pozitsiyaYarat(filialA, filialB, '50');
+    await sql`
+      UPDATE buyurtma SET valyuta = 'USD', kurs_snapshot = 12800
+      WHERE id = (SELECT buyurtma_id FROM buyurtma_pozitsiya WHERE id = ${pozitsiyaId})`;
+    await sarfYoz(pozitsiyaId, filialB, '312000', '57600');
+
+    // 640 000 − 312 000 − 57 600 = 270 400 → ulush 135 200 → 312 000 + 57 600 + 135 200
+    const n = await sql.begin((tx) => tayyorMahsulotQarziYozTx(tx, pozitsiyaId, XODIM));
+    expect(n.summa).toBe('504800.00');
+
+    // $5 ushlab qolindi = 64 000 so'm; 22.3.3 — yangi qarz ushlanmadan oshmaydi
+    await sql.begin((tx) => tayyorMahsulotQarziniQaytarTx(tx, pozitsiyaId, '5', XODIM));
+    const q = await sql<{ summa: string }[]>`
+      SELECT SUM(summa)::text AS summa FROM filial_harakat
+      WHERE manba_turi = 'buyurtma_pozitsiya' AND manba_id = ${pozitsiyaId}`;
+    expect(q[0]?.summa).toBe('64000.00');
+  });
+
   it('22.3.5 — bir filial sotgan va tikkan bo\'lsa qarz YO\'Q', async () => {
     const pozitsiyaId = await pozitsiyaYarat(filialA, filialA, '678400');
     await sarfYoz(pozitsiyaId, filialA, '312000', '57600');
