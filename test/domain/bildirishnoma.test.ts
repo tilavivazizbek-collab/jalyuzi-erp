@@ -13,6 +13,7 @@ import {
   kamQoldiqMatni,
   kechikkanBuyurtmalarMatni,
   md,
+  oylikYakunMatni,
   kunFarqiMatni,
   pulTopshirildiMatni,
   qabulQilindiMatni,
@@ -46,6 +47,7 @@ describe('TZ 13.9 — botdan FAQAT ikki amal bajariladi', () => {
       'KUN_FARQI',
       'KECHKI_HISOBOT',
       'KECHIKKAN_BUYURTMA',
+      'OYLIK_YAKUN',
     ]);
   });
 });
@@ -289,5 +291,27 @@ describe('Markdown ekranlash — «_», «*», «`», «[» xabarni buzmasin', (
   it('mijozga bekor sababi ham ekranlanadi; oddiy matn o‘zgarmaydi', () => {
     expect(bekorMatni('B-1', 'o‘lcham_xato')).toContain(String.raw`Sabab: o‘lcham\_xato`);
     expect(md('Oddiy matn — 1 200 so‘m')).toBe('Oddiy matn — 1 200 so‘m');
+  });
+});
+
+// ─── TZ 21.8 · Oylik yakun ────────────────────────────────────────────────
+
+describe('oylik yakun xabari', () => {
+  it('TZ misoli — bajarilish va rang; reja yo‘q qator; ichki qator suriladi', () => {
+    const m = oylikYakunMatni({
+      oyNomi: 'Iyul 2026',
+      qatorlar: [
+        { nom: 'Korxona', reja: '180000000', fakt: '160500000', ichki: false },
+        { nom: 'Chilonzor', reja: '100000000', fakt: '87400000', ichki: true },
+        { nom: 'Samarqand', reja: '50000000', fakt: '54200000', ichki: true },
+        { nom: "Farg'ona", reja: '30000000', fakt: '18900000', ichki: true },
+        { nom: 'Yangi_filial', reja: null, fakt: '1000.40', ichki: true },
+      ],
+    });
+    expect(m).toContain('*Iyul 2026 yakuni*');
+    expect(m).toContain('Korxona: 160 500 000 / 180 000 000 · 89.2% 🟡');
+    expect(m).toContain('   Samarqand: 54 200 000 / 50 000 000 · 108.4% 🟢');
+    expect(m).toContain("Farg'ona: 18 900 000 / 30 000 000 · 63.0% 🔴");
+    expect(m).toContain(String.raw`Yangi\_filial: 1 000 (reja yo‘q)`);
   });
 });

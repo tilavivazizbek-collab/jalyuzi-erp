@@ -1,7 +1,12 @@
 import { kirganBolishiShart } from '@/lib/kirish/joriy';
-import { ruxsatTekshir } from '@/lib/ruxsat/tekshir';
+import { ruxsatBormi, ruxsatTekshir } from '@/lib/ruxsat/tekshir';
+import Decimal from 'decimal.js';
 import { GURUHLAR, RUXSATLAR, RUXSAT_KODLARI } from '@/lib/ruxsat/kodlar';
-import { pulKorsat, som } from '@/lib/domain/pul';
+import { dollar, pulKorsat, som } from '@/lib/domain/pul';
+import { oyBoshi } from '@/lib/domain/reja';
+import { toshkentKuni } from '@/lib/domain/sana';
+import { dashboardRejasi } from '../hisobot/reja-malumot';
+import { OyRejasi } from './oy-rejasi';
 import {
   KorsatkichKartasi,
   PulBelgisi,
@@ -26,17 +31,20 @@ export const dynamic = 'force-dynamic';
 export default async function BoshqaruvSahifasi() {
   const f = await kirganBolishiShart();
 
-  const [kim, k] = await Promise.all([
+  const bugun = toshkentKuni();
+  const [kim, k, reja] = await Promise.all([
     kimIshlamoqda(f.xodimId, f.filialId),
     kunKorsatkichlari(f.filialId),
+    // TZ 21.7 — oy rejasi birinchi qatorda
+    dashboardRejasi(f, oyBoshi(bugun)),
   ]);
 
   /**
    * ⚠️ Qarz MANFIY bo'lsa — bu avans (6.8), qarz emas. Egasiga
    *    «−200 000 qarz» deb ko'rsatish chalkashtiradi.
    */
-  const qarz = Number(k.mijozQarzi);
-  const qarzUsd = Number(k.mijozQarziUsd);
+  const qarz = new Decimal(k.mijozQarzi);
+  const qarzUsd = new Decimal(k.mijozQarziUsd);
 
   /**
    * ⚠️ Dollar qatori faqat NOL BO'LMAGANDA chiqadi.
@@ -48,14 +56,10 @@ export default async function BoshqaruvSahifasi() {
    *    ko'rinadi. Ilgari u umuman ko'rinmasdi: uchta so'rov
    *    `valyuta = 'SOM'` bilan filtrlangan edi.
    */
+  // ⚠️ Pul Decimal orqali (pulKorsat) — ilgari Number().toLocaleString edi
   const usdQatori = (matn: string): string | null => {
-    const n = Number(matn);
-    return Number.isFinite(n) && Math.abs(n) >= 0.005
-      ? `$ ${Math.abs(n).toLocaleString('uz-UZ', {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2,
-        }).replace(/,/g, ' ')}`
-      : null;
+    const n = new Decimal(matn).abs();
+    return n.gte('0.005') ? `$ ${pulKorsat(dollar(n.toFixed(2)))}` : null;
   };
 
   return (
@@ -82,6 +86,16 @@ export default async function BoshqaruvSahifasi() {
         </div>
       </div>
 
+      {/* ── TZ 21.7 · Oy rejasi — birinchi qator ─────────────────── */}
+      {reja !== null && (
+        <OyRejasi
+          r={reja}
+          bugun={bugun}
+          hisobotHavolasi={ruxsatBormi(f, 'reja.kor')}
+          qoyishHavolasi={ruxsatBormi(f, 'reja.boshqar')}
+        />
+      )}
+
       {/* ── To'rt raqam ──────────────────────────────────────────── */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <KorsatkichKartasi
@@ -103,11 +117,11 @@ export default async function BoshqaruvSahifasi() {
         />
 
         <KorsatkichKartasi
-          sarlavha={qarz >= 0 || qarzUsd > 0 ? 'Mijozlar qarzi' : 'Mijozlar avansi'}
-          qiymat={pulKorsat(som(Math.abs(qarz).toFixed(2)))}
+          sarlavha={qarz.gte(0) || qarzUsd.gt(0) ? 'Mijozlar qarzi' : 'Mijozlar avansi'}
+          qiymat={pulKorsat(som(qarz.abs().toFixed(2)))}
           ikkinchiQiymat={usdQatori(k.mijozQarziUsd)}
-          izoh={qarz >= 0 ? 'Yig‘ilishi kerak' : 'Oldindan olingan'}
-          rang={qarz > 0 ? 'qizil' : 'yashil'}
+          izoh={qarz.gte(0) ? 'Yig‘ilishi kerak' : 'Oldindan olingan'}
+          rang={qarz.gt(0) ? 'qizil' : 'yashil'}
           belgi={<QarzBelgisi />}
         />
 

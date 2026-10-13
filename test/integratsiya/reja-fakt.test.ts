@@ -7,7 +7,9 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { Ulanish } from '@/lib/db/ulanish';
 import { ulanishOl } from '@/lib/db';
-import { rejaFakti, rejaFaktQatorlari } from '@/app/(panel)/hisobot/reja-malumot';
+import { dashboardRejasi, oylikYakunXabarlari, rejaFakti, rejaFaktQatorlari } from '@/app/(panel)/hisobot/reja-malumot';
+import { rejalarniSaqla } from '@/lib/amal/reja';
+import type { Foydalanuvchi } from '@/lib/ruxsat/tekshir';
 import { sinovUlanishi } from './yordamchi';
 
 const XODIM = 1;
@@ -80,7 +82,13 @@ beforeAll(async () => {
   await audit('TOPSHIRISH', p4, `${YIL}-06-01`, { holat: 'TOPSHIRILDI' });
 }, 60_000);
 
+/** EC-REJ-B1 da yaratiladi — oxirida Telegrami uziladi (boshqa testlar «0 xabar» kutadi) */
+let boshAdminId: number | null = null;
+
 afterAll(async () => {
+  if (boshAdminId !== null) {
+    await sql`UPDATE xodim SET telegram_id = NULL, faol = false WHERE id = ${boshAdminId}`;
+  }
   await sql.end({ timeout: 5 });
   await ulanishOl().end({ timeout: 5 });
 });
@@ -102,5 +110,80 @@ describe('TZ 21.5 — fakt', () => {
     const a = q.find((x) => x.turi === 'FILIAL' && x.filialId === A);
     expect(a).toMatchObject({ rejaTushum: null, faktTushum: '1218400.00' });
     expect(q.some((x) => x.turi === 'SOTUVCHI' && x.faktFoyda === null)).toBe(true);
+  });
+
+  it('TZ 21.7: dashboard — sotuvchi o‘zini, filial admini filialni ko‘radi; ustaga yo‘q', async () => {
+    // A filialining o'z sotuvchisi — sotuvlari yo'q, rejasi bor
+    const x = await sql<{ id: number }[]>`
+      INSERT INTO xodim (filial_id, ism, telefon, yaratdi_id)
+      VALUES (${A}, ${`RF sotuvchi ${BELGI}`}, ${`9979${BELGI}1`}, ${XODIM}) RETURNING id`;
+    const sotuvchiId = x[0]?.id ?? 0;
+    await rejalarniSaqla(
+      sql,
+      {
+        oy: OY,
+        sabab: null,
+        qatorlar: [
+          { turi: 'FILIAL', filialId: A, xodimId: null, tushum: '2000000', foyda: null },
+          { turi: 'SOTUVCHI', filialId: A, xodimId: sotuvchiId, tushum: '1000000', foyda: null },
+        ],
+      },
+      XODIM,
+      `${YIL}-04-01`,
+    );
+    const kim = (kod: 'ADMIN' | 'SOTUVCHI' | 'USTA', xodimId: number): Foydalanuvchi => ({
+      xodimId,
+      filialId: A,
+      boshFilialda: false,
+      rollar: [{ kod, nom: kod, ruxsatlar: new Map() }],
+    });
+
+    expect(await dashboardRejasi(kim('ADMIN', XODIM), OY)).toEqual({
+      sarlavha: 'Filial rejasi',
+      reja: '2000000.00',
+      fakt: '1218400.00',
+      oy: OY,
+    });
+    expect(await dashboardRejasi(kim('SOTUVCHI', sotuvchiId), OY)).toEqual({
+      sarlavha: 'Mening rejam',
+      reja: '1000000.00',
+      fakt: '0.00',
+      oy: OY,
+    });
+    expect(await dashboardRejasi(kim('USTA', sotuvchiId), OY)).toBeNull();
+  });
+
+  it('EC-REJ-B1 · 21.8: oylik yakun — bosh admin korxonani, filial admini o‘zini; oyiga bir marta', async () => {
+    const rol = await sql<{ id: number }[]>`SELECT id FROM rol WHERE kod = 'ADMIN'`;
+    const bosh = await sql<{ id: number }[]>`SELECT id FROM filial WHERE bosh LIMIT 1`;
+    const boshId = bosh[0]?.id ?? 0;
+    const admin = async (filialId: number, raqam: string): Promise<number> => {
+      const x = await sql<{ id: number }[]>`
+        INSERT INTO xodim (filial_id, ism, telefon, telegram_id, yaratdi_id)
+        VALUES (${filialId}, ${`RF admin ${raqam}`}, ${`9978${BELGI}${raqam}`}, ${Number(`4${BELGI}0${raqam}`)}, ${XODIM})
+        RETURNING id`;
+      await sql`INSERT INTO xodim_rol (xodim_id, rol_id, yaratdi_id) VALUES (${x[0]?.id ?? 0}, ${rol[0]?.id ?? 0}, ${XODIM})`;
+      return x[0]?.id ?? 0;
+    };
+    boshAdminId = await admin(boshId, '1');
+    const aAdmin = await admin(A, '2');
+
+    // 1-iyun — may yakuni; 3-iyunda qayta chaqirilsa ham may yana yozilmaydi
+    const f = [boshId, A, B];
+    await oylikYakunXabarlari(new Date(`${YIL}-06-01T09:00:00+05:00`), f);
+    await oylikYakunXabarlari(new Date(`${YIL}-06-03T09:00:00+05:00`), f);
+
+    const x = await sql<{ xodim_id: number; manba_turi: string; matn: string }[]>`
+      SELECT xodim_id, manba_turi, matn FROM bot_xabar
+      WHERE manba_turi LIKE 'oylik_yakun%' AND xodim_id IN (${boshAdminId}, ${aAdmin})`;
+    const boshXabar = x.filter((q) => q.xodim_id === boshAdminId);
+    const aXabar = x.filter((q) => q.xodim_id === aAdmin);
+    // Bosh admin — faqat korxona xabari (A nusxasi YO'Q), bir marta
+    expect(boshXabar.map((q) => q.manba_turi)).toEqual([`oylik_yakun:${YIL}-05`]);
+    expect(boshXabar[0]?.matn).toContain(`*May ${YIL} yakuni*`);
+    expect(boshXabar[0]?.matn).toContain('1 218 400 / 2 000 000 · 60.9% 🔴');
+    // A admini — o'z filiali va sotuvchisi, bir marta
+    expect(aXabar.map((q) => q.manba_turi)).toEqual([`oylik_yakun_filial:${YIL}-05`]);
+    expect(aXabar[0]?.matn).toContain(`RF sotuvchi ${BELGI}`);
   });
 });

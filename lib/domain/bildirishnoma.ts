@@ -10,6 +10,8 @@
  */
 
 import Decimal from 'decimal.js';
+import { pulKorsat, som } from '@/lib/domain/pul';
+import { bajarilish, bajarilishRangi } from '@/lib/domain/reja';
 
 /**
  * Telegram «Markdown» (eski) uchun FOYDALANUVCHI matnini ekranlaydi.
@@ -49,6 +51,8 @@ export const ADMIN_HODISALARI = [
   'KECHKI_HISOBOT',
   // TZ 8.16 — tayyorlik sanasi o'tgan buyurtmalar (kunlik cron)
   'KECHIKKAN_BUYURTMA',
+  // TZ 21.8 — har oyning 1-kuni, o'tgan oy reja va fakti
+  'OYLIK_YAKUN',
 ] as const;
 
 export type AdminHodisasi = (typeof ADMIN_HODISALARI)[number];
@@ -360,4 +364,41 @@ export function bekorMatni(raqam: string, sabab: string): string {
 /** 13.6 — qarz eslatmasi. */
 export function qarzEslatmaMatni(summa: string): string {
   return `🔴 Sizda ${summa} qarz bor.\nTo‘lash uchun do‘konga murojaat qiling.`;
+}
+
+// ─── TZ 21.8 · Oylik yakun ────────────────────────────────────────────────
+
+export interface OylikQator {
+  readonly nom: string;
+  /** `null` — reja qo'yilmagan (EC-REJ-01) */
+  readonly reja: string | null;
+  readonly fakt: string;
+  /** Ichki qator (filial korxona ostida, sotuvchi filial ostida) — surilib yoziladi */
+  readonly ichki: boolean;
+}
+
+const BAJARILISH_BELGISI = { QIZIL: '🔴', SARIQ: '🟡', YASHIL: '🟢' } as const;
+
+/**
+ * TZ 21.8 — har oyning 1-kuni: o'tgan oy reja va fakti.
+ * ⚠️ Raqamlar «Reja va fakt» hisoboti bilan bir manbadan (21.5).
+ */
+export function oylikYakunMatni(k: { readonly oyNomi: string; readonly qatorlar: readonly OylikQator[] }): string {
+  // Oylik yakun — butun so'mda (tiyin telefondagi xabarda shovqin)
+  const pul = (s: string): string => pulKorsat(som(new Decimal(s).toDecimalPlaces(0).toFixed(2)));
+  return [
+    `📊 *${k.oyNomi} yakuni*`,
+    '',
+    ...k.qatorlar.map((q) => {
+      const foiz = bajarilish(q.reja, q.fakt);
+      const rang = bajarilishRangi(foiz);
+      const qism =
+        q.reja === null || foiz === null || rang === null
+          ? `${pul(q.fakt)} (reja yo‘q)`
+          : `${pul(q.fakt)} / ${pul(q.reja)} · ${foiz}% ${BAJARILISH_BELGISI[rang]}`;
+      return `${q.ichki ? '   ' : ''}${md(q.nom)}: ${qism}`;
+    }),
+    '',
+    'Batafsil — saytda: Hisobotlar → Reja va fakt',
+  ].join('\n');
 }

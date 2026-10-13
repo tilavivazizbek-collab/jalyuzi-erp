@@ -35,6 +35,8 @@ type Soruvchi = postgres.Sql | postgres.TransactionSql;
 export async function filialAdminlari(
   soruvchi: Soruvchi,
   filialId: number,
+  /** `false` — bosh admin nusxasisiz (u umumiy xabarni alohida oladi) */
+  boshAdmingaNusxa = true,
 ): Promise<readonly { xodimId: number; telegramId: number; ozFiliali: boolean }[]> {
   const q = await soruvchi<{ id: number; telegram_id: number; oz: boolean }[]>`
     SELECT DISTINCT x.id, x.telegram_id, (x.filial_id = ${filialId}) AS oz
@@ -42,7 +44,7 @@ export async function filialAdminlari(
     JOIN filial xf    ON xf.id = x.filial_id
     JOIN xodim_rol xr ON xr.xodim_id = x.id
     JOIN rol r        ON r.id = xr.rol_id
-    WHERE (x.filial_id = ${filialId} OR xf.bosh)
+    WHERE (x.filial_id = ${filialId} OR (${boshAdmingaNusxa} AND xf.bosh))
       AND x.faol = true
       AND x.telegram_id IS NOT NULL
       AND r.kod = 'ADMIN'
@@ -65,10 +67,12 @@ export async function adminlarniOgohlantir(
     readonly matn: string;
     readonly manbaTuri?: string | null;
     readonly manbaId?: number | null;
+    /** `false` — bosh adminga nusxa yuborilmaydi (standart — yuboriladi, 20.14.3) */
+    readonly boshAdmingaNusxa?: boolean;
   },
   yaratdiId: number,
 ): Promise<{ yozildi: number }> {
-  const adminlar = await filialAdminlari(soruvchi, kirim.filialId);
+  const adminlar = await filialAdminlari(soruvchi, kirim.filialId, kirim.boshAdmingaNusxa ?? true);
   if (adminlar.length === 0) return { yozildi: 0 };
 
   // TZ 20.14.3 — xabarda filial nomi (bosh admin qaysi filialdan ekanini bilsin)
@@ -127,6 +131,10 @@ const TIZIM_XODIM = 1;
  * @param qoshimchaShart qaysi filiallar (masalan, kassa yopilish soati o'tgani)
  * @param filialIdlar `undefined` — hamma filial (cron); berilsa faqat shular
  *    (sinov, qo'lda qayta yuborish)
+ * @param davrBoshi shu kundan beri yozilgan bo'lsa — qayta yozilmaydi.
+ *    Standart — `bugun` (kuniga bir marta). `null` — HECH QACHON qayta
+ *    yozilmaydi (oylik xabar: davr `manbaTuri` ichida, «oylik_yakun:2026-09»).
+ * @param boshAdmingaNusxa `false` — bosh admin har filial nusxasini olmaydi
  */
 export async function kunigaBirMartaOgohlantir(
   sql: postgres.Sql,
@@ -136,6 +144,8 @@ export async function kunigaBirMartaOgohlantir(
     readonly bugun: string;
     readonly qoshimchaShart?: postgres.PendingQuery<postgres.Row[]>;
     readonly filialIdlar?: readonly number[];
+    readonly davrBoshi?: string | null;
+    readonly boshAdmingaNusxa?: boolean;
     readonly matnYasa: (filialId: number) => Promise<string | null>;
   },
 ): Promise<{ filiallar: number; xabarlar: number; band?: true }> {
@@ -152,18 +162,25 @@ export async function kunigaBirMartaOgohlantir(
         AND NOT EXISTS (
           SELECT 1 FROM bot_xabar x
           WHERE x.manba_turi = ${k.manbaTuri} AND x.manba_id = f.id
-            AND (x.yaratildi AT TIME ZONE ${VAQT_ZONASI})::date = ${k.bugun}::date)
+            ${k.davrBoshi === null ? tx`` : tx`AND (x.yaratildi AT TIME ZONE ${VAQT_ZONASI})::date >= ${k.davrBoshi ?? k.bugun}::date`})
       ORDER BY f.id`;
 
     let xabarlar = 0;
     let soni = 0;
     for (const f of filiallar) {
-      if ((await filialAdminlari(tx, f.id)).length === 0) continue;
+      if ((await filialAdminlari(tx, f.id, k.boshAdmingaNusxa ?? true)).length === 0) continue;
       const matn = await k.matnYasa(f.id);
       if (matn === null) continue;
       const { yozildi } = await adminlarniOgohlantir(
         tx,
-        { filialId: f.id, hodisa: k.hodisa, matn, manbaTuri: k.manbaTuri, manbaId: f.id },
+        {
+          filialId: f.id,
+          hodisa: k.hodisa,
+          matn,
+          manbaTuri: k.manbaTuri,
+          manbaId: f.id,
+          boshAdmingaNusxa: k.boshAdmingaNusxa ?? true,
+        },
         TIZIM_XODIM,
       );
       xabarlar += yozildi;

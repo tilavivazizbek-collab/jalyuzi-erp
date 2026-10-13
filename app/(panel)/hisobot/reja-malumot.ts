@@ -12,9 +12,16 @@
  *    farq qilishi mumkin, bu kutilgan.
  */
 
+import Decimal from 'decimal.js';
 import { ulanishOl } from '@/lib/db';
+import { kunigaBirMartaOgohlantir } from '@/lib/amal/bildirishnoma';
+import { oylikYakunMatni } from '@/lib/domain/bildirishnoma';
+import { toshkentKuni } from '@/lib/domain/sana';
 import { pozitsiyaNatijasiUstunlari } from '@/lib/amal/filial-harakat';
+import { rolBormi, type Foydalanuvchi } from '@/lib/ruxsat/tekshir';
 import {
+  oyBoshi,
+  oyNomi,
   oyQosh,
   rejaFaktiniYigish,
   rejaKaliti,
@@ -183,4 +190,104 @@ export async function rejaFaktQatorlari(
     });
   }
   return natija;
+}
+
+export interface DashboardRejasi {
+  readonly sarlavha: string;
+  /** `null` — reja qo'yilmagan (EC-REJ-01) */
+  readonly reja: string | null;
+  readonly fakt: string;
+  readonly oy: string;
+}
+
+/**
+ * TZ 21.7 — dashboardning birinchi qatori. Kim kirsa, O'ZINIKI:
+ * bosh filial admini — korxona, filial admini — filial, sotuvchi — o'z
+ * rejasi. Usta va omborchiga — `null` (reja yo'q, 21.2).
+ *
+ * ⚠️ Sotuvchi o'z rejasini `reja.kor` ruxsatisiz ham ko'radi (21.7).
+ */
+export async function dashboardRejasi(f: Foydalanuvchi, oy: string): Promise<DashboardRejasi | null> {
+  const admin = rolBormi(f, 'ADMIN');
+  const sotuvchi = rolBormi(f, 'SOTUVCHI');
+  if (!admin && !sotuvchi) return null;
+
+  const turi: RejaTuri = admin ? (f.boshFilialda ? 'KORXONA' : 'FILIAL') : 'SOTUVCHI';
+  const filialId = turi === 'KORXONA' ? null : f.filialId;
+  const xodimId = turi === 'SOTUVCHI' ? f.xodimId : null;
+
+  const [fakt, r] = await Promise.all([
+    rejaFakti(oy),
+    ulanishOl()<{ tushum: string | null }[]>`
+      SELECT tushum::text FROM reja
+      WHERE oy = ${oy} AND turi = ${turi}
+        AND COALESCE(filial_id, 0) = ${filialId ?? 0} AND COALESCE(xodim_id, 0) = ${xodimId ?? 0}`,
+  ]);
+  return {
+    sarlavha: turi === 'KORXONA' ? 'Korxona rejasi' : turi === 'FILIAL' ? 'Filial rejasi' : 'Mening rejam',
+    reja: r[0]?.tushum ?? null,
+    fakt:
+      turi === 'KORXONA'
+        ? fakt.korxona.tushum
+        : turi === 'FILIAL'
+          ? (fakt.filiallar.get(f.filialId)?.tushum ?? '0.00')
+          : (fakt.sotuvchilar.get(`${String(f.filialId)}|${String(f.xodimId)}`) ?? '0.00'),
+    oy,
+  };
+}
+
+/**
+ * TZ 21.8 — oylik yakun (har oyning 1-kuni): O'TGAN oy reja va fakti.
+ *
+ * ⚠️ IKKI XIL XABAR: bosh filial adminlari — korxona va hamma filial
+ *    (bitta xabar); boshqa filial adminlari — faqat o'z filiali va uning
+ *    sotuvchilari. Bosh admin har filial nusxasini OLMAYDI — aks holda
+ *    bir xil raqamlarni N marta olardi.
+ * ⚠️ HISOBOT OYI UCHUN BIR MARTA: oy manba turining ichida
+ *    («oylik_yakun:2026-09»). Cron 2-kuni yoki keyinroq yana chaqirilsa
+ *    ham o'sha oy qayta yuborilmaydi.
+ * ⚠️ Reja ham, fakt ham yo'q filialga xabar ketmaydi.
+ */
+export async function oylikYakunXabarlari(
+  hozir: Date = new Date(),
+  filialIdlar?: readonly number[],
+): Promise<{ filiallar: number; xabarlar: number }> {
+  const sql = ulanishOl();
+  const bugun = toshkentKuni(hozir);
+  const oy = oyQosh(oyBoshi(bugun), -1);
+  const matn = (q: readonly RejaFaktQatori[]): string | null => {
+    const bor = q.filter((x) => x.rejaTushum !== null || !new Decimal(x.faktTushum).isZero());
+    if (bor.length === 0) return null;
+    return oylikYakunMatni({
+      oyNomi: oyNomi(oy),
+      qatorlar: bor.map((x) => ({
+        nom: x.nom,
+        reja: x.rejaTushum,
+        fakt: x.faktTushum,
+        ichki: x.turi !== 'KORXONA' && !(x.turi === 'FILIAL' && bor.every((y) => y.turi !== 'KORXONA')),
+      })),
+    });
+  };
+
+  const korxona = await kunigaBirMartaOgohlantir(sql, {
+    hodisa: 'OYLIK_YAKUN',
+    manbaTuri: `oylik_yakun:${oy.slice(0, 7)}`,
+    bugun,
+    davrBoshi: null,
+    filialIdlar,
+    qoshimchaShart: sql`AND f.bosh`,
+    // Korxona va filiallar — sotuvchilar filial xabarida
+    matnYasa: async () => matn((await rejaFaktQatorlari(oy, null)).filter((x) => x.turi !== 'SOTUVCHI')),
+  });
+  const filial = await kunigaBirMartaOgohlantir(sql, {
+    hodisa: 'OYLIK_YAKUN',
+    manbaTuri: `oylik_yakun_filial:${oy.slice(0, 7)}`,
+    bugun,
+    davrBoshi: null,
+    filialIdlar,
+    qoshimchaShart: sql`AND NOT f.bosh`,
+    boshAdmingaNusxa: false,
+    matnYasa: async (filialId) => matn(await rejaFaktQatorlari(oy, [filialId])),
+  });
+  return { filiallar: korxona.filiallar + filial.filiallar, xabarlar: korxona.xabarlar + filial.xabarlar };
 }
