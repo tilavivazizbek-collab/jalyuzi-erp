@@ -8,6 +8,8 @@
  */
 
 import Decimal from 'decimal.js';
+import { pulMatn, som } from '@/lib/domain/pul';
+import { foyda, foydaUlushi } from '@/lib/domain/filial-hisob';
 
 export const REJA_TURLARI = ['KORXONA', 'FILIAL', 'SOTUVCHI'] as const;
 export type RejaTuri = (typeof REJA_TURLARI)[number];
@@ -96,9 +98,10 @@ export function surat(k: {
     otganKun,
     oyKuni,
     otganFoiz: ulush.times(100).toDecimalPlaces(1).toFixed(1),
-    kutilgan: kutilgan.toDecimalPlaces(2).toFixed(2),
-    farq: new Decimal(k.fakt).minus(kutilgan).toDecimalPlaces(2).toFixed(2),
-    prognoz: prognoz.toDecimalPlaces(2).toFixed(2),
+    // Taxmin — butun so'mgacha (tiyin bu yerda soxta aniqlik, pul prognozi kabi)
+    kutilgan: kutilgan.toDecimalPlaces(0).toFixed(2),
+    farq: new Decimal(k.fakt).minus(kutilgan).toDecimalPlaces(0).toFixed(2),
+    prognoz: prognoz.toDecimalPlaces(0).toFixed(2),
     prognozFoiz: prognoz.div(k.reja).times(100).toDecimalPlaces(1).toFixed(1),
   };
 }
@@ -141,4 +144,76 @@ export function rejaSummasiniOqi(xom: string): string | null | undefined {
 /** Forma maydoni kaliti: `KORXONA|0|0`, `FILIAL|5|0`, `SOTUVCHI|5|17` */
 export function rejaKaliti(turi: RejaTuri, filialId: number | null, xodimId: number | null): string {
   return `${turi}|${String(filialId ?? 0)}|${String(xodimId ?? 0)}`;
+}
+
+// ─── TZ 21.5 · Fakt ───────────────────────────────────────────────────────
+
+export interface FaktQatori {
+  /** TOPSHIRILDI — o'sha oyga tushum; QAYTARILDI — o'sha oyda ayiriladi (21.5.1) */
+  readonly turi: 'TOPSHIRILDI' | 'QAYTARILDI';
+  readonly sotuvchiId: number;
+  readonly sotganFilialId: number;
+  readonly ishlabFilialId: number;
+  /** So'mda; QAYTARILDI da manfiy (qaytarilgan summa, ushlanma — tushum bo'lib qoladi) */
+  readonly tushum: string;
+  readonly tannarx: string;
+  readonly ishHaqi: string;
+}
+
+export interface RejaFakti {
+  readonly korxona: { readonly tushum: string; readonly foyda: string };
+  /** filial id → tushum (SOTGAN filial bo'yicha, 21.5) va taqsimlangan foyda (20.17) */
+  readonly filiallar: ReadonlyMap<number, { readonly tushum: string; readonly foyda: string }>;
+  /** `${filialId}|${xodimId}` → tushum (EC-REJ-03: sotgan filialida) */
+  readonly sotuvchilar: ReadonlyMap<string, string>;
+}
+
+/**
+ * TZ 21.5 — fakt. Korxona = hamma qator (taqsimotsiz), filial foydasi —
+ * 20.17 qoidasi (`foydaUlushi`: bitta filial — 100%, ikki filial — 50/50).
+ * ⚠️ Qaytarishda xarajat qaytmaydi (material ishlatilgan) — faqat tushum
+ *    kamayadi, foyda ham shuncha kamayadi va xuddi shunday bo'linadi.
+ */
+export function rejaFaktiniYigish(qatorlar: readonly FaktQatori[]): RejaFakti {
+  let tushum = new Decimal(0);
+  let foydaJami = new Decimal(0);
+  const filiallar = new Map<number, { tushum: Decimal; foyda: Decimal }>();
+  const sotuvchilar = new Map<string, Decimal>();
+  const fl = (id: number) => {
+    const x = filiallar.get(id) ?? { tushum: new Decimal(0), foyda: new Decimal(0) };
+    filiallar.set(id, x);
+    return x;
+  };
+
+  for (const q of qatorlar) {
+    const n = { tushum: som(q.tushum), tannarx: som(q.tannarx), ishHaqi: som(q.ishHaqi) };
+    const bitta = q.sotganFilialId === q.ishlabFilialId;
+    tushum = tushum.plus(q.tushum);
+    foydaJami = foydaJami.plus(pulMatn(foyda(n)));
+
+    const s = fl(q.sotganFilialId);
+    s.tushum = s.tushum.plus(q.tushum);
+    const ulush = pulMatn(foydaUlushi(n, bitta));
+    s.foyda = s.foyda.plus(ulush);
+    if (!bitta) {
+      const i = fl(q.ishlabFilialId);
+      i.foyda = i.foyda.plus(ulush);
+    }
+
+    const k = `${String(q.sotganFilialId)}|${String(q.sotuvchiId)}`;
+    sotuvchilar.set(k, (sotuvchilar.get(k) ?? new Decimal(0)).plus(q.tushum));
+  }
+
+  return {
+    korxona: { tushum: tushum.toFixed(2), foyda: foydaJami.toFixed(2) },
+    filiallar: new Map([...filiallar].map(([id, x]) => [id, { tushum: x.tushum.toFixed(2), foyda: x.foyda.toFixed(2) }])),
+    sotuvchilar: new Map([...sotuvchilar].map(([k, x]) => [k, x.toFixed(2)])),
+  };
+}
+
+const OYLAR = ['Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'Iyun', 'Iyul', 'Avgust', 'Sentabr', 'Oktabr', 'Noyabr', 'Dekabr'];
+
+/** `2026-08-01` → «Avgust 2026» */
+export function oyNomi(oy: string): string {
+  return `${OYLAR[Number(oy.slice(5, 7)) - 1] ?? ''} ${oy.slice(0, 4)}`;
 }

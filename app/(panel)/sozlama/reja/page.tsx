@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { sahifaRuxsati } from '@/lib/kirish/joriy';
 import { pulKorsat, som } from '@/lib/domain/pul';
-import { oyBoshi, oyQosh, rejaKaliti, yigindiTekshir } from '@/lib/domain/reja';
+import { oyBoshi, oyNomi, oyQosh, rejaKaliti, yigindiTekshir } from '@/lib/domain/reja';
 import { toshkentKuni } from '@/lib/domain/sana';
 import { rejaEkrani, rejaQamrovi } from './malumot';
 import { RejaFormasi, type FormaBolimi } from './forma';
@@ -13,8 +13,6 @@ export const dynamic = 'force-dynamic';
  * Korxona va filial — tushum + foyda; sotuvchi — faqat tushum (21.2).
  */
 
-const OYLAR = ['Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'Iyun', 'Iyul', 'Avgust', 'Sentabr', 'Oktabr', 'Noyabr', 'Dekabr'];
-const oyNomi = (oy: string): string => `${OYLAR[Number(oy.slice(5, 7)) - 1] ?? ''} ${oy.slice(0, 4)}`;
 const korsat = (s: string | null | undefined): string => (s === null || s === undefined ? '' : pulKorsat(som(s)));
 
 export default async function Rejalar({ searchParams }: { searchParams: Promise<{ oy?: string }> }) {

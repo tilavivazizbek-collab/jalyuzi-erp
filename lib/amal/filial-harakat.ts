@@ -41,11 +41,37 @@ export interface PozitsiyaHisobi {
 }
 
 /**
- * Pozitsiyaning uch soni — hammasi **jurnaldan** (2.2-invariant).
+ * Pozitsiya natijasining ustunlari — `p` (buyurtma_pozitsiya) va `b`
+ * (buyurtma) aliaslari kerak. BITTA JOY: filiallararo qarz (22.3) va
+ * reja fakti (21.5) — ikkalasi bir xil foyda ko'rsatsin.
  *
- * `tannarx_snapshot` ishlatilmaydi: u bir slotli pozitsiyada to'g'ri,
- * lekin ombor jurnali ko'p slotda ham to'g'ri qoladi.
+ * ⚠️ 2026-10-13: tushum KURSSIZ olinardi — $50 «50 so'm» bo'lib so'mli
+ *    tannarx yonida turardi va qarz 50 so'mga cheklanardi. Kurs —
+ *    buyurtma snapshoti (2.3), USD da NULL bo'lmaydi (buyurtma_usd_kurs).
+ * ⚠️ `tannarx_snapshot` ishlatilmaydi: ombor jurnali ko'p slotda ham to'g'ri.
  */
+export function pozitsiyaNatijasiUstunlari(soruvchi: Soruvchi) {
+  return soruvchi`
+    ((p.narx_snapshot - COALESCE(p.chegirma_summa, 0))
+      * CASE WHEN b.valyuta = 'USD' THEN b.kurs_snapshot ELSE 1 END)::numeric(14,2)::text AS tushum,
+    (CASE WHEN b.valyuta = 'USD' THEN b.kurs_snapshot ELSE 1 END)::text AS kurs,
+    COALESCE((
+      SELECT -SUM(oh.tannarx_summa) FROM ombor_harakat oh
+      WHERE oh.manba_turi = 'buyurtma_pozitsiya' AND oh.manba_id = p.id
+    ), 0)::text AS tannarx,
+    COALESCE((
+      SELECT SUM(x.summa) FROM xarajat x
+      WHERE x.modda = 'ISH_HAQI'
+        AND (
+          (x.manba_turi = 'buyurtma_pozitsiya' AND x.manba_id = p.id)
+          OR (x.manba_turi = 'qayta_kesish' AND x.manba_id IN (
+                SELECT qk.id FROM qayta_kesish qk
+                WHERE qk.buyurtma_pozitsiya_id = p.id))
+        )
+    ), 0)::text AS ish_haqi`;
+}
+
+/** Pozitsiyaning uch soni — hammasi **jurnaldan** (2.2-invariant). */
 export async function pozitsiyaHisobi(
   soruvchi: Soruvchi,
   pozitsiyaId: number,
@@ -62,29 +88,7 @@ export async function pozitsiyaHisobi(
   >`
     SELECT b.sotgan_filial_id,
            b.ishlab_chiqaruvchi_filial_id,
-           /*
-            * ⚠️ 2026-10-13: tushum KURSSIZ olinardi — $50 «50 so'm» bo'lib
-            *    so'mli tannarx yonida turardi va qarz 50 so'mga cheklanardi.
-            *    Kurs — buyurtma snapshoti (2.3), USD da NULL bo'lmaydi
-            *    (buyurtma_usd_kurs cheki).
-            */
-           ((p.narx_snapshot - COALESCE(p.chegirma_summa, 0))
-             * CASE WHEN b.valyuta = 'USD' THEN b.kurs_snapshot ELSE 1 END)::numeric(14,2)::text AS tushum,
-           (CASE WHEN b.valyuta = 'USD' THEN b.kurs_snapshot ELSE 1 END)::text AS kurs,
-           COALESCE((
-             SELECT -SUM(oh.tannarx_summa) FROM ombor_harakat oh
-             WHERE oh.manba_turi = 'buyurtma_pozitsiya' AND oh.manba_id = p.id
-           ), 0)::text AS tannarx,
-           COALESCE((
-             SELECT SUM(x.summa) FROM xarajat x
-             WHERE x.modda = 'ISH_HAQI'
-               AND (
-                 (x.manba_turi = 'buyurtma_pozitsiya' AND x.manba_id = p.id)
-                 OR (x.manba_turi = 'qayta_kesish' AND x.manba_id IN (
-                       SELECT qk.id FROM qayta_kesish qk
-                       WHERE qk.buyurtma_pozitsiya_id = p.id))
-               )
-           ), 0)::text AS ish_haqi
+           ${pozitsiyaNatijasiUstunlari(soruvchi)}
     FROM buyurtma_pozitsiya p
     JOIN buyurtma b ON b.id = p.buyurtma_id
     WHERE p.id = ${pozitsiyaId}`;

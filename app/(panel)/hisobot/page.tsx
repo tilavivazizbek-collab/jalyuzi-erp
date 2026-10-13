@@ -65,6 +65,13 @@ const BANDLAR: readonly Band[] = [
     kod: 'audit.kor',
     tayyor: true,
   },
+  {
+    yol: '/hisobot/reja',
+    nom: 'Reja va fakt',
+    izoh: "Bajarilish foizi, oy ichidagi sur'at, shu sur'atda oy oxirida qancha bo'lishi",
+    kod: 'reja.kor',
+    tayyor: true,
+  },
 ];
 
 export default async function Hisobotlar() {

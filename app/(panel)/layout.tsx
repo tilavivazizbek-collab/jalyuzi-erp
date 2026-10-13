@@ -127,6 +127,8 @@ const MENYU: readonly Guruh[] = [
       { yol: '/hisobot/salomatlik', nom: "Ma'lumot salomatligi", kod: 'hisobot.moliya.kor' },
       // Odatdan tashqari amallar — audit jurnalidan (11.5.6 qoidasi: ayblov emas)
       { yol: '/hisobot/nazorat', nom: 'Nazorat', kod: 'audit.kor' },
+      // TZ 21.6 — reja va fakt
+      { yol: '/hisobot/reja', nom: 'Reja va fakt', kod: 'reja.kor' },
     ],
   },
   {

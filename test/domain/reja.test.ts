@@ -38,10 +38,10 @@ describe('TZ 21 — reja hisobi', () => {
     const s = surat({ reja: '100000000', fakt: '41200000', oy: '2026-08-01', bugun: '2026-08-15' });
     expect(s).toMatchObject({ otganKun: 15, oyKuni: 31, otganFoiz: '48.4' });
     // 100 000 000 × 15/31
-    expect(s?.kutilgan).toBe('48387096.77');
-    expect(s?.farq).toBe('-7187096.77');
+    expect(s?.kutilgan).toBe('48387097.00');
+    expect(s?.farq).toBe('-7187097.00');
     // 41 200 000 × 31/15
-    expect(s?.prognoz).toBe('85146666.67');
+    expect(s?.prognoz).toBe('85146667.00');
     expect(s?.prognozFoiz).toBe('85.1');
   });
 
@@ -84,5 +84,25 @@ describe('reja formasi', () => {
     expect(rejaSummasiniOqi('12abc')).toBeUndefined();
     expect(rejaKaliti('SOTUVCHI', 5, 17)).toBe('SOTUVCHI|5|17');
     expect(rejaKaliti('KORXONA', null, null)).toBe('KORXONA|0|0');
+  });
+});
+
+describe('TZ 21.5 — fakt yig‘ish', () => {
+  it('filial tushumi — sotgan filialda; foyda 20.17: bir filial 100%, ikki filial 50/50; qaytarish ayiriladi', async () => {
+    const { rejaFaktiniYigish } = await import('@/lib/domain/reja');
+    const f = rejaFaktiniYigish([
+      // Chilonzor (1) sotdi, Samarqand (2) tikdi — 20.17.3 misoli
+      { turi: 'TOPSHIRILDI', sotuvchiId: 10, sotganFilialId: 1, ishlabFilialId: 2, tushum: '678400', tannarx: '312000', ishHaqi: '57600' },
+      // Chilonzor o'zi sotdi va tikdi
+      { turi: 'TOPSHIRILDI', sotuvchiId: 11, sotganFilialId: 1, ishlabFilialId: 1, tushum: '100000', tannarx: '40000', ishHaqi: '10000' },
+      // Shu oyda qaytarildi: 30 000 qaytdi (tushum ham, foyda ham kamayadi)
+      { turi: 'QAYTARILDI', sotuvchiId: 11, sotganFilialId: 1, ishlabFilialId: 1, tushum: '-30000', tannarx: '0', ishHaqi: '0' },
+    ]);
+    expect(f.korxona).toEqual({ tushum: '748400.00', foyda: '328800.00' });
+    // 154 400 + 50 000 − 30 000
+    expect(f.filiallar.get(1)).toEqual({ tushum: '748400.00', foyda: '174400.00' });
+    expect(f.filiallar.get(2)).toEqual({ tushum: '0.00', foyda: '154400.00' });
+    expect(f.sotuvchilar.get('1|10')).toBe('678400.00');
+    expect(f.sotuvchilar.get('1|11')).toBe('70000.00');
   });
 });
