@@ -847,6 +847,11 @@ Majburiy shartlar:
 
 Tekshirilmagan zaxira — zaxira emas.
 
+✅ 2026-10-13: `npm run db:zaxira-tekshir -- erp-YYYY-MM-DD.sql.gz` — Telegram kanaldan
+yuklab olingan nusxani vaqtinchalik LOKAL bazaga tiklaydi, asosiy jadvallar,
+migratsiyalar soni, bo'sh emasligi va bo'lak/band mosligini tekshiradi, bazani
+o'chiradi. Ishchi serverda baza yaratmaydi (faqat localhost).
+
 ---
 
 ## 18. MUHIT O'ZGARUVCHILARI

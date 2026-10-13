@@ -34,7 +34,8 @@
     "db:namuna": "tsx --env-file=.env lib/db/namuna-buyruq.ts",
     "db:namuna-ochir": "tsx --env-file=.env lib/db/namuna-ochir-buyruq.ts",
     "db:narx-tekshir": "tsx --env-file=.env lib/db/narx-migratsiya-tekshir.ts",
-    "db:kirim-qarz-tekshir": "tsx --env-file=.env lib/db/kirim-qarz-tekshir.ts"
+    "db:kirim-qarz-tekshir": "tsx --env-file=.env lib/db/kirim-qarz-tekshir.ts",
+    "db:zaxira-tekshir": "tsx lib/db/zaxira-tekshir.ts"
   },
   "dependencies": {
     "@node-rs/argon2": "^2.1.0",
