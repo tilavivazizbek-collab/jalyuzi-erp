@@ -6,6 +6,9 @@
  * ⚠️ «Pul tasdiqlangunicha SOTUVCHI KASSASIDA turadi.» Bu forma faqat
  *    yozuv yaratadi — pul admin tasdiqlaganda ko'chadi (12.7).
  *
+ * ⚠️ T-05 — o'z filialidagi BOSHQA SOTUVCHIGA ham (smena almashganda);
+ *    uni pulni olgan sotuvchi o'zi qabul qiladi.
+ *
  * ⚠️ Q-29 · 22.5 — sotuvchi pulni **istalgan filial** adminiga
  *    topshirishi mumkin. Boshqa filial tanlansa ogohlantirish chiqadi
  *    (22.5.2): qabul qilgan filial topshirganga qarzdor bo'ladi.
@@ -41,6 +44,8 @@ export function TopshirishFormasi({
     manba === undefined ? nishonlar : nishonlar.filter((n) => n.valyuta === manba.valyuta);
 
   const begonaFilial = nishon !== undefined && !nishon.ozFilialimi;
+  // Yuborilgandan keyin forma tozalanmaydi — nishon hali tanlangan turadi
+  const yuborilganga = nishon?.sotuvchi ?? null;
 
   if (!ochiq) {
     return (
@@ -66,7 +71,8 @@ export function TopshirishFormasi({
 
       {holat.bajarildi && (
         <p className="rounded-maydon bg-belgi-yashil-fon px-3 py-2.5 text-sm text-belgi-yashil ">
-          Topshiriq yuborildi. Pul admin tasdiqlagunicha kassangizda turadi (12.7).
+          Topshiriq yuborildi. Pul {yuborilganga ?? 'admin'} qabul qilgunicha kassangizda turadi
+          (12.7).
         </p>
       )}
 
@@ -111,11 +117,27 @@ export function TopshirishFormasi({
             className={`${kirishUslubi(false)} w-64`}
           >
             <option value="">— tanlang —</option>
-            {mosNishonlar.map((n) => (
-              <option key={n.id} value={n.id}>
-                {n.filialNomi} · {n.nom}
-              </option>
-            ))}
+            <optgroup label="Adminga">
+              {mosNishonlar
+                .filter((n) => n.sotuvchi === null)
+                .map((n) => (
+                  <option key={n.id} value={n.id}>
+                    {n.filialNomi} · {n.nom}
+                  </option>
+                ))}
+            </optgroup>
+            {/* T-05 — smena almashganda boshqa sotuvchiga */}
+            {mosNishonlar.some((n) => n.sotuvchi !== null) && (
+              <optgroup label="Sotuvchiga (smena)">
+                {mosNishonlar
+                  .filter((n) => n.sotuvchi !== null)
+                  .map((n) => (
+                    <option key={n.id} value={n.id}>
+                      {n.sotuvchi} · {n.nom}
+                    </option>
+                  ))}
+              </optgroup>
+            )}
           </select>
         </Maydon>
 

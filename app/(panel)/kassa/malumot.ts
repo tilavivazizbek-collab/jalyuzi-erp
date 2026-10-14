@@ -258,9 +258,27 @@ export async function ochiqTopshiriqlar(filialId: number): Promise<TopshiriqQato
     JOIN kassa kd ON kd.id = t.kimdan_kassa_id
     JOIN kassa kg ON kg.id = t.kimga_kassa_id
     WHERE t.holat = 'JONATILDI' AND kg.filial_id = ${filialId}
+      -- T-05 — sotuvchiga ketganini sotuvchining o'zi qabul qiladi
+      AND kg.xodim_id IS NULL
     ORDER BY t.yaratildi`;
 
   return q;
+}
+
+/**
+ * LOYIHA T-05 — SHU sotuvchiga kelgan, hali qabul qilinmagan pul.
+ * Pulni qo'lida ushlagan odam tasdiqlaydi (12.7 — tasdiqlanganda ko'chadi).
+ */
+export async function mengaKelganTopshiriqlar(xodimId: number): Promise<TopshiriqQatori[]> {
+  return ulanishOl()<TopshiriqQatori[]>`
+    SELECT t.id, COALESCE(x.ism, kd.nom) AS kimdan, kg.nom AS kimga, t.summa, t.valyuta,
+           t.holat, t.yaratildi AS sana, t.izoh
+    FROM topshiriq t
+    JOIN kassa kd ON kd.id = t.kimdan_kassa_id
+    JOIN kassa kg ON kg.id = t.kimga_kassa_id
+    LEFT JOIN xodim x ON x.id = kd.xodim_id
+    WHERE t.holat = 'JONATILDI' AND kg.xodim_id = ${xodimId}
+    ORDER BY t.yaratildi`;
 }
 
 // ─── 10.16 · Xodim kartochkasi ────────────────────────────────────────────
@@ -459,6 +477,8 @@ export interface TopshirishNishoni {
   readonly filialNomi: string;
   /** Q-29 — boshqa filial admini bo'lsa ogohlantirish chiqadi (22.5.2) */
   readonly ozFilialimi: boolean;
+  /** T-05 — sotuvchi kassasi bo'lsa uning ismi (`null` — admin kassasi) */
+  readonly sotuvchi: string | null;
 }
 
 /** 12.7 — sotuvchi O'Z kassasidan topshiradi. */
@@ -491,6 +511,8 @@ export async function topshirishManbalari(
  */
 export async function topshirishNishonlari(
   filialId: number,
+  /** T-05 — o'z kassasi ro'yxatga tushmaydi */
+  xodimId: number,
 ): Promise<readonly TopshirishNishoni[]> {
   const sql = ulanishOl();
   const q = await sql<
@@ -500,13 +522,19 @@ export async function topshirishNishonlari(
       valyuta: string;
       filial_id: number;
       filial_nomi: string;
+      sotuvchi: string | null;
     }[]
   >`
-    SELECT k.id, k.nom, k.valyuta, k.filial_id, f.nom AS filial_nomi
+    SELECT k.id, k.nom, k.valyuta, k.filial_id, f.nom AS filial_nomi, x.ism AS sotuvchi
     FROM kassa k
     JOIN filial f ON f.id = k.filial_id
-    WHERE k.xodim_id IS NULL AND k.faol = true AND f.faol = true
-    ORDER BY (k.filial_id = ${filialId}) DESC, f.nom, k.nom`;
+    LEFT JOIN xodim x ON x.id = k.xodim_id
+    WHERE k.faol = true AND f.faol = true
+      AND (k.xodim_id IS NULL
+           -- T-05 — smena almashganda: o'z filialidagi boshqa sotuvchi, faqat naqd
+           OR (k.filial_id = ${filialId} AND k.xodim_id <> ${xodimId}
+               AND k.turi = 'NAQD' AND x.faol = true))
+    ORDER BY (k.xodim_id IS NULL) DESC, (k.filial_id = ${filialId}) DESC, f.nom, x.ism, k.nom`;
 
   return q.map((r) => ({
     id: r.id,
@@ -515,6 +543,7 @@ export async function topshirishNishonlari(
     filialId: r.filial_id,
     filialNomi: r.filial_nomi,
     ozFilialimi: r.filial_id === filialId,
+    sotuvchi: r.sotuvchi,
   }));
 }
 

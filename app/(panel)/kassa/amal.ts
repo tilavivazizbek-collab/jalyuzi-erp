@@ -10,6 +10,7 @@ import { ulanishOl } from '@/lib/db';
 import {
   kassaStorno,
   topshiriqniQabulQil,
+  topshiriqniRadEt,
   topshiriqYubor,
 } from '@/lib/amal/kassa';
 import { kunniQaytaOch, kunniYop } from '@/lib/amal/kun-yopish';
@@ -17,6 +18,7 @@ import { ayirboshlash } from '@/lib/amal/ayirboshlash';
 import { boshqaHodisa, eganingPuli, operatsionXarajat } from '@/lib/amal/xarajat';
 import { qoldaModdami } from '@/lib/domain/balans';
 import { ruxsatTalab } from '@/lib/kirish/joriy';
+import type { Foydalanuvchi } from '@/lib/ruxsat/tekshir';
 import { ruxsatBormi } from '@/lib/ruxsat/tekshir';
 import { matnMaydon } from '../forma-yordamchi';
 import type {
@@ -64,7 +66,31 @@ export async function stornoAmali(
 }
 
 /**
- * TZ 12.7 — admin topshiriqni qabul qiladi.
+ * TZ 12.7 · T-05 — topshiriqni KIM hal qila oladi (qabul yoki rad).
+ *
+ *   sotuvchi kassasiga kelgan → o'sha sotuvchining O'ZI (pul uning qo'lida)
+ *   admin kassasiga kelgan    → o'sha filialning `kassa.barcha.kor` egasi
+ *
+ * ⚠️ Qoida SHU BITTA joyda — qabul ham, rad ham shuni chaqiradi.
+ */
+async function halQilaOladimi(topshiriqId: number, f: Foydalanuvchi): Promise<boolean> {
+  const admin = ruxsatBormi(f, 'kassa.barcha.kor');
+  const q = await ulanishOl()<{ n: number }[]>`
+    SELECT COUNT(*)::int AS n FROM topshiriq t
+    JOIN kassa k ON k.id = t.kimga_kassa_id
+    WHERE t.id = ${topshiriqId}
+      AND (k.xodim_id = ${f.xodimId}
+           OR (k.xodim_id IS NULL AND k.filial_id = ${f.filialId} AND ${admin}))`;
+  return (q[0]?.n ?? 0) > 0;
+}
+
+function topshiriqIdsi(forma: FormData): number | null {
+  const id = Number(matnMaydon(forma, 'topshiriqId'));
+  return Number.isSafeInteger(id) && id > 0 ? id : null;
+}
+
+/**
+ * TZ 12.7 — topshiriqni qabul qilish (admin yoki T-05 da sotuvchi).
  *
  * ⚠️ TZ 12.4 — pul AYNAN SHU PAYTDA ko'chadi, jo'natilganda emas.
  */
@@ -72,28 +98,45 @@ export async function topshiriqQabulAmali(
   _oldingi: KassaAmalHolati,
   forma: FormData,
 ): Promise<KassaAmalHolati> {
-  const f = await ruxsatTalab('kassa.barcha.kor');
+  const f = await ruxsatTalab('kassa.oz.kor');
 
-  const topshiriqId = Number(matnMaydon(forma, 'topshiriqId'));
-  if (!Number.isSafeInteger(topshiriqId) || topshiriqId <= 0) {
-    return { xato: 'Topshiriq tanlanmagan', bajarildi: false };
-  }
-
-  const sql = ulanishOl();
-  const tegishli = await sql<{ n: number }[]>`
-    SELECT COUNT(*)::int AS n FROM topshiriq t
-    JOIN kassa k ON k.id = t.kimga_kassa_id
-    WHERE t.id = ${topshiriqId} AND k.filial_id = ${f.filialId}`;
-
-  if ((tegishli[0]?.n ?? 0) === 0) {
+  const topshiriqId = topshiriqIdsi(forma);
+  if (topshiriqId === null) return { xato: 'Topshiriq tanlanmagan', bajarildi: false };
+  if (!(await halQilaOladimi(topshiriqId, f))) {
     return { xato: 'Topshiriq topilmadi', bajarildi: false };
   }
 
   try {
-    await topshiriqniQabulQil(sql, topshiriqId, f.xodimId);
+    await topshiriqniQabulQil(ulanishOl(), topshiriqId, f.xodimId);
   } catch (x) {
     return {
       xato: await xatoXabari(x, 'kassa/amal', 'Qabul qilishda xato yuz berdi'),
+      bajarildi: false,
+    };
+  }
+
+  revalidatePath('/kassa');
+  return { xato: null, bajarildi: true };
+}
+
+/** TZ 12.7 — «summa mos kelmadi»: rad etiladi, pul qimirlamaydi. */
+export async function topshiriqRadAmali(
+  _oldingi: KassaAmalHolati,
+  forma: FormData,
+): Promise<KassaAmalHolati> {
+  const f = await ruxsatTalab('kassa.oz.kor');
+
+  const topshiriqId = topshiriqIdsi(forma);
+  if (topshiriqId === null) return { xato: 'Topshiriq tanlanmagan', bajarildi: false };
+  if (!(await halQilaOladimi(topshiriqId, f))) {
+    return { xato: 'Topshiriq topilmadi', bajarildi: false };
+  }
+
+  try {
+    await topshiriqniRadEt(ulanishOl(), topshiriqId, matnMaydon(forma, 'sabab'), f.xodimId);
+  } catch (x) {
+    return {
+      xato: await xatoXabari(x, 'kassa/amal', 'Rad etishda xato yuz berdi'),
       bajarildi: false,
     };
   }

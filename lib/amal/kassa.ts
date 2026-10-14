@@ -333,9 +333,15 @@ export async function topshiriqYubor(
 
   return ulanish.begin(async (tx) => {
     const kassalar = await tx<
-      { id: number; valyuta: string; filial_id: number; filial_nomi: string }[]
+      {
+        id: number;
+        valyuta: string;
+        filial_id: number;
+        filial_nomi: string;
+        xodim_id: number | null;
+      }[]
     >`
-      SELECT k.id, k.valyuta, k.filial_id, f.nom AS filial_nomi
+      SELECT k.id, k.valyuta, k.filial_id, f.nom AS filial_nomi, k.xodim_id
       FROM kassa k
       JOIN filial f ON f.id = k.filial_id
       WHERE k.id IN (${kirim.kimdanKassaId}, ${kirim.kimgaKassaId})
@@ -344,6 +350,19 @@ export async function topshiriqYubor(
     if (kassalar.length !== 2) throw new BiznesXato('KASSA_TOPILMADI');
     if (kassalar.some((k) => k.valyuta !== kirim.valyuta)) {
       throw new BiznesXato('KASSA_VALYUTA_MOS_EMAS', kirim.valyuta);
+    }
+
+    const dan = kassalar.find((k) => k.id === kirim.kimdanKassaId);
+    const ga = kassalar.find((k) => k.id === kirim.kimgaKassaId);
+    /**
+     * LOYIHA T-05 — sotuvchidan sotuvchiga (smena almashganda).
+     *
+     * ⚠️ Faqat BITTA filial ichida: boshqa filialga pul admin orqali
+     *    boradi (22.5 qarzi admin kassasida yuritiladi).
+     */
+    const sotuvchiga = ga?.xodim_id !== null && ga?.xodim_id !== undefined;
+    if (sotuvchiga && dan?.filial_id !== ga.filial_id) {
+      throw new BiznesXato('TOPSHIRIQ_SOTUVCHI_FILIAL');
     }
 
     const yangi = await tx<{ id: number }[]>`
@@ -366,10 +385,12 @@ export async function topshiriqYubor(
      * ⚠️ 22.5.2 — boshqa filialdan kelgan pul qarz tug'diradi,
      *    shuning uchun xabarda alohida ogohlantirish bo'ladi.
      */
-    const dan = kassalar.find((k) => k.id === kirim.kimdanKassaId);
-    const ga = kassalar.find((k) => k.id === kirim.kimgaKassaId);
-
-    if (dan !== undefined && ga !== undefined) {
+    /**
+     * ⚠️ T-05 — sotuvchiga ketgan topshiriqni ADMIN tasdiqlamaydi: pulni
+     *    olgan sotuvchi o'zi «Qabul qildim» bosadi (kassa sahifasida).
+     *    Adminga tugmali xabar yuborilsa, u ko'rmagan pulni tasdiqlardi.
+     */
+    if (dan !== undefined && ga !== undefined && !sotuvchiga) {
       const sotuvchi = await tx<{ ism: string }[]>`
         SELECT ism FROM xodim WHERE id = ${xodimId}`;
 
@@ -428,6 +449,11 @@ export async function topshiriqniQabulQil(
 
     const valyuta = t.valyuta as 'SOM' | 'USD';
 
+    // T-05 — sotuvchiga topshiriqda jurnal izohi boshqacha (kitobda ajralib tursin)
+    const nishon = await tx<{ xodim_id: number | null }[]>`
+      SELECT xodim_id FROM kassa WHERE id = ${t.kimga_kassa_id}`;
+    const sotuvchiga = (nishon[0]?.xodim_id ?? null) !== null;
+
     const chiqimId = await kassaYozuviQoshTx(
       tx,
       {
@@ -438,7 +464,7 @@ export async function topshiriqniQabulQil(
         manbaTuri: 'topshiriq',
         manbaId: topshiriqId,
         qator: 1,
-        izoh: 'Adminga topshiriq (12.7)',
+        izoh: sotuvchiga ? 'Sotuvchiga topshiriq (T-05)' : 'Adminga topshiriq (12.7)',
       },
       xodimId,
     );
@@ -454,7 +480,7 @@ export async function topshiriqniQabulQil(
         manbaId: topshiriqId,
         // 12.3 — bir manbada ikki qator, uchlik shu bilan noyob qoladi
         qator: 2,
-        izoh: 'Sotuvchidan topshiriq (12.7)',
+        izoh: sotuvchiga ? 'Sotuvchidan topshiriq (T-05)' : 'Sotuvchidan topshiriq (12.7)',
       },
       xodimId,
     );
@@ -501,6 +527,46 @@ export async function topshiriqniQabulQil(
     }
 
     return { chiqimId, kirimId };
+  });
+}
+
+/**
+ * TZ 12.7 — «Admin rad eta oladi (summa mos kelmadi) — yozuv "rad
+ * etilgan" bo'ladi, pul qimirlamaydi, sotuvchi qaytadan belgilaydi.»
+ *
+ * 2026-10-14 gacha rad etish YO'Q edi: summasi xato topshiriq abadiy
+ * «kutilmoqda» bo'lib qolardi. T-05 da qabul qiluvchi sotuvchi ham shu
+ * funksiya bilan rad etadi. Kim rad eta olishini AMAL tekshiradi.
+ */
+export async function topshiriqniRadEt(
+  ulanish: postgres.Sql,
+  topshiriqId: number,
+  sabab: string,
+  xodimId: number,
+): Promise<void> {
+  if (sabab.trim() === '') throw new BiznesXato('TOPSHIRIQ_RAD_SABAB');
+
+  await ulanish.begin(async (tx) => {
+    const q = await tx<{ holat: string; filial_id: number; summa: string; valyuta: string }[]>`
+      SELECT t.holat, k.filial_id, t.summa::text AS summa, t.valyuta
+      FROM topshiriq t JOIN kassa k ON k.id = t.kimga_kassa_id
+      WHERE t.id = ${topshiriqId}
+      FOR UPDATE OF t`;
+    const t = q[0];
+    if (t === undefined) throw new BiznesXato('TOPSHIRIQ_TOPILMADI', String(topshiriqId));
+    if (t.holat !== 'JONATILDI') throw new BiznesXato('TOPSHIRIQ_ALLAQACHON_HAL', t.holat);
+
+    await tx`
+      UPDATE topshiriq SET holat = 'BEKOR', ozgartirildi = now(), ozgartirdi_id = ${xodimId}
+      WHERE id = ${topshiriqId}`;
+
+    await tx`
+      INSERT INTO audit_jurnal (xodim_id, filial_id, amal, obyekt_turi, obyekt_id,
+                                eski_qiymat, yangi_qiymat, izoh)
+      VALUES (${xodimId}, ${t.filial_id}, 'TOPSHIRIQ_RAD_ETILDI', 'topshiriq', ${topshiriqId},
+              ${tx.json({ holat: 'JONATILDI', summa: t.summa, valyuta: t.valyuta })},
+              ${tx.json({ holat: 'BEKOR' })},
+              ${sabab.trim()})`;
   });
 }
 

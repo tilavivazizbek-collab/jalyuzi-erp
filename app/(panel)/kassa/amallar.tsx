@@ -6,7 +6,7 @@
 
 import { useActionState, useState } from 'react';
 import { Maydon, kirishUslubi } from '../maydon';
-import { stornoAmali, topshiriqQabulAmali } from './amal';
+import { stornoAmali, topshiriqQabulAmali, topshiriqRadAmali } from './amal';
 import { BOSH_HOLAT } from './holat';
 
 /** TZ 12.15 — sabab majburiy, teskari yozuv qo'shiladi. */
@@ -93,6 +93,55 @@ export function TopshiriqQabulTugmasi({ topshiriqId }: { topshiriqId: number }) 
         className="rounded-maydon bg-brend px-3 py-1.5 text-xs font-medium text-tugma-matn transition-all active:scale-[0.98] hover:bg-brend-quyuq disabled:opacity-60"
       >
         {kutilmoqda ? 'Qabul qilinmoqda…' : 'Qabul qilish'}
+      </button>
+    </form>
+  );
+}
+
+/**
+ * TZ 12.7 — «Admin rad eta oladi (summa mos kelmadi) — pul qimirlamaydi,
+ * sotuvchi qaytadan belgilaydi.» T-05 da qabul qiluvchi sotuvchi ham.
+ */
+export function TopshiriqRadTugmasi({ topshiriqId }: { topshiriqId: number }) {
+  const [ochiq, ochiqniOzgartir] = useState(false);
+  const [holat, yubor, kutilmoqda] = useActionState(topshiriqRadAmali, BOSH_HOLAT);
+
+  if (!ochiq) {
+    return (
+      <button
+        type="button"
+        onClick={() => {
+          ochiqniOzgartir(true);
+        }}
+        className="rounded-maydon px-2 py-1.5 text-xs text-matn-kuchsiz transition-colors hover:text-belgi-qizil"
+      >
+        Rad etish
+      </button>
+    );
+  }
+
+  return (
+    <form action={yubor} className="flex items-center justify-end gap-2">
+      <input type="hidden" name="topshiriqId" value={topshiriqId} />
+      {holat.xato !== null && (
+        <span role="alert" className="text-xs text-belgi-qizil">
+          {holat.xato}
+        </span>
+      )}
+      <input
+        name="sabab"
+        required
+        autoFocus
+        placeholder="Sabab: summa mos emas…"
+        aria-label="Rad etish sababi"
+        className={`${kirishUslubi(false)} w-48 py-1.5 text-xs`}
+      />
+      <button
+        type="submit"
+        disabled={kutilmoqda}
+        className="rounded-maydon border border-belgi-qizil/30 px-3 py-1.5 text-xs text-belgi-qizil transition-all active:scale-[0.98] hover:bg-belgi-qizil-fon disabled:opacity-60"
+      >
+        {kutilmoqda ? 'Rad etilmoqda…' : 'Rad etish'}
       </button>
     </form>
   );

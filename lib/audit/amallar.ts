@@ -38,6 +38,12 @@ export const AUDIT_AMALLARI = {
     band: 'TZ 2.4, 7.9',
     sababMajburiy: true,
   },
+  /** TZ 12.7 — topshiriq rad etildi, pul qimirlamadi (2026-10-14) */
+  TOPSHIRIQ_RAD_ETILDI: {
+    nom: 'Pul topshirig‘i rad etildi',
+    band: 'TZ 12.7',
+    sababMajburiy: true,
+  },
   QOLDA_TUZATISH: { nom: "Qo'lda korrektsiya", band: 'TZ 2.4', sababMajburiy: true },
   RUXSAT_OZGARDI: { nom: "Ruxsat o'zgardi", band: 'TZ 2.4, 14.6', sababMajburiy: false },
   MAHSULOT_TURI_TAHRIRLANDI: {

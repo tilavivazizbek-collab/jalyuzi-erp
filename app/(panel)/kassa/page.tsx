@@ -12,12 +12,13 @@ import {
   kassaKitobi,
   kitobJami,
   kassaQoldiqlari,
+  mengaKelganTopshiriqlar,
   ochiqTopshiriqlar,
   topshirishManbalari,
   topshirishNishonlari,
   xodimBalanslari,
 } from './malumot';
-import { StornoTugmasi, TopshiriqQabulTugmasi } from './amallar';
+import { StornoTugmasi, TopshiriqQabulTugmasi, TopshiriqRadTugmasi } from './amallar';
 import { TopshirishFormasi } from './topshirish-forma';
 // Sarlavhada `#1` emas, filial NOMI ko'rinsin
 import { filialNomi as filialNominiOl } from '../ombor/malumot';
@@ -51,7 +52,7 @@ export default async function KassaSahifasi({
   const barchaniKoradi = ruxsatBormi(f, 'kassa.barcha.kor');
   const stornoQilaOladi = ruxsatBormi(f, 'kassa.storno');
 
-  const [qoldiqlar, kitob, jami, topshiriqlar, balanslar, manbalar, nishonlar] = await Promise.all([
+  const [qoldiqlar, kitob, jami, topshiriqlar, balanslar, manbalar, nishonlar, kelganlar] = await Promise.all([
     kassaQoldiqlari(f.filialId, f.xodimId, barchaniKoradi),
     kassaKitobi(f.filialId, f.xodimId, barchaniKoradi, filtr),
     kitobJami(f.filialId, f.xodimId, barchaniKoradi, filtr),
@@ -59,7 +60,9 @@ export default async function KassaSahifasi({
     barchaniKoradi ? xodimBalanslari(f.filialId) : Promise.resolve([]),
     // 12.7 — sotuvchi O'Z kassasidan topshiradi
     topshirishManbalari(f.xodimId),
-    topshirishNishonlari(f.filialId),
+    topshirishNishonlari(f.filialId, f.xodimId),
+    // T-05 — boshqa sotuvchi shu sotuvchiga bergan pul
+    mengaKelganTopshiriqlar(f.xodimId),
   ]);
 
   // 22.5.2 — ogohlantirishda ham, sarlavhada ham filial NOMI turadi
@@ -175,6 +178,36 @@ export default async function KassaSahifasi({
         </section>
       )}
 
+      {/* ── T-05 · Boshqa sotuvchi bergan pul — qo'lga olgan odam tasdiqlaydi ── */}
+      {kelganlar.length > 0 && (
+        <section>
+          <h2 className="mb-1 text-sm font-medium text-matn-ikki">Sizga berilgan pul</h2>
+          <p className="mb-3 text-xs text-matn-kuchsiz">
+            Pulni sanab oling. «Qabul qilish» bosilganda u kassangizga o&apos;tadi; summa mos
+            kelmasa — rad eting, pul berganning kassasida qoladi (12.7).
+          </p>
+          <div className="overflow-x-auto rounded-karta border border-belgi-sariq/20 bg-belgi-sariq-fon">
+            <table className="w-full text-sm">
+              <tbody className="divide-y divide-chegara">
+                {kelganlar.map((t) => (
+                  <tr key={t.id}>
+                    <td className="px-4 py-2.5">{t.kimdan}</td>
+                    <td className="raqam px-4 py-2.5 font-medium">{pul(t.summa, t.valyuta)}</td>
+                    <td className="px-4 py-2.5 text-matn-kuchsiz">{t.izoh ?? ''}</td>
+                    <td className="px-4 py-2.5">
+                      <div className="flex items-center justify-end gap-1">
+                        <TopshiriqRadTugmasi topshiriqId={t.id} />
+                        <TopshiriqQabulTugmasi topshiriqId={t.id} />
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
+
       {/* ── 12.7 · Kutayotgan topshiriqlar ── */}
       {topshiriqlar.length > 0 && (
         <section>
@@ -191,8 +224,11 @@ export default async function KassaSahifasi({
                     <td className="px-4 py-2.5">{t.kimdan}</td>
                     <td className="px-4 py-2.5 text-matn-kuchsiz">→ {t.kimga}</td>
                     <td className="raqam px-4 py-2.5 font-medium">{pul(t.summa, t.valyuta)}</td>
-                    <td className="px-4 py-2.5 text-right">
-                      <TopshiriqQabulTugmasi topshiriqId={t.id} />
+                    <td className="px-4 py-2.5">
+                      <div className="flex items-center justify-end gap-1">
+                        <TopshiriqRadTugmasi topshiriqId={t.id} />
+                        <TopshiriqQabulTugmasi topshiriqId={t.id} />
+                      </div>
                     </td>
                   </tr>
                 ))}

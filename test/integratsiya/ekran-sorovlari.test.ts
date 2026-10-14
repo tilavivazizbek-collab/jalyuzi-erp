@@ -175,7 +175,7 @@ describe('Kassa ekranlari', () => {
       kassaEkrani.topshirishManbalari(xodimId),
     ).resolves.toBeDefined();
     await expect(
-      kassaEkrani.topshirishNishonlari(filialId),
+      kassaEkrani.topshirishNishonlari(filialId, 1),
     ).resolves.toBeDefined();
   });
 });

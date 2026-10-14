@@ -141,7 +141,9 @@ async function amalFiliali(turi: 'qayta_kesish' | 'topshiriq', id: number): Prom
     turi === 'topshiriq'
       ? await sql<{ f: number }[]>`
           SELECT k.filial_id AS f FROM topshiriq t JOIN kassa k ON k.id = t.kimga_kassa_id
-          WHERE t.id = ${id}`
+          WHERE t.id = ${id}
+            -- T-05 — sotuvchiga ketgan pulni admin emas, o'sha sotuvchi qabul qiladi
+            AND k.xodim_id IS NULL`
       : await sql<{ f: number }[]>`
           SELECT b.ishlab_chiqaruvchi_filial_id AS f
           FROM qayta_kesish qk

@@ -145,6 +145,8 @@ export const XATO_MATNI: Record<XatoKod, string> = {
   XARAJAT_SAQLANMADI: "Xarajatni saqlab bo'lmadi",
   TOPSHIRIQ_TOPILMADI: "Topshiriq topilmadi",
   TOPSHIRIQ_ALLAQACHON_HAL: "Bu topshiriq allaqachon hal qilingan",
+  TOPSHIRIQ_SOTUVCHI_FILIAL: "Boshqa sotuvchiga pul faqat o'z filialingiz ichida beriladi",
+  TOPSHIRIQ_RAD_SABAB: 'Rad etish sababini yozing',
   POZITSIYA_TOPILMADI: "Buyurtma pozitsiyasi topilmadi",
   HOLAT_QOLDA_QOYILMAYDI:
     "Bu holat qo'lda qo'yilmaydi — «Ishga oldim» yoki «Tugatdim» orqali o'tiladi",
