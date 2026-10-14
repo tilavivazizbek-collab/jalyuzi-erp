@@ -20,7 +20,8 @@ import {
 import { turTafsili, type SotuvTuri } from '@/lib/amal/katalog';
 import { buyurtmaTolovi, tolovYozilmadiBelgila } from '@/lib/amal/tolov';
 import { pozitsiyaQosh } from '@/lib/amal/buyurtma-tahrir';
-import { kesimOlchami } from '@/lib/domain/kesish';
+import { kesimKorinishi, kesimOlchami, type KesimKorinishi } from '@/lib/domain/kesish';
+import { nomzodlarniOqi } from '@/lib/amal/band';
 import {
   buyurtmaNarxi,
   chegirmaHisobla,
@@ -384,6 +385,67 @@ export async function turTafsiliAmali(turId: number): Promise<SotuvTuri | null> 
   if (!Number.isSafeInteger(turId) || turId <= 0) return null;
 
   return turTafsili(turId, f.filialId);
+}
+
+// ─── LOYIHA T-04 · Kesim ko'rinishi ───────────────────────────────────────
+
+export interface KesimSorovi {
+  readonly materialId: number;
+  /** Ishlab chiqaruvchi filial — bo'lak O'SHA filial omboridan kesiladi */
+  readonly filialId: number | null;
+  readonly hisoblanganKvM: string;
+  readonly boyiM: number;
+  readonly koeffitsient: number;
+  readonly yonalish: 'ENIGA' | "BO'YIGA";
+  readonly soni: number;
+  readonly kesimEniM: number | null;
+}
+
+/**
+ * LOYIHA T-04 — «bu kesimdan 0.60 × 2.00 ostatka qoladi».
+ *
+ * ⚠️ Kesim o'lchami saqlashdagi bilan BIR XIL chaqiruvdan (`kesimOlchami`),
+ *    nomzodlar band qilishdagi so'rovdan (`nomzodlarniOqi`) — ko'rinish
+ *    haqiqiy kesimdan farq qilmasin.
+ * ⚠️ Faqat ko'rinish: hech narsa band qilinmaydi, bloklanmaydi.
+ */
+export async function kesimKorinishiAmali(
+  s: KesimSorovi,
+): Promise<{ readonly kerak: { eniM: number; boyiM: number }; readonly natija: KesimKorinishi | null } | null> {
+  const f = await ruxsatTalab('buyurtma.yarat');
+  if (!Number.isSafeInteger(s.materialId) || s.materialId <= 0) return null;
+
+  let kerak;
+  try {
+    kerak = kesimOlchami(s.hisoblanganKvM, s.boyiM, {
+      koeffitsient: s.koeffitsient,
+      yonalish: s.yonalish,
+      soni: s.soni,
+      kesimEniM: s.kesimEniM,
+    });
+  } catch {
+    return null;
+  }
+
+  const sql = ulanishOl();
+  const filialId =
+    s.filialId !== null && Number.isSafeInteger(s.filialId) && s.filialId > 0 ? s.filialId : f.filialId;
+  const [material, bolaklar] = await Promise.all([
+    sql<{ yaroqsiz: string | null; kam: string | null }[]>`
+      SELECT yaroqsiz_chegara_m::text AS yaroqsiz, kam_ishlatiladigan_m::text AS kam
+      FROM material WHERE id = ${s.materialId}`,
+    nomzodlarniOqi(sql, s.materialId, filialId, kerak),
+  ]);
+  const m = material[0];
+  if (m === undefined) return null;
+
+  return {
+    kerak,
+    natija: kesimKorinishi(bolaklar, kerak, {
+      yaroqsizM: m.yaroqsiz === null ? null : Number(m.yaroqsiz),
+      kamIshlatiladiganM: m.kam === null ? null : Number(m.kam),
+    }),
+  };
 }
 
 // ─── TZ 8.7 · Mavjud buyurtmaga pozitsiya qo'shish ───────────────────────

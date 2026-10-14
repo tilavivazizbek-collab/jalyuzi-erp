@@ -599,3 +599,62 @@ export function kesimOlchami(
     boyiM: kesimBoyi.toDecimalPlaces(2, Decimal.ROUND_CEIL).toNumber(),
   };
 }
+
+// ─── LOYIHA T-04 · Sotuv paytida kesim ko'rinishi ─────────────────────────
+
+export type KorinishManbasi = 'OSTATKA' | 'OCHILGAN_RULON' | 'YANGI_RULON';
+
+export interface QoladiganBolak {
+  readonly eniM: number;
+  readonly boyiM: number;
+  /** YAROQSIZ — chiqindiga ketadi, saqlanmaydi (7.5) */
+  readonly daraja: Daraja;
+}
+
+export interface KesimKorinishi {
+  readonly bolakKod: string;
+  readonly manba: KorinishManbasi;
+  readonly bolak: Olcham;
+  /** Bo'lak butunlay ishlatiladi — hech narsa qolmaydi */
+  readonly aniqMos: boolean;
+  readonly qoladi: readonly QoladiganBolak[];
+}
+
+/**
+ * LOYIHA T-04 — «bu kesimdan 0.60 × 2.00 ostatka qoladi».
+ *
+ * Sotuvchi o'lchamni kiritganda ko'radi: mijoz bilan o'lchamni 5 sm
+ * o'zgartirib kelishsa butun bo'lak ishlatiladi yoki ostatka yaroqli
+ * qoladi.
+ *
+ * ⚠️ YANGI QOIDA YO'Q — tanlov `bolakTanla`, geometriya `kesimRejasi`,
+ *    daraja `daraja` (band qilishda ham aynan shular ishlaydi). Shuning
+ *    uchun ko'rinish va haqiqiy kesim bir-biridan farq qilmaydi; farq
+ *    faqat vaqtda — bo'lakni orada boshqa buyurtma band qilishi mumkin.
+ */
+export function kesimKorinishi(
+  bolaklar: readonly Bolak[],
+  kerak: Olcham,
+  chegaralar: Chegaralar,
+): KesimKorinishi | null {
+  const t = bolakTanla(bolaklar, kerak);
+  if (t === null) return null;
+
+  const r = kesimRejasi(t.bolak, kerak);
+  const qoladi = [r.manbaQoldiq, r.kesma]
+    .filter((x): x is Olcham => x !== null)
+    .map((x) => ({ eniM: x.eniM, boyiM: x.boyiM, daraja: daraja(x.eniM, chegaralar) }));
+
+  return {
+    bolakKod: t.bolak.kod,
+    manba:
+      t.bolak.turi === 'OSTATKA'
+        ? 'OSTATKA'
+        : t.bolak.qismanOchilgan
+          ? 'OCHILGAN_RULON'
+          : 'YANGI_RULON',
+    bolak: { eniM: t.bolak.eniM, boyiM: t.bolak.boyiM },
+    aniqMos: qoladi.length === 0,
+    qoladi,
+  };
+}

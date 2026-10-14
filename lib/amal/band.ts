@@ -74,8 +74,9 @@ interface BolakQatori {
  * baza `90.2 × 140` ni `0.90 × 1.40` bo'lakka sig'maydi deb hisoblab,
  * domen esa sig'adi deb topardi.
  */
-async function nomzodlarniOqi(
-  tx: postgres.TransactionSql,
+export async function nomzodlarniOqi(
+  /** T-04 — sotuv ekrani ko'rinish uchun tranzaksiyasiz chaqiradi */
+  tx: postgres.Sql | postgres.TransactionSql,
   materialId: number,
   filialId: number,
   kerak: Olcham,

@@ -58,6 +58,7 @@ import { pozitsiyalarQoshAmali, buyurtmaYaratAmali, turTafsiliAmali } from './am
 import { BOSH_HOLAT } from './holat';
 import type { SotuvMijozi, SotuvTuri } from './malumot';
 import { QoshimchaQoshish, type QoshimchaMaterial } from './qoshimcha';
+import { KesimKorinishSatri } from './kesim-korinish';
 import type { MaterialNarxQoidasi } from './malumot';
 
 const BIRLIK_MATNI: Record<SarflashBirligi, string> = {
@@ -1783,6 +1784,28 @@ export function SotuvFormasi({
                               />
                             </div>
                           )}
+
+                          {/* T-04 — qaysi bo'lakdan kesiladi va nima qoladi */}
+                          {hisob !== null &&
+                            q.birlik === 'KV_M' &&
+                            q.material !== null &&
+                            q.hisoblangan !== null &&
+                            q.xato === null && (
+                              <div className="mt-1 max-w-md">
+                                <KesimKorinishSatri
+                                  sorov={{
+                                    materialId: q.material.id,
+                                    filialId: tikuvchi > 0 ? tikuvchi : null,
+                                    hisoblanganKvM: String(q.hisoblangan),
+                                    boyiM: hisob.boyiM,
+                                    koeffitsient: q.slot.koeffitsient ?? 1,
+                                    yonalish: q.slot.kesishTuri === "BO'YIGA" ? "BO'YIGA" : 'ENIGA',
+                                    soni: hisob.buyumSoni,
+                                    kesimEniM: q.slot.kesimEniM ?? null,
+                                  }}
+                                />
+                              </div>
+                            )}
                         </td>
                         <td className="raqam px-3 py-2">
                           {q.xato !== null ? (
