@@ -25,6 +25,9 @@ import Decimal from 'decimal.js';
 import { dollar, musbatmi, pulKorsat, pulMatn, qosh, som, nolSom, nolDollar } from '@/lib/domain/pul';
 import { OddiyChopTugmasi } from '../../chop-tugma';
 import { qarzdorlarJurnali } from '../qarz-malumot';
+import { qarzEslatmaQoidasi } from '../qarz-eslatma';
+import { EslatmaQoidaFormasi } from './eslatma-forma';
+import { ruxsatBormi } from '@/lib/ruxsat/tekshir';
 import { filtrTanlovlari } from '../malumot';
 
 export const dynamic = 'force-dynamic';
@@ -70,15 +73,17 @@ export default async function QarzdorlikHisoboti({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  await sahifaRuxsati('mijoz.kor');
+  const f = await sahifaRuxsati('mijoz.kor');
   const sp = await searchParams;
   const masulXom = typeof sp['masul'] === 'string' ? sp['masul'] : '';
 
-  const [qarzdorlar, vadalar, tanlov, kurs] = await Promise.all([
+  const [qarzdorlar, vadalar, tanlov, kurs, eslatmaQoidasi] = await Promise.all([
     qarzdorlarJurnali(),
     yaqinVadalar(),
     filtrTanlovlari(),
     joriyKurs(ulanishOl()),
+    // T-06 — avtomatik qarz eslatmasi qoidasi
+    qarzEslatmaQoidasi(),
   ]);
   const masulIsmi = tanlov.xodimlar.find((x) => String(x.id) === masulXom)?.nom ?? null;
   const vadaBoyicha = vadaXaritasi(vadalar);
@@ -167,6 +172,12 @@ export default async function QarzdorlikHisoboti({
           <OddiyChopTugmasi matn="Chop etish" />
         </div>
       </div>
+
+      <EslatmaQoidaFormasi
+        birinchiKun={eslatmaQoidasi.birinchiKun}
+        takrorKun={eslatmaQoidasi.takrorKun}
+        ozgartiraOladi={ruxsatBormi(f, 'sozlama.ozgartir')}
+      />
 
       {vadalar.length > 0 && (
         <section className="rounded-karta border border-chegara bg-sirt p-4">
