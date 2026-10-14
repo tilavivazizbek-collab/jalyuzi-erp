@@ -7,13 +7,13 @@
 # ⚠️ Node versiyasi §12 stekiga mos: 22 LTS. Platforma SDK si yo'q —
 #    tasvir istalgan serverda bir xil ishlaydi (§2.3).
 
-FROM node:22-alpine AS bogliqliklar
+FROM node:22-alpine3.24 AS bogliqliklar
 WORKDIR /dastur
 COPY package.json package-lock.json* ./
 # `tsx` va `drizzle-kit` dev bog'liqligida — bot ularsiz ishlamaydi
 RUN npm ci
 
-FROM node:22-alpine AS ishga
+FROM node:22-alpine3.24 AS ishga
 WORKDIR /dastur
 ENV NODE_ENV=production
 ENV TZ=Asia/Tashkent

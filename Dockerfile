@@ -2,19 +2,19 @@
 # bu tasvir istalgan serverda ham, loqal kompyuterda ham bir xil ishlaydi.
 # Node versiyasi §1 stekiga mos: 22 LTS.
 
-FROM node:22-alpine AS bogliqliklar
+FROM node:22-alpine3.24 AS bogliqliklar
 WORKDIR /dastur
 COPY package.json package-lock.json* ./
 RUN npm ci
 
-FROM node:22-alpine AS quruvchi
+FROM node:22-alpine3.24 AS quruvchi
 WORKDIR /dastur
 COPY --from=bogliqliklar /dastur/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 
-FROM node:22-alpine AS ishga
+FROM node:22-alpine3.24 AS ishga
 WORKDIR /dastur
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
@@ -29,9 +29,10 @@ ENV TZ=Asia/Tashkent
 ENV HOSTNAME=0.0.0.0
 ENV PORT=3000
 
-# TZ §17 — `/api/cron/zaxira` pg_dump ishlatadi (2026-10-13). 17-versiya
-# eskiroq serverlardan ham nusxa oladi; teskarisi ishlamaydi.
-RUN apk add --no-cache postgresql17-client
+# TZ §17 — `/api/cron/zaxira` pg_dump ishlatadi (2026-10-13). pg_dump
+# serverdan ESKI bo'lsa nusxa olmaydi — 2026-10-14 da ochilgan baza 18,
+# shuning uchun 18-mijoz. U alpine 3.23+ da bor: tasvir 3.24 ga mixlangan.
+RUN apk add --no-cache postgresql18-client
 
 RUN addgroup -g 1001 -S erp && adduser -u 1001 -S erp -G erp
 
