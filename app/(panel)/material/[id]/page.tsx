@@ -10,6 +10,7 @@ import { joriyKurs } from '@/lib/amal/kurs';
 import { oxirgiKelishNarxi } from '../malumot';
 import { ruxsatBormi } from '@/lib/ruxsat/tekshir';
 import { FilialNarxlari } from '../narx-forma';
+import { NarxTarixi, materialNarxTarixi } from './narx-tarixi';
 
 export const dynamic = 'force-dynamic';
 
@@ -130,6 +131,8 @@ export default async function MaterialTahrirlash({ params }: { params: Promise<{
   // 20.9 — filial narx istisnolari (Q-28)
   const narxOzgartiraOladi = ruxsatBormi(f, 'narx.filial.ozgartir');
   const narxlar = narxOzgartiraOladi ? await filialNarxlari(ulanish, materialId) : [];
+  // T-08 — «narxni oxirgi marta qachon ko'targanmiz»
+  const narxTarixi = await materialNarxTarixi(materialId);
 
   const qiymatlar: MaterialQiymatlari = {
     nom: material.nom,
@@ -226,6 +229,8 @@ export default async function MaterialTahrirlash({ params }: { params: Promise<{
           qatorlar={narxlar}
         />
       )}
+
+      <NarxTarixi versiyalar={narxTarixi} />
     </div>
   );
 }
