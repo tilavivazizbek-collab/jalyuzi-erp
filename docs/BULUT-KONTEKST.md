@@ -359,11 +359,24 @@ StartupMessage javobsiz. Proksi tirik, baza orqasida jim.
 
 ⚠️ **AVTOMATIK ZAXIRA AMALDA HALI YO'Q.** 2026-10-13 da
 `/api/cron/zaxira` yozildi (pg_dump → gzip → `BACKUP_CHANNEL_ID`,
-Dockerfile ga postgresql17-client), lekin deploy qilinmagan va
-cron-job.org da sozlanmagan.
+Dockerfile ga postgresql17-client); 2026-10-14 da kod (26022bc) deploy qilindi — baza tushgan paytda, migratsiyalardan OLDIN, shuning uchun baza qaytishi bilan darhol 0057 → 0059 → 0060 … qo'llanadi. Cron-job.org da hali
+sozlanmagan.
 `lib/db/metr-zaxira.ts` to'liq zaxira emas — faqat 0043 ning
 qaytarish nuqtasi. `render.yaml` da baza yo'q: panelda qo'lda
 ochilgan.
+
+### ✅ 2026-10-14 — YANGI Render loyihasi (yuqoridagi eski bazani almashtirdi)
+
+Egasi: «eski ma'lumot kerak emas». Yangi loyiha «wer»:
+- Sayt: https://jalyuzi-erp-1.onrender.com (Frankfurt, Docker, `bosqich-0-poydevor`)
+- Baza: **PostgreSQL 18**, db `jalyuzi_hdcv` (parol egasida / Render panelida)
+- Qo'llangan: 0066 gacha hamma migratsiya, urug', `db:ruxsat`.
+  Dockerfile — postgresql18-client (da08bfc): pg_dump 17 PG18 dan nusxa ololmaydi.
+- **0067 (xarajat manba indeksi, c66a829) HALI qo'llanmagan** — faqat indeks,
+  ma'lumotga tegmaydi; usiz kod ishlaydi, hisobotlar sekinroq. Avval zaxira.
+- Qolgan: cron-job.org (zaxira va boshqa 9 yo'l), eski bot xizmatini to'xtatish.
+
+Yuqoridagi «0057 → 0059 …» tartibi faqat ESKI bazaga tegishli edi.
 
 ---
 
