@@ -59,16 +59,23 @@ export function pozitsiyaNatijasiUstunlari(soruvchi: Soruvchi) {
       SELECT -SUM(oh.tannarx_summa) FROM ombor_harakat oh
       WHERE oh.manba_turi = 'buyurtma_pozitsiya' AND oh.manba_id = p.id
     ), 0)::text AS tannarx,
-    COALESCE((
+    /*
+     * ⚠️ Ikki qism-so'rov yig'indisi, «OR» emas (2026-10-14): OR bilan
+     *    xarajat_manba indeksi (0067) ishlamasdi va har pozitsiyada
+     *    butun ISH_HAQI ro'yxati ko'rilardi. Ma'nosi o'sha: pozitsiyaning
+     *    o'z ish haqi + uning qayta kesishlaridagi ish haqi.
+     */
+    (COALESCE((
       SELECT SUM(x.summa) FROM xarajat x
       WHERE x.modda = 'ISH_HAQI'
-        AND (
-          (x.manba_turi = 'buyurtma_pozitsiya' AND x.manba_id = p.id)
-          OR (x.manba_turi = 'qayta_kesish' AND x.manba_id IN (
-                SELECT qk.id FROM qayta_kesish qk
-                WHERE qk.buyurtma_pozitsiya_id = p.id))
-        )
-    ), 0)::text AS ish_haqi`;
+        AND x.manba_turi = 'buyurtma_pozitsiya' AND x.manba_id = p.id
+    ), 0)
+    + COALESCE((
+      SELECT SUM(x.summa) FROM qayta_kesish qk
+      JOIN xarajat x ON x.manba_turi = 'qayta_kesish' AND x.manba_id = qk.id
+                    AND x.modda = 'ISH_HAQI'
+      WHERE qk.buyurtma_pozitsiya_id = p.id
+    ), 0))::text AS ish_haqi`;
 }
 
 /** Pozitsiyaning uch soni — hammasi **jurnaldan** (2.2-invariant). */

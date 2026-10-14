@@ -392,6 +392,12 @@ export const xarajat = pgTable(
     check('xarajat_valyuta', sql`${t.valyuta} IN ('SOM','USD')`),
     index('xarajat_filial_sana').on(t.filialId, t.sana),
     index('xarajat_modda_idx').on(t.modda),
+    /**
+     * 0067 — pozitsiya ish haqi `manba_turi + manba_id` bo'yicha qidiriladi
+     * (foyda hisobotlari, filiallararo qarz). Indekssiz har pozitsiya uchun
+     * butun ISH_HAQI ro'yxati ko'rilardi — «tur bo'yicha foyda» 13 soniya.
+     */
+    index('xarajat_manba').on(t.manbaTuri, t.manbaId),
   ],
 );
 

@@ -185,6 +185,32 @@ describe('foyda-zarar — 11.4.1', () => {
     expect(D(t(turKeyin), t(turOldin))).toBe('300000.00');
   });
 
+  /**
+   * 2026-10-14 — 11.5.2 qayta kesish ish haqini tannarxga qo'shmasdi:
+   * so'rov tannarxni o'zicha yozardi, umumiy pozitsiyaNatijasiUstunlari
+   * (22.3, 21.5) esa qo'shadi. Ikki hisobot bir pozitsiyaga ikki xil foyda
+   * berardi.
+   */
+  it('EC-FZ-04: tur bo‘yicha foyda — qayta kesish ish haqi ham tannarxda', async () => {
+    const davr = davrYasa('OY', new Date());
+    const tannarx = async (): Promise<string> =>
+      (await turBoyichaFoyda(FILIAL, davr)).find((x) => x.turId === turId)?.tannarx ?? '0';
+    const oldin = await tannarx();
+
+    const b = await buyurtmaYaratSinov('200000', false);
+    const p = (await sql<{ id: number }[]>`SELECT id FROM buyurtma_pozitsiya WHERE buyurtma_id = ${b}`)[0]?.id ?? 0;
+    const qk = await sql<{ id: number }[]>`
+      INSERT INTO qayta_kesish (buyurtma_pozitsiya_id, soragan_usta_id, sabab, holat, yaratdi_id)
+      VALUES (${p}, ${XODIM}, 'MATO_YIRTILDI', 'TASDIQLANDI', ${XODIM}) RETURNING id`;
+    const bugun = toshkentKuni();
+    await sql`
+      INSERT INTO xarajat (sana, filial_id, modda, summa, valyuta, manba_turi, manba_id, izoh, xodim_id)
+      VALUES (${bugun}, ${FILIAL}, 'ISH_HAQI', 20000, 'SOM', 'buyurtma_pozitsiya', ${p}, 'sinov', ${XODIM}),
+             (${bugun}, ${FILIAL}, 'ISH_HAQI', 7000, 'SOM', 'qayta_kesish', ${qk[0]?.id ?? 0}, 'sinov', ${XODIM})`;
+
+    expect(D(await tannarx(), oldin)).toBe('27000.00');
+  });
+
   it('EC-FZ-02: kassa oqimi — boshlang‘ich + kirim − chiqim = yakuniy = bazadagi qoldiq', async () => {
     // Davr chegarasidan o'tadigan storno juftligi: yozuv o'tgan oyda, storno bugun
     const y = await sql<{ id: number }[]>`

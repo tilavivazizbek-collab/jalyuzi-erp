@@ -16,6 +16,7 @@
  */
 
 import Decimal from 'decimal.js';
+import { pozitsiyaNatijasiUstunlari } from '@/lib/amal/filial-harakat';
 import { ulanishOl } from '@/lib/db';
 import { bolakQiymatiIfodasi, filialQoldigi } from '../ombor/malumot';
 import { joriyKurs } from '@/lib/amal/kurs';
@@ -1190,7 +1191,8 @@ export async function turBoyichaFoyda(
   filialId: number,
   davr: Davr,
 ): Promise<readonly TurFoydasi[]> {
-  const q = await ulanishOl()<
+  const sql = ulanishOl();
+  const q = await sql<
     {
       tur_id: number;
       nom: string;
@@ -1200,47 +1202,35 @@ export async function turBoyichaFoyda(
       tannarxsiz: number;
     }[]
   >`
+    /*
+     * ⚠️ Tushum, tannarx va ish haqi BITTA JOYDAN — pozitsiyaNatijasiUstunlari
+     *    (filiallararo qarz 22.3 va reja fakti 21.5 ham shundan). 2026-10-14
+     *    gacha bu so'rov ularni o'zicha yozardi: qayta kesish ish haqi
+     *    tannarxga KIRMASDI (foyda oshib ko'rinardi) va har pozitsiyaning
+     *    tannarxi ikki marta hisoblanardi (katta bazada 13 soniya).
+     */
+    WITH n AS (
+      SELECT p.mahsulot_tur_id, p.soni, p.holat,
+             ${pozitsiyaNatijasiUstunlari(sql)}
+      FROM buyurtma b
+      JOIN buyurtma_pozitsiya p ON p.buyurtma_id = b.id
+      WHERE b.sotgan_filial_id = ${filialId}
+        AND b.sana >= ${davr.boshi} AND b.sana < ${davr.oxiri}
+        AND p.holat NOT IN ('BEKOR','RAD_ETILGAN')
+        AND p.mahsulot_tur_id IS NOT NULL
+    )
     SELECT t.id AS tur_id, t.nom,
            /*
             * ⚠️ QAYTARILGAN pozitsiya tushumga va soniga KIRMAYDI — pul
             *    mijozga qaytarilgan (2026-10-11). Tannarxi esa qoladi:
-            *    material sarflangan, bu yo'qotish. Ilgari qaytarilgan
-            *    buyum ham sotuv bo'lib turardi va foyda oshib ko'rinardi.
+            *    material sarflangan, bu yo'qotish.
             */
-           COALESCE(SUM(p.soni) FILTER (WHERE p.holat <> 'QAYTARILGAN'), 0)::int AS soni,
-           SUM((COALESCE(p.narx_snapshot, 0) - COALESCE(p.chegirma_summa, 0))
-               * CASE WHEN b.valyuta = 'USD'
-                      THEN COALESCE(b.kurs_snapshot, 0) ELSE 1 END)
-             FILTER (WHERE p.holat <> 'QAYTARILGAN')
-             ::numeric(14,2)::text AS tushum,
-           SUM(
-             COALESCE((
-               SELECT -SUM(oh.tannarx_summa) FROM ombor_harakat oh
-               WHERE oh.manba_turi = 'buyurtma_pozitsiya' AND oh.manba_id = p.id
-             ), 0)
-             + COALESCE((
-               SELECT SUM(x.summa) FROM xarajat x
-               WHERE x.modda = 'ISH_HAQI'
-                 AND x.manba_turi = 'buyurtma_pozitsiya' AND x.manba_id = p.id
-             ), 0)
-           )::numeric(14,2)::text AS tannarx,
-           COUNT(*) FILTER (
-             WHERE COALESCE((
-                     SELECT -SUM(oh.tannarx_summa) FROM ombor_harakat oh
-                     WHERE oh.manba_turi = 'buyurtma_pozitsiya' AND oh.manba_id = p.id
-                   ), 0)
-                   + COALESCE((
-                     SELECT SUM(x.summa) FROM xarajat x
-                     WHERE x.modda = 'ISH_HAQI'
-                       AND x.manba_turi = 'buyurtma_pozitsiya' AND x.manba_id = p.id
-                   ), 0) = 0
-           )::int AS tannarxsiz
-    FROM buyurtma b
-    JOIN buyurtma_pozitsiya p ON p.buyurtma_id = b.id
-    JOIN mahsulot_tur t ON t.id = p.mahsulot_tur_id
-    WHERE b.sotgan_filial_id = ${filialId}
-      AND b.sana >= ${davr.boshi} AND b.sana < ${davr.oxiri}
-      AND p.holat NOT IN ('BEKOR','RAD_ETILGAN')
+           COALESCE(SUM(n.soni) FILTER (WHERE n.holat <> 'QAYTARILGAN'), 0)::int AS soni,
+           SUM(n.tushum::numeric) FILTER (WHERE n.holat <> 'QAYTARILGAN')::numeric(14,2)::text AS tushum,
+           SUM(n.tannarx::numeric + n.ish_haqi::numeric)::numeric(14,2)::text AS tannarx,
+           COUNT(*) FILTER (WHERE n.tannarx::numeric + n.ish_haqi::numeric = 0)::int AS tannarxsiz
+    FROM n
+    JOIN mahsulot_tur t ON t.id = n.mahsulot_tur_id
     GROUP BY t.id, t.nom
     ORDER BY 4 DESC NULLS LAST`;
 

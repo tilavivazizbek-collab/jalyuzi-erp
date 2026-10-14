@@ -463,6 +463,13 @@
       "when": 1790850000000,
       "tag": "0066_xarajat_turi",
       "breakpoints": true
+    },
+    {
+      "idx": 67,
+      "version": "7",
+      "when": 1790860000000,
+      "tag": "0067_xarajat_manba_indeks",
+      "breakpoints": true
     }
   ]
 }
