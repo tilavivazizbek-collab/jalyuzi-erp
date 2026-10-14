@@ -4,7 +4,8 @@ import { ulanishOl } from '@/lib/db';
 import { yetmaganXabarlar } from '@/lib/amal/bildirishnoma';
 import { Eslatmalar } from '../eslatma';
 import { sahifaRuxsati } from '@/lib/kirish/joriy';
-import { ruxsatBormi } from '@/lib/ruxsat/tekshir';
+import { ruxsatBormi, tannarxniKoradimi } from '@/lib/ruxsat/tekshir';
+import { MaterialBlok, pozitsiyaMateriallari } from './material-blok';
 import { dollar, nolSom, pulKorsat, pulMatn, qosh, ayir, som } from '@/lib/domain/pul';
 import {
   bekorQilinadimi,
@@ -65,7 +66,7 @@ export default async function BuyurtmaKartochkasi({ params }: { params: Promise<
   const ishniOlaOladi = ruxsatBormi(f, 'ish.ol');
   const ishniTugataOladi = ruxsatBormi(f, 'ish.tugat');
 
-  const [tolov, kassalar, ustalar, bandlar, tahrirlar] = await Promise.all([
+  const [tolov, kassalar, ustalar, bandlar, tahrirlar, materiallar] = await Promise.all([
     tolovHolati(buyurtmaId, f.filialId),
     tolovQilaOladi ? tolovKassalari(f.filialId, f.xodimId) : Promise.resolve([]),
     ishniOlaOladi ? ishOlaOladiganlar(f.filialId) : Promise.resolve([] as readonly UstaTanlovi[]),
@@ -87,6 +88,8 @@ export default async function BuyurtmaKartochkasi({ params }: { params: Promise<
             .map((p) => pozitsiyaTahriri(p.id, f.filialId)),
         )
       : Promise.resolve([] as (PozitsiyaTahriri | null)[]),
+    // T-07 — sarflangan material (pozitsiya + qayta kesish)
+    pozitsiyaMateriallari(b.pozitsiyalar.map((p) => p.id)),
   ]);
 
   /**
@@ -505,6 +508,13 @@ export default async function BuyurtmaKartochkasi({ params }: { params: Promise<
           ))}
         </div>
       </section>
+
+      {/* T-07 — qaysi bo'lakdan qancha material ketdi (tannarx — faqat ruxsat bilan) */}
+      <MaterialBlok
+        qatorlar={materiallar}
+        tartib={new Map(b.pozitsiyalar.map((p) => [p.id, p.tartib]))}
+        tannarx={tannarxniKoradimi(f)}
+      />
 
       {/* 13.11 · 6.7 — yetib bormagan xabarlar */}
       <Eslatmalar xabarlar={eslatmalar} />

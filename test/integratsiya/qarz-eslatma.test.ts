@@ -22,7 +22,7 @@ let telegramsiz = 0;
 async function mijoz(nom: string, telegram: number | null, qarzKuni: number): Promise<number> {
   const m = await sql<{ id: number }[]>`
     INSERT INTO mijoz (ism, telefon, telegram_id, tolov_muddati_kun, yaratdi_id)
-    VALUES (${`${nom} ${BELGI}`}, ${`9977${BELGI}${String(telegram ?? 0).slice(-1)}${nom.length}`}, ${telegram}, 10, ${XODIM})
+    VALUES (${`${nom} ${BELGI}`}, ${`9977${BELGI}${String(telegram ?? 0).slice(-1)}${String(nom.length)}`}, ${telegram}, 10, ${XODIM})
     RETURNING id`;
   const id = m[0]?.id ?? 0;
   await sql`

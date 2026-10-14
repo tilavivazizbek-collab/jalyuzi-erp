@@ -232,7 +232,13 @@ describe('Sotuv ekranlari', () => {
    *    filial narxini `material_filial_narx` dan oladi (20.9).
    */
   it('sotuvTurlari — filial narxi ustunlari (20.9)', async () => {
-    await expect(sotuvEkrani.sotuvTurlari(filialId)).resolves.toBeDefined();
+    /**
+     * ⚠️ Turlar CHEGARALANADI. Ro'yxatsiz chaqiruv hamma turni hamma
+     *    matosi bilan yuklaydi — sinov bazasi o'sgach jarayon xotirasi
+     *    to'lib qulardi (2026-10-14). Ishchi kod ham doim ro'yxat beradi.
+     */
+    const turlar = (await katalog.turRoyxati()).slice(0, 3).map((t) => t.id);
+    await expect(sotuvEkrani.sotuvTurlari(filialId, turlar)).resolves.toBeDefined();
   });
 
   it('turRoyxati — yengil ro‘yxat (3.2)', async () => {
