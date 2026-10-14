@@ -11,7 +11,7 @@
 import { useActionState, useState } from 'react';
 import Link from 'next/link';
 import { Maydon, kirishUslubi } from '../../maydon';
-import { CHIQARISH_SABABLARI, SABAB_NOMI } from '@/lib/sxema/chiqim';
+import { CHIQARISH_SABABLARI, SABAB_NOMI, type ChiqarishSababi } from '@/lib/sxema/chiqim';
 import { BOSH_HOLAT, type ChiqimHolati } from './holat';
 
 export interface ChiqimBolakKorinishi {
@@ -28,13 +28,16 @@ export function ChiqimFormasi({
   amal,
   bolak,
   qaytish,
+  boshSabab = 'SUV_KETDI',
 }: {
   amal: (holat: ChiqimHolati, forma: FormData) => Promise<ChiqimHolati>;
   bolak: ChiqimBolakKorinishi;
   qaytish: string;
+  /** T-03 — hisobotdagi «Chiqindiga chiqarish» sababni oldindan tanlaydi */
+  boshSabab?: ChiqarishSababi;
 }) {
   const [holat, yubor, kutilmoqda] = useActionState(amal, BOSH_HOLAT);
-  const [sabab, sababniOzgartir] = useState<string>('SUV_KETDI');
+  const [sabab, sababniOzgartir] = useState<string>(boshSabab);
 
   const defekt = sabab === 'YETKAZIB_BERUVCHI_DEFEKTI';
   const x = (nom: string): string | undefined => holat.maydonlar[nom];
@@ -42,6 +45,7 @@ export function ChiqimFormasi({
   return (
     <form action={yubor} className="flex max-w-xl flex-col gap-6">
       <input type="hidden" name="bolakId" value={bolak.id} />
+      <input type="hidden" name="qaytish" value={qaytish} />
 
       {holat.xato !== null && (
         <p

@@ -170,6 +170,10 @@ export interface MuzlaganTafsilot extends MuzlaganPul {
     readonly materialNom: string;
     readonly olcham: string;
     readonly qiymat: string;
+    /** T-03 — kesimdan qolganidan beri necha kun */
+    readonly yoshKun: number;
+    /** T-03 — `QIMIRLAMAGAN_OY` dan oshgan: chiqindiga chiqarish taklif qilinadi */
+    readonly eski: boolean;
   }[];
   readonly tayyorQatorlari: readonly {
     readonly buyurtmaId: number;
@@ -209,10 +213,14 @@ export async function muzlaganPulHisoboti(filialId: number): Promise<MuzlaganTaf
       eni_m: string | null;
       boyi_m: string | null;
       qiymat: string;
+      yosh_kun: number;
+      eski: boolean;
     }[]
   >`
     SELECT b.id AS bolak_id, b.kod, b.material_id, m.nom AS material_nom,
            b.eni_m::text, b.boyi_m::text,
+           EXTRACT(DAY FROM now() - b.yaratildi)::int AS yosh_kun,
+           (b.yaratildi < now() - (${QIMIRLAMAGAN_OY} || ' months')::interval) AS eski,
            (COALESCE(b.eni_m, 0) * COALESCE(b.boyi_m, 0)
             * b.tannarx_birlik_snapshot)::numeric(14,2)::text AS qiymat
     FROM bolak b
@@ -257,30 +265,30 @@ export async function muzlaganPulHisoboti(filialId: number): Promise<MuzlaganTaf
       oxirgi_harakat: Date | null;
     }[]
   >`
+    WITH oxirgi AS (
+      -- Material bo'yicha oxirgi harakat BIR MARTA hisoblanadi (2026-10-14 gacha
+      -- har material uchun uch marta qism-so'rov edi — katta omborda 26 soniya)
+      SELECT b2.material_id, MAX(oh.sana) AS sana
+      FROM ombor_harakat oh
+      JOIN bolak b2 ON b2.id = oh.bolak_id
+      WHERE oh.filial_id = ${filialId} AND oh.turi <> 'BOSHLANGICH'
+      GROUP BY b2.material_id
+    )
     SELECT m.id AS material_id, m.nom,
            SUM(${bolakQiymatiIfodasi(sql)})::numeric(14,2)::text AS qoldiq_qiymati,
            COALESCE(SUM(CASE WHEN b.turi = 'OSTATKA' AND b.holat = 'BOSH'
                              THEN COALESCE(b.eni_m, 0) * COALESCE(b.boyi_m, 0)
                                   * b.tannarx_birlik_snapshot
                              ELSE 0 END), 0)::numeric(14,2)::text AS ostatka_qiymati,
-           (SELECT MAX(oh.sana) FROM ombor_harakat oh
-             JOIN bolak b2 ON b2.id = oh.bolak_id
-            WHERE b2.material_id = m.id AND oh.filial_id = ${filialId}
-              AND oh.turi <> 'BOSHLANGICH') AS oxirgi_harakat
+           o.sana AS oxirgi_harakat
     FROM material m
     JOIN bolak b ON b.material_id = m.id
+    LEFT JOIN oxirgi o ON o.material_id = m.id
     WHERE b.filial_id = ${filialId} AND b.faol = true
       AND b.holat IN ('BOSH','BAND')
-    GROUP BY m.id
-    HAVING (SELECT MAX(oh.sana) FROM ombor_harakat oh
-              JOIN bolak b2 ON b2.id = oh.bolak_id
-             WHERE b2.material_id = m.id AND oh.filial_id = ${filialId}
-               AND oh.turi <> 'BOSHLANGICH')
-           < now() - (${QIMIRLAMAGAN_OY} || ' months')::interval
-        OR (SELECT MAX(oh.sana) FROM ombor_harakat oh
-              JOIN bolak b2 ON b2.id = oh.bolak_id
-             WHERE b2.material_id = m.id AND oh.filial_id = ${filialId}
-               AND oh.turi <> 'BOSHLANGICH') IS NULL
+    GROUP BY m.id, o.sana
+    HAVING o.sana IS NULL
+        OR o.sana < now() - (${QIMIRLAMAGAN_OY} || ' months')::interval
     ORDER BY m.nom`;
 
   const bugun = new Date();
@@ -318,6 +326,8 @@ export async function muzlaganPulHisoboti(filialId: number): Promise<MuzlaganTaf
       materialNom: q.material_nom,
       olcham: `${q.eni_m ?? '—'} × ${q.boyi_m ?? '—'}`,
       qiymat: q.qiymat,
+      yoshKun: q.yosh_kun,
+      eski: q.eski,
     })),
     tayyorQatorlari: tayyor.map((q) => ({
       buyurtmaId: q.buyurtma_id,
@@ -374,13 +384,31 @@ export async function sarflanishTezligi(
       sarf: string | null;
     }[]
   >`
+    WITH qoldiqlar AS (
+      SELECT b.material_id,
+             SUM(CASE WHEN b.turi = 'DONA'
+                      THEN COALESCE(b.miqdor, 0)
+                      ELSE COALESCE(b.eni_m, 0) * COALESCE(b.boyi_m, 0) END) AS qoldiq
+      FROM bolak b
+      WHERE b.filial_id = ${filialId} AND b.faol = true AND b.holat IN ('BOSH','BAND')
+      GROUP BY b.material_id
+    ),
+    sarflar AS (
+      SELECT b2.material_id,
+             -SUM(COALESCE(oh.miqdor_kv_m, 0)
+                  + COALESCE(oh.miqdor_m, 0)
+                  + COALESCE(oh.miqdor_dona, 0)) AS sarf
+      FROM ombor_harakat oh
+      JOIN bolak b2 ON b2.id = oh.bolak_id
+      WHERE oh.filial_id = ${filialId}
+        AND oh.turi IN ('KESIM','OSTATKA','BRAK')
+        AND oh.sana >= ${davr.boshi} AND oh.sana < ${davr.oxiri}
+      GROUP BY b2.material_id
+    )
+    -- ⚠️ 2026-10-14 gacha ikkala qiymat har material uchun qism-so'rov
+    --    edi — katta omborda 20 soniya. Endi bir martalik guruhlash.
     SELECT m.id AS material_id, m.nom, m.sarflash_birligi,
-           (SELECT SUM(CASE WHEN b.turi = 'DONA'
-                            THEN COALESCE(b.miqdor, 0)
-                            ELSE COALESCE(b.eni_m, 0) * COALESCE(b.boyi_m, 0) END)
-              FROM bolak b
-             WHERE b.material_id = m.id AND b.filial_id = ${filialId}
-               AND b.faol = true AND b.holat IN ('BOSH','BAND'))::text AS qoldiq,
+           q.qoldiq::text AS qoldiq,
            /*
             * SARFLANGAN MIQDOR — ombordan HAQIQATAN kamaygani.
             *
@@ -403,15 +431,10 @@ export async function sarflanishTezligi(
             *    materialning sarflash birligi bitta (5.3), shuning
             *    uchun bir materialda faqat bittasi to'ladi.
             */
-           GREATEST((SELECT -SUM(COALESCE(oh.miqdor_kv_m, 0)
-                                 + COALESCE(oh.miqdor_m, 0)
-                                 + COALESCE(oh.miqdor_dona, 0))
-              FROM ombor_harakat oh
-              JOIN bolak b2 ON b2.id = oh.bolak_id
-             WHERE b2.material_id = m.id AND oh.filial_id = ${filialId}
-               AND oh.turi IN ('KESIM','OSTATKA','BRAK')
-               AND oh.sana >= ${davr.boshi} AND oh.sana < ${davr.oxiri}), 0)::text AS sarf
+           GREATEST(s.sarf, 0)::text AS sarf
     FROM material m
+    LEFT JOIN qoldiqlar q ON q.material_id = m.id
+    LEFT JOIN sarflar s ON s.material_id = m.id
     WHERE m.faol = true
     ORDER BY m.nom`;
 

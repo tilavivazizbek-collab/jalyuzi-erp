@@ -1,7 +1,9 @@
 import Link from 'next/link';
 import { sahifaRuxsati } from '@/lib/kirish/joriy';
+import { ruxsatBormi } from '@/lib/ruxsat/tekshir';
 import { davrMatn, davrTurimi, davrYasa, type DavrTuri } from '@/lib/domain/hisobot/davr';
-import { pulKorsat, som } from '@/lib/domain/pul';
+import { nolSom, pulKorsat, som, yigindi } from '@/lib/domain/pul';
+import { QIMIRLAMAGAN_OY, ostatkaYoshiMatni } from '@/lib/domain/hisobot/muzlagan-pul';
 import {
   chiqindiVaBrak,
   kamQolganlar,
@@ -75,6 +77,11 @@ export default async function OmborHisoboti({
       chiqindiVaBrak(f.filialId, davr),
       rulonOchilganHolatlar(f.filialId, davr),
     ]);
+
+  // T-03 — eski ostatkalar (tannarx bo'yicha kamayib boradi — SQL tartibi)
+  const eskiOstatkalar = muzlagan.ostatkaQatorlari.filter((q) => q.eski);
+  const eskiJami = yigindi(nolSom(), eskiOstatkalar.map((q) => som(q.qiymat)));
+  const chiqaraOladi = ruxsatBormi(f, 'ombor.chiqim');
 
   const xavfli = tezlik
     .filter((t) => t.bashorat.holati === 'XAVF' || t.bashorat.holati === 'TUGAGAN')
@@ -324,6 +331,66 @@ export default async function OmborHisoboti({
                 ))}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {/* ── T-03 · Eski ostatkalar: hisobot bor, harakat ham bo'lsin ── */}
+        {eskiOstatkalar.length > 0 && (
+          <div id="eski-ostatka" className="mt-4">
+            <h3 className="mb-1 text-sm font-medium text-matn-ikki">
+              {QIMIRLAMAGAN_OY} oydan oshgan ostatkalar — {eskiOstatkalar.length} ta ·{' '}
+              {pulKorsat(eskiJami)} so&apos;m
+            </h3>
+            <p className="mb-2 text-xs text-matn-kuchsiz">
+              Shuncha vaqt hech bir kesimga to&apos;g&apos;ri kelmagan. Javonda bo&apos;lsa —
+              kichik buyurtmaga ishlating yoki chiqindiga chiqaring; javonda yo&apos;q bo&apos;lsa
+              ham chiqaring, aks holda ombor qiymati va kesim tanlovi noto&apos;g&apos;ri bo&apos;lib
+              qoladi.
+            </p>
+            <div className="overflow-x-auto rounded-karta border border-chegara bg-sirt">
+              <table className="w-full text-sm">
+                <thead className="border-b border-chegara text-left text-xs text-matn-kuchsiz">
+                  <tr>
+                    <th className="px-4 py-2.5 font-medium">Bo&apos;lak</th>
+                    <th className="px-4 py-2.5 font-medium">Material</th>
+                    <th className="px-4 py-2.5 text-right font-medium">O&apos;lcham, m</th>
+                    <th className="px-4 py-2.5 text-right font-medium">Yoshi</th>
+                    <th className="px-4 py-2.5 text-right font-medium">Tannarx</th>
+                    {chiqaraOladi && <th className="px-4 py-2.5" />}
+                  </tr>
+                </thead>
+                <tbody>
+                  {eskiOstatkalar.slice(0, 30).map((q) => (
+                    <tr key={q.bolakId} className="border-b border-chegara last:border-0">
+                      <td className="px-4 py-2.5 font-mono text-[13px]">{q.kod}</td>
+                      <td className="px-4 py-2.5">{q.materialNom}</td>
+                      <td className="px-4 py-2.5 text-right tabular-nums">{q.olcham}</td>
+                      <td className="px-4 py-2.5 text-right tabular-nums">
+                        {ostatkaYoshiMatni(q.yoshKun)}
+                      </td>
+                      <td className="px-4 py-2.5 text-right tabular-nums">
+                        {pulKorsat(som(q.qiymat))}
+                      </td>
+                      {chiqaraOladi && (
+                        <td className="px-4 py-2.5 text-right">
+                          <Link
+                            href={`/ombor/chiqim/${String(q.bolakId)}?sabab=ESKI_OSTATKA&qaytish=/hisobot/ombor`}
+                            className="whitespace-nowrap text-xs text-belgi-qizil hover:underline"
+                          >
+                            Chiqindiga chiqarish
+                          </Link>
+                        </td>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {eskiOstatkalar.length > 30 && (
+              <p className="mt-1.5 text-xs text-matn-kuchsiz">
+                Eng qimmat 30 tasi ko&apos;rsatildi — qolganlari chiqarilgach chiqadi.
+              </p>
+            )}
           </div>
         )}
       </section>

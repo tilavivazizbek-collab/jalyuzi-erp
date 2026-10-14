@@ -20,6 +20,8 @@ export const CHIQARISH_SABABLARI = [
   'MUDDATI_OTDI',
   'YOQOLDI',
   'YETKAZIB_BERUVCHI_DEFEKTI',
+  /** LOYIHA T-03 — 6 oydan oshgan ostatka chiqindiga (11.7.6 dan) */
+  'ESKI_OSTATKA',
   'BOSHQA',
 ] as const;
 
@@ -32,6 +34,7 @@ export const SABAB_NOMI: Record<ChiqarishSababi, string> = {
   MUDDATI_OTDI: "Muddati o'tdi",
   YOQOLDI: "Yo'qoldi",
   YETKAZIB_BERUVCHI_DEFEKTI: 'Yetkazib beruvchi defekti — keyin topildi',
+  ESKI_OSTATKA: 'Eski ostatka — ishlatilmay qoldi',
   BOSHQA: 'Boshqa',
 };
 

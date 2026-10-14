@@ -169,3 +169,15 @@ export function qimirlamaganKun(oxirgiHarakat: Date | null, bugun: Date): number
     .toNumber();
   return Math.max(kun, 0);
 }
+
+/**
+ * LOYIHA T-03 — ostatka yoshi odam o'qiydigan ko'rinishda.
+ *
+ * Bir oydan kami kunda, undan ko'pi oyda (30 kun = 1 oy — taxminiy,
+ * faqat ko'rsatish uchun; «eski»mi yo'qmi SQL da kalendar oy bilan
+ * aniqlanadi).
+ */
+export function ostatkaYoshiMatni(kun: number): string {
+  if (kun < 30) return `${String(Math.max(0, kun))} kun`;
+  return `${String(Math.floor(kun / 30))} oy`;
+}

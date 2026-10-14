@@ -73,6 +73,11 @@ export async function hisobdanChiqarAmali(
 
   revalidatePath('/ombor');
   revalidatePath(`/ombor/${String(bolak.materialId)}`);
+  // T-03 — hisobotdan kelgan bo'lsa ro'yxatga qaytadi (faqat shu bitta yo'l — ochiq yo'naltirish yo'q)
+  if (matnMaydon(forma, 'qaytish') === '/hisobot/ombor') {
+    revalidatePath('/hisobot/ombor');
+    redirect('/hisobot/ombor#eski-ostatka');
+  }
   redirect(`/ombor/${String(bolak.materialId)}`);
 }
 

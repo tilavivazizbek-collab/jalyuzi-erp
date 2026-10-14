@@ -5,6 +5,7 @@ import { pulKorsat, som } from '@/lib/domain/pul';
 import { chiqimBolagi } from '../../malumot';
 import { hisobdanChiqarAmali } from '../amal';
 import { ChiqimFormasi } from '../forma';
+import { CHIQARISH_SABABLARI } from '@/lib/sxema/chiqim';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,8 +17,10 @@ const HOLAT_NOMI: Record<string, string> = {
 
 export default async function HisobdanChiqarish({
   params,
+  searchParams,
 }: {
   params: Promise<{ bolakId: string }>;
+  searchParams: Promise<{ sabab?: string; qaytish?: string }>;
 }) {
   const f = await sahifaRuxsati('ombor.chiqim');
 
@@ -49,7 +52,11 @@ export default async function HisobdanChiqarish({
     );
   }
 
-  const qaytish = `/ombor/${String(bolak.materialId)}`;
+  const sp = await searchParams;
+  // T-03 — hisobotdan kelganda sabab oldindan tanlanadi va o'sha yerga qaytiladi
+  const boshSabab = CHIQARISH_SABABLARI.find((s) => s === sp.sabab);
+  const qaytish =
+    sp.qaytish === '/hisobot/ombor' ? sp.qaytish : `/ombor/${String(bolak.materialId)}`;
   const olcham =
     bolak.eniM !== null && bolak.boyiM !== null
       ? `${bolak.eniM.toFixed(2)} × ${bolak.boyiM.toFixed(2)} m`
@@ -75,6 +82,7 @@ export default async function HisobdanChiqarish({
       <ChiqimFormasi
         amal={hisobdanChiqarAmali}
         qaytish={qaytish}
+        boshSabab={boshSabab}
         bolak={{
           id: bolak.id,
           kod: bolak.kod,

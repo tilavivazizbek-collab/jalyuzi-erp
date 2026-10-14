@@ -13,6 +13,7 @@ import {
 import {
   QIMIRLAMAGAN_OY,
   muzlaganPul,
+  ostatkaYoshiMatni,
   ostatkasizQoldiq,
   qimirlamaganKun,
 } from '@/lib/domain/hisobot/muzlagan-pul';
@@ -174,5 +175,15 @@ describe('muzlab qolgan pul — TZ 11.7.6', () => {
     // Kelajakdagi sana (soat farqi) manfiy bermaydi
     expect(qimirlamaganKun(new Date(2026, 7, 13), bugun)).toBe(0);
     expect(QIMIRLAMAGAN_OY).toBe(6);
+  });
+});
+
+describe('T-03 — ostatka yoshi', () => {
+  it('oydan kami kunda, ko‘pi oyda', () => {
+    expect(ostatkaYoshiMatni(0)).toBe('0 kun');
+    expect(ostatkaYoshiMatni(29)).toBe('29 kun');
+    expect(ostatkaYoshiMatni(30)).toBe('1 oy');
+    expect(ostatkaYoshiMatni(200)).toBe('6 oy');
+    expect(ostatkaYoshiMatni(-1)).toBe('0 kun');
   });
 });
