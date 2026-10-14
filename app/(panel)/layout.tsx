@@ -86,14 +86,16 @@ const MENYU: readonly Guruh[] = [
       { yol: '/material', nom: 'Mahsulotlar', kod: 'material.kor' },
       { yol: '/mahsulot', nom: "Tur yig'ish", kod: 'mahsulot.kor' },
       { yol: '/narx', nom: 'Narxlar', kod: 'mahsulot.kor' },
-      { yol: '/guruh', nom: 'Guruhlarni boshqarish', kod: 'material.kor' },
+      // Guruhlar — BITTA sahifa (mahsulot va mijoz guruhlari, 2026-10-14)
+      { yol: '/guruh', nom: 'Guruhlar', kod: 'material.kor' },
     ],
   },
   {
     nom: 'Mijozlar',
     bandlar: [
       { yol: '/mijoz', nom: 'Mijozlar', kod: 'mijoz.kor' },
-      { yol: '/mijoz/guruh', nom: 'Mijoz guruhlari', kod: 'mijoz.kor' },
+      // O'sha bitta sahifaning mijoz tabi — material ruxsati yo'q sotuvchi ham topsin
+      { yol: '/guruh?tur=mijoz', nom: 'Mijoz guruhlari', kod: 'mijoz.kor' },
     ],
   },
   {

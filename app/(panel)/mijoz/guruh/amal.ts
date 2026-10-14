@@ -17,7 +17,7 @@ import { kirimniQaytar, maydonlarniOqi } from '../../forma-yordamchi';
 import { GURUH_MAYDONLARI, xatolarniYig, type GuruhFormaHolati } from './holat';
 
 function yangila(): void {
-  revalidatePath('/mijoz/guruh');
+  revalidatePath('/guruh');
   /** ⚠️ Mijoz ro'yxatida guruh nomi ko'rinadi */
   revalidatePath('/mijoz');
 }

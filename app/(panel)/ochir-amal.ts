@@ -42,7 +42,7 @@ const YOLLAR: Record<OchiriladiganTur, string> = {
   guruh: '/guruh',
   mijoz: '/mijoz',
   mijozTuri: '/mijoz/turi',
-  mijozGuruh: '/mijoz/guruh',
+  mijozGuruh: '/guruh',
   yetkazib: '/yetkazib',
   mahsulot: '/mahsulot',
   kassa: '/kassa',

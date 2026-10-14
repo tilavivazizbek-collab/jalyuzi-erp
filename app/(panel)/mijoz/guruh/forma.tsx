@@ -176,7 +176,7 @@ export function MijozGuruhFormasi({
         >
           {kutilmoqda ? 'Saqlanmoqda…' : 'Saqlash'}
         </button>
-        <BekorQilish yol="/mijoz/guruh" bekor={bekor} />
+        <BekorQilish yol="/guruh?tur=mijoz" bekor={bekor} />
       </div>
     </form>
   );

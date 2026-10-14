@@ -321,7 +321,7 @@ export function MijozFormasi({
             boshlangich={q('mijozGuruhId')}
             boshMatn="— guruhsiz —"
             yangiYorliq="Yangi guruh"
-            boshqaruvYoli="/mijoz/guruh"
+            boshqaruvYoli="/guruh?tur=mijoz"
             modalSarlavha="Yangi mijoz guruhi"
             qoshaOladi={guruhQoshaOladi}
             forma={(saqla, yop) => <MijozGuruhFormasi saqlandi={saqla} bekor={yop} />}
