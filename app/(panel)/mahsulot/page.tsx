@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import { RasmKorish } from '../rasm-korish';
 import { sahifaRuxsati } from '@/lib/kirish/joriy';
+import { sahifaKesimi, sahifaRaqami } from '@/lib/domain/sahifa';
+import { Sahifalar } from '../sahifalar';
 import { ruxsatBormi } from '@/lib/ruxsat/tekshir';
 import { pulKorsat, som } from '@/lib/domain/pul';
 import { OchirTugma } from '../ochir-tugma';
@@ -40,6 +42,16 @@ export default async function MahsulotRoyxati({
     narxMatritsasiniOl(),
     standartNarxBormi(),
   ]);
+
+  /** ⚠️ Sahifalash — 2026-10-14: 1 852 tur 8.8 MB HTML va 10 soniya edi */
+  const kesim = sahifaKesimi(qatorlar, sahifaRaqami(sp['sahifa']), 100);
+  const sahifaHavolasi = (n: number): string => {
+    const u = new URLSearchParams();
+    if (ochirilganlar) u.set('ochirilgan', '1');
+    if (n > 1) u.set('sahifa', String(n));
+    const t = u.toString();
+    return t === '' ? '/mahsulot' : `/mahsulot?${t}`;
+  };
 
   return (
     <div className="flex flex-col gap-6">
@@ -90,7 +102,7 @@ export default async function MahsulotRoyxati({
               </tr>
             </thead>
             <tbody className="divide-y divide-chegara [&>tr:nth-child(even)]:bg-fon/50">
-              {qatorlar.map((t) => (
+              {kesim.qatorlar.map((t) => (
                 <tr key={t.id} className={t.faol ? '' : 'bg-fon text-matn-kuchsiz'}>
                   <td className="py-2 pl-4 pr-0">
                     {t.rasm_bormi ? (
@@ -162,6 +174,8 @@ export default async function MahsulotRoyxati({
           </table>
         </div>
       )}
+
+      <Sahifalar joriy={kesim.joriy} jami={kesim.jami} havola={sahifaHavolasi} />
     </div>
   );
 }

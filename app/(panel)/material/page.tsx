@@ -4,6 +4,8 @@ import { ulanishOl } from '@/lib/db';
 import { OchirTugma } from '../ochir-tugma';
 import { OchirilganlarHavolasi, QaytarTugma } from '../ochirilganlar';
 import { sahifaRuxsati } from '@/lib/kirish/joriy';
+import { sahifaKesimi, sahifaRaqami } from '@/lib/domain/sahifa';
+import { Sahifalar } from '../sahifalar';
 import { ruxsatBormi } from '@/lib/ruxsat/tekshir';
 import {
   HISOB_TURI_NOMI,
@@ -134,6 +136,21 @@ export default async function MaterialRoyxati({
   const ochirilganSoni = await sql<{ n: number }[]>`
     SELECT COUNT(*)::int AS n FROM material WHERE faol = false`;
 
+  /**
+   * ⚠️ SAHIFALASH — 2026-10-14: katta katalogda 4 800 qator 14.8 MB HTML
+   *    va 16 soniya edi. Filtr va qidiruv havolada saqlanadi.
+   */
+  const kesim = sahifaKesimi(qatorlar, sahifaRaqami(p['sahifa']), 100);
+  const sahifaHavolasi = (n: number): string => {
+    const u = new URLSearchParams();
+    if (qidiruv !== '') u.set('q', qidiruv);
+    if (turKaliti !== '') u.set('tur', turKaliti);
+    if (ochirilganlar) u.set('ochirilgan', '1');
+    if (n > 1) u.set('sahifa', String(n));
+    const t = u.toString();
+    return t === '' ? '/material' : `/material?${t}`;
+  };
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-end justify-between gap-4">
@@ -245,7 +262,7 @@ export default async function MaterialRoyxati({
               </tr>
             </thead>
             <tbody className="divide-y divide-chegara [&>tr:nth-child(even)]:bg-fon/50">
-              {qatorlar.map((m) => (
+              {kesim.qatorlar.map((m) => (
                 <tr key={m.id} className={m.faol ? '' : 'bg-fon text-matn-kuchsiz'}>
                   <td className="py-2 pl-4 pr-0">
                     {m.rasm_bormi ? (
@@ -344,6 +361,8 @@ export default async function MaterialRoyxati({
           </table>
         </div>
       )}
+
+      <Sahifalar joriy={kesim.joriy} jami={kesim.jami} havola={sahifaHavolasi} />
     </div>
   );
 }

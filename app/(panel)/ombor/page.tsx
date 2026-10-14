@@ -3,6 +3,8 @@ import Link from 'next/link';
 import { chegaraBirligi } from '@/lib/domain/birlik-tanlovi';
 import { nolmi, nolSom, pulKorsat, qosh, som, teng } from '@/lib/domain/pul';
 import { sahifaRuxsati } from '@/lib/kirish/joriy';
+import { sahifaKesimi, sahifaRaqami } from '@/lib/domain/sahifa';
+import { Sahifalar } from '../sahifalar';
 import { ruxsatBormi, tannarxniKoradimi, yigindiQamrov } from '@/lib/ruxsat/tekshir';
 import { SARFLASH_BIRLIGI_NOMI, type SarflashBirligi } from '@/lib/sxema/material';
 import {
@@ -24,6 +26,9 @@ import {
 } from './qoldiq-filtr';
 
 export const dynamic = 'force-dynamic';
+
+/** Bir sahifada nechta material — ko'p bo'lsa sahifa sekinlashadi (2026-10-14) */
+const SAHIFA_HAJMI = 100;
 
 /** Q-05 — kv.m faqat KO'RSATISH uchun, sanashda ishlatilmaydi. */
 const kvM = (n: number): string => n.toFixed(2);
@@ -133,8 +138,29 @@ export default async function OmborQoldigi({
   const koringanQiymat = qiymatJami(korinadi);
   const jamiQiymat = qiymatJami(qoldiq);
 
-  const olchamli = korinadi.filter((q) => q.hisobTuri === 'RULON');
-  const donali = korinadi.filter((q) => q.hisobTuri !== 'RULON');
+  /**
+   * ⚠️ SAHIFALASH — 2026-10-14. Katta omborda 4 678 qator 16 MB HTML va
+   *    56 soniya edi (SQL 60 ms). Jami va sanoqlar yuqorida BUTUN ro'yxatdan
+   *    olingan; bu yerda faqat chiziladigani cheklanadi. Rulonlar avval —
+   *    ikki bo'lim sahifalarda aralashmasin.
+   */
+  const tartibli = [
+    ...korinadi.filter((q) => q.hisobTuri === 'RULON'),
+    ...korinadi.filter((q) => q.hisobTuri !== 'RULON'),
+  ];
+  const kesim = sahifaKesimi(tartibli, sahifaRaqami(sp['sahifa']), SAHIFA_HAJMI);
+  const sahifaHavolasi = (n: number): string => {
+    const asos = havola(filtr.holat);
+    return n <= 1 ? asos : `${asos}${asos.includes('?') ? '&' : '?'}sahifa=${String(n)}`;
+  };
+  const olchamli = kesim.qatorlar.filter((q) => q.hisobTuri === 'RULON');
+  const donali = kesim.qatorlar.filter((q) => q.hisobTuri !== 'RULON');
+  const tarkibi = new Map<number, QoldiqTarkibi[]>();
+  for (const t of tarkib) {
+    const r = tarkibi.get(t.materialId);
+    if (r === undefined) tarkibi.set(t.materialId, [t]);
+    else r.push(t);
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -361,7 +387,7 @@ export default async function OmborQoldigi({
                           </Link>
                         </td>
                       </tr>
-                      <TarkibQatori tarkib={tarkib.filter((t) => t.materialId === q.materialId)} />
+                      <TarkibQatori tarkib={tarkibi.get(q.materialId) ?? []} />
                       </Fragment>
                     ))}
                   </tbody>
@@ -425,6 +451,8 @@ export default async function OmborQoldigi({
               </div>
             </section>
           )}
+
+          <Sahifalar joriy={kesim.joriy} jami={kesim.jami} havola={sahifaHavolasi} />
         </>
       )}
     </div>

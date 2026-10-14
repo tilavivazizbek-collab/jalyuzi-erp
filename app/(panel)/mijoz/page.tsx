@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { ulanishOl } from '@/lib/db';
 import { sahifaRuxsati } from '@/lib/kirish/joriy';
+import { Sahifalar } from '../sahifalar';
 import { ruxsatBormi } from '@/lib/ruxsat/tekshir';
 import { telefonKorsat } from '@/lib/domain/telefon';
 import { dollar, musbatmi, manfiymi, pulKorsat, som } from '@/lib/domain/pul';
@@ -368,33 +369,11 @@ export default async function MijozRoyxati({
         </div>
       )}
 
-      {sahifalar > 1 && (
-        <nav className="flex items-center justify-center gap-3 text-sm" aria-label="Sahifalar">
-          {filtr.sahifa > 1 ? (
-            <Link
-              href={havola(sp, { sahifa: String(filtr.sahifa - 1) })}
-              className="text-brend hover:underline"
-            >
-              ← Oldingi
-            </Link>
-          ) : (
-            <span className="text-matn-kuchsiz">← Oldingi</span>
-          )}
-          <span className="text-matn-ikki">
-            {filtr.sahifa} / {sahifalar}
-          </span>
-          {filtr.sahifa < sahifalar ? (
-            <Link
-              href={havola(sp, { sahifa: String(filtr.sahifa + 1) })}
-              className="text-brend hover:underline"
-            >
-              Keyingi →
-            </Link>
-          ) : (
-            <span className="text-matn-kuchsiz">Keyingi →</span>
-          )}
-        </nav>
-      )}
+      <Sahifalar
+        joriy={filtr.sahifa}
+        jami={sahifalar}
+        havola={(n) => havola(sp, { sahifa: String(n) })}
+      />
     </div>
   );
 }
