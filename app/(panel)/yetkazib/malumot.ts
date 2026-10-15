@@ -15,6 +15,7 @@
 
 import Decimal from 'decimal.js';
 import { ulanishOl } from '@/lib/db';
+import { narxOzgarishi, type NarxNuqtasi as SolishtirmaNuqta } from '@/lib/domain/hisobot/narx-dinamika';
 import type { YetkazibHolati } from './taqsimot';
 
 // ─── 9.7 · Sarlavha: ikki blok ────────────────────────────────────────────
@@ -328,13 +329,14 @@ export async function materialNarxTarixi(
       material_id: number;
       nom: string;
       valyuta: string;
+      asos: string;
       sana: string;
       narx: string;
       tartib: number;
     }[]
   >`
     SELECT * FROM (
-      SELECT kq.material_id, m.nom, k.valyuta,
+      SELECT kq.material_id, m.nom, k.valyuta, kq.narx_asosi AS asos,
              k.sana::text AS sana, kq.narx_birlik::text AS narx,
              ROW_NUMBER() OVER (
                PARTITION BY kq.material_id ORDER BY k.sana DESC, k.id DESC
@@ -347,51 +349,24 @@ export async function materialNarxTarixi(
     WHERE t.tartib <= 3
     ORDER BY t.nom, t.tartib DESC`;
 
-  const xarita = new Map<number, MaterialQatori>();
-
+  const xarita = new Map<number, { nom: string; valyuta: string; nuqtalar: SolishtirmaNuqta[] }>();
   for (const q of qatorlar) {
-    const bor = xarita.get(q.material_id);
-    const nuqta = { sana: q.sana, narx: q.narx };
-
-    if (bor === undefined) {
-      xarita.set(q.material_id, {
-        materialId: q.material_id,
-        nom: q.nom,
-        valyuta: q.valyuta,
-        narxlar: [nuqta],
-        ozgarish: null,
-        oylar: null,
-      });
-      continue;
-    }
-
-    xarita.set(q.material_id, { ...bor, narxlar: [...bor.narxlar, nuqta] });
+    const m = xarita.get(q.material_id) ?? { nom: q.nom, valyuta: q.valyuta, nuqtalar: [] };
+    // ⚠️ Kalit — asos va valyuta: rulon narxi metr narxi bilan solishtirilmaydi
+    m.nuqtalar.push({ sana: q.sana, narx: q.narx, kalit: `${q.asos}:${q.valyuta}` });
+    xarita.set(q.material_id, m);
   }
 
-  return [...xarita.values()].map((m) => {
-    const birinchi = m.narxlar[0];
-    const oxirgi = m.narxlar[m.narxlar.length - 1];
-
-    if (birinchi === undefined || oxirgi === undefined || m.narxlar.length < 2) {
-      return m;
-    }
-
-    const eski = Number(birinchi.narx);
-    const yangi = Number(oxirgi.narx);
-    if (eski === 0) return m;
-
-    const oy = Math.max(
-      1,
-      Math.round(
-        (new Date(oxirgi.sana).getTime() - new Date(birinchi.sana).getTime()) /
-          (30 * 86_400_000),
-      ),
-    );
-
+  return [...xarita.entries()].map(([materialId, m]) => {
+    const o = narxOzgarishi(m.nuqtalar);
     return {
-      ...m,
-      ozgarish: Math.round(((yangi - eski) / eski) * 1000) / 10,
-      oylar: oy,
+      materialId,
+      nom: m.nom,
+      // Oxirgi kirim valyutasi — ekranda narxlar shu bilan yoziladi
+      valyuta: m.nuqtalar[m.nuqtalar.length - 1]?.kalit.split(':')[1] ?? m.valyuta,
+      narxlar: m.nuqtalar.map((n) => ({ sana: n.sana, narx: n.narx })),
+      ozgarish: o.foiz,
+      oylar: o.oylar,
     };
   });
 }

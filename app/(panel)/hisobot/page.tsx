@@ -38,6 +38,13 @@ const BANDLAR: readonly Band[] = [
     tayyor: true,
   },
   {
+    yol: '/hisobot/taminot',
+    nom: "Ta'minot",
+    izoh: "Narx dinamikasi: qaysi material qimmatlashayapti, qaysi yetkazib beruvchi narx ko'targan",
+    kod: 'hisobot.ombor.kor',
+    tayyor: true,
+  },
+  {
     yol: '/hisobot/ishlab',
     nom: 'Ishlab chiqarish',
     izoh: 'Navbat holati · kechikkan buyurtmalar · usta unumdorligi · brak',
