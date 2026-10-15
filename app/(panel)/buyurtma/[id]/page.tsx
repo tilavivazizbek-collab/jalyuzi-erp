@@ -183,6 +183,16 @@ export default async function BuyurtmaKartochkasi({ params }: { params: Promise<
                qisman topshirish uchun. Yopilgach chek beriladi va
                bu tugma yo'qoladi: sotuvchi ikkilanib qolmaydi.
           */}
+          {/* TZ 8.14 — usta uchun ish varaqasi (narxsiz, jurnalsiz) */}
+          {b.yopildi === null && (
+            <Link
+              href={`/buyurtma/${String(b.id)}/ish-varaqasi`}
+              className="fokus inline-block rounded-maydon border border-chegara-quyuq px-3 py-1.5 text-sm font-medium text-matn transition-all hover:bg-fon active:scale-[0.98]"
+            >
+              Ish varaqasi
+            </Link>
+          )}
+
           {b.yopildi === null && (
             <Link
               href={`/buyurtma/${String(b.id)}/kvitansiya`}

@@ -446,7 +446,7 @@ Sinov bazasidagi natija: bir tomonga **18.00 kv.m**, markazdan
 | Nima | Holat |
 |---|---|
 | ~~TANLOV modeli umuman yo'q~~ | ✅ **BAJARILDI 2026-09-23** (0052) — yuqoriga qarang |
-| **Ishlab chiqarish varaqasi** (usta uchun chop etish) | ❌ |
+| **Ishlab chiqarish varaqasi** (usta uchun chop etish, TZ 8.14) — 2026-10-15: kartochkada «Ish varaqasi» tugmasi, A4; har pozitsiya: o'lcham, soni, joyi, o'rnatish, oyna, tanlovlar, mato sarfi, bitta buyum KESIMI (kesimOlchami), band qilingan bo'lak kodi va o'lchami (yo'q bo'lsa «omborchidan so'rang»), aksessuar, izoh, «Bajardi» katagi; mijoz ismi, telefoni, manzili. NARX YO'Q, bekor/rad etilgan pozitsiya chiqmaydi, sotgan yoki tikayotgan filial ko'radi — EC-IV-01/02 | ✅ |
 | O'lcham chegarasi — **mexanizm qurildi**, egasi raqamlarni to'ldiradi | ⚠️ ustadan so'raladi |
 | Material izohi · yetkazib beruvchi · joylashuv | ❌ taklif qilindi, egasi hozircha rad etdi |
 | Naqshli mato — kesish yo'nalishi materialda emas, mahsulot turida | ❌ egasidan javob kutiladi: naqshli mato bormi |
