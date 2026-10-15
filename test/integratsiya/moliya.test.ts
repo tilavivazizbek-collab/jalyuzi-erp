@@ -211,6 +211,46 @@ describe('foyda-zarar — 11.4.1', () => {
     expect(D(await tannarx(), oldin)).toBe('27000.00');
   });
 
+  /**
+   * 2026-10-15 — dollar xarajat foyda-zararga UMUMAN kirmasdi (tushum esa
+   * kurs bilan kirardi): sof foyda oshib ko'rinardi. Endi xarajat sanasidagi
+   * kurs bilan; kursi yo'q sanadagisi qo'shilmaydi va ogoh beriladi.
+   */
+  it('EC-FZ-05: dollar xarajat o‘z sanasidagi kurs bilan; kursi yo‘q — ogoh', async () => {
+    const bugun = toshkentKuni();
+    await sql`INSERT INTO kurs_tarix (sana, qiymat, yaratdi_id) VALUES (${bugun}, 12800, ${XODIM})
+              ON CONFLICT (sana) DO NOTHING`;
+    const kurs = (await sql<{ q: string }[]>`
+      SELECT qiymat::text AS q FROM kurs_tarix WHERE sana <= ${bugun} ORDER BY sana DESC LIMIT 1`)[0]?.q ?? '0';
+
+    const davr = davrYasa('OY', new Date());
+    const op = (x: Awaited<ReturnType<typeof foydaZararMalumoti>>) =>
+      x.xarajatlar.find((y) => y.modda === 'OPERATSION')?.summa ?? '0';
+    const oldin = await foydaZararMalumoti(FILIAL, davr);
+    await sql`
+      INSERT INTO xarajat (sana, filial_id, modda, summa, valyuta, manba_turi, manba_id, izoh, xodim_id)
+      VALUES (${bugun}, ${FILIAL}, 'OPERATSION', 100, 'USD', 'sinov', ${Number(String(Date.now()).slice(-8))}, 'sinov $', ${XODIM})`;
+    const keyin = await foydaZararMalumoti(FILIAL, davr);
+
+    expect(D(op(keyin), op(oldin))).toBe((100 * Number(kurs)).toFixed(2));
+    expect(D(keyin.dollarXarajat.usd, oldin.dollarXarajat.usd)).toBe('100.00');
+    expect(D(keyin.dollarXarajat.somda, oldin.dollarXarajat.somda)).toBe((100 * Number(kurs)).toFixed(2));
+    // Operatsion turlari bo'linmasi ham o'sha summaga teng qoladi
+    const turlar = (x: typeof keyin) => x.operatsionTurlari.reduce((y, t) => y + Number(t.summa), 0);
+    expect(turlar(keyin).toFixed(2)).toBe(Number(op(keyin)).toFixed(2));
+
+    // 1990-yil — undan oldin kurs yo'q: qo'shilmaydi, sanaladi
+    const eski = davrYasa('OY', new Date('1990-01-15T12:00:00+05:00'));
+    await sql`
+      INSERT INTO xarajat (sana, filial_id, modda, summa, valyuta, manba_turi, manba_id, izoh, xodim_id)
+      VALUES ('1990-01-10', ${FILIAL}, 'OPERATSION', 50, 'USD', 'sinov', ${Number(String(Date.now()).slice(-8)) + 1}, 'sinov $', ${XODIM})`;
+    const e = await foydaZararMalumoti(FILIAL, eski);
+    expect(e.dollarXarajat.kurssizSoni).toBeGreaterThanOrEqual(1);
+    // Kursi yo'q dollar na so'mga, na dollar yig'indisiga kirmaydi
+    expect(e.dollarXarajat.usd).toBe('0.00');
+    expect(e.dollarXarajat.somda).toBe('0.00');
+  });
+
   it('EC-FZ-02: kassa oqimi — boshlang‘ich + kirim − chiqim = yakuniy = bazadagi qoldiq', async () => {
     // Davr chegarasidan o'tadigan storno juftligi: yozuv o'tgan oyda, storno bugun
     const y = await sql<{ id: number }[]>`

@@ -1594,8 +1594,17 @@ export async function sotuvchiErkinliklari(
 // ─── 11.4.1 · 11.4.4 · 11.4.7 · Foyda-zarar ──────────────────────────────
 
 export interface FoydaZararXom extends FoydaZararKirimi {
-  /** Dollarda yozilgan xarajatlar soni — hisobotga kirmagan (1.3), ogoh */
-  readonly dollarXarajatSoni: number;
+  /**
+   * Dollarda yozilgan xarajatlar — o'z SANASIDAGI kurs bilan so'mga o'tib
+   * moddalarga qo'shilgan (2026-10-15). 1.3 ga ko'ra dollar summasi ALOHIDA
+   * ham ko'rsatiladi. `kurssizSoni` — o'sha sanagacha kurs kiritilmagan,
+   * hisobotga kirmagan yozuvlar (ogoh).
+   */
+  readonly dollarXarajat: {
+    readonly usd: string;
+    readonly somda: string;
+    readonly kurssizSoni: number;
+  };
   /**
    * 0066 — «Operatsion» xarajat egasi qo'shgan turlar bo'yicha (so'mda).
    * `nom: null` — turi ko'rsatilmagan. Yig'indisi OPERATSION qatoriga teng.
@@ -1615,6 +1624,19 @@ export interface FoydaZararXom extends FoydaZararKirimi {
  */
 export async function foydaZararMalumoti(filialId: number, davr: Davr): Promise<FoydaZararXom> {
   const sql = ulanishOl();
+  /**
+   * ⚠️ DOLLAR XARAJAT — 2026-10-15 gacha hisobotga UMUMAN kirmasdi (faqat
+   *    soni aytilardi), tushum esa kurs bilan so'mga o'tkazilardi: sof foyda
+   *    dollar xarajatlar qadar oshib ko'rinardi. Endi xarajat SANASIDAGI
+   *    kurs bilan (o'sha kun yoki undan oldingi eng yaqin kurs) — xarajat
+   *    qilingan kundagi qiymat. Ikki so'rovda bir xil bo'lsin — shu bitta joy.
+   */
+  const kursJoin = sql`
+    LEFT JOIN LATERAL (
+      SELECT kt.qiymat FROM kurs_tarix kt
+      WHERE kt.sana <= x.sana ORDER BY kt.sana DESC LIMIT 1
+    ) k ON x.valyuta = 'USD'`;
+  const somda = sql`(x.summa * CASE WHEN x.valyuta = 'USD' THEN k.qiymat ELSE 1 END)`;
   const [savdo, xarajat, turlar] = await Promise.all([
     sql<{ tushum: string | null; material: string | null; ish_haqi: string | null }[]>`
       SELECT
@@ -1633,13 +1655,24 @@ export async function foydaZararMalumoti(filialId: number, davr: Davr): Promise<
       WHERE b.sotgan_filial_id = ${filialId}
         AND b.sana >= ${davr.boshi} AND b.sana < ${davr.oxiri}
         AND p.holat NOT IN ('BEKOR', 'RAD_ETILGAN')`,
-    sql<{ modda: string; valyuta: string; jami: string; musbat: string | null; manfiy: string | null; soni: number }[]>`
-      SELECT x.modda, x.valyuta,
-             SUM(x.summa)::numeric(14,2)::text AS jami,
-             SUM(x.summa) FILTER (WHERE x.summa > 0)::numeric(14,2)::text AS musbat,
-             (-SUM(x.summa) FILTER (WHERE x.summa < 0))::numeric(14,2)::text AS manfiy,
-             COUNT(*)::int AS soni
+    sql<{
+      modda: string;
+      jami: string | null;
+      musbat: string | null;
+      manfiy: string | null;
+      usd: string | null;
+      usd_somda: string | null;
+      kurssiz: number;
+    }[]>`
+      SELECT x.modda,
+             SUM(${somda})::numeric(14,2)::text AS jami,
+             SUM(${somda}) FILTER (WHERE x.summa > 0)::numeric(14,2)::text AS musbat,
+             (-SUM(${somda}) FILTER (WHERE x.summa < 0))::numeric(14,2)::text AS manfiy,
+             SUM(x.summa) FILTER (WHERE x.valyuta = 'USD' AND k.qiymat IS NOT NULL)::numeric(14,2)::text AS usd,
+             SUM(${somda}) FILTER (WHERE x.valyuta = 'USD')::numeric(14,2)::text AS usd_somda,
+             COUNT(*) FILTER (WHERE x.valyuta = 'USD' AND k.qiymat IS NULL)::int AS kurssiz
       FROM xarajat x
+      ${kursJoin}
       WHERE x.filial_id = ${filialId}
         AND x.sana >= (${davr.boshi}::timestamptz AT TIME ZONE ${VAQT_ZONASI})::date
         AND x.sana < (${davr.oxiri}::timestamptz AT TIME ZONE ${VAQT_ZONASI})::date
@@ -1647,33 +1680,39 @@ export async function foydaZararMalumoti(filialId: number, davr: Davr): Promise<
         AND NOT (x.modda = 'ISH_HAQI' AND x.manba_turi = 'buyurtma_pozitsiya')
         AND NOT (x.modda = 'ISH_HAQI' AND x.manba_turi = 'storno' AND EXISTS (
               SELECT 1 FROM xarajat a WHERE a.id = x.manba_id AND a.manba_turi = 'buyurtma_pozitsiya'))
-      GROUP BY x.modda, x.valyuta`,
+      GROUP BY x.modda`,
     // 0066 — operatsion xarajat turlar bo'yicha; storno juftlari nolga chiqadi
     sql<{ nom: string | null; summa: string }[]>`
-      SELECT t.nom, SUM(x.summa)::numeric(14,2)::text AS summa
+      SELECT t.nom, SUM(${somda})::numeric(14,2)::text AS summa
       FROM xarajat x
+      ${kursJoin}
       LEFT JOIN xarajat_turi t ON t.id = x.xarajat_turi_id
-      WHERE x.filial_id = ${filialId} AND x.modda = 'OPERATSION' AND x.valyuta = 'SOM'
+      WHERE x.filial_id = ${filialId} AND x.modda = 'OPERATSION'
         AND x.sana >= (${davr.boshi}::timestamptz AT TIME ZONE ${VAQT_ZONASI})::date
         AND x.sana < (${davr.oxiri}::timestamptz AT TIME ZONE ${VAQT_ZONASI})::date
       GROUP BY t.nom
-      HAVING SUM(x.summa) <> 0
-      ORDER BY SUM(x.summa) DESC`,
+      HAVING SUM(${somda}) <> 0
+      ORDER BY SUM(${somda}) DESC`,
   ]);
 
   const s0 = savdo[0];
-  const somda = xarajat.filter((x) => x.valyuta === 'SOM');
-  const kursQator = somda.find((x) => x.modda === 'KURS_FARQI');
+  const kursQator = xarajat.find((x) => x.modda === 'KURS_FARQI');
+  const yigindi = (f: (x: (typeof xarajat)[number]) => string | null): string =>
+    xarajat.reduce((y, x) => y.plus(f(x) ?? '0'), new Decimal(0)).toFixed(2);
   return {
     tushum: s0?.tushum ?? '0',
     material: s0?.material ?? '0',
     ishHaqi: s0?.ish_haqi ?? '0',
-    xarajatlar: somda
+    xarajatlar: xarajat
       .filter((x) => x.modda !== 'KURS_FARQI')
-      .map((x) => ({ modda: x.modda, summa: x.jami })),
+      .map((x) => ({ modda: x.modda, summa: x.jami ?? '0' })),
     kursZarar: kursQator?.musbat ?? '0',
     kursDaromad: kursQator?.manfiy ?? '0',
-    dollarXarajatSoni: xarajat.filter((x) => x.valyuta !== 'SOM').reduce((y, x) => y + x.soni, 0),
+    dollarXarajat: {
+      usd: yigindi((x) => x.usd),
+      somda: yigindi((x) => x.usd_somda),
+      kurssizSoni: xarajat.reduce((y, x) => y + x.kurssiz, 0),
+    },
     operatsionTurlari: turlar,
   };
 }

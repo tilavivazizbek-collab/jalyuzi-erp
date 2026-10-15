@@ -322,10 +322,18 @@ export default async function MoliyaHisoboti({
             </tbody>
           </table>
         </div>
-        {joriyXom.dollarXarajatSoni > 0 && (
+        {/* 1.3 — dollar summasi alohida ham ko'rinadi; jadvalda xarajat sanasidagi kurs bilan */}
+        {Number(joriyXom.dollarXarajat.usd) !== 0 && (
+          <p className="mt-2 text-xs text-matn-kuchsiz">
+            Xarajatlarda dollarda yozilgani: <b>${pulKorsat(dollar(joriyXom.dollarXarajat.usd))}</b>{' '}
+            — har biri o&apos;z sanasidagi kurs bilan{' '}
+            <b>{pulKorsat(som(joriyXom.dollarXarajat.somda))} so&apos;m</b> bo&apos;lib qo&apos;shildi.
+          </p>
+        )}
+        {joriyXom.dollarXarajat.kurssizSoni > 0 && (
           <p className="mt-2 text-xs text-belgi-sariq">
-            Dollarda yozilgan {joriyXom.dollarXarajatSoni} ta xarajat bu jadvalga qo&apos;shilmadi —
-            so&apos;m va dollar aralashtirilmaydi (1.3).
+            Dollarda yozilgan {joriyXom.dollarXarajat.kurssizSoni} ta xarajat qo&apos;shilmadi — uning
+            sanasigacha kurs kiritilmagan (Sozlamalar → Kurs).
           </p>
         )}
       </section>
