@@ -990,7 +990,7 @@ ikki varaqli Excel.
 | Moliya (11.4.1–11.4.7) | ❌ | ❌ | ❌ | ❌ |
 | Sotuv (11.5.1–11.5.6) | — | ✅ | ✅ | ❌ |
 | Mijozlar bazasi (11.6.1) | — | ✅ | ✅ | ❌ |
-| Ishlab chiqarish (11.8.1–11.8.4) | ❌ | ❌ | ❌ | ❌ |
+| Ishlab chiqarish (11.8.1–11.8.4) — /hisobot/ishlab, hisobot.ishlab.kor (2026-10-15): navbat (hozir, eng eskisi, tur kesimida kutish), kechikkan buyurtmalar, usta unumdorligi (dona, kv.m, tur, hisoblangan haq), brak (zarar, ushlanma, sabab) — EC-IH-01…04 | — | ✅ | ✅ | ❌ |
 | Narx dinamikasi (11.9.1) | ❌ | ❌ | ❌ | ❌ |
 | Dashboard (11.3) | ❌ | ❌ | ❌ | — |
 | Sahifa ustidagi panellar (11.11) | ❌ | ❌ | ❌ | — |

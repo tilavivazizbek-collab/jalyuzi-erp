@@ -228,6 +228,8 @@ export const RUXSATLAR = {
   'hisobot.sotuv.kor': { nom: 'Sotuv hisobotlari', guruh: 'Hisobot', band: '11.5' },
   'hisobot.mijoz.kor': { nom: 'Mijozlar hisobotlari', guruh: 'Hisobot', band: '11.6' },
   'hisobot.moliya.kor': { nom: 'Moliya hisobotlari', guruh: 'Hisobot', band: '11.4' },
+  /** 2026-10-15 — usta haqi va brak zarari bor: admin oladi, sotuvchi va usta EMAS */
+  'hisobot.ishlab.kor': { nom: 'Ishlab chiqarish hisobotlari', guruh: 'Hisobot', band: '11.8' },
 
   // ── Rejalar — TZ 21 (2026-10-13) ───────────────────────────────────────
   'reja.kor': { nom: "Reja va faktni ko'rish", guruh: 'Hisobot', band: '21.6' },

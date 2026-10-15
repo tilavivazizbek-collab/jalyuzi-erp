@@ -374,6 +374,8 @@ Egasi: «eski ma'lumot kerak emas». Yangi loyiha «wer»:
   Dockerfile — postgresql18-client (da08bfc): pg_dump 17 PG18 dan nusxa ololmaydi.
 - **0067 (xarajat manba indeksi, c66a829) HALI qo'llanmagan** — faqat indeks,
   ma'lumotga tegmaydi; usiz kod ishlaydi, hisobotlar sekinroq. Avval zaxira.
+- **Yangi ruxsat kodi hisobot.ishlab.kor** (2026-10-15, TZ 11.8) — deploydan keyin
+  jonli bazada db:ruxsat kerak, aks holda admin «Ishlab chiqarish» hisobotini ko'rmaydi.
 - Qolgan: cron-job.org (zaxira va boshqa 9 yo'l), eski bot xizmatini to'xtatish.
 
 Yuqoridagi «0057 → 0059 …» tartibi faqat ESKI bazaga tegishli edi.

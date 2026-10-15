@@ -38,6 +38,13 @@ const BANDLAR: readonly Band[] = [
     tayyor: true,
   },
   {
+    yol: '/hisobot/ishlab',
+    nom: 'Ishlab chiqarish',
+    izoh: 'Navbat holati · kechikkan buyurtmalar · usta unumdorligi · brak',
+    kod: 'hisobot.ishlab.kor',
+    tayyor: true,
+  },
+  {
     yol: '/hisobot/mijoz',
     nom: 'Mijozlar',
     izoh: "Mijozlar bazasi · ABC tahlil · debitorlik yoshi bo'yicha",
