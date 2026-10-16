@@ -7,8 +7,9 @@ import { afterAll, describe, expect, it } from 'vitest';
 import Decimal from 'decimal.js';
 import { ulanishOl } from '@/lib/db';
 import { davrYasa } from '@/lib/domain/hisobot/davr';
-import { sotuvXom } from '@/app/(panel)/hisobot/xom-malumot';
-import { turBoyichaFoyda } from '@/app/(panel)/hisobot/malumot';
+import { sotuvXom, xarajatXom } from '@/app/(panel)/hisobot/xom-malumot';
+import { foydaZararMalumoti, turBoyichaFoyda } from '@/app/(panel)/hisobot/malumot';
+import { foydaZarar } from '@/lib/domain/hisobot/foyda-zarar';
 
 afterAll(async () => {
   await ulanishOl().end({ timeout: 5 });
@@ -23,5 +24,17 @@ describe('TZ 11.2 — sotuv xom ma’lumoti', () => {
     expect(sum(turli.map((q) => new Decimal(q.tannarx).plus(q.ishHaqi).toFixed(2)))).toBe(
       sum(turlar.map((t) => t.tannarx)),
     );
+  });
+});
+
+describe('TZ 11.2 · 11.4 — moliya xom ma’lumoti', () => {
+  it('EC-EKS-02: «xarajatlarda» qatorlari yig‘indisi = foyda-zarar xarajat jami + kurs farqi', async () => {
+    const davr = davrYasa('OY', new Date());
+    const [xom, fz] = await Promise.all([xarajatXom(1, davr), foydaZararMalumoti(1, davr)]);
+    const j = foydaZarar(fz);
+    const xarajatlarda = xom.filter((x) => !x.tannarxda && x.somda !== null);
+    const jami = xarajatlarda.reduce((y, x) => y.plus(x.somda ?? '0'), new Decimal(0));
+    const kutilgan = new Decimal(j.xarajatJami).plus(j.kursZarar).minus(j.kursDaromad);
+    expect(jami.toFixed(2)).toBe(kutilgan.toFixed(2));
   });
 });

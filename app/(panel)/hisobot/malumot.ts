@@ -1591,6 +1591,38 @@ export async function sotuvchiErkinliklari(
   }));
 }
 
+/**
+ * ⚠️ DOLLAR XARAJAT — 2026-10-15 gacha foyda-zararga UMUMAN kirmasdi (faqat
+ *    soni aytilardi), tushum esa kurs bilan so'mga o'tkazilardi: sof foyda
+ *    dollar xarajatlar qadar oshib ko'rinardi. Endi xarajat SANASIDAGI kurs
+ *    bilan (o'sha kun yoki undan oldingi eng yaqin kurs).
+ *
+ *    BITTA JOY: foyda-zarar, operatsion turlari va eksportning xom varag'i
+ *    shu ikkitasini ishlatadi. `x` — xarajat aliasi; kursi yo'q dollarda
+ *    `k.qiymat` NULL bo'ladi va so'mdagi summa ham NULL.
+ */
+export function xarajatKursJoin(sql: ReturnType<typeof ulanishOl>) {
+  return sql`
+    LEFT JOIN LATERAL (
+      SELECT kt.qiymat FROM kurs_tarix kt
+      WHERE kt.sana <= x.sana ORDER BY kt.sana DESC LIMIT 1
+    ) k ON x.valyuta = 'USD'`;
+}
+
+/**
+ * Pozitsiya ish haqi (va uning stornosi) — foyda-zararda TANNARX qatorida,
+ * xarajatlar ro'yxatida emas (11.4.1). Foyda-zarar va xom varaq — bir shart.
+ */
+export function pozitsiyaIshHaqimi(sql: ReturnType<typeof ulanishOl>) {
+  return sql`(x.modda = 'ISH_HAQI' AND (x.manba_turi = 'buyurtma_pozitsiya'
+    OR (x.manba_turi = 'storno' AND EXISTS (
+          SELECT 1 FROM xarajat a WHERE a.id = x.manba_id AND a.manba_turi = 'buyurtma_pozitsiya'))))`;
+}
+
+export function xarajatSomda(sql: ReturnType<typeof ulanishOl>) {
+  return sql`(x.summa * CASE WHEN x.valyuta = 'USD' THEN k.qiymat ELSE 1 END)`;
+}
+
 // ─── 11.4.1 · 11.4.4 · 11.4.7 · Foyda-zarar ──────────────────────────────
 
 export interface FoydaZararXom extends FoydaZararKirimi {
@@ -1624,19 +1656,8 @@ export interface FoydaZararXom extends FoydaZararKirimi {
  */
 export async function foydaZararMalumoti(filialId: number, davr: Davr): Promise<FoydaZararXom> {
   const sql = ulanishOl();
-  /**
-   * ⚠️ DOLLAR XARAJAT — 2026-10-15 gacha hisobotga UMUMAN kirmasdi (faqat
-   *    soni aytilardi), tushum esa kurs bilan so'mga o'tkazilardi: sof foyda
-   *    dollar xarajatlar qadar oshib ko'rinardi. Endi xarajat SANASIDAGI
-   *    kurs bilan (o'sha kun yoki undan oldingi eng yaqin kurs) — xarajat
-   *    qilingan kundagi qiymat. Ikki so'rovda bir xil bo'lsin — shu bitta joy.
-   */
-  const kursJoin = sql`
-    LEFT JOIN LATERAL (
-      SELECT kt.qiymat FROM kurs_tarix kt
-      WHERE kt.sana <= x.sana ORDER BY kt.sana DESC LIMIT 1
-    ) k ON x.valyuta = 'USD'`;
-  const somda = sql`(x.summa * CASE WHEN x.valyuta = 'USD' THEN k.qiymat ELSE 1 END)`;
+  const kursJoin = xarajatKursJoin(sql);
+  const somda = xarajatSomda(sql);
   const [savdo, xarajat, turlar] = await Promise.all([
     sql<{ tushum: string | null; material: string | null; ish_haqi: string | null }[]>`
       SELECT
@@ -1677,9 +1698,7 @@ export async function foydaZararMalumoti(filialId: number, davr: Davr): Promise<
         AND x.sana >= (${davr.boshi}::timestamptz AT TIME ZONE ${VAQT_ZONASI})::date
         AND x.sana < (${davr.oxiri}::timestamptz AT TIME ZONE ${VAQT_ZONASI})::date
         -- pozitsiya ish haqi tannarxda (va uning stornosi ham)
-        AND NOT (x.modda = 'ISH_HAQI' AND x.manba_turi = 'buyurtma_pozitsiya')
-        AND NOT (x.modda = 'ISH_HAQI' AND x.manba_turi = 'storno' AND EXISTS (
-              SELECT 1 FROM xarajat a WHERE a.id = x.manba_id AND a.manba_turi = 'buyurtma_pozitsiya'))
+        AND NOT ${pozitsiyaIshHaqimi(sql)}
       GROUP BY x.modda`,
     // 0066 — operatsion xarajat turlar bo'yicha; storno juftlari nolga chiqadi
     sql<{ nom: string | null; summa: string }[]>`

@@ -157,6 +157,13 @@ export default async function MoliyaHisoboti({
             {d.nom}
           </Link>
         ))}
+        {/* TZ 11.2 — ikki varaq: yig'ma va har xarajat yozuvi */}
+        <a
+          href={`/hisobot/moliya/eksport?davr=${davrTuri}`}
+          className="ml-auto rounded-maydon border border-chegara-quyuq px-3 py-1.5 text-[13px] text-matn-ikki transition-all active:scale-[0.98] hover:bg-fon"
+        >
+          Excel&apos;ga yuklash
+        </a>
       </div>
 
       {/* Ma'lumot salomatligi — hisobotga ishonch darajasi */}

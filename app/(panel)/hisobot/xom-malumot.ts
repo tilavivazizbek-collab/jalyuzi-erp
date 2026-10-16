@@ -11,6 +11,8 @@
 import { ulanishOl } from '@/lib/db';
 import type { Davr } from '@/lib/domain/hisobot/davr';
 import { pozitsiyaNatijasiUstunlari } from '@/lib/amal/filial-harakat';
+import { VAQT_ZONASI } from '@/lib/domain/sana';
+import { pozitsiyaIshHaqimi, xarajatKursJoin, xarajatSomda } from './malumot';
 
 export interface SotuvXomQatori {
   readonly raqam: string;
@@ -70,4 +72,60 @@ export async function sotuvXom(filialId: number, davr: Davr): Promise<SotuvXomQa
     tannarx: r.tannarx,
     ishHaqi: r.ish_haqi,
   }));
+}
+
+export interface XarajatXomQatori {
+  readonly sana: string;
+  readonly modda: string;
+  readonly turi: string | null;
+  readonly summa: string;
+  readonly valyuta: string;
+  /** Dollarda — qo'llangan kurs; so'mda `null` */
+  readonly kurs: string | null;
+  /** So'mdagi summa; dollarda kursi yo'q bo'lsa `null` (hisobotga kirmagan) */
+  readonly somda: string | null;
+  readonly kassadan: boolean;
+  /**
+   * Pozitsiya ish haqi foyda-zararda TANNARX qatorida (sotilgan davrda),
+   * xarajatlar ro'yxatida emas — ikki marta sanalmasin (11.4.1).
+   */
+  readonly tannarxda: boolean;
+  readonly xodim: string | null;
+  readonly izoh: string | null;
+}
+
+/** TZ 11.4 — davrdagi HAR xarajat yozuvi (storno juftlari ham — ular nolga chiqadi). */
+export async function xarajatXom(filialId: number, davr: Davr): Promise<XarajatXomQatori[]> {
+  const sql = ulanishOl();
+  const q = await sql<
+    {
+      sana: string;
+      modda: string;
+      turi: string | null;
+      summa: string;
+      valyuta: string;
+      kurs: string | null;
+      somda: string | null;
+      kassadan: boolean;
+      tannarxda: boolean;
+      xodim: string | null;
+      izoh: string | null;
+    }[]
+  >`
+    SELECT x.sana::text, x.modda, t.nom AS turi, x.summa::text, x.valyuta,
+           k.qiymat::text AS kurs,
+           ${xarajatSomda(sql)}::numeric(14,2)::text AS somda,
+           (x.kassa_yozuv_id IS NOT NULL) AS kassadan,
+           ${pozitsiyaIshHaqimi(sql)} AS tannarxda,
+           xd.ism AS xodim, x.izoh
+    FROM xarajat x
+    ${xarajatKursJoin(sql)}
+    LEFT JOIN xarajat_turi t ON t.id = x.xarajat_turi_id
+    LEFT JOIN xodim xd ON xd.id = x.xodim_id
+    WHERE x.filial_id = ${filialId}
+      AND x.sana >= (${davr.boshi}::timestamptz AT TIME ZONE ${VAQT_ZONASI})::date
+      AND x.sana < (${davr.oxiri}::timestamptz AT TIME ZONE ${VAQT_ZONASI})::date
+    ORDER BY x.sana, x.id
+    LIMIT 50000`;
+  return q;
 }
