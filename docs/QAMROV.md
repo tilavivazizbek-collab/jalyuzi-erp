@@ -993,7 +993,7 @@ ikki varaqli Excel.
 | Mijozlar bazasi (11.6.1) | — | ✅ | ✅ | ❌ |
 | Ishlab chiqarish (11.8.1–11.8.4) — /hisobot/ishlab, hisobot.ishlab.kor (2026-10-15): navbat (hozir, eng eskisi, tur kesimida kutish), kechikkan buyurtmalar, usta unumdorligi (dona, kv.m, tur, hisoblangan haq), brak (zarar, ushlanma, sabab) — EC-IH-01…04 | — | ✅ | ✅ | ❌ |
 | Narx dinamikasi (11.9.1) — /hisobot/taminot (2026-10-15): sarflash birligiga keltirilgan so‘mdagi kelish narxi (bo‘lak snapshoti), materiallar — oxirgi 3 kelish va %, yetkazib beruvchilar — o‘z oldingi kelishiga nisbatan ko‘tardi/tushirdi. 9.8 ham shu narxOzgarishi bilan: asos yoki valyuta boshqa bo‘lsa foiz yo‘q — EC-ND-01…05 | ✅ | ✅ | ✅ | ❌ |
-| Dashboard (11.3) | ❌ | ❌ | ❌ | — |
+| Dashboard (11.3) — 1-qator (bugun: tushum, kassa, qarz, ochiq buyurtma) va oy rejasi bor edi; 2026-10-17: 2-qator «Diqqat talab qiladi» — 8 band (tasdiq kutmoqda, 24 soatdan oshgani qizil · muddati o'tgan · materialga kutmoqda · kam qolgan · ustamasi past · limitdan oshgan mijoz · yetkazib beruvchiga muddati o'tgan to'lov · ochiq da'vo), har biri ro'yxatning o'z sharti bilan sanaladi va o'sha filtrga olib boradi, ruxsatga qarab — EC-DQ-01/02. 3-qator (oylik trend) — keyin | 🟡 | 🟡 | 🟡 | — |
 | Sahifa ustidagi panellar (11.11) | ❌ | ❌ | ❌ | — |
 
 ⚠️ **Hisob ✅ — ekran hali yo'q.** Domain qatlami tayyor degani hisobotni

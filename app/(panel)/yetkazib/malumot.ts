@@ -41,6 +41,22 @@ export interface HamkorlikBloki {
 }
 
 /**
+ * TZ 9.9 — da'vo OCHIQ: kirim qatorida «qaytariladi» defekti bor va shu
+ * qator bo'yicha `DAVO` harakati hali yozilmagan. `kq` (kirim_qator) va
+ * `k` (kirim) aliaslari kerak. Kartochka va dashboard — bitta shart.
+ */
+export function ochiqDavoSharti(sql: ReturnType<typeof ulanishOl>) {
+  return sql`(k.holat = 'FAOL'
+        AND kq.defekt_miqdor > 0
+        AND kq.defekt_turi = 'QAYTARILADI'
+        AND NOT EXISTS (
+          SELECT 1 FROM yetkazib_beruvchi_harakat h
+          WHERE h.turi = 'DAVO' AND h.manba_turi = 'kirim_qator'
+            AND h.manba_id = kq.id
+        ))`;
+}
+
+/**
  * TZ 9.7 — «Yuqorida ikki blok: qarzimiz va hamkorlik.»
  *
  * ⚠️ Da'vo OCHIQ deb hisoblanadi, agar kirim qatorida
@@ -68,14 +84,7 @@ export async function sarlavhaBloklari(
       FROM kirim_qator kq
       JOIN kirim k ON k.id = kq.kirim_id
       WHERE k.yetkazib_beruvchi_id = ${yetkazibBeruvchiId}
-        AND k.holat = 'FAOL'
-        AND kq.defekt_miqdor > 0
-        AND kq.defekt_turi = 'QAYTARILADI'
-        AND NOT EXISTS (
-          SELECT 1 FROM yetkazib_beruvchi_harakat h
-          WHERE h.turi = 'DAVO' AND h.manba_turi = 'kirim_qator'
-            AND h.manba_id = kq.id
-        )`,
+        AND ${ochiqDavoSharti(sql)}`,
 
     sql<{
       hamkor: string | null;

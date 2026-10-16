@@ -17,6 +17,8 @@ import {
   SavatBelgisi,
 } from '../korsatkich';
 import { kimIshlamoqda, kunKorsatkichlari } from './malumot';
+import { diqqatBandlari } from './diqqat';
+import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
 
@@ -34,12 +36,14 @@ export default async function BoshqaruvSahifasi() {
   const f = await kirganBolishiShart();
 
   const bugun = toshkentKuni();
-  const [kim, k, reja, chegara] = await Promise.all([
+  const [kim, k, reja, chegara, diqqat] = await Promise.all([
     kimIshlamoqda(f.xodimId, f.filialId),
     kunKorsatkichlari(f.filialId),
     // TZ 21.7 — oy rejasi birinchi qatorda
     dashboardRejasi(f, oyBoshi(bugun)),
     rejaSozlamalari(ulanishOl()),
+    // TZ 11.3 — ikkinchi qator: diqqat talab qiladi (ruxsatga qarab)
+    diqqatBandlari(f),
   ]);
 
   /**
@@ -137,6 +141,38 @@ export default async function BoshqaruvSahifasi() {
           belgi={<QutiBelgisi />}
         />
       </div>
+
+      {/* ── TZ 11.3 · Diqqat talab qiladi — raqam va havola ──────────── */}
+      {diqqat.length > 0 && (
+        <section className="flex flex-col gap-3">
+          <h2 className="text-[15px] font-semibold text-matn">Diqqat talab qiladi</h2>
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            {diqqat.map((d) => (
+              <Link
+                key={d.nom}
+                href={d.havola}
+                className={`fokus flex flex-col rounded-karta border px-4 py-3 transition-colors hover:bg-fon ${
+                  d.soni === 0
+                    ? 'border-chegara bg-sirt'
+                    : d.xavf
+                      ? 'border-belgi-qizil/30 bg-belgi-qizil-fon'
+                      : 'border-belgi-sariq/30 bg-belgi-sariq-fon'
+                }`}
+              >
+                <span
+                  className={`text-2xl font-semibold tabular-nums ${
+                    d.soni === 0 ? 'text-matn-kuchsiz' : d.xavf ? 'text-belgi-qizil' : 'text-belgi-sariq'
+                  }`}
+                >
+                  {d.soni}
+                </span>
+                <span className="mt-0.5 text-[13px] text-matn">{d.nom}</span>
+                {d.izoh !== null && <span className="text-[12px] text-matn-ikki">{d.izoh}</span>}
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* ── Ruxsatlar ────────────────────────────────────────────── */}
       <section className="flex flex-col gap-4">
