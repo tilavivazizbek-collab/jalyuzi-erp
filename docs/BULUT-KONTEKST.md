@@ -372,10 +372,9 @@ Egasi: «eski ma'lumot kerak emas». Yangi loyiha «wer»:
 - Baza: **PostgreSQL 18**, db `jalyuzi_hdcv` (parol egasida / Render panelida)
 - Qo'llangan: 0066 gacha hamma migratsiya, urug', `db:ruxsat`.
   Dockerfile — postgresql18-client (da08bfc): pg_dump 17 PG18 dan nusxa ololmaydi.
-- **0067 (xarajat manba indeksi, c66a829) HALI qo'llanmagan** — faqat indeks,
-  ma'lumotga tegmaydi; usiz kod ishlaydi, hisobotlar sekinroq. Avval zaxira.
-- **Yangi ruxsat kodi hisobot.ishlab.kor** (2026-10-15, TZ 11.8) — deploydan keyin
-  jonli bazada db:ruxsat kerak, aks holda admin «Ishlab chiqarish» hisobotini ko'rmaydi.
+- **2026-10-16:** 3d3d655 deploy qilindi (live), 0067 qo'llandi (67 migratsiya),
+  db:ruxsat bajarildi (hisobot.ishlab.kor adminga).
+- ⚠️ Baza Free tarif — **2026-11-13 da o'chadi**; egasiga eslatiladi, tarif o'zgartirilmaydi.
 - Qolgan: cron-job.org (zaxira va boshqa 9 yo'l), eski bot xizmatini to'xtatish.
 
 Yuqoridagi «0057 → 0059 …» tartibi faqat ESKI bazaga tegishli edi.
