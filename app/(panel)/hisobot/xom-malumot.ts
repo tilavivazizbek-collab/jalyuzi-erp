@@ -12,7 +12,7 @@ import { ulanishOl } from '@/lib/db';
 import type { Davr } from '@/lib/domain/hisobot/davr';
 import { pozitsiyaNatijasiUstunlari } from '@/lib/amal/filial-harakat';
 import { VAQT_ZONASI } from '@/lib/domain/sana';
-import { pozitsiyaIshHaqimi, xarajatKursJoin, xarajatSomda } from './malumot';
+import { buyurtmaTushumi, pozitsiyaIshHaqimi, xarajatKursJoin, xarajatSomda } from './malumot';
 import { bolakQiymatiIfodasi } from '../ombor/malumot';
 
 export interface SotuvXomQatori {
@@ -167,5 +167,65 @@ export async function omborXom(filialId: number): Promise<BolakXomQatori[]> {
     LEFT JOIN kirim k ON k.id = kq.kirim_id
     WHERE b.filial_id = ${filialId} AND b.faol = true AND b.holat IN ('BOSH','BAND','YOLDA')
     ORDER BY m.nom, b.turi, b.id
+    LIMIT 100000`;
+}
+
+export type MijozToifasi = 'YANGI' | 'TAKRORIY' | 'UXLAGAN' | 'HECH_QACHON' | 'BOSHQA';
+
+export interface MijozXomQatori {
+  readonly ism: string;
+  readonly telefon: string | null;
+  readonly turi: string | null;
+  readonly guruh: string | null;
+  readonly birinchi: Date | null;
+  readonly oxirgi: Date | null;
+  readonly davrdaBuyurtma: number;
+  readonly davrdaTushum: string;
+  readonly jamiBuyurtma: number;
+  /**
+   * Ekrandagi kartochkalar bilan BIR XIL shartlar (mijozBazasi):
+   * yangi — birinchi xaridi davrda; takroriy — davrda olgan, oldin ham olgan;
+   * uxlagan — oxirgisi `uxlaganKun` dan oldin; hech qachon — xaridi yo'q.
+   * Bir mijoz ham yangi, ham uxlagan bo'lmaydi; ustuvorlik shu tartibda.
+   */
+  readonly toifa: MijozToifasi;
+}
+
+/** TZ 11.6.1 — har faol mijoz, sotgan filial bo'yicha xaridlari bilan. */
+export async function mijozXom(filialId: number, davr: Davr, uxlaganKun: number): Promise<MijozXomQatori[]> {
+  const sql = ulanishOl();
+  return sql<MijozXomQatori[]>`
+    WITH pozitsiya AS (${buyurtmaTushumi(sql)}),
+    xarid AS (
+      SELECT b.mijoz_id, b.id, b.sana, COALESCE(pz.summa, 0) AS summa
+      FROM buyurtma b
+      LEFT JOIN pozitsiya pz ON pz.buyurtma_id = b.id
+      WHERE b.sotgan_filial_id = ${filialId}
+    ),
+    h AS (
+      SELECT m.id, m.ism, m.telefon, mt.nom AS turi, g.nom AS guruh,
+             MIN(x.sana) AS birinchi, MAX(x.sana) AS oxirgi,
+             COUNT(x.id) FILTER (WHERE x.sana >= ${davr.boshi} AND x.sana < ${davr.oxiri})::int AS davrda,
+             COALESCE(SUM(x.summa) FILTER (WHERE x.sana >= ${davr.boshi} AND x.sana < ${davr.oxiri}), 0)
+               ::numeric(14,2)::text AS tushum,
+             COUNT(x.id)::int AS jami
+      FROM mijoz m
+      LEFT JOIN mijoz_turi mt ON mt.id = m.mijoz_turi_id
+      LEFT JOIN mijoz_guruh g ON g.id = m.mijoz_guruh_id
+      LEFT JOIN xarid x ON x.mijoz_id = m.id
+      WHERE m.faol = true
+      GROUP BY m.id, m.ism, m.telefon, mt.nom, g.nom
+    )
+    SELECT ism, telefon, turi, guruh, birinchi, oxirgi,
+           davrda AS "davrdaBuyurtma", tushum AS "davrdaTushum", jami AS "jamiBuyurtma",
+           CASE
+             WHEN oxirgi IS NULL THEN 'HECH_QACHON'
+             WHEN birinchi >= ${davr.boshi} AND birinchi < ${davr.oxiri} THEN 'YANGI'
+             WHEN davrda > 0 AND birinchi < ${davr.boshi} THEN 'TAKRORIY'
+             WHEN oxirgi < now() - make_interval(days => ${uxlaganKun}) THEN 'UXLAGAN'
+             ELSE 'BOSHQA'
+           END AS toifa
+    FROM h
+    ORDER BY tushum::numeric DESC, ism
     LIMIT 100000`;
 }

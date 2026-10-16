@@ -65,6 +65,13 @@ export default async function MijozHisoboti({
             {d.nom}
           </Link>
         ))}
+        {/* TZ 11.2 — ikki varaq: yig'ma va har mijoz */}
+        <a
+          href={`/hisobot/mijoz/eksport?davr=${davrTuri}`}
+          className="ml-auto rounded-maydon border border-chegara-quyuq px-3 py-1.5 text-[13px] text-matn-ikki transition-all active:scale-[0.98] hover:bg-fon"
+        >
+          Excel&apos;ga yuklash
+        </a>
       </div>
 
       {/* ── 11.6.1 · Baza holati ── */}

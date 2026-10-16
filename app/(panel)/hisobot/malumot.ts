@@ -866,7 +866,7 @@ export interface MijozBazasi {
   readonly buyurtmaSoni: number;
 }
 
-const UXLAGAN_KUN = 90;
+export const UXLAGAN_KUN = 90;
 
 /**
  * TZ 11.6.1 — mijozlar bazasi: yangi, takroriy, uxlab qolgan,
@@ -880,8 +880,26 @@ const UXLAGAN_KUN = 90;
  * ⚠️ BEKOR va RAD ETILGAN pozitsiyalar chiqmaydi: ular tushum
  *    emas. Aks holda «o'rtacha chek» soxta oshib ketardi.
  */
+/**
+ * TZ 11.6 — buyurtma tushumi (so'mda, kurs bilan), `buyurtma_id` bo'yicha.
+ * Mijoz bazasi, mijoz ABC si va eksportning xom varag'i — bitta ifoda.
+ * ⚠️ QAYTARILGAN qoladi — 11.5 qoidasi (yuqoridagi izohga qarang).
+ */
+export function buyurtmaTushumi(sql: ReturnType<typeof ulanishOl>) {
+  return sql`
+      SELECT p.buyurtma_id,
+             SUM((COALESCE(p.narx_snapshot, 0) - COALESCE(p.chegirma_summa, 0))
+                 * CASE WHEN bv.valyuta = 'USD'
+                        THEN COALESCE(bv.kurs_snapshot, 0) ELSE 1 END) AS summa
+      FROM buyurtma_pozitsiya p
+      JOIN buyurtma bv ON bv.id = p.buyurtma_id
+      WHERE p.holat NOT IN ('BEKOR','RAD_ETILGAN')
+      GROUP BY p.buyurtma_id`;
+}
+
 export async function mijozBazasi(filialId: number, davr: Davr): Promise<MijozBazasi> {
-  const q = await ulanishOl()<
+  const sql = ulanishOl();
+  const q = await sql<
     {
       jami: number;
       yangi: number;
@@ -892,16 +910,7 @@ export async function mijozBazasi(filialId: number, davr: Davr): Promise<MijozBa
       buyurtma_soni: number;
     }[]
   >`
-    WITH pozitsiya AS (
-      SELECT p.buyurtma_id,
-             SUM((COALESCE(p.narx_snapshot, 0) - COALESCE(p.chegirma_summa, 0))
-                 * CASE WHEN bv.valyuta = 'USD'
-                        THEN COALESCE(bv.kurs_snapshot, 0) ELSE 1 END) AS summa
-      FROM buyurtma_pozitsiya p
-      JOIN buyurtma bv ON bv.id = p.buyurtma_id
-      WHERE p.holat NOT IN ('BEKOR','RAD_ETILGAN')
-      GROUP BY p.buyurtma_id
-    ),
+    WITH pozitsiya AS (${buyurtmaTushumi(sql)}),
     xarid AS (
       SELECT b.mijoz_id, b.id, b.sana, COALESCE(pz.summa, 0) AS summa
       FROM buyurtma b
@@ -971,19 +980,11 @@ export async function mijozAbc(
   readonly natija: AbcNatija<number>;
   readonly buyurtmaSoni: ReadonlyMap<number, number>;
 }> {
-  const q = await ulanishOl()<
+  const sql = ulanishOl();
+  const q = await sql<
     { mijoz_id: number; ism: string; tushum: string | null; soni: number }[]
   >`
-    WITH pozitsiya AS (
-      SELECT p.buyurtma_id,
-             SUM((COALESCE(p.narx_snapshot, 0) - COALESCE(p.chegirma_summa, 0))
-                 * CASE WHEN bv.valyuta = 'USD'
-                        THEN COALESCE(bv.kurs_snapshot, 0) ELSE 1 END) AS summa
-      FROM buyurtma_pozitsiya p
-      JOIN buyurtma bv ON bv.id = p.buyurtma_id
-      WHERE p.holat NOT IN ('BEKOR','RAD_ETILGAN')
-      GROUP BY p.buyurtma_id
-    )
+    WITH pozitsiya AS (${buyurtmaTushumi(sql)})
     SELECT m.id AS mijoz_id, m.ism,
            SUM(COALESCE(pz.summa, 0))::numeric(14,2)::text AS tushum,
            COUNT(b.id)::int AS soni

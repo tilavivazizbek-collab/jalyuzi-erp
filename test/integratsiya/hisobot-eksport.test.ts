@@ -7,8 +7,16 @@ import { afterAll, describe, expect, it } from 'vitest';
 import Decimal from 'decimal.js';
 import { ulanishOl } from '@/lib/db';
 import { davrYasa } from '@/lib/domain/hisobot/davr';
-import { omborXom, sotuvXom, xarajatXom } from '@/app/(panel)/hisobot/xom-malumot';
-import { foydaZararMalumoti, omborQiymati, turBoyichaFoyda } from '@/app/(panel)/hisobot/malumot';
+import { mijozXom, omborXom, sotuvXom, xarajatXom } from '@/app/(panel)/hisobot/xom-malumot';
+import {
+  UXLAGAN_KUN,
+  foydaZararMalumoti,
+  mijozAbc,
+  mijozBazasi,
+  omborQiymati,
+  turBoyichaFoyda,
+} from '@/app/(panel)/hisobot/malumot';
+import { pulMatn } from '@/lib/domain/pul';
 import { foydaZarar } from '@/lib/domain/hisobot/foyda-zarar';
 
 afterAll(async () => {
@@ -46,5 +54,23 @@ describe('TZ 11.2 · 11.7 — ombor xom ma’lumoti', () => {
     const yigindi = sanaladi.reduce((y, b) => y.plus(b.qiymat ?? '0'), new Decimal(0));
     // Hisobot material bo'yicha, xom har bo'lak bo'yicha yaxlitlaydi — har bo'lakka ≤ 0.005
     expect(yigindi.minus(jami).abs().toNumber()).toBeLessThanOrEqual(sanaladi.length * 0.005 + 0.001);
+  });
+});
+
+describe('TZ 11.2 · 11.6 — mijozlar xom ma’lumoti', () => {
+  it('EC-EKS-04: toifalar soni va tushum ekrandagi kartochkalar va ABC bilan bir xil', async () => {
+    const davr = davrYasa('YIL', new Date());
+    const [xom, baza, abc] = await Promise.all([
+      mijozXom(1, davr, UXLAGAN_KUN),
+      mijozBazasi(1, davr),
+      mijozAbc(1, davr),
+    ]);
+    const soni = (t: string) => xom.filter((m) => m.toifa === t).length;
+    expect(xom).toHaveLength(baza.jami);
+    expect(soni('YANGI')).toBe(baza.yangi);
+    expect(soni('TAKRORIY')).toBe(baza.takroriy);
+    expect(soni('HECH_QACHON')).toBe(baza.hechQachonXaridQilmagan);
+    const tushum = xom.reduce((y, m) => y.plus(m.davrdaTushum), new Decimal(0));
+    expect(tushum.toFixed(2)).toBe(new Decimal(pulMatn(abc.natija.jami)).toFixed(2));
   });
 });
