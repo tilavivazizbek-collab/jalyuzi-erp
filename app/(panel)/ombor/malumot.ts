@@ -1189,8 +1189,18 @@ export interface FilialQoldigi {
  *    faqat ma'lumot beradi (§9.4 naqshi).
  */
 export async function barchaFilialQoldigi(): Promise<readonly FilialQoldigi[]> {
-  const filiallar = await ulanishOl()<{ id: number; nom: string }[]>`
-    SELECT id, nom FROM filial WHERE faol = true ORDER BY bosh DESC, nom`;
+  /**
+   * ⚠️ `bolakBor` — 2026-10-16: har filial uchun filialQoldigi (butun material
+   *    ro'yxati) chaqirilardi; bo'lagi umuman yo'q filialda ham. Natija baribir
+   *    bo'sh (omborda filtri) — endi so'rov yuborilmaydi. Ko'p filialli bazada
+   *    sahifa daqiqalab ochilardi.
+   */
+  const filiallar = await ulanishOl()<{ id: number; nom: string; bolak_bor: boolean }[]>`
+    SELECT f.id, f.nom,
+           EXISTS (SELECT 1 FROM bolak b
+                   WHERE b.filial_id = f.id AND b.faol = true
+                     AND b.holat IN ('BOSH', 'BAND', 'YOLDA')) AS bolak_bor
+    FROM filial f WHERE f.faol = true ORDER BY f.bosh DESC, f.nom`;
 
   const natija: FilialQoldigi[] = [];
   for (const f of filiallar) {
@@ -1198,7 +1208,7 @@ export async function barchaFilialQoldigi(): Promise<readonly FilialQoldigi[]> {
       filialId: f.id,
       filialNomi: f.nom,
       // «Barcha filiallar» — faqat qoldig'i borlar, avvalgidek
-      materiallar: (await filialQoldigi(f.id)).filter(omborda),
+      materiallar: f.bolak_bor ? (await filialQoldigi(f.id)).filter(omborda) : [],
     });
   }
   return natija;
