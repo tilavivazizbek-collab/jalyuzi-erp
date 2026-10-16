@@ -7,8 +7,8 @@ import { afterAll, describe, expect, it } from 'vitest';
 import Decimal from 'decimal.js';
 import { ulanishOl } from '@/lib/db';
 import { davrYasa } from '@/lib/domain/hisobot/davr';
-import { sotuvXom, xarajatXom } from '@/app/(panel)/hisobot/xom-malumot';
-import { foydaZararMalumoti, turBoyichaFoyda } from '@/app/(panel)/hisobot/malumot';
+import { omborXom, sotuvXom, xarajatXom } from '@/app/(panel)/hisobot/xom-malumot';
+import { foydaZararMalumoti, omborQiymati, turBoyichaFoyda } from '@/app/(panel)/hisobot/malumot';
 import { foydaZarar } from '@/lib/domain/hisobot/foyda-zarar';
 
 afterAll(async () => {
@@ -36,5 +36,15 @@ describe('TZ 11.2 · 11.4 — moliya xom ma’lumoti', () => {
     const jami = xarajatlarda.reduce((y, x) => y.plus(x.somda ?? '0'), new Decimal(0));
     const kutilgan = new Decimal(j.xarajatJami).plus(j.kursZarar).minus(j.kursDaromad);
     expect(jami.toFixed(2)).toBe(kutilgan.toFixed(2));
+  });
+});
+
+describe('TZ 11.2 · 11.7 — ombor xom ma’lumoti', () => {
+  it('EC-EKS-03: bo‘sh va band bo‘laklar qiymati = ombor qiymati (yaxlitlash farqi ichida)', async () => {
+    const [xom, jami] = await Promise.all([omborXom(1), omborQiymati(1)]);
+    const sanaladi = xom.filter((b) => (b.holat === 'BOSH' || b.holat === 'BAND') && b.qiymat !== null);
+    const yigindi = sanaladi.reduce((y, b) => y.plus(b.qiymat ?? '0'), new Decimal(0));
+    // Hisobot material bo'yicha, xom har bo'lak bo'yicha yaxlitlaydi — har bo'lakka ≤ 0.005
+    expect(yigindi.minus(jami).abs().toNumber()).toBeLessThanOrEqual(sanaladi.length * 0.005 + 0.001);
   });
 });

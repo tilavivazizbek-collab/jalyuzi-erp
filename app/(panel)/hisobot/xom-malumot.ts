@@ -13,6 +13,7 @@ import type { Davr } from '@/lib/domain/hisobot/davr';
 import { pozitsiyaNatijasiUstunlari } from '@/lib/amal/filial-harakat';
 import { VAQT_ZONASI } from '@/lib/domain/sana';
 import { pozitsiyaIshHaqimi, xarajatKursJoin, xarajatSomda } from './malumot';
+import { bolakQiymatiIfodasi } from '../ombor/malumot';
 
 export interface SotuvXomQatori {
   readonly raqam: string;
@@ -128,4 +129,43 @@ export async function xarajatXom(filialId: number, davr: Davr): Promise<XarajatX
     ORDER BY x.sana, x.id
     LIMIT 50000`;
   return q;
+}
+
+export interface BolakXomQatori {
+  readonly kod: string;
+  readonly material: string;
+  readonly birlik: string;
+  readonly turi: string;
+  readonly ochilgan: boolean;
+  readonly eniM: string | null;
+  readonly boyiM: string | null;
+  readonly miqdor: string | null;
+  readonly holat: string;
+  /** So'mda — ekrandagi bilan bir ifoda (bolakQiymatiIfodasi); dollarda qotgani `null` */
+  readonly qiymat: string | null;
+  readonly valyuta: string;
+  readonly yoshKun: number;
+  readonly joy: string | null;
+  readonly kirim: string | null;
+}
+
+/** TZ 11.7 — omborda turgan HAR bo'lak (bo'sh, band, yo'lda). */
+export async function omborXom(filialId: number): Promise<BolakXomQatori[]> {
+  const sql = ulanishOl();
+  return sql<BolakXomQatori[]>`
+    SELECT b.kod, m.nom AS material, m.sarflash_birligi AS birlik, b.turi, b.ochilgan,
+           b.eni_m::text AS "eniM", b.boyi_m::text AS "boyiM", b.miqdor::text AS miqdor, b.holat,
+           CASE WHEN b.tannarx_valyuta_snapshot = 'SOM'
+                THEN ${bolakQiymatiIfodasi(sql)}::numeric(14,2)::text END AS qiymat,
+           b.tannarx_valyuta_snapshot AS valyuta,
+           EXTRACT(DAY FROM now() - b.yaratildi)::int AS "yoshKun",
+           j.nom AS joy, k.raqam AS kirim
+    FROM bolak b
+    JOIN material m ON m.id = b.material_id
+    LEFT JOIN ombor_joy j ON j.id = b.joy_id
+    LEFT JOIN kirim_qator kq ON kq.id = b.kirim_qator_id
+    LEFT JOIN kirim k ON k.id = kq.kirim_id
+    WHERE b.filial_id = ${filialId} AND b.faol = true AND b.holat IN ('BOSH','BAND','YOLDA')
+    ORDER BY m.nom, b.turi, b.id
+    LIMIT 100000`;
 }

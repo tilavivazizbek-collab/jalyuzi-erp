@@ -112,6 +112,13 @@ export default async function OmborHisoboti({
               {d.nom}
             </Link>
           ))}
+          {/* TZ 11.2 — ikki varaq: yig'ma va omborda turgan har bo'lak */}
+          <a
+            href={`/hisobot/ombor/eksport?davr=${davrTuri}`}
+            className="rounded-maydon border border-chegara-quyuq px-3 py-1.5 text-sm text-matn-ikki transition-all hover:bg-fon active:scale-[0.98]"
+          >
+            Excel&apos;ga yuklash
+          </a>
         </nav>
       </div>
 
