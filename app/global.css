@@ -85,6 +85,10 @@
   --color-matn: light-dark(#0f172a, #e6edf3);
   --color-matn-ikki: light-dark(#475569, #a3adba);
   --color-matn-kuchsiz: light-dark(#94a3b8, #7d8794);
+  /* Grafikdagi SOLISHTIRMA qator (o'tgan davr) — 2026-10-17. Kunda matn-ikki
+     (kuchsiz oq fonda 2.6:1), tunda matn-kuchsiz (matn-ikki brendga juda
+     yaqin, ΔE 13). validate_palette: ikkala rejimda kontrast va ΔE ≥ 15. */
+  --color-grafik-solishtirma: light-dark(#475569, #7d8794);
   --color-chegara: light-dark(#e2e8f0, #262c36);
   --color-chegara-quyuq: light-dark(#cbd5e1, #39414d);
   --color-fon: light-dark(#f7f8fc, #0e1116);

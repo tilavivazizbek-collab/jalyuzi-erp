@@ -18,6 +18,8 @@ import {
 } from '../korsatkich';
 import { kimIshlamoqda, kunKorsatkichlari } from './malumot';
 import { diqqatBandlari } from './diqqat';
+import { oylikTrend } from './trend';
+import { TrendGrafik } from './trend-grafik';
 import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
@@ -36,7 +38,7 @@ export default async function BoshqaruvSahifasi() {
   const f = await kirganBolishiShart();
 
   const bugun = toshkentKuni();
-  const [kim, k, reja, chegara, diqqat] = await Promise.all([
+  const [kim, k, reja, chegara, diqqat, trend] = await Promise.all([
     kimIshlamoqda(f.xodimId, f.filialId),
     kunKorsatkichlari(f.filialId),
     // TZ 21.7 — oy rejasi birinchi qatorda
@@ -44,7 +46,15 @@ export default async function BoshqaruvSahifasi() {
     rejaSozlamalari(ulanishOl()),
     // TZ 11.3 — ikkinchi qator: diqqat talab qiladi (ruxsatga qarab)
     diqqatBandlari(f),
+    // TZ 11.3 — uchinchi qator: oylik trend (har blok o'z ruxsatiga qarab)
+    oylikTrend(f),
   ]);
+  const foiz = (j: string, o: string): string | null => {
+    const oo = new Decimal(o);
+    if (oo.isZero()) return null;
+    const f2 = new Decimal(j).minus(oo).div(oo.abs()).times(100);
+    return `${f2.gte(0) ? '+' : '−'}${f2.abs().toFixed(1)}%`;
+  };
 
   /**
    * ⚠️ Qarz MANFIY bo'lsa — bu avans (6.8), qarz emas. Egasiga
@@ -174,6 +184,88 @@ export default async function BoshqaruvSahifasi() {
         </section>
       )}
 
+      {/* ── TZ 11.3 · Oylik trend ───────────────────────────────── */}
+      {(trend.tushum !== null || trend.foyda !== null || trend.kreditor !== null) && (
+        <section className="flex flex-col gap-3">
+          <h2 className="text-[15px] font-semibold text-matn">Oylik trend</h2>
+          <div className="grid gap-4 xl:grid-cols-3">
+            {trend.tushum !== null && (
+              <div className="rounded-karta border border-chegara bg-sirt p-4 xl:col-span-2">
+                <p className="text-[13px] text-matn-ikki">Tushum — oy boshidan</p>
+                <p className="mt-1 text-xl font-semibold tabular-nums text-matn">
+                  {pulKorsat(som(trend.tushum.joriy))}
+                  {foiz(trend.tushum.joriy, trend.tushum.otganShuKungacha) !== null && (
+                    <span className="ml-2 text-[13px] font-normal text-matn-ikki">
+                      {foiz(trend.tushum.joriy, trend.tushum.otganShuKungacha)} o&apos;tgan oyning shu kunigacha (
+                      {pulKorsat(som(trend.tushum.otganShuKungacha))})
+                    </span>
+                  )}
+                </p>
+                <div className="mt-3">
+                  <TrendGrafik kunlar={trend.tushum.kunlar} />
+                </div>
+                <p className="mt-1 text-[12px] text-matn-kuchsiz">
+                  O&apos;tgan oy jami: {pulKorsat(som(trend.tushum.otganJami))}. Kunma-kun jadval —{' '}
+                  <Link href="/hisobot/sotuv" className="text-brend hover:underline">
+                    Sotuv hisoboti
+                  </Link>
+                  .
+                </p>
+              </div>
+            )}
+
+            <div className="flex flex-col gap-4">
+              {trend.foyda !== null && (
+                <div className="rounded-karta border border-chegara bg-sirt p-4">
+                  <p className="text-[13px] text-matn-ikki">Sof foyda — bu oy</p>
+                  <p
+                    className={`mt-1 text-xl font-semibold tabular-nums ${trend.foyda.joriy.startsWith('-') ? 'text-belgi-qizil' : 'text-matn'}`}
+                  >
+                    {pulKorsat(som(trend.foyda.joriy))}
+                  </p>
+                  <p className="text-[12px] text-matn-ikki">
+                    O&apos;tgan oy: {pulKorsat(som(trend.foyda.otgan))} ·{' '}
+                    <Link href="/hisobot/moliya" className="text-brend hover:underline">
+                      foyda-zarar
+                    </Link>
+                  </p>
+                </div>
+              )}
+              {trend.kreditor !== null && (
+                <div className="rounded-karta border border-chegara bg-sirt p-4">
+                  <p className="text-[13px] text-matn-ikki">Yetkazib beruvchilarga qarzimiz</p>
+                  <p className="mt-1 text-xl font-semibold tabular-nums text-matn">
+                    {pulKorsat(som(trend.kreditor.som))}
+                  </p>
+                  {usdQatori(trend.kreditor.usd) !== null && (
+                    <p className="text-[13px] tabular-nums text-matn-ikki">{usdQatori(trend.kreditor.usd)}</p>
+                  )}
+                  <p className="text-[12px] text-matn-ikki">
+                    Mijozlar qarzi — yuqoridagi kartada ·{' '}
+                    <Link href="/yetkazib?filtr=qarz" className="text-brend hover:underline">
+                      ro&apos;yxat
+                    </Link>
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {trend.topMahsulot !== null && (
+              <TopRoyxat
+                sarlavha="Top-5 mahsulot — bu oy"
+                qatorlar={trend.topMahsulot.map((t) => ({ nom: t.nom, izoh: `${String(t.soni)} dona`, summa: t.tushum }))}
+              />
+            )}
+            {trend.topMijoz !== null && (
+              <TopRoyxat
+                sarlavha="Top-5 mijoz — bu oy"
+                qatorlar={trend.topMijoz.map((m) => ({ nom: m.nom, izoh: null, summa: m.tushum }))}
+              />
+            )}
+          </div>
+        </section>
+      )}
+
       {/* ── Ruxsatlar ────────────────────────────────────────────── */}
       <section className="flex flex-col gap-4">
         <div>
@@ -231,6 +323,36 @@ export default async function BoshqaruvSahifasi() {
           })}
         </div>
       </section>
+    </div>
+  );
+}
+
+function TopRoyxat({
+  sarlavha,
+  qatorlar,
+}: {
+  sarlavha: string;
+  qatorlar: readonly { nom: string; izoh: string | null; summa: string }[];
+}) {
+  return (
+    <div className="rounded-karta border border-chegara bg-sirt p-4">
+      <p className="mb-2 text-[13px] text-matn-ikki">{sarlavha}</p>
+      {qatorlar.length === 0 ? (
+        <p className="text-[13px] text-matn-kuchsiz">Bu oyda sotuv yo&apos;q.</p>
+      ) : (
+        <ol className="flex flex-col gap-1.5">
+          {qatorlar.map((q, i) => (
+            <li key={`${q.nom}-${String(i)}`} className="flex items-baseline justify-between gap-3 text-[13px]">
+              <span className="truncate text-matn">
+                <span className="mr-1.5 text-matn-kuchsiz">{i + 1}.</span>
+                {q.nom}
+                {q.izoh !== null && <span className="ml-1 text-matn-kuchsiz">· {q.izoh}</span>}
+              </span>
+              <span className="shrink-0 tabular-nums text-matn">{pulKorsat(som(q.summa))}</span>
+            </li>
+          ))}
+        </ol>
+      )}
     </div>
   );
 }
