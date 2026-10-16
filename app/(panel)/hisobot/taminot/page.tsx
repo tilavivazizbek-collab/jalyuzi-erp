@@ -58,6 +58,13 @@ export default async function TaminotHisoboti({
             {x.nom}
           </Link>
         ))}
+        {/* TZ 11.2 — ikki varaq: yig'ma va har kelish */}
+        <a
+          href={`/hisobot/taminot/eksport?davr=${davrTuri}`}
+          className="ml-auto rounded-maydon border border-chegara-quyuq px-3 py-1.5 text-[13px] text-matn-ikki transition-all active:scale-[0.98] hover:bg-fon"
+        >
+          Excel&apos;ga yuklash
+        </a>
       </div>
 
       <p className="text-xs text-matn-kuchsiz">

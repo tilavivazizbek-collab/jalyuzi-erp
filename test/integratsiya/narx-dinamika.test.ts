@@ -12,7 +12,7 @@ import { ulanishOl } from '@/lib/db';
 import { kirimYarat } from '@/lib/amal/kirim';
 import { toshkentKuni } from '@/lib/domain/sana';
 import { davrYasa } from '@/lib/domain/hisobot/davr';
-import { narxDinamikasi } from '@/app/(panel)/hisobot/taminot-malumot';
+import { kelishNuqtalari, narxDinamikasi } from '@/app/(panel)/hisobot/taminot-malumot';
 import { materialNarxTarixi } from '@/app/(panel)/yetkazib/malumot';
 import { sinovUlanishi } from './yordamchi';
 
@@ -89,6 +89,14 @@ describe('TZ 11.9.1 — narx dinamikasi', () => {
     ]);
     expect(d.yetkazibBeruvchilar).toEqual([
       expect.objectContaining({ yetkazibId, solishtirildi: 1, kotardi: 1, tushirdi: 0, ortachaFoiz: 15 }) as unknown,
+    ]);
+  });
+
+  it('EC-ND-06: xom manba — har kelish kirim raqami bilan (TZ 11.2)', async () => {
+    const n = await kelishNuqtalari(filialId, davrYasa('YIL', new Date()));
+    expect(n.map((x) => [x.kirimRaqam, x.narx])).toEqual([
+      [`K-${BELGI}-1`, '2000.00'],
+      [`K-${BELGI}-2`, '2300.00'],
     ]);
   });
 

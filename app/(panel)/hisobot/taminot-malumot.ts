@@ -18,7 +18,9 @@ import type { Davr } from '@/lib/domain/hisobot/davr';
 import { narxOzgarishi } from '@/lib/domain/hisobot/narx-dinamika';
 import { VAQT_ZONASI, toshkentKuni } from '@/lib/domain/sana';
 
-interface Nuqta {
+/** Bitta kelish — kirim qatori, solishtirma narx bilan */
+export interface Nuqta {
+  readonly kirimRaqam: string;
   readonly materialId: number;
   readonly material: string;
   readonly birlik: string;
@@ -54,9 +56,14 @@ export interface NarxDinamikasi {
   readonly yetkazibBeruvchilar: readonly YetkazibDinamikasi[];
 }
 
-export async function narxDinamikasi(filialId: number, davr: Davr): Promise<NarxDinamikasi> {
+/**
+ * Davr oxirigacha, 2 yil oldindan boshlab har kelish (kirim qatori) va uning
+ * solishtirma narxi. Hisobot va eksportning xom varag'i — bitta manba.
+ */
+export async function kelishNuqtalari(filialId: number, davr: Davr): Promise<Nuqta[]> {
   const q = await ulanishOl()<
     {
+      kirim_raqam: string;
       material_id: number;
       material: string;
       birlik: string;
@@ -66,7 +73,7 @@ export async function narxDinamikasi(filialId: number, davr: Davr): Promise<Narx
       narx: string;
     }[]
   >`
-    SELECT kq.material_id, m.nom AS material, m.sarflash_birligi AS birlik,
+    SELECT k.raqam AS kirim_raqam, kq.material_id, m.nom AS material, m.sarflash_birligi AS birlik,
            k.yetkazib_beruvchi_id AS yetkazib_id, y.nom AS yetkazib,
            k.sana::text AS sana,
            MIN(b.tannarx_birlik_snapshot)::numeric(14,2)::text AS narx
@@ -79,10 +86,11 @@ export async function narxDinamikasi(filialId: number, davr: Davr): Promise<Narx
       -- Davrdan oldingi kelish ham kerak — solishtirish asosi
       AND k.sana >= ((${davr.boshi}::timestamptz AT TIME ZONE ${VAQT_ZONASI}) - interval '2 years')::date
       AND k.sana < (${davr.oxiri}::timestamptz AT TIME ZONE ${VAQT_ZONASI})::date
-    GROUP BY kq.id, kq.material_id, m.nom, m.sarflash_birligi, k.yetkazib_beruvchi_id, y.nom, k.sana, k.id
+    GROUP BY kq.id, k.raqam, kq.material_id, m.nom, m.sarflash_birligi, k.yetkazib_beruvchi_id, y.nom, k.sana, k.id
     ORDER BY kq.material_id, k.sana, k.id, kq.id`;
 
-  const nuqtalar: Nuqta[] = q.map((r) => ({
+  return q.map((r) => ({
+    kirimRaqam: r.kirim_raqam,
     materialId: r.material_id,
     material: r.material,
     birlik: r.birlik,
@@ -91,6 +99,10 @@ export async function narxDinamikasi(filialId: number, davr: Davr): Promise<Narx
     sana: r.sana,
     narx: r.narx,
   }));
+}
+
+export async function narxDinamikasi(filialId: number, davr: Davr): Promise<NarxDinamikasi> {
+  const nuqtalar = await kelishNuqtalari(filialId, davr);
   // ⚠️ Toshkent sanasi — toISOString UTC beradi va davr bir kun oldin boshlanardi
   const boshi = toshkentKuni(davr.boshi);
   const davrda = (sana: string): boolean => sana >= boshi;
