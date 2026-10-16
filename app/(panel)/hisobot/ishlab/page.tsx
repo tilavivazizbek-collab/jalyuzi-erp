@@ -74,6 +74,13 @@ export default async function IshlabChiqarishHisoboti({
             {d.nom}
           </Link>
         ))}
+        {/* TZ 11.2 — ikki varaq: yig'ma va tugatilgan har pozitsiya */}
+        <a
+          href={`/hisobot/ishlab/eksport?davr=${davrTuri}`}
+          className="ml-auto rounded-maydon border border-chegara-quyuq px-3 py-1.5 text-[13px] text-matn-ikki transition-all active:scale-[0.98] hover:bg-fon"
+        >
+          Excel&apos;ga yuklash
+        </a>
       </div>
 
       {/* ── 11.8.4 · Navbat — eng muhimi tepada: hozir nima yotibdi ── */}

@@ -209,15 +209,31 @@ export interface NavbatHolati {
 }
 
 /**
+ * Pozitsiya navbatga qachon tushgani — `p` aliasi kerak. Navbat hisoboti va
+ * eksportning xom varag'i bir qoidadan foydalanadi.
+ */
+export function navbatgaKirish(sql: ReturnType<typeof ulanishOl>) {
+  return sql`COALESCE((SELECT MAX(a.sana) FROM audit_jurnal a
+                      WHERE a.obyekt_turi = 'buyurtma_pozitsiya' AND a.obyekt_id = p.id
+                        AND a.amal = 'TASDIQLASH'), p.yaratildi)`;
+}
+
+/**
+ * Usta ishni qachon olgani — birinchi «ISH_OLINDI»; `p` aliasi kerak.
+ */
+export function ishOlingan(sql: ReturnType<typeof ulanishOl>) {
+  return sql`(SELECT MIN(a.sana) FROM audit_jurnal a
+              WHERE a.obyekt_turi = 'buyurtma_pozitsiya' AND a.obyekt_id = p.id AND a.amal = 'ISH_OLINDI')`;
+}
+
+/**
  * ⚠️ NAVBATGA KIRGAN VAQT — oxirgi «TASDIQLASH» audit yozuvi, u bo'lmasa
  *    pozitsiya yaratilgan payt (tasdiq kerak bo'lmagan pozitsiya darhol
  *    navbatga tushadi). Olingan vaqt — birinchi «ISH_OLINDI».
  */
 export async function navbatHolati(filialId: number, davr: Davr): Promise<NavbatHolati> {
   const sql = ulanishOl();
-  const kirish = sql`COALESCE((SELECT MAX(a.sana) FROM audit_jurnal a
-                      WHERE a.obyekt_turi = 'buyurtma_pozitsiya' AND a.obyekt_id = p.id
-                        AND a.amal = 'TASDIQLASH'), p.yaratildi)`;
+  const kirish = navbatgaKirish(sql);
   const [hozir, olingan, material] = await Promise.all([
     sql<{ tur: string | null; soni: number; eng_eski: string | null }[]>`
       SELECT t.nom AS tur, COUNT(*)::int AS soni,
@@ -234,10 +250,7 @@ export async function navbatHolati(filialId: number, davr: Davr): Promise<Navbat
                EXTRACT(EPOCH FROM ol.sana - ${kirish}) / 86400 AS kun
         FROM buyurtma_pozitsiya p
         JOIN buyurtma b ON b.id = p.buyurtma_id
-        JOIN LATERAL (
-          SELECT MIN(a.sana) AS sana FROM audit_jurnal a
-          WHERE a.obyekt_turi = 'buyurtma_pozitsiya' AND a.obyekt_id = p.id AND a.amal = 'ISH_OLINDI'
-        ) ol ON ol.sana IS NOT NULL
+        JOIN LATERAL (SELECT ${ishOlingan(sql)} AS sana) ol ON ol.sana IS NOT NULL
         WHERE b.ishlab_chiqaruvchi_filial_id = ${filialId}
           AND ol.sana >= ${davr.boshi} AND ol.sana < ${davr.oxiri}
       )
@@ -287,4 +300,75 @@ export async function navbatHolati(filialId: number, davr: Davr): Promise<Navbat
     engUzunKutishKun: engUzunlar.length === 0 ? null : Math.max(...engUzunlar),
     turlar,
   };
+}
+
+// ─── TZ 11.2 · Xom ma'lumot ───────────────────────────────────────────────
+
+export interface IshlabXomQatori {
+  readonly raqam: string;
+  readonly tur: string | null;
+  readonly eniM: string | null;
+  readonly boyiM: string | null;
+  readonly soni: number;
+  readonly kvM: string;
+  readonly usta: string | null;
+  readonly holat: string;
+  readonly navbatga: Date;
+  readonly olindi: Date | null;
+  readonly tugatildi: Date;
+  /** Navbatda necha kun kutdi (olinmagan bo'lsa `null`) */
+  readonly kutishKun: number | null;
+  /** Olingandan tugatilgunicha, kun */
+  readonly ishKun: number | null;
+}
+
+/** Davrda tugatilgan HAR pozitsiya — usta, kv.m, navbat va ish muddati. */
+export async function ishlabXom(filialId: number, davr: Davr): Promise<IshlabXomQatori[]> {
+  const sql = ulanishOl();
+  const q = await sql<
+    {
+      raqam: string;
+      tur: string | null;
+      eni_m: string | null;
+      boyi_m: string | null;
+      soni: number;
+      kv_m: string;
+      usta: string | null;
+      holat: string;
+      navbatga: Date;
+      olindi: Date | null;
+      tugatildi: Date;
+    }[]
+  >`
+    SELECT b.raqam, t.nom AS tur, p.eni_m::text, p.boyi_m::text, p.soni,
+           (COALESCE(p.eni_m, 0) * COALESCE(p.boyi_m, 0) * p.soni)::numeric(14,2)::text AS kv_m,
+           u.ism AS usta, p.holat,
+           ${navbatgaKirish(sql)} AS navbatga,
+           ${ishOlingan(sql)} AS olindi,
+           p.tugatildi
+    FROM buyurtma_pozitsiya p
+    JOIN buyurtma b ON b.id = p.buyurtma_id
+    LEFT JOIN mahsulot_tur t ON t.id = p.mahsulot_tur_id
+    LEFT JOIN xodim u ON u.id = p.usta_id
+    WHERE b.ishlab_chiqaruvchi_filial_id = ${filialId}
+      AND p.tugatildi >= ${davr.boshi} AND p.tugatildi < ${davr.oxiri}
+      AND p.holat NOT IN ('BEKOR','RAD_ETILGAN')
+    ORDER BY p.tugatildi, p.id
+    LIMIT 50000`;
+  const kun = (a: Date, b: Date): number => Math.max(0, Math.round(((b.getTime() - a.getTime()) / 86_400_000) * 10) / 10);
+  return q.map((r) => ({
+    raqam: r.raqam,
+    tur: r.tur,
+    eniM: r.eni_m,
+    boyiM: r.boyi_m,
+    soni: r.soni,
+    kvM: r.kv_m,
+    usta: r.usta,
+    holat: r.holat,
+    navbatga: r.navbatga,
+    olindi: r.olindi,
+    tugatildi: r.tugatildi,
+    kutishKun: r.olindi === null ? null : kun(r.navbatga, r.olindi),
+    ishKun: r.olindi === null ? null : kun(r.olindi, r.tugatildi),
+  }));
 }

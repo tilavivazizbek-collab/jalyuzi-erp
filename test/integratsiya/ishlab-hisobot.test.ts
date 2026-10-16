@@ -8,6 +8,7 @@ import { ulanishOl } from '@/lib/db';
 import { davrYasa } from '@/lib/domain/hisobot/davr';
 import {
   ishlabChiqarishBraki,
+  ishlabXom,
   kechikkanBuyurtmalar,
   navbatHolati,
   ustaUnumdorligi,
@@ -111,6 +112,15 @@ describe('TZ 11.8 — ishlab chiqarish', () => {
     expect(r).toEqual([
       expect.objectContaining({ buyurtmaId, kechikishKun: 3, ochiqPozitsiya: 4 }) as unknown,
     ]);
+  });
+
+  it('EC-IH-05: xom — davrda tugatilgan pozitsiya, usta va kv.m bilan (TZ 11.2)', async () => {
+    const x = await ishlabXom(filialId, davr());
+    expect(x).toHaveLength(1);
+    expect(x[0]).toMatchObject({ raqam: `B-${BELGI}`, soni: 2, kvM: '6.00', usta: `${BELGI} usta`, olindi: null });
+    // Xom kv.m yig'indisi = unumdorlik jadvalidagi kv.m
+    const u = await ustaUnumdorligi(filialId, davr());
+    expect(x.reduce((y, q) => y + Number(q.kvM), 0).toFixed(2)).toBe(u[0]?.kvM);
   });
 
   it('EC-IH-04: navbat — hozir 1 (5 kunlik), material kutmoqda 1, olingan ish 2 kun kutgan', async () => {
