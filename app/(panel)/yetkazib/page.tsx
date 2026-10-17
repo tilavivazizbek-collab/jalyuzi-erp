@@ -6,6 +6,8 @@ import Decimal from 'decimal.js';
 import { telefonKorsat } from '@/lib/domain/telefon';
 import { dollar, pulKorsat, som } from '@/lib/domain/pul';
 import { yetkazibHolatlari } from './taqsimot';
+import { ModulPanel } from '../modul-panel';
+import { yetkazibPaneli } from './panel';
 import { OchirTugma } from '../ochir-tugma';
 import { OchirilganlarHavolasi, QaytarTugma } from '../ochirilganlar';
 
@@ -98,6 +100,7 @@ export default async function YetkazibRoyxati({
     }
   }
   const matn = (x: { SOM: Decimal; USD: Decimal }) => ({ SOM: x.SOM.toFixed(2), USD: x.USD.toFixed(2) });
+  const panel = await yetkazibPaneli(holatlar);
 
   return (
     <div className="flex flex-col gap-6">
@@ -136,6 +139,9 @@ export default async function YetkazibRoyxati({
           )}
         </div>
       </div>
+
+      {/* TZ 11.11 — holat · bu oy · diqqat */}
+      {!ochirilganlar && <ModulPanel holat={panel.holat} davr={panel.davr} diqqat={panel.diqqat} />}
 
       {!ochirilganlar && (
         <nav className="flex gap-1.5" aria-label="Filtr">

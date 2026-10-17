@@ -3,6 +3,8 @@ import Link from 'next/link';
 import { chegaraBirligi } from '@/lib/domain/birlik-tanlovi';
 import { nolmi, nolSom, pulKorsat, qosh, som, teng } from '@/lib/domain/pul';
 import { sahifaRuxsati } from '@/lib/kirish/joriy';
+import { ModulPanel } from '../modul-panel';
+import { omborPaneli } from './panel';
 import { sahifaKesimi, sahifaRaqami } from '@/lib/domain/sahifa';
 import { Sahifalar } from '../sahifalar';
 import { ruxsatBormi, tannarxniKoradimi, yigindiQamrov } from '@/lib/ruxsat/tekshir';
@@ -100,7 +102,10 @@ export default async function OmborQoldigi({
   const nomi = await filialNomi(f.filialId);
   const filiallar = barchasimi ? await barchaFilialQoldigi() : [];
 
-  const qoldiq = barchasimi ? [] : await filialQoldigi(f.filialId);
+  const [qoldiq, panel] = await Promise.all([
+    barchasimi ? Promise.resolve([]) : filialQoldigi(f.filialId),
+    barchasimi ? Promise.resolve(null) : omborPaneli(f.filialId, pulniKoradi),
+  ]);
   // TZ 7.4 — «qancha» yetarli emas, «nimadan iborat» ham kerak
   const tarkib = barchasimi ? [] : await qoldiqTarkibi(f.filialId);
   /**
@@ -225,6 +230,9 @@ export default async function OmborQoldigi({
           )}
         </div>
       </div>
+
+      {/* TZ 11.11 — holat · bu oy · diqqat; summalar faqat tannarxni ko'radiganga */}
+      {panel !== null && <ModulPanel holat={panel.holat} davr={panel.davr} diqqat={panel.diqqat} />}
 
       {!barchasimi && (
         <div className="flex flex-col gap-3">

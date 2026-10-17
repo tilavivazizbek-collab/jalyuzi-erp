@@ -28,6 +28,8 @@ export const HOLAT_FILTRLARI = {
   avans: 'Avansi bor',
   uxlagan: 'Uzoq vaqt olmagan',
   xaridsiz: 'Hali xarid qilmagan',
+  /** 11.11 — bot orqali eslatma va chek borolmaydi (2026-10-17) */
+  telegramsiz: 'Telegramsiz',
 } as const;
 export type HolatFiltri = keyof typeof HOLAT_FILTRLARI;
 
@@ -189,7 +191,9 @@ export async function mijozlarRoyxati(
                 ? sql`AND r.segment IN ('UXLAGAN', 'YOQOTILGAN')`
                 : f.holat === 'xaridsiz'
                   ? sql`AND r.oxirgi IS NULL`
-                  : sql``
+                  : f.holat === 'telegramsiz'
+                    ? sql`AND r.telegram_id IS NULL`
+                    : sql``
     }`;
 
   const tartib =

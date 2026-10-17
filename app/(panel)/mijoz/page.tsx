@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { ulanishOl } from '@/lib/db';
 import { sahifaRuxsati } from '@/lib/kirish/joriy';
 import { Sahifalar } from '../sahifalar';
+import { ModulPanel } from '../modul-panel';
+import { mijozPaneli } from './panel';
 import { ruxsatBormi } from '@/lib/ruxsat/tekshir';
 import { telefonKorsat } from '@/lib/domain/telefon';
 import { dollar, musbatmi, manfiymi, pulKorsat, som } from '@/lib/domain/pul';
@@ -57,10 +59,11 @@ export default async function MijozRoyxati({
   const filtr = filtrniOqi(sp);
 
   const kurs = await joriyKurs(ulanishOl());
-  const [ochirilgan, natija, tanlov] = await Promise.all([
+  const [ochirilgan, natija, tanlov, panel] = await Promise.all([
     ochirilganSoni(),
     mijozlarRoyxati(filtr, kurs),
     filtrTanlovlari(),
+    mijozPaneli(f.filialId),
   ]);
 
   const sahifalar = Math.max(1, Math.ceil(natija.jamiSoni / SAHIFA_HAJMI));
@@ -117,6 +120,9 @@ export default async function MijozRoyxati({
           )}
         </div>
       </div>
+
+      {/* TZ 11.11 — holat · bu oy · diqqat (filtrsiz, butun baza bo'yicha) */}
+      <ModulPanel holat={panel.holat} davr={panel.davr} diqqat={panel.diqqat} />
 
       {/*
         ⚠️ ODDIY GET FORMA — JavaScript shart emas. Filtr URL da turadi:

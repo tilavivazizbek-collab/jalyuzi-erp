@@ -1,4 +1,6 @@
 import Link from 'next/link';
+import { ModulPanel } from '../modul-panel';
+import { xodimPaneli } from './panel';
 import { sahifaRuxsati } from '@/lib/kirish/joriy';
 import { ruxsatBormi } from '@/lib/ruxsat/tekshir';
 import { telefonKorsat } from '@/lib/domain/telefon';
@@ -28,9 +30,11 @@ export default async function XodimSahifasi({
   const sp = await searchParams;
   const ochirilganlar = sp['ochirilgan'] === '1';
 
-  const [qatorlar, ochirilganSoni] = await Promise.all([
+  const [qatorlar, ochirilganSoni, panel] = await Promise.all([
     xodimRoyxati(ochirilganlar),
     xodimOchirilganSoni(),
+    // TZ 11.11 — sahifa tepasidagi panel
+    xodimPaneli(f.filialId),
   ]);
 
   return (
@@ -56,6 +60,8 @@ export default async function XodimSahifasi({
           )}
         </div>
       </div>
+
+      {!ochirilganlar && <ModulPanel holat={panel.holat} davr={panel.davr} diqqat={panel.diqqat} />}
 
       {qatorlar.length === 0 ? (
         <p className="rounded-karta border border-dashed border-chegara-quyuq px-4 py-8 text-center text-sm text-matn-kuchsiz">
