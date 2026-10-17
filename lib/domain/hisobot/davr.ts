@@ -161,6 +161,25 @@ export function oldingiDavr(d: Davr): Davr {
 }
 
 /**
+ * Oyning BUGUNGACHA qismini o'tgan oyning XUDDI SHU qismi bilan solishtirish
+ * (11.11 panellari, 2026-10-17).
+ *
+ * ⚠️ NEGA `oldingiDavr` EMAS: u o'tgan oyni TO'LIQ beradi (hisobotda bu sana
+ *    bilan yoziladi). Sahifa panelida esa «bu oy» doim bugungacha — 17-oktabr
+ *    to'liq sentabr bilan solishtirilsa har oy o'rtasida soxta «−42%» chiqadi.
+ *
+ * O'tgan oyning boshidan SHU KUN RAQAMIgacha; o'tgan oy qisqa bo'lsa (31-mart →
+ * fevral) uning oxirigacha. Faqat `OY` turi uchun — boshqasi `oldingiDavr`.
+ */
+export function oldingiShuKungacha(d: Davr): Davr {
+  if (d.turi !== 'OY') return oldingiDavr(d);
+  const otgan = oldingiDavr(d);
+  const kunlar = kunlarSoni(d);
+  const oxiri = new Date(otgan.boshi.getFullYear(), otgan.boshi.getMonth(), 1 + kunlar);
+  return { turi: d.turi, boshi: otgan.boshi, oxiri: oxiri < otgan.oxiri ? oxiri : otgan.oxiri };
+}
+
+/**
  * Davrdagi kunlar soni — sarflanish tezligi va o'rtacha kunlik hisoblari uchun
  * (HISOBOTLAR-ISH §3.1 №13).
  *

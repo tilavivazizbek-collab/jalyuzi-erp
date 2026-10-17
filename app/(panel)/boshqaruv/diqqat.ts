@@ -36,48 +36,7 @@ export async function diqqatBandlari(f: Foydalanuvchi): Promise<DiqqatBandi[]> {
   const bandlar: Promise<DiqqatBandi | null>[] = [];
 
   if (ruxsatBormi(f, 'buyurtma.kor')) {
-    bandlar.push(
-      (async () => {
-        const q = await sql<{ n: number; eski: number }[]>`
-          SELECT COUNT(DISTINCT b.id)::int AS n,
-                 COUNT(DISTINCT b.id) FILTER (WHERE p.yaratildi < now() - interval '24 hours')::int AS eski
-          FROM buyurtma b
-          JOIN buyurtma_pozitsiya p ON p.buyurtma_id = b.id AND p.holat = 'TASDIQ_KUTMOQDA'
-          WHERE b.sotgan_filial_id = ${f.filialId}`;
-        const eski = q[0]?.eski ?? 0;
-        return {
-          nom: 'Tasdiq kutayotgan buyurtma',
-          soni: q[0]?.n ?? 0,
-          havola: '/buyurtma?filtr=TASDIQ_KUTMOQDA',
-          xavf: eski > 0,
-          izoh: eski > 0 ? `${String(eski)} tasi 24 soatdan oshgan` : null,
-        };
-      })(),
-      (async () => {
-        const q = await sql<{ n: number }[]>`
-          SELECT COUNT(*)::int AS n FROM buyurtma b
-          WHERE b.sotgan_filial_id = ${f.filialId}
-            AND EXISTS (SELECT 1 FROM buyurtma_pozitsiya x WHERE x.buyurtma_id = b.id AND x.holat <> 'BEKOR')
-            ${muddatiOtganSharti(toshkentKuni())}`;
-        const n = q[0]?.n ?? 0;
-        return { nom: "Muddati o'tgan buyurtma", soni: n, havola: '/buyurtma?filtr=MUDDATI_OTGAN', xavf: n > 0, izoh: null };
-      })(),
-      (async () => {
-        const q = await sql<{ n: number; b: number }[]>`
-          SELECT COUNT(*)::int AS n, COUNT(DISTINCT b.id)::int AS b
-          FROM buyurtma b
-          JOIN buyurtma_pozitsiya p ON p.buyurtma_id = b.id AND p.holat = 'MATERIALGA_KUTMOQDA'
-          WHERE b.sotgan_filial_id = ${f.filialId}`;
-        const n = q[0]?.n ?? 0;
-        return {
-          nom: 'Materialga kutayotgan pozitsiya',
-          soni: n,
-          havola: '/buyurtma?filtr=MATERIALGA_KUTMOQDA',
-          xavf: false,
-          izoh: n > 0 ? `${String(q[0]?.b ?? 0)} ta buyurtmada` : null,
-        };
-      })(),
-    );
+    bandlar.push(...buyurtmaDiqqati(f.filialId));
   }
 
   if (ruxsatBormi(f, 'ombor.qoldiq.kor')) {
@@ -156,4 +115,54 @@ export async function diqqatBandlari(f: Foydalanuvchi): Promise<DiqqatBandi[]> {
   }
 
   return (await Promise.all(bandlar)).filter((b): b is DiqqatBandi => b !== null);
+}
+
+/**
+ * Buyurtma bandlari — dashboard va Buyurtmalar sahifasi paneli (11.11) bir xil
+ * sanasin. Ruxsatni chaqiruvchi tekshiradi.
+ */
+export function buyurtmaDiqqati(filialId: number): Promise<DiqqatBandi>[] {
+  const sql = ulanishOl();
+  return [
+      (async () => {
+        const q = await sql<{ n: number; eski: number }[]>`
+          SELECT COUNT(DISTINCT b.id)::int AS n,
+                 COUNT(DISTINCT b.id) FILTER (WHERE p.yaratildi < now() - interval '24 hours')::int AS eski
+          FROM buyurtma b
+          JOIN buyurtma_pozitsiya p ON p.buyurtma_id = b.id AND p.holat = 'TASDIQ_KUTMOQDA'
+          WHERE b.sotgan_filial_id = ${filialId}`;
+        const eski = q[0]?.eski ?? 0;
+        return {
+          nom: 'Tasdiq kutayotgan buyurtma',
+          soni: q[0]?.n ?? 0,
+          havola: '/buyurtma?filtr=TASDIQ_KUTMOQDA',
+          xavf: eski > 0,
+          izoh: eski > 0 ? `${String(eski)} tasi 24 soatdan oshgan` : null,
+        };
+      })(),
+      (async () => {
+        const q = await sql<{ n: number }[]>`
+          SELECT COUNT(*)::int AS n FROM buyurtma b
+          WHERE b.sotgan_filial_id = ${filialId}
+            AND EXISTS (SELECT 1 FROM buyurtma_pozitsiya x WHERE x.buyurtma_id = b.id AND x.holat <> 'BEKOR')
+            ${muddatiOtganSharti(toshkentKuni())}`;
+        const n = q[0]?.n ?? 0;
+        return { nom: "Muddati o'tgan buyurtma", soni: n, havola: '/buyurtma?filtr=MUDDATI_OTGAN', xavf: n > 0, izoh: null };
+      })(),
+      (async () => {
+        const q = await sql<{ n: number; b: number }[]>`
+          SELECT COUNT(*)::int AS n, COUNT(DISTINCT b.id)::int AS b
+          FROM buyurtma b
+          JOIN buyurtma_pozitsiya p ON p.buyurtma_id = b.id AND p.holat = 'MATERIALGA_KUTMOQDA'
+          WHERE b.sotgan_filial_id = ${filialId}`;
+        const n = q[0]?.n ?? 0;
+        return {
+          nom: 'Materialga kutayotgan pozitsiya',
+          soni: n,
+          havola: '/buyurtma?filtr=MATERIALGA_KUTMOQDA',
+          xavf: false,
+          izoh: n > 0 ? `${String(q[0]?.b ?? 0)} ta buyurtmada` : null,
+        };
+      })(),
+  ];
 }

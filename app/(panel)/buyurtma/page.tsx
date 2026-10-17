@@ -1,4 +1,6 @@
 import Link from 'next/link';
+import { ModulPanel } from '../modul-panel';
+import { buyurtmaPaneli } from './panel';
 import { sahifaRuxsati } from '@/lib/kirish/joriy';
 import { ruxsatBormi } from '@/lib/ruxsat/tekshir';
 import { dollar, pulKorsat, som } from '@/lib/domain/pul';
@@ -76,7 +78,11 @@ export default async function BuyurtmalarRoyxati({
     ? (filtr as BuyurtmaFiltri)
     : 'HAMMASI';
 
-  const royxat = await buyurtmalar(f.filialId, joriy, 100, qidiruv);
+  const [royxat, panel] = await Promise.all([
+    buyurtmalar(f.filialId, joriy, 100, qidiruv),
+    // TZ 11.11 — sahifa tepasidagi panel
+    buyurtmaPaneli(f.filialId),
+  ]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -95,6 +101,8 @@ export default async function BuyurtmalarRoyxati({
           </Link>
         )}
       </div>
+
+      <ModulPanel holat={panel.holat} davr={panel.davr} diqqat={panel.diqqat} />
 
       {/*
         Qidiruv — raqam, mijoz ismi yoki telefon (kamida 3 raqam).

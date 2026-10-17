@@ -15,6 +15,7 @@ import {
   kunBoshi,
   kunlarSoni,
   oldingiDavr,
+  oldingiShuKungacha,
   sanaMatn,
 } from '@/lib/domain/hisobot/davr';
 import { BiznesXato } from '@/lib/xato';
@@ -146,5 +147,24 @@ describe('kunlar soni va ko‘rinish', () => {
   it('kun boshi vaqtni tashlaydi', () => {
     expect(kunBoshi(BUGUN).getHours()).toBe(0);
     expect(kunBoshi(BUGUN).getMinutes()).toBe(0);
+  });
+});
+
+describe('oldingiShuKungacha — panel taqqoslashi (11.11)', () => {
+  it('17-oktabrgacha → 1–17-sentabr', () => {
+    const d = oldingiShuKungacha(davrYasa('OY', new Date(2026, 9, 17, 15)));
+    expect(d.boshi).toEqual(new Date(2026, 8, 1));
+    expect(d.oxiri).toEqual(new Date(2026, 8, 18));
+  });
+
+  it('31-mart → fevral oxirigacha (qisqa oy)', () => {
+    const d = oldingiShuKungacha(davrYasa('OY', new Date(2026, 2, 31, 12)));
+    expect(d.boshi).toEqual(new Date(2026, 1, 1));
+    expect(d.oxiri).toEqual(new Date(2026, 2, 1));
+  });
+
+  it('oy bo‘lmagan davr — oldingiDavr', () => {
+    const h = davrYasa('HAFTA', new Date(2026, 9, 17));
+    expect(oldingiShuKungacha(h)).toEqual(oldingiDavr(h));
   });
 });
