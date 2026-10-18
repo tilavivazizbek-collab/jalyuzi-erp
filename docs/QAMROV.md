@@ -977,22 +977,22 @@ ikki varaqli Excel.
 | Hisobot | Hisob | So'rov | Ekran | Eksport |
 |---|:---:|:---:|:---:|:---:|
 | Davr filtri va taqqoslash (11.1) | ✅ | — | ✅ | — |
-| ABC tahlil — ombor (11.6.2 mexanizmi) | ✅ | ✅ | ✅ | ❌ |
-| Bashorat: tezlik → tugash muddati | ✅ | ✅ | ✅ | ❌ |
-| Ustama eroziyasi (11.7.5) | ✅ | ✅ | ✅ | ❌ |
-| Muzlab qolgan pul (11.7.6) | ✅ | ✅ | ✅ | ❌ |
-| Qoldiq qiymati — jami (11.7.1) | ✅ | ✅ | ✅ | ❌ |
-| Qoldiq — material kesimida (11.7.1) | — | ✅ | ✅ | ❌ |
-| ABC tahlil — mijoz (11.6.2) | ✅ | ✅ | ✅ | ❌ |
-| Material harakati (11.7.2) | — | ✅ | ✅ | ❌ |
-| Kam qolgan va tugagan (11.7.3) | ✅ | ✅ | ✅ | ❌ |
-| Chiqindi va brak (11.7.4) | — | ✅ | ✅ | ❌ |
-| Rulon ochilgan holatlar (11.7.7) | ❌ | ❌ | ❌ | ❌ |
-| Moliya (11.4.1–11.4.7) | ❌ | ❌ | ❌ | ❌ |
-| Sotuv (11.5.1–11.5.6) | — | ✅ | ✅ | ❌ |
-| Mijozlar bazasi (11.6.1) | — | ✅ | ✅ | ❌ |
-| Ishlab chiqarish (11.8.1–11.8.4) — /hisobot/ishlab, hisobot.ishlab.kor (2026-10-15): navbat (hozir, eng eskisi, tur kesimida kutish), kechikkan buyurtmalar, usta unumdorligi (dona, kv.m, tur, hisoblangan haq), brak (zarar, ushlanma, sabab) — EC-IH-01…04 | — | ✅ | ✅ | ❌ |
-| Narx dinamikasi (11.9.1) — /hisobot/taminot (2026-10-15): sarflash birligiga keltirilgan so‘mdagi kelish narxi (bo‘lak snapshoti), materiallar — oxirgi 3 kelish va %, yetkazib beruvchilar — o‘z oldingi kelishiga nisbatan ko‘tardi/tushirdi. 9.8 ham shu narxOzgarishi bilan: asos yoki valyuta boshqa bo‘lsa foiz yo‘q — EC-ND-01…05 | ✅ | ✅ | ✅ | ❌ |
+| ABC tahlil — ombor (11.6.2 mexanizmi) | ✅ | ✅ | ✅ | ✅ |
+| Bashorat: tezlik → tugash muddati | ✅ | ✅ | ✅ | ✅ |
+| Ustama eroziyasi (11.7.5) | ✅ | ✅ | ✅ | ✅ |
+| Muzlab qolgan pul (11.7.6) | ✅ | ✅ | ✅ | ✅ |
+| Qoldiq qiymati — jami (11.7.1) | ✅ | ✅ | ✅ | ✅ |
+| Qoldiq — material kesimida (11.7.1) | — | ✅ | ✅ | ✅ |
+| ABC tahlil — mijoz (11.6.2) | ✅ | ✅ | ✅ | ✅ |
+| Material harakati (11.7.2) | — | ✅ | ✅ | ✅ |
+| Kam qolgan va tugagan (11.7.3) | ✅ | ✅ | ✅ | ✅ |
+| Chiqindi va brak (11.7.4) | — | ✅ | ✅ | ✅ |
+| Rulon ochilgan holatlar (11.7.7) — usta kesma turib rulondan kesgani: RULON_OCHILDI audit yozuvi (ish to'xtamaydi), /hisobot/ombor jadvali (rulonOchilganHolatlar) — rulon-ochildi.test.ts | ✅ | ✅ | ✅ | ✅ |
+| Moliya (11.4.1–11.4.7) — /hisobot/moliya: foyda-zarar (tushum va tannarx sotuv davrida, usta haqi tannarxda, dollar xarajat o'z sanasidagi kurs bilan, kurs farqi alohida), kassa oqimi, pul prognozi, tur bo'yicha foyda — foyda-zarar.test.ts, EC-FZ-01…05 | ✅ | ✅ | ✅ | ✅ |
+| Sotuv (11.5.1–11.5.6) | — | ✅ | ✅ | ✅ |
+| Mijozlar bazasi (11.6.1) | — | ✅ | ✅ | ✅ |
+| Ishlab chiqarish (11.8.1–11.8.4) — /hisobot/ishlab, hisobot.ishlab.kor (2026-10-15): navbat (hozir, eng eskisi, tur kesimida kutish), kechikkan buyurtmalar, usta unumdorligi (dona, kv.m, tur, hisoblangan haq), brak (zarar, ushlanma, sabab) — EC-IH-01…04 | — | ✅ | ✅ | ✅ |
+| Narx dinamikasi (11.9.1) — /hisobot/taminot (2026-10-15): sarflash birligiga keltirilgan so‘mdagi kelish narxi (bo‘lak snapshoti), materiallar — oxirgi 3 kelish va %, yetkazib beruvchilar — o‘z oldingi kelishiga nisbatan ko‘tardi/tushirdi. 9.8 ham shu narxOzgarishi bilan: asos yoki valyuta boshqa bo‘lsa foiz yo‘q — EC-ND-01…05 | ✅ | ✅ | ✅ | ✅ |
 | Dashboard (11.3) — 1-qator (bugun: tushum, kassa, qarz, ochiq buyurtma) va oy rejasi bor edi; 2026-10-17: 2-qator «Diqqat talab qiladi» — 8 band (tasdiq kutmoqda, 24 soatdan oshgani qizil · muddati o'tgan · materialga kutmoqda · kam qolgan · ustamasi past · limitdan oshgan mijoz · yetkazib beruvchiga muddati o'tgan to'lov · ochiq da'vo), har biri ro'yxatning o'z sharti bilan sanaladi va o'sha filtrga olib boradi, ruxsatga qarab — EC-DQ-01/02. 3-qator «Oylik trend» (2026-10-17): oy boshidan yig'ilgan tushum grafigi o'tgan oy bilan (kun raqami bo'yicha, Toshkent kuni; o'tgan oyning SHU KUNIgacha taqqoslash), sof foyda, yetkazib beruvchilarga qarz, top-5 mahsulot, top-5 mijoz — har biri o'z hisobot funksiyasidan, ruxsatga qarab; ranglar validate_palette bilan (grafik-solishtirma tokeni) — EC-TR-01/02 | ✅ | ✅ | ✅ | — |
 | Sahifa ustidagi panellar (11.11) — umumiy ModulPanel (Holat · Bu oy · Diqqat), «bu oy» o'tgan oyning SHU KUNIgacha bilan (oldingiShuKungacha — to'liq oy bilan soxta pasayish berardi). Buyurtmalar (2026-10-17): ochiq · ishlab chiqarilmoqda · tayyor; buyurtma, tushum, o'rtacha chek, qaytarish %; tasdiq kutmoqda, muddati o'tgan, materialga kutmoqda (dashboard bilan bir funksiya), navbatda uzoq turgan — EC-BP-01. Mijozlar: jami, qarz (so'm/$), muddati o'tgan qarz; yangi, o'rtacha chek, takroriy %; limitdan oshgan, muddati o'tgan, uxlagan, Telegramsiz (yangi «telegramsiz» filtri) — EC-MP-01. Ombor: qoldiq qiymati, ostatka, tayyor mahsulot; kirim, sarflangan tannarx, chiqindi; kam, tugagan, ustama past, 6 oy qimirlamagan — summalar faqat tannarxni ko'radiganga — EC-MP-02. Yetkazib beruvchilar: qarzimiz, avans; xarid, brak %; muddati o'tgan, muddati yaqin (7 kun), ochiq da'vo — EC-MP-03. Xodimlar: soni, balans, manfiy; haq, to'langan, ushlanma; manfiy, uzoq to'lanmagan (30+), botsiz, stavkasiz ish — EC-MP-04. Kassa — 12.16 da avvaldan bor. Ochiq: mijozlarda «o'rtacha to'lov muddati» (taqsimot tarixidan hisoblash kerak) | ✅ | ✅ | ✅ | — |
 
