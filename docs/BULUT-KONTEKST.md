@@ -374,6 +374,7 @@ Egasi: «eski ma'lumot kerak emas». Yangi loyiha «wer»:
   Dockerfile — postgresql18-client (da08bfc): pg_dump 17 PG18 dan nusxa ololmaydi.
 - **2026-10-16:** 3d3d655 deploy qilindi (live), 0067 qo'llandi (67 migratsiya),
   db:ruxsat bajarildi (hisobot.ishlab.kor adminga).
+- **2026-10-18:** fca3946 deploy qilindi (live) — modul panellari, mijozlarda «o'rtacha to'lov muddati»; migratsiya 67/67, yangi ruxsat yo'q.
 - ⚠️ Baza Free tarif — **2026-11-13 da o'chadi**; egasiga eslatiladi, tarif o'zgartirilmaydi.
 - Qolgan: cron-job.org (zaxira va boshqa 9 yo'l), eski bot xizmatini to'xtatish.
 
