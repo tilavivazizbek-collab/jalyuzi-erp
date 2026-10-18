@@ -9,6 +9,7 @@ import {
   qarzYoshi,
   qarzniTaqsimla,
   tolovIntizomi,
+  yopilganNasiyaKunlari,
   yoshOraligi,
   type JurnalQatori,
 } from '@/lib/domain/qarz-taqsimot';
@@ -170,5 +171,22 @@ describe('tolovIntizomi', () => {
       tolanganSoni: 1,
       ochiqQarzKun: 30,
     });
+  });
+});
+
+describe('yopilganNasiyaKunlari', () => {
+  it('EC-QRZ-12: davr ichida yopilgan nasiya kunlari; naqd, ochiq va davrdan tashqarisi yo‘q', () => {
+    const t = qarzniTaqsimla([
+      q(0, 'SOTUV', '100000', 1),
+      q(5, 'TOLOV', '-100000'), // 1 — 5-kunda yopildi (davrdan oldin)
+      q(10, 'SOTUV', '50000', 2),
+      q(10, 'TOLOV', '-50000', 2), // 2 — o'sha kuni naqd
+      q(12, 'SOTUV', '80000', 3),
+      q(30, 'TOLOV', '-80000'), // 3 — 18 kunda
+      q(20, 'SOTUV', '40000', 4),
+      q(34, 'TOLOV', '-40000'), // 4 — 14 kunda
+      q(25, 'SOTUV', '70000', 5), // 5 — ochiq
+    ]);
+    expect(yopilganNasiyaKunlari(t.bandlar, kun(8), kun(40))).toEqual([18, 14]);
   });
 });

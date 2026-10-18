@@ -2,14 +2,14 @@
  * TZ 11.11 — Mijozlar sahifasi paneli. 2026-10-17
  *
  *   Holat : jami mijoz · jami qarz (so'm va dollar alohida) · muddati o'tgan qarz
- *   Davr  : yangi mijoz · o'rtacha chek · takroriy mijoz %
+ *   Davr  : yangi mijoz · o'rtacha chek · takroriy mijoz % · o'rtacha to'lov muddati
  *   Diqqat: limitdan oshgan · muddati o'tgan · uxlab qolgan · Telegramsiz
  *
  * ⚠️ Har son ro'yxatning O'Z filtridan (mijozlarRoyxati jamiSoni) — bosilganda
  *    o'sha son chiqadi. Muddati o'tgan — taqsimotdan (muddatiOtganlar, kartochka
  *    bilan bir). Davr — mijozBazasi (Mijozlar hisoboti), o'tgan oyning SHU KUNIgacha.
- * ⚠️ «O'rtacha to'lov muddati» (TZ) hali yo'q: to'lovlarni qarzlarga taqsimlash
- *    tarixidan hisoblash kerak — QAMROV da ochiq.
+ * ⚠️ «O'rtacha to'lov muddati» — shu davrda yopilgan NASIYA buyurtmalar
+ *    (ortachaTolovMuddati; naqd sotuv sanalmaydi). 2026-10-18
  */
 
 import Decimal from 'decimal.js';
@@ -19,7 +19,7 @@ import { davrYasa, oldingiShuKungacha } from '@/lib/domain/hisobot/davr';
 import { dollar, pulKorsat, som } from '@/lib/domain/pul';
 import type { PanelBandi } from '../modul-panel';
 import { mijozBazasi } from '../hisobot/malumot';
-import { filtrniOqi, mijozlarRoyxati, muddatiOtganlar, type HolatFiltri } from './malumot';
+import { filtrniOqi, mijozlarRoyxati, muddatiOtganlar, ortachaTolovMuddati, type HolatFiltri } from './malumot';
 
 const usd = (x: Decimal | string): string | null => {
   const d = new Decimal(x);
@@ -36,7 +36,7 @@ export async function mijozPaneli(filialId: number): Promise<{
   const oldin = oldingiShuKungacha(davr);
   const sanoq = (holat: HolatFiltri) => mijozlarRoyxati(filtrniOqi({ holat }), kurs, 1);
 
-  const [hammasi, qarzdor, limit, uxlagan, telegramsiz, muddat, baza, bazaOldin] = await Promise.all([
+  const [hammasi, qarzdor, limit, uxlagan, telegramsiz, muddat, baza, bazaOldin, tolovKun, tolovKunOldin] = await Promise.all([
     mijozlarRoyxati(filtrniOqi({}), kurs, 1),
     sanoq('qarzdor'),
     sanoq('limit'),
@@ -45,6 +45,8 @@ export async function mijozPaneli(filialId: number): Promise<{
     muddatiOtganlar(),
     mijozBazasi(filialId, davr),
     mijozBazasi(filialId, oldin),
+    ortachaTolovMuddati(davr),
+    ortachaTolovMuddati(oldin),
   ]);
 
   const otgan = [...muddat.values()].reduce(
@@ -58,6 +60,7 @@ export async function mijozPaneli(filialId: number): Promise<{
   const tj = takroriyFoiz(baza);
   const to = takroriyFoiz(bazaOldin);
   const oldinMatn = "o'tgan oyning shu kunigacha";
+  const kunMatn = (k: number | null): string => (k === null ? '—' : `${String(k)} kun`);
 
   return {
     holat: [
@@ -87,6 +90,12 @@ export async function mijozPaneli(filialId: number): Promise<{
         qiymat: tj === null ? '—' : `${tj.toFixed(0)}%`,
         izoh: `${oldinMatn}: ${to === null ? '—' : `${to.toFixed(0)}%`}`,
         havola: '/hisobot/mijoz',
+      },
+      {
+        nom: "O'rtacha to'lov muddati",
+        qiymat: kunMatn(tolovKun.kun),
+        izoh: `${String(tolovKun.soni)} ta nasiya yopildi · ${oldinMatn}: ${kunMatn(tolovKunOldin.kun)}`,
+        havola: '/mijoz/qarzdorlik',
       },
     ],
     diqqat: [

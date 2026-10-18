@@ -356,3 +356,26 @@ export function tolovIntizomi(bandlar: readonly QarzBandi[], bugun: Date): Tolov
     ochiqQarzKun: ochiq,
   };
 }
+
+/**
+ * TZ 11.11 — davr ichida YOPILGAN nasiya buyurtmalarning to'lov kunlari
+ * (Mijozlar paneli «o'rtacha to'lov muddati»). 2026-10-18
+ *
+ * ⚠️ Sotilgan kunida yopilgani (naqd sotuv) SANALMAYDI — u nasiya emas,
+ *    o'rtachani 0 ga tortib, kechikayotgan qarzlarni yashirardi.
+ * ⚠️ Faqat buyurtma bandlari — tolovIntizomi bilan bir sabab.
+ */
+export function yopilganNasiyaKunlari(
+  bandlar: readonly QarzBandi[],
+  boshi: Date,
+  oxiri: Date,
+): number[] {
+  const kunlar: number[] = [];
+  for (const b of bandlar) {
+    if (b.buyurtmaId === null || b.yopildi === null) continue;
+    if (b.yopildi.getTime() < boshi.getTime() || b.yopildi.getTime() >= oxiri.getTime()) continue;
+    const k = kunFarqi(b.sana, b.yopildi);
+    if (k > 0) kunlar.push(k);
+  }
+  return kunlar;
+}

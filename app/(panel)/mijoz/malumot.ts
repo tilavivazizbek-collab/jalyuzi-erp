@@ -16,7 +16,9 @@
  */
 
 import { ulanishOl } from '@/lib/db';
-import { muddatOtganQarz, qarzniTaqsimla } from '@/lib/domain/qarz-taqsimot';
+import { mijozlarJurnali } from '@/lib/amal/tolov-holati';
+import type { Davr } from '@/lib/domain/hisobot/davr';
+import { muddatOtganQarz, qarzniTaqsimla, yopilganNasiyaKunlari } from '@/lib/domain/qarz-taqsimot';
 import { qarzdorlarJurnali } from './qarz-malumot';
 
 export const SAHIFA_HAJMI = 50;
@@ -301,6 +303,25 @@ export async function muddatiOtganlar(
     });
   }
   return natija;
+}
+
+/**
+ * TZ 11.11 — davrda yopilgan nasiya buyurtmalar o'rtacha necha kunda
+ * to'langan. Taqsimot — qarzniTaqsimla (kartochka bilan bir FIFO).
+ * ⚠️ Yopilish faqat davr ichidagi harakat bilan bo'ladi — shuning uchun
+ *    jurnal faqat shu davrda harakati bor mijozlar uchun o'qiladi.
+ */
+export async function ortachaTolovMuddati(d: Davr): Promise<{ kun: number | null; soni: number }> {
+  const sql = ulanishOl();
+  const idlar = await sql<{ mijoz_id: number }[]>`
+    SELECT DISTINCT mijoz_id FROM mijoz_harakat WHERE sana >= ${d.boshi} AND sana < ${d.oxiri}`;
+  const jurnallar = await mijozlarJurnali(sql, idlar.map((r) => r.mijoz_id));
+  const kunlar: number[] = [];
+  for (const j of jurnallar.values()) kunlar.push(...yopilganNasiyaKunlari(qarzniTaqsimla(j).bandlar, d.boshi, d.oxiri));
+  return {
+    kun: kunlar.length === 0 ? null : Math.round(kunlar.reduce((y, k) => y + k, 0) / kunlar.length),
+    soni: kunlar.length,
+  };
 }
 
 export async function ochirilganSoni(): Promise<number> {
