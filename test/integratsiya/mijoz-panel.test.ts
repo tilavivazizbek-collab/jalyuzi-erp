@@ -6,7 +6,12 @@ import { afterAll, describe, expect, it } from 'vitest';
 import { ulanishOl } from '@/lib/db';
 import { joriyKurs } from '@/lib/amal/kurs';
 import { mijozPaneli } from '@/app/(panel)/mijoz/panel';
-import { filtrniOqi, mijozlarRoyxati, muddatiOtganlar, ortachaTolovMuddati } from '@/app/(panel)/mijoz/malumot';
+import {
+  filtrniOqi,
+  mijozlarRoyxati,
+  muddatiOtganlar,
+  ortachaTolovMuddati,
+} from '@/app/(panel)/mijoz/malumot';
 import { sinovUlanishi } from './yordamchi';
 
 afterAll(async () => {
@@ -35,10 +40,20 @@ describe('TZ 11.11 — mijozlar paneli', () => {
 
 describe('TZ 11.11 — o‘rtacha to‘lov muddati', () => {
   it('EC-MP-05: davrda yopilgan nasiya kunlari o‘rtachasi; naqd va ochiq qarz sanalmaydi', async () => {
-    // ⚠️ mijoz_harakat o'zgarmas — yozuv o'chmaydi. Shuning uchun har ishga
-    //    tushish O'Z davrini oladi (1950–1981 oralig'ida), boshqa ma'lumot tushmaydi.
+    // ⚠️ mijoz_harakat o'zgarmas — yozuv o'chmaydi. Shuning uchun test BO'SH
+    //    31 kunlik oynani topib, o'shanga yozadi (1925–1949: 1924 dan oldingi
+    //    Toshkent mahalliy vaqtini postgres.js o'qiy olmaydi).
     const sql = sinovUlanishi();
-    const boshi = Date.UTC(1950, 0, 1) + (Date.now() % 1_000_000_000) * 1000;
+    let boshi = 0;
+    for (let i = 0; i < 20; i++) {
+      boshi = Date.UTC(1925, 0, 1) + Math.floor(Math.random() * 280) * 31 * 86_400_000;
+      const bosh = await ortachaTolovMuddati({
+        turi: 'OY',
+        boshi: new Date(boshi),
+        oxiri: new Date(boshi + 30 * 86_400_000),
+      });
+      if (bosh.soni === 0) break;
+    }
     const kun = (k: number): Date => new Date(boshi + k * 86_400_000);
     const m = await sql<{ id: number }[]>`
       INSERT INTO mijoz (ism, telefon, yaratdi_id)
