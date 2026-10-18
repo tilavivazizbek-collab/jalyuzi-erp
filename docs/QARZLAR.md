@@ -175,7 +175,18 @@ Hozircha ekranda butun son talab qilinadi va SABABI aytiladi
 
 ---
 
-## T-01 · Interfeys oqimlari avtomat sinalmagan
+## T-01 · Interfeys oqimlari avtomat sinalmagan — ✅ YOPILDI (2026-10-18)
+
+`test/brauzer/kirish.test.ts` — `npm run test:brauzer` (EC-BRZ-01…06).
+Tizimdagi Chrome bilan (`playwright-core` 1.63.0, brauzer yuklanmaydi —
+«Nega hozir yopilmadi» dagi to'siq shu bilan yo'qoldi). Sayt sinov bazasi
+bilan oldindan ishga tushiriladi (`vitest.brauzer.config.ts` da buyruq).
+Qoplangani — pastdagi «Qanday yopiladi» ro'yxatining hammasi: kirmagan
+odam `/kirish` ga, to'g'ri parol → panel va sessiya, «Chiqish» sessiyani
+o'ldiradi (eski cookie ham ishlamaydi), xato parol — umumiy xabar,
+5 xatodan keyin blok, usta kirmaydi.
+
+⚠️ `npm test` va `test:baza` ga KIRMAYDI — ishlab turgan sayt kerak.
 
 **Bosqich:** 1 · **Tegadi:** QISM 1 §14.2
 

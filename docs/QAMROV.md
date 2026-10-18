@@ -1100,7 +1100,7 @@ Hozircha ochiq ish **yo'q** — 8-bo'limdagi ikkala band ham 2026-09-05 da yopil
 | «Sarflanish tezligi» hisoboti yiqilardi | Jurnal ishoralari to'g'ri hisobga olindi |
 
 ⚠️ **0031–0036 ISHLAB CHIQARISHGA QO'LLANDI** (2026-09-05, zaxira olingan).
-**0037 esa hali yo'q** — u deploy bilan birga qo'llanadi:
+0037 ham keyinroq qo'llandi (2026-10-18 holatiga ishlab chiqarish bazasida 67/67 migratsiya):
 
 | № | Nima | Sinov bazasida |
 |---|---|:---:|

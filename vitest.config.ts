@@ -11,7 +11,7 @@ export default defineConfig({
     environment: 'node',
     include: ['test/**/*.test.ts'],
     // Integratsiya testlari alohida to'plamda — vitest.baza.config.ts
-    exclude: ['test/integratsiya/**'],
+    exclude: ['test/integratsiya/**', 'test/brauzer/**'],
     // QISM 1 §19 — testlar ham Toshkent vaqtida ishlaydi
     env: {
       TZ: 'Asia/Tashkent',
