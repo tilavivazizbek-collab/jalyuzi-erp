@@ -384,6 +384,8 @@ Yuqoridagi «0057 → 0059 …» tartibi faqat ESKI bazaga tegishli edi.
 
 ## 7. Ochiq savollar — javob kutilmoqda
 
+> ⚠️ 2026-10-18: quyidagi ro'yxat ESKIRGAN — dolzarb ro'yxat `docs/HOLAT.md` (A-qism 4-bo'lim).
+
 Usta stavkasi **yopildi** (2026-09-10): uchala usul qurilgan, egasi har
 mahsulot turi uchun `/stavka` ekranidan tanlaydi.
 
